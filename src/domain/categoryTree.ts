@@ -1,0 +1,267 @@
+import { descendantIds } from './logic'
+import type { Category, CategoryMapping } from './types'
+
+export type DropPosition = 'before' | 'after' | 'inner'
+
+export interface CategoryRow {
+  id: string
+  name: string
+  enabled: boolean
+  depth: number
+  parentId: string | null
+  hasChildren: boolean
+  expanded: boolean
+  childCount: number
+  icon?: string
+}
+
+export function childrenOfParent(categories: Category[], parentId: string | null) {
+  return categories
+    .filter((item) => item.parentId === parentId)
+    .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
+}
+
+export function categoryChain(categories: Category[], id: string) {
+  const byId = new Map(categories.map((item) => [item.id, item]))
+  const chain: Category[] = []
+  const guard = new Set<string>()
+  let current = byId.get(id)
+  while (current && !guard.has(current.id)) {
+    guard.add(current.id)
+    chain.unshift(current)
+    current = current.parentId ? byId.get(current.parentId) : undefined
+  }
+  return chain
+}
+
+/** 只列出已展开节点。搜索时自动带上命中节点的上级路径。 */
+export function visibleCategoryRows(
+  categories: Category[],
+  expandedIds: ReadonlySet<string>,
+  keyword: string,
+  closedIds: ReadonlySet<string> = new Set(),
+): CategoryRow[] {
+  const byParent = new Map<string | null, Category[]>()
+  categories.forEach((item) => {
+    const list = byParent.get(item.parentId) || []
+    list.push(item)
+    byParent.set(item.parentId, list)
+  })
+  byParent.forEach((list) => list.sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id)))
+
+  const kw = keyword.trim().toLowerCase()
+  const visibleIds = new Set<string>()
+  const forceOpen = new Set<string>()
+  if (kw) {
+    categories.forEach((item) => {
+      if (!item.name.toLowerCase().includes(kw)) return
+      const chain = categoryChain(categories, item.id)
+      chain.forEach((node) => visibleIds.add(node.id))
+      chain.slice(0, -1).forEach((node) => forceOpen.add(node.id))
+    })
+  }
+
+  const rows: CategoryRow[] = []
+  const walk = (parentId: string | null, depth: number) => {
+    for (const item of byParent.get(parentId) || []) {
+      if (kw && !visibleIds.has(item.id)) continue
+      const kids = byParent.get(item.id) || []
+      const expanded = kids.length > 0 && !closedIds.has(item.id) && (forceOpen.has(item.id) || expandedIds.has(item.id))
+      rows.push({
+        id: item.id,
+        name: item.name,
+        enabled: item.enabled !== false,
+        depth,
+        parentId: item.parentId,
+        hasChildren: kids.length > 0,
+        expanded,
+        childCount: kids.length,
+        icon: item.icon,
+      })
+      if (expanded) walk(item.id, depth + 1)
+    }
+  }
+  walk(null, 0)
+  return rows
+}
+
+export function branchIds(categories: Category[]) {
+  const parents = new Set(categories.map((item) => item.parentId).filter((id): id is string => Boolean(id)))
+  return categories.filter((item) => parents.has(item.id)).map((item) => item.id)
+}
+
+export function subtreeCounts(categories: { id: string; parentId: string | null }[], rows: { categoryId: string }[]) {
+  const children = new Map<string, string[]>()
+  categories.forEach((item) => {
+    if (!item.parentId) return
+    const list = children.get(item.parentId) || []
+    list.push(item.id)
+    children.set(item.parentId, list)
+  })
+  const direct = new Map<string, number>()
+  rows.forEach((row) => {
+    if (!row.categoryId) return
+    direct.set(row.categoryId, (direct.get(row.categoryId) || 0) + 1)
+  })
+  const memo = new Map<string, number>()
+  const walk = (id: string, stack: Set<string>): number => {
+    if (stack.has(id)) return 0
+    const cached = memo.get(id)
+    if (cached !== undefined) return cached
+    stack.add(id)
+    let total = direct.get(id) || 0
+    for (const child of children.get(id) || []) total += walk(child, stack)
+    stack.delete(id)
+    memo.set(id, total)
+    return total
+  }
+  categories.forEach((item) => walk(item.id, new Set()))
+  return memo
+}
+
+export function categoryRemovalBlock(categories: { id: string; parentId: string | null }[], familyCategoryIds: string[], id: string) {
+  if (categories.some((item) => item.parentId === id)) return '请先删除子分类。'
+  if (familyCategoryIds.includes(id)) return '分类下还有商品，不能删除。'
+  return ''
+}
+
+function clearDerived(category: Category) {
+  delete category.level
+  delete category.path
+}
+
+export function resequence(categories: Category[], parentId: string | null) {
+  childrenOfParent(categories, parentId).forEach((item, index) => {
+    item.sort = index + 1
+  })
+}
+
+export function relocateBlockMessage(categories: Category[], id: string, targetId: string, position: DropPosition) {
+  if (id === targetId) return '不能移动到自己下面'
+  const category = categories.find((item) => item.id === id)
+  const target = categories.find((item) => item.id === targetId)
+  if (!category || !target) return '分类不存在'
+  const descendants = new Set(descendantIds(categories, id))
+  if (descendants.has(targetId)) return '不能移动到自己的子分类下面'
+  const nextParentId = position === 'inner' ? targetId : target.parentId
+  if (nextParentId === id || (nextParentId && descendants.has(nextParentId))) return '不能移动到自己的子分类下面'
+  return ''
+}
+
+export function relocateCategoryNodes(categories: Category[], id: string, targetId: string, position: DropPosition) {
+  const message = relocateBlockMessage(categories, id, targetId, position)
+  if (message) return message
+  const category = categories.find((item) => item.id === id)
+  const target = categories.find((item) => item.id === targetId)
+  if (!category || !target) return '分类不存在'
+  const nextParentId = position === 'inner' ? targetId : target.parentId
+  const oldParentId = category.parentId
+  category.parentId = nextParentId
+  clearDerived(category)
+  const siblings = categories.filter((item) => item.parentId === nextParentId && item.id !== id).sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
+  if (position === 'inner') siblings.push(category)
+  else {
+    const index = siblings.findIndex((item) => item.id === targetId)
+    siblings.splice(Math.max(0, position === 'before' ? index : index + 1), 0, category)
+  }
+  siblings.forEach((item, index) => {
+    item.sort = index + 1
+  })
+  if (oldParentId !== nextParentId) resequence(categories, oldParentId)
+  return ''
+}
+
+export function moveCategoryNode(categories: Category[], id: string, parentId: string | null) {
+  if (id === parentId) return '不能移动到自己下面'
+  if (parentId && descendantIds(categories, id).includes(parentId)) return '不能移动到自己的子分类下面'
+  const category = categories.find((item) => item.id === id)
+  if (!category) return '分类不存在'
+  if (parentId && !categories.some((item) => item.id === parentId)) return '父分类不存在'
+  if (category.parentId === parentId) return ''
+  const oldParentId = category.parentId
+  category.parentId = parentId
+  clearDerived(category)
+  const maxSort = categories.filter((item) => item.parentId === parentId && item.id !== id).reduce((max, item) => Math.max(max, item.sort), 0)
+  category.sort = maxSort + 1
+  resequence(categories, oldParentId)
+  resequence(categories, parentId)
+  return ''
+}
+
+export function shiftCategoryNode(categories: Category[], id: string, direction: -1 | 1) {
+  const category = categories.find((item) => item.id === id)
+  if (!category) return
+  const siblings = childrenOfParent(categories, category.parentId)
+  const index = siblings.findIndex((item) => item.id === id)
+  const target = index + direction
+  if (index < 0 || target < 0 || target >= siblings.length) return
+  const [item] = siblings.splice(index, 1)
+  if (!item) return
+  siblings.splice(target, 0, item)
+  siblings.forEach((row, rowIndex) => {
+    row.sort = rowIndex + 1
+  })
+}
+
+export function updateCategoryNode(
+  categories: Category[],
+  id: string,
+  patch: { name: string; enabled: boolean; sort: number; parentId: string | null; icon?: string },
+) {
+  const category = categories.find((item) => item.id === id)
+  if (!category) return '分类不存在'
+  const name = patch.name.trim()
+  if (!name) return '请填写分类名称'
+  if ((patch.parentId || null) !== (category.parentId || null)) {
+    const message = moveCategoryNode(categories, id, patch.parentId)
+    if (message) return message
+  }
+  category.name = name
+  category.enabled = patch.enabled
+  const icon = patch.icon?.trim() || ''
+  if (icon) category.icon = icon.slice(0, 8)
+  else delete category.icon
+  const siblings = childrenOfParent(categories, category.parentId).filter((item) => item.id !== id)
+  const index = Math.max(0, Math.min(siblings.length, (Number.isFinite(patch.sort) ? Math.round(patch.sort) : siblings.length + 1) - 1))
+  siblings.splice(index, 0, category)
+  siblings.forEach((item, rowIndex) => {
+    item.sort = rowIndex + 1
+  })
+  return ''
+}
+
+function copyName(names: Set<string>, base: string) {
+  let name = `${base}(复制)`
+  let index = 2
+  while (names.has(name)) {
+    name = `${base}(复制${index})`
+    index += 1
+  }
+  return name
+}
+
+/** 复制名称和子分类，并复制属性方案绑定。不复制商品。 */
+export function planCategoryCopy(categories: Category[], mappings: CategoryMapping[], id: string, nextId: () => string) {
+  const source = categories.find((item) => item.id === id)
+  if (!source) return null
+  const ids = [id, ...descendantIds(categories, id)]
+  const idMap = new Map<string, string>()
+  ids.forEach((oldId) => idMap.set(oldId, nextId()))
+  const siblingNames = new Set(categories.filter((item) => item.parentId === source.parentId).map((item) => item.name))
+  const maxSort = categories.filter((item) => item.parentId === source.parentId).reduce((max, item) => Math.max(max, item.sort), 0)
+  const clones: Category[] = ids.map((oldId) => {
+    const node = categories.find((item) => item.id === oldId)!
+    const isRoot = oldId === id
+    const clone: Category = {
+      id: idMap.get(oldId)!,
+      name: isRoot ? copyName(siblingNames, source.name) : node.name,
+      parentId: isRoot ? source.parentId : node.parentId ? idMap.get(node.parentId) || null : null,
+      sort: isRoot ? maxSort + 1 : node.sort,
+      enabled: node.enabled !== false,
+    }
+    if (node.icon) clone.icon = node.icon
+    return clone
+  })
+  const mappingClones = mappings.filter((item) => idMap.has(item.categoryId)).map((item) => ({ categoryId: idMap.get(item.categoryId)!, templateId: item.templateId }))
+  return { categories: clones, mappings: mappingClones, rootId: idMap.get(id)! }
+}
