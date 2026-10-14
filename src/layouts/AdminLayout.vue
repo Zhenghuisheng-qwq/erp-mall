@@ -79,6 +79,7 @@ import { computed, markRaw, nextTick, ref, watch } from 'vue'
 import type { Component } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCatalogStore } from '../stores/catalog'
+import { useActivityStore, useMaterialStore, useProductPlanStore } from '../stores/product-v3'
 import type { UserRole } from '../domain/types'
 
 const COLLAPSE_KEY = 'iyge-v2-sider-collapsed'
@@ -99,6 +100,12 @@ const MENU: MenuGroup[] = [
         key: 'manage',
         title: '商品管理',
         items: [
+          { index: '/product-plan-dashboard', title: '商品规划看板' },
+          { index: '/product-plan', title: '商品规划' },
+          { index: '/sku-plan-preview', title: 'SKU规划预览' },
+          { index: '/material', title: '物料档案' },
+          { index: '/material-rule', title: '描述规则' },
+          { index: '/compatibility', title: '兼容关系' },
           { index: '/products', title: '商品列表' },
           { index: '/import', title: '商品导入导出' },
           { index: '/categories', title: '商品分类中心' },
@@ -160,6 +167,9 @@ const MENU: MenuGroup[] = [
 ]
 
 const store = useCatalogStore()
+const planStore = useProductPlanStore()
+const materialStore = useMaterialStore()
+const activityStore = useActivityStore()
 const route = useRoute()
 const fileRef = ref<HTMLInputElement>()
 const menuRef = ref<{ open: (index: string) => void }>()
@@ -167,6 +177,11 @@ const collapsed = ref(localStorage.getItem(COLLAPSE_KEY) === '1')
 const title = computed(() => String(route.meta.title || '商品配置'))
 const active = computed(() => {
   if (route.path === '/products' && route.query.panel === 'columns') return '/products?panel=columns'
+  if (route.path.startsWith('/product-plan-dashboard')) return '/product-plan-dashboard'
+  if (route.path.startsWith('/material-rule')) return '/material-rule'
+  if (route.path.startsWith('/material')) return '/material'
+  if (route.path.startsWith('/compatibility')) return '/compatibility'
+  if (route.path.startsWith('/product-plan')) return '/product-plan'
   if (route.path.startsWith('/products')) return '/products'
   if (route.path.startsWith('/specs')) return '/specs'
   return route.path || '/'
@@ -309,9 +324,32 @@ const moduleOf = computed(() => {
 async function resetAll() {
   await ElMessageBox.confirm('全部演示数据会恢复到初始样例，本机改过的内容会丢掉。', '重置全部')
   store.resetAll()
+  planStore.resetAll()
+  materialStore.resetAll()
+  activityStore.resetAll()
   ElMessage.success('已恢复预设演示数据')
 }
 async function resetCurrent() {
+  if (route.path.startsWith('/product-plan-dashboard')) {
+    await ElMessageBox.confirm('商品规划、物料和兼容会一起恢复到演示样例。', '重置当前模块')
+    planStore.resetAll()
+    materialStore.resetAll()
+    activityStore.resetAll()
+    ElMessage.success('商品规划演示已恢复')
+    return
+  }
+  if (route.path.startsWith('/product-plan') || route.path.startsWith('/sku-plan-preview')) {
+    await ElMessageBox.confirm('只恢复商品规划的预设数据。', '重置当前模块')
+    planStore.resetAll()
+    ElMessage.success('商品规划已恢复')
+    return
+  }
+  if (route.path.startsWith('/material') || route.path.startsWith('/compatibility')) {
+    await ElMessageBox.confirm('只恢复物料、描述规则和兼容关系的预设数据。', '重置当前模块')
+    materialStore.resetAll()
+    ElMessage.success('物料档案已恢复')
+    return
+  }
   await ElMessageBox.confirm('只恢复当前这一块的预设数据。', '重置当前模块')
   store.resetModule(moduleOf.value)
   ElMessage.success('当前模块已恢复')
