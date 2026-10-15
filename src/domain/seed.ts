@@ -39,25 +39,335 @@ export function emptyQuery(): ListQuery {
 export function phoneSpecNodes(): ProductSpecNode[] {
   const nodes: ProductSpecNode[] = [
     { id: 'sn-brand', templateId: 't-phone', parentId: null, nodeType: 'ATTRIBUTE', attributeId: 'p-brand', valueId: '', sort: 1, role: 'COMMON' },
-    { id: 'sn-apple', templateId: 't-phone', parentId: 'sn-brand', nodeType: 'VALUE', attributeId: 'p-brand', valueId: 'Apple', sort: 1 },
-    { id: 'sn-model', templateId: 't-phone', parentId: 'sn-apple', nodeType: 'ATTRIBUTE', attributeId: 'p-model', valueId: '', sort: 1, role: 'COMMON' },
-    { id: 'sn-ip17', templateId: 't-phone', parentId: 'sn-model', nodeType: 'VALUE', attributeId: 'p-model', valueId: 'iPhone 17', sort: 1 },
-    { id: 'sn-cap', templateId: 't-phone', parentId: 'sn-ip17', nodeType: 'ATTRIBUTE', attributeId: 'p-cap', valueId: '', sort: 1, role: 'VARIANT' },
-    { id: 'sn-128', templateId: 't-phone', parentId: 'sn-cap', nodeType: 'VALUE', attributeId: 'p-cap', valueId: '128G', sort: 1 },
-    { id: 'sn-color-128', templateId: 't-phone', parentId: 'sn-128', nodeType: 'ATTRIBUTE', attributeId: 'p-color', valueId: '', sort: 1, role: 'VARIANT' },
-    { id: 'sn-black-128', templateId: 't-phone', parentId: 'sn-color-128', nodeType: 'VALUE', attributeId: 'p-color', valueId: '黑色', sort: 1 },
-    { id: 'sn-white-128', templateId: 't-phone', parentId: 'sn-color-128', nodeType: 'VALUE', attributeId: 'p-color', valueId: '白色', sort: 2 },
-    { id: 'sn-256', templateId: 't-phone', parentId: 'sn-cap', nodeType: 'VALUE', attributeId: 'p-cap', valueId: '256G', sort: 2 },
-    { id: 'sn-color', templateId: 't-phone', parentId: 'sn-256', nodeType: 'ATTRIBUTE', attributeId: 'p-color', valueId: '', sort: 1, role: 'VARIANT' },
-    { id: 'sn-black', templateId: 't-phone', parentId: 'sn-color', nodeType: 'VALUE', attributeId: 'p-color', valueId: '黑色', sort: 1 },
-    { id: 'sn-white', templateId: 't-phone', parentId: 'sn-color', nodeType: 'VALUE', attributeId: 'p-color', valueId: '白色', sort: 2 },
+    { id: 'sn-brand-apple', templateId: 't-phone', parentId: 'sn-brand', nodeType: 'VALUE', attributeId: 'p-brand', valueId: 'Apple', sort: 1 },
+    { id: 'sn-brand-huawei', templateId: 't-phone', parentId: 'sn-brand', nodeType: 'VALUE', attributeId: 'p-brand', valueId: '华为', sort: 2 },
+    { id: 'sn-series', templateId: 't-phone', parentId: null, nodeType: 'ATTRIBUTE', attributeId: 'p-series', valueId: '', sort: 2, role: 'COMMON' },
+    { id: 'sn-series-iphone', templateId: 't-phone', parentId: 'sn-series', nodeType: 'VALUE', attributeId: 'p-series', valueId: 'iPhone', sort: 1 },
+    { id: 'sn-series-mate', templateId: 't-phone', parentId: 'sn-series', nodeType: 'VALUE', attributeId: 'p-series', valueId: 'Mate', sort: 2 },
+    { id: 'sn-color', templateId: 't-phone', parentId: null, nodeType: 'ATTRIBUTE', attributeId: 'p-color', valueId: '', sort: 3, role: 'VARIANT' },
+    { id: 'sn-color-black', templateId: 't-phone', parentId: 'sn-color', nodeType: 'VALUE', attributeId: 'p-color', valueId: '黑色', sort: 1 },
+    { id: 'sn-color-white', templateId: 't-phone', parentId: 'sn-color', nodeType: 'VALUE', attributeId: 'p-color', valueId: '白色', sort: 2 },
+    { id: 'sn-cap', templateId: 't-phone', parentId: null, nodeType: 'ATTRIBUTE', attributeId: 'p-cap', valueId: '', sort: 4, role: 'VARIANT' },
+    { id: 'sn-cap-128', templateId: 't-phone', parentId: 'sn-cap', nodeType: 'VALUE', attributeId: 'p-cap', valueId: '128G', sort: 1 },
+    { id: 'sn-cap-256', templateId: 't-phone', parentId: 'sn-cap', nodeType: 'VALUE', attributeId: 'p-cap', valueId: '256G', sort: 2 },
   ]
   arrangeSpecPositions(nodes)
   return nodes
 }
 
 export function phoneCanvas(): AppData['specCanvases'][number] {
-  return { templateId: 't-phone', zoom: 1, panX: 0, panY: 0, status: 'published', version: 1, versionName: 'V1', direction: 'ltr' }
+  return { templateId: 't-phone', productTypeId: 'pt-phone', name: '手机模型 V1', zoom: 1, panX: 0, panY: 0, status: 'published', version: 1, versionName: 'V1', direction: 'logic', updatedAt: now }
+}
+
+export function ebikeSpecNodes(): ProductSpecNode[] {
+  const nodes: ProductSpecNode[] = [
+    { id: 'sn-ebike-model', templateId: 't-ebike', parentId: null, nodeType: 'ATTRIBUTE', attributeId: 'p-ebike-model', valueId: '', sort: 1, role: 'COMMON' },
+    { id: 'sn-ebike-city', templateId: 't-ebike', parentId: 'sn-ebike-model', nodeType: 'VALUE', attributeId: 'p-ebike-model', valueId: '都市款', sort: 1 },
+    { id: 'sn-ebike-bat', templateId: 't-ebike', parentId: 'sn-ebike-city', nodeType: 'ATTRIBUTE', attributeId: 'p-ebike-battery', valueId: '', sort: 1, role: 'VARIANT' },
+    { id: 'sn-ebike-12', templateId: 't-ebike', parentId: 'sn-ebike-bat', nodeType: 'VALUE', attributeId: 'p-ebike-battery', valueId: '48V12Ah', sort: 1 },
+    { id: 'sn-ebike-color-12', templateId: 't-ebike', parentId: 'sn-ebike-12', nodeType: 'ATTRIBUTE', attributeId: 'p-ebike-color', valueId: '', sort: 1, role: 'VARIANT' },
+    { id: 'sn-ebike-12-black', templateId: 't-ebike', parentId: 'sn-ebike-color-12', nodeType: 'VALUE', attributeId: 'p-ebike-color', valueId: '黑色', sort: 1 },
+    { id: 'sn-ebike-12-white', templateId: 't-ebike', parentId: 'sn-ebike-color-12', nodeType: 'VALUE', attributeId: 'p-ebike-color', valueId: '白色', sort: 2 },
+    { id: 'sn-ebike-20', templateId: 't-ebike', parentId: 'sn-ebike-bat', nodeType: 'VALUE', attributeId: 'p-ebike-battery', valueId: '48V20Ah', sort: 2 },
+    { id: 'sn-ebike-color-20', templateId: 't-ebike', parentId: 'sn-ebike-20', nodeType: 'ATTRIBUTE', attributeId: 'p-ebike-color', valueId: '', sort: 1, role: 'VARIANT' },
+    { id: 'sn-ebike-20-gray', templateId: 't-ebike', parentId: 'sn-ebike-color-20', nodeType: 'VALUE', attributeId: 'p-ebike-color', valueId: '灰色', sort: 1 },
+    { id: 'sn-ebike-long', templateId: 't-ebike', parentId: 'sn-ebike-model', nodeType: 'VALUE', attributeId: 'p-ebike-model', valueId: '长续航款', sort: 2 },
+    { id: 'sn-ebike-long-bat', templateId: 't-ebike', parentId: 'sn-ebike-long', nodeType: 'ATTRIBUTE', attributeId: 'p-ebike-battery', valueId: '', sort: 1, role: 'VARIANT' },
+    { id: 'sn-ebike-long-20', templateId: 't-ebike', parentId: 'sn-ebike-long-bat', nodeType: 'VALUE', attributeId: 'p-ebike-battery', valueId: '48V20Ah', sort: 1 },
+    { id: 'sn-ebike-long-color', templateId: 't-ebike', parentId: 'sn-ebike-long-20', nodeType: 'ATTRIBUTE', attributeId: 'p-ebike-color', valueId: '', sort: 1, role: 'VARIANT' },
+    { id: 'sn-ebike-long-black', templateId: 't-ebike', parentId: 'sn-ebike-long-color', nodeType: 'VALUE', attributeId: 'p-ebike-color', valueId: '黑色', sort: 1 },
+    { id: 'sn-ebike-long-gray', templateId: 't-ebike', parentId: 'sn-ebike-long-color', nodeType: 'VALUE', attributeId: 'p-ebike-color', valueId: '灰色', sort: 2 },
+  ]
+  arrangeSpecPositions(nodes)
+  return nodes
+}
+
+/** 只在缺少电助力车模型时补演示数据，不覆盖已有商品、规划和模型。 */
+export function appendEbikeDemo(data: AppData) {
+  if (data.templates.some((item) => item.id === 't-ebike')) return false
+  if (!data.categories.some((item) => item.id === 'c-ride')) {
+    data.categories.push({ id: 'c-ride', name: '出行', parentId: null, sort: 3, enabled: true })
+  }
+  if (!data.categories.some((item) => item.id === 'c-ebike')) {
+    data.categories.push({ id: 'c-ebike', name: '电助力车', parentId: 'c-ride', sort: 1, enabled: true })
+  }
+  if (!data.productTypes.some((item) => item.id === 'pt-ebike')) {
+    data.productTypes.push({ id: 'pt-ebike', name: '电助力车', categoryId: 'c-ebike', status: 'enabled', sort: 1, description: '演示多层规格路径' })
+  }
+  data.templates.push({ id: 't-ebike', name: '电助力车', parentId: null, enabled: true, structureOrder: ['p-ebike-model', 'p-ebike-battery', 'p-ebike-color'] })
+  const params = [
+    { id: 'p-ebike-model', name: '车型', values: ['都市款', '长续航款'], valueGroups: [], participateInStructure: true },
+    { id: 'p-ebike-battery', name: '电池', values: ['48V12Ah', '48V20Ah'], valueGroups: [], participateInStructure: true },
+    { id: 'p-ebike-color', name: '车身颜色', values: ['黑色', '白色', '灰色'], valueGroups: [], participateInStructure: true },
+  ]
+  params.forEach((item) => {
+    if (!data.params.some((param) => param.id === item.id)) data.params.push(item)
+  })
+  data.templateParams.push(...assign('t-ebike', [
+    ['p-ebike-model', 'common', true],
+    ['p-ebike-battery', 'variant', true],
+    ['p-ebike-color', 'variant', true],
+  ]))
+  if (!data.mappings.some((item) => item.templateId === 't-ebike')) data.mappings.push({ templateId: 't-ebike', categoryId: 'c-ebike' })
+  const nodes = ebikeSpecNodes()
+  data.productSpecNodes.push(...nodes)
+  data.specCanvases.push({ templateId: 't-ebike', productTypeId: 'pt-ebike', name: '电助力车模型', zoom: 1, panX: 0, panY: 0, status: 'published', version: 1, versionName: 'V1', direction: 'logic', updatedAt: now })
+  data.specModelVersions.push({ id: 'ebike-model-v1', templateId: 't-ebike', version: 1, versionName: 'V1', status: 'published', nodesSnapshot: nodes.map((item) => ({ ...item })), createdTime: now, publishTime: now })
+  if (!data.productPlans.some((item) => item.id === 'plan-ebike-city')) {
+    data.productPlans.push({ id: 'plan-ebike-city', productModelId: 't-ebike', productTypeId: 'pt-ebike', modelVersionId: 'ebike-model-v1', name: '都市款', status: 'saved', selectedNodes: ['sn-ebike-city'], createdTime: now })
+  }
+  if (!data.families.some((item) => item.id === 'f-ebike')) {
+    data.families.push({
+      id: 'f-ebike',
+      name: '都市款',
+      templateId: 't-ebike',
+      productModelId: 't-ebike',
+      modelVersionId: 'ebike-model-v1',
+      productTypeId: 'pt-ebike',
+      productPlanId: 'plan-ebike-city',
+      categoryId: 'c-ebike',
+      oaProductId: '',
+      commonAttrs: { 车型: '都市款' },
+      productGroupIds: [],
+      lifecycle: 'ready',
+      shelfStatus: 'online',
+      createdAt: now,
+      origin: 'sample',
+      updatedAt: now,
+    })
+    data.skus.push(
+      { id: 's-ebike-12-black', familyId: 'f-ebike', code: '', oaSkuId: '', status: 'on_sale', variantAttrs: { 电池: '48V12Ah', 车身颜色: '黑色' }, projectedAttrs: { 车型: '都市款', 电池: '48V12Ah', 车身颜色: '黑色' }, skuName: '48V12Ah 黑色', sourceNodeIds: ['sn-ebike-12', 'sn-ebike-12-black'] },
+      { id: 's-ebike-12-white', familyId: 'f-ebike', code: '', oaSkuId: '', status: 'on_sale', variantAttrs: { 电池: '48V12Ah', 车身颜色: '白色' }, projectedAttrs: { 车型: '都市款', 电池: '48V12Ah', 车身颜色: '白色' }, skuName: '48V12Ah 白色', sourceNodeIds: ['sn-ebike-12', 'sn-ebike-12-white'] },
+      { id: 's-ebike-20-gray', familyId: 'f-ebike', code: '', oaSkuId: '', status: 'on_sale', variantAttrs: { 电池: '48V20Ah', 车身颜色: '灰色' }, projectedAttrs: { 车型: '都市款', 电池: '48V20Ah', 车身颜色: '灰色' }, skuName: '48V20Ah 灰色', sourceNodeIds: ['sn-ebike-20', 'sn-ebike-20-gray'] },
+    )
+  }
+  return true
+}
+
+/** 只校正保护壳这条演示数据，让分类和产品类型不再同名。 */
+export function alignCaseDemo(data: AppData) {
+  let changed = false
+  const phoneAcc = data.categories.find((item) => item.id === 'c-phone-acc')
+  if (phoneAcc && phoneAcc.parentId !== null) {
+    phoneAcc.parentId = null
+    phoneAcc.sort = 3
+    changed = true
+  }
+  const caseCategory = data.categories.find((item) => item.id === 'c-case')
+  if (caseCategory && caseCategory.parentId !== 'c-phone-acc') {
+    caseCategory.parentId = 'c-phone-acc'
+    caseCategory.sort = 1
+    changed = true
+  }
+  const caseType = data.productTypes?.find((item) => item.id === 'pt-case')
+  if (caseType) {
+    if (caseType.name !== '手机保护壳') {
+      caseType.name = '手机保护壳'
+      changed = true
+    }
+    if (caseType.categoryId !== 'c-case') {
+      caseType.categoryId = 'c-case'
+      changed = true
+    }
+  }
+  if (caseType && data.productTypes.some((item) => item.categoryId === 'c-case' && item.id !== 'pt-case' && (item.id === 'pt-leaf-c-case' || item.name === '保护壳'))) {
+    data.productTypes = data.productTypes.filter((item) => !(item.categoryId === 'c-case' && item.id !== 'pt-case' && (item.id === 'pt-leaf-c-case' || item.name === '保护壳')))
+    changed = true
+  }
+  const template = data.templates.find((item) => item.id === 't-case-model')
+  if (template && template.name !== '手机保护壳模型') {
+    template.name = '手机保护壳模型'
+    changed = true
+  }
+  const canvas = data.specCanvases.find((item) => item.templateId === 't-case-model')
+  if (canvas && canvas.name !== '手机保护壳模型') {
+    canvas.name = '手机保护壳模型'
+    changed = true
+  }
+  return changed
+}
+
+export function ensureLeafProductTypes(data: AppData) {
+  const parentIds = new Set(data.categories.map((item) => item.parentId).filter((id): id is string => Boolean(id)))
+  let changed = false
+  data.categories.forEach((category) => {
+    if (parentIds.has(category.id)) return
+    if (data.productTypes.some((item) => item.categoryId === category.id)) return
+    data.productTypes.push({ id: `pt-leaf-${category.id}`, name: category.name, categoryId: category.id, status: 'enabled', sort: 1, description: '' })
+    changed = true
+  })
+  return changed
+}
+
+const KEPT_TEMPLATES = new Set(['t-host', 't-phone', 't-pad', 't-pc', 't-watch', 't-acc', 't-film', 't-case-model', 't-ebike'])
+
+function isJunkLabel(name: string) {
+  const text = name.trim()
+  if (!text) return false
+  if (/^test$/i.test(text)) return true
+  if (text.toLowerCase().includes('test')) return true
+  if (text.includes('测试')) return true
+  if (/^新属性\d*$/.test(text)) return true
+  if (/^新节点/.test(text)) return true
+  if (/^新值\d*$/.test(text)) return true
+  if (text === '未绑定' || text === '未绑定属性') return true
+  return false
+}
+
+function modelHasProducts(data: AppData, templateId: string) {
+  return data.families.some((item) => item.templateId === templateId || item.productModelId === templateId)
+}
+
+function detachModel(data: AppData, templateId: string) {
+  data.templates = data.templates.filter((item) => item.id !== templateId)
+  data.templateParams = data.templateParams.filter((item) => item.templateId !== templateId)
+  data.mappings = data.mappings.filter((item) => item.templateId !== templateId)
+  data.productSpecNodes = data.productSpecNodes.filter((item) => item.templateId !== templateId)
+  data.specCanvases = data.specCanvases.filter((item) => item.templateId !== templateId)
+  data.specModelVersions = data.specModelVersions.filter((item) => item.templateId !== templateId)
+  data.rules = (data.rules || []).filter((item) => item.templateId !== templateId)
+  if (Array.isArray(data.productPlans)) data.productPlans = data.productPlans.filter((item) => item.productModelId !== templateId)
+}
+
+function dropNodeTree(data: AppData, rootId: string) {
+  const drop = new Set<string>()
+  const walk = (id: string) => {
+    drop.add(id)
+    data.productSpecNodes.filter((item) => item.parentId === id).forEach((item) => walk(item.id))
+  }
+  walk(rootId)
+  data.productSpecNodes = data.productSpecNodes.filter((item) => !drop.has(item.id))
+}
+
+function ensureParamValues(data: AppData, id: string, values: string[]) {
+  const param = data.params.find((item) => item.id === id)
+  if (!param) return false
+  let changed = false
+  values.forEach((value) => {
+    if (param.values.includes(value)) return
+    param.values.push(value)
+    changed = true
+  })
+  return changed
+}
+
+/** 清掉试出来的临时模型、未绑定节点和重复模型。正式演示模型和已有商品保留。 */
+export function cleanDemoResidue(data: AppData) {
+  let changed = false
+  const junkTemplates = data.templates.filter((item) => !KEPT_TEMPLATES.has(item.id) && isJunkLabel(item.name) && !modelHasProducts(data, item.id))
+  data.specCanvases.forEach((canvas) => {
+    if (KEPT_TEMPLATES.has(canvas.templateId) || modelHasProducts(data, canvas.templateId)) return
+    if (isJunkLabel(canvas.name || '')) junkTemplates.push({ id: canvas.templateId, name: canvas.name || '', parentId: null, enabled: true, structureOrder: [] })
+  })
+  const seenTemplates = new Set<string>()
+  junkTemplates.forEach((item) => {
+    if (seenTemplates.has(item.id)) return
+    seenTemplates.add(item.id)
+    detachModel(data, item.id)
+    changed = true
+  })
+
+  const grouped = new Map<string, string[]>()
+  data.specCanvases.forEach((canvas) => {
+    const key = `${canvas.productTypeId || ''}::${(canvas.name || '').trim()}`
+    const list = grouped.get(key) || []
+    list.push(canvas.templateId)
+    grouped.set(key, list)
+  })
+  grouped.forEach((ids) => {
+    if (ids.length < 2) return
+    const preferred = ids.find((id) => KEPT_TEMPLATES.has(id)) || ids[0]
+    ids.forEach((id) => {
+      if (id === preferred || modelHasProducts(data, id)) return
+      detachModel(data, id)
+      changed = true
+    })
+  })
+
+  const junkNodes = data.productSpecNodes.filter((node) => {
+    if (node.nodeType === 'ATTRIBUTE' && !node.attributeId) return true
+    if (node.nodeType === 'VALUE' && /^新值\d*$/.test(node.valueId || '')) return true
+    const param = data.params.find((item) => item.id === node.attributeId)
+    return Boolean(param && isJunkLabel(param.name))
+  })
+  junkNodes.forEach((node) => {
+    if (!data.productSpecNodes.some((item) => item.id === node.id)) return
+    dropNodeTree(data, node.id)
+    changed = true
+  })
+
+  const usedParamIds = new Set<string>([
+    ...data.productSpecNodes.map((item) => item.attributeId),
+    ...data.templateParams.map((item) => item.paramId),
+    ...((data.rules || []).flatMap((item) => [item.targetParamId, ...item.sourceParamIds])),
+  ])
+  const nextParams = data.params.filter((param) => {
+    if (!isJunkLabel(param.name)) return true
+    if (usedParamIds.has(param.id)) return true
+    const usedByProduct = data.families.some((item) => item.commonAttrs[param.name]) || data.skus.some((item) => item.variantAttrs[param.name])
+    return usedByProduct
+  })
+  if (nextParams.length !== data.params.length) {
+    data.params = nextParams
+    changed = true
+  }
+  return changed
+}
+
+/** 把手机模型收成验收用的平铺结构，分类和产品类型关系保持不变。 */
+export function installPhoneAcceptance(data: AppData) {
+  let changed = ensureParamValues(data, 'p-brand', ['Apple', '华为'])
+  changed = ensureParamValues(data, 'p-series', ['iPhone', 'Mate']) || changed
+  changed = ensureParamValues(data, 'p-color', ['黑色', '白色']) || changed
+  changed = ensureParamValues(data, 'p-cap', ['128G', '256G']) || changed
+  const nodes = phoneSpecNodes()
+  const previous = data.productSpecNodes.filter((item) => item.templateId === 't-phone')
+  const sameTree = previous.length === nodes.length && nodes.every((node) => {
+    const found = previous.find((item) => item.id === node.id)
+    return found && found.parentId === node.parentId && found.nodeType === node.nodeType && found.attributeId === node.attributeId && found.valueId === node.valueId && found.sort === node.sort
+  })
+  if (!sameTree) {
+    data.productSpecNodes = data.productSpecNodes.filter((item) => item.templateId !== 't-phone').concat(nodes)
+    changed = true
+  }
+  const canvas = data.specCanvases.find((item) => item.templateId === 't-phone')
+  if (!canvas) {
+    data.specCanvases.push(phoneCanvas())
+    changed = true
+  } else if (canvas.name !== '手机模型 V1' || canvas.productTypeId !== 'pt-phone' || canvas.versionName !== 'V1' || canvas.status !== 'published') {
+    canvas.name = '手机模型 V1'
+    canvas.productTypeId = 'pt-phone'
+    canvas.status = 'published'
+    canvas.version = 1
+    canvas.versionName = 'V1'
+    canvas.direction = 'logic'
+    changed = true
+  }
+  const snapshot = nodes.map((item) => ({ ...item }))
+  const versions = data.specModelVersions.filter((item) => item.templateId === 't-phone')
+  const primary = versions.find((item) => item.id === 'phone-model-v1') || versions[0]
+  const snapshotSame = primary && primary.nodesSnapshot.length === snapshot.length && snapshot.every((node, index) => {
+    const found = primary.nodesSnapshot[index]
+    return found && found.id === node.id && found.valueId === node.valueId && found.attributeId === node.attributeId && found.parentId === node.parentId
+  })
+  if (!snapshotSame || versions.length !== 1) {
+    data.specModelVersions = data.specModelVersions.filter((item) => item.templateId !== 't-phone')
+    data.specModelVersions.push({
+      id: 'phone-model-v1',
+      templateId: 't-phone',
+      version: 1,
+      versionName: 'V1',
+      status: 'published',
+      nodesSnapshot: snapshot,
+      createdTime: now,
+      publishTime: now,
+    })
+    data.families.forEach((family) => {
+      if (family.templateId === 't-phone' || family.productModelId === 't-phone') family.modelVersionId = 'phone-model-v1'
+    })
+    changed = true
+  }
+  return changed
 }
 
 function sku(
@@ -85,9 +395,16 @@ export function createSeed(): AppData {
       { id: 'c-acc', name: '配件', parentId: null, sort: 2 },
       { id: 'c-protect', name: '保护及保护设备', parentId: 'c-acc', sort: 1 },
       { id: 'c-film', name: '保护膜', parentId: 'c-protect', sort: 1 },
-      { id: 'c-case', name: '保护壳', parentId: 'c-protect', sort: 2 },
       { id: 'c-charge', name: '充电类', parentId: 'c-acc', sort: 2 },
+      { id: 'c-phone-acc', name: '手机配件', parentId: null, sort: 3 },
+      { id: 'c-case', name: '保护壳', parentId: 'c-phone-acc', sort: 1 },
     ].map((item) => ({ ...item, enabled: true })),
+    productTypes: [
+      { id: 'pt-phone', name: '手机', categoryId: 'c-phone', status: 'enabled', sort: 1, description: '' },
+      { id: 'pt-phone-part', name: '手机维修零件', categoryId: 'c-phone', status: 'enabled', sort: 2, description: '' },
+      { id: 'pt-case', name: '手机保护壳', categoryId: 'c-case', status: 'enabled', sort: 1, description: '' },
+      { id: 'pt-film', name: '手机膜', categoryId: 'c-phone-acc', status: 'enabled', sort: 2, description: '' },
+    ],
     templates: [
       { id: 't-host', name: '主机', parentId: null, enabled: true, structureOrder: [] },
       {
@@ -120,10 +437,11 @@ export function createSeed(): AppData {
       },
       { id: 't-acc', name: '配件', parentId: null, enabled: true, structureOrder: [] },
       { id: 't-film', name: '保护膜', parentId: 't-acc', enabled: true, structureOrder: ['p-brand', 'p-color', 'p-acc'] },
+      { id: 't-case-model', name: '手机保护壳模型', parentId: null, enabled: true, structureOrder: [] },
     ],
     params: [
-      { id: 'p-brand', name: '品牌', values: ['Apple', 'huawei'], valueGroups: [], participateInStructure: true },
-      { id: 'p-series', name: '系列', values: ['iPhone 17', 'iPhone 16', 'iPhone 15', 'Watch Series 10', 'iPad', 'MacBook'], valueGroups: [], participateInStructure: true },
+      { id: 'p-brand', name: '品牌', values: ['Apple', '华为', 'huawei'], valueGroups: [], participateInStructure: true },
+      { id: 'p-series', name: '系列', values: ['iPhone', 'Mate', 'iPhone 17', 'iPhone 16', 'iPhone 15', 'Watch Series 10', 'iPad', 'MacBook'], valueGroups: [], participateInStructure: true },
       { id: 'p-model', name: '型号', values: ['iPhone 17', 'iPhone 17 Pro', 'iPhone 17 Pro Max', 'iPhone 16', 'iPad Air', 'MacBook Air', 'Watch 42'], valueGroups: [], participateInStructure: true },
       { id: 'p-cap', name: '容量', values: ['128G', '256G', '512G'], valueGroups: [{ id: 'vg-cap', name: '常用容量', values: ['128G', '256G'] }], participateInStructure: true },
       { id: 'p-color', name: '颜色', values: ['蓝色', '白色', '橙色', '黑色', '银色', '透明'], valueGroups: [], participateInStructure: true },
@@ -183,7 +501,10 @@ export function createSeed(): AppData {
       { templateId: 't-film', categoryId: 'c-film' },
     ],
     productSpecNodes: phoneSpecNodes(),
-    specCanvases: [phoneCanvas()],
+    specCanvases: [
+      phoneCanvas(),
+      { templateId: 't-case-model', productTypeId: 'pt-case', name: '手机保护壳模型', zoom: 1, panX: 0, panY: 0, status: 'draft', version: 1, versionName: 'V1', direction: 'ltr', updatedAt: now },
+    ],
     specModelVersions: [
       {
         id: 'phone-model-v1',
@@ -196,6 +517,7 @@ export function createSeed(): AppData {
         publishTime: now,
       },
     ],
+    productPlans: [],
     rules: [
       rule('r1', 't-phone', 'p-series', ['p-brand'], { 'p-brand': 'Apple' }, ['iPhone 17', 'iPhone 16'], 'Apple 只能选这两个系列'),
       rule('r2', 't-phone', 'p-model', ['p-brand', 'p-series'], { 'p-brand': 'Apple', 'p-series': 'iPhone 17' }, ['iPhone 17', 'iPhone 17 Pro'], 'iPhone 17 系列的型号'),
@@ -252,6 +574,8 @@ export function createSeed(): AppData {
     activeViewId: 'view-all',
     listQuery,
   }
+  appendEbikeDemo(data)
+  ensureLeafProductTypes(data)
   data.skus = data.skus.map((item) => {
     const owner = data.families.find((family) => family.id === item.familyId)
     if (!owner) return item

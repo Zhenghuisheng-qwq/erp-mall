@@ -34,6 +34,11 @@
         </el-form-item>
         </template>
       </el-form>
+      <div class="source-box">
+        <p><span>来源模型</span>{{ sourceModel }}</p>
+        <p><span>来源规划</span>{{ planSource || '不是由规划生成' }}</p>
+        <p><span>SKU数量</span>{{ draftSkus.length }}</p>
+      </div>
       <p v-if="modelMode">当前使用模型：{{ modelTitle }}</p>
       <p v-if="modelMode">当前规格来源：商品模型</p>
       <p v-else-if="modelTitle && usingModel">当前商品模型：{{ modelTitle }}</p>
@@ -69,6 +74,12 @@
         <el-button v-if="showSchemeFields" :disabled="!draft.templateId" @click="batchOpen = true">批量添加</el-button>
         <el-checkbox v-if="!usingModel" v-model="showOptional">显示可不填的规格</el-checkbox>
         <span v-if="modelMode" class="muted">规格由商品模型自动生成，不能手动添加。</span>
+      </div>
+      <div v-if="namedSkus.length" class="sku-lines">
+        <div v-for="sku in namedSkus" :key="sku.id" class="sku-line">
+          <strong>SKU：{{ sku.skuName }}</strong>
+          <p v-for="item in specEntries(sku)" :key="item.name"><span>{{ item.name }}</span>{{ item.value }}</p>
+        </div>
       </div>
       <el-table :data="draftSkus" border size="small">
         <el-table-column label="#" width="54" fixed="left">
@@ -193,7 +204,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import PageHead from '../components/PageHead.vue'
 import ProductModelSelector from '../components/ProductModelSelector.vue'
-import { blankVariantAttrs, boundParams, categoryPath, collectModelSelections, constraintOf, emptyModelSelection, generateSkuFromModel, inspectFamily, latestPublishedVersion, mappingForCategory, modelPathText, modelSelectionTrail, modelVersionById, pathVariantColumns, productModelGate, selectedById, shelfOf, shelfText, statusText, truncateModelPath, type ModelSelection, type ModelSpecColumn } from '../domain/logic'
+import { blankVariantAttrs, boundParams, categoryPath, collectModelSelections, constraintOf, emptyModelSelection, generateSkuFromModel, inspectFamily, latestPublishedVersion, mappingForCategory, modelPathText, modelSelectionTrail, modelVersionById, paramById, pathVariantColumns, productModelGate, selectedById, shelfOf, shelfText, specCanvasOf, statusText, truncateModelPath, type ModelSelection, type ModelSpecColumn } from '../domain/logic'
 import type { ConstraintResult, FieldIssue, ProductFamily, Sku } from '../domain/types'
 import { uid, useCatalogStore } from '../stores/catalog'
 
@@ -264,6 +275,15 @@ const shelf = computed(() => shelfOf(draft))
 const shelfLabel = computed(() => shelfText(shelf.value))
 const locked = computed(() => !isNew.value && shelf.value === 'online')
 const modelPath = computed(() => (draft.templateId ? modelPathText(store.data, draft) : '先选择分类'))
+const sourceModel = computed(() => {
+  if (!draft.templateId) return '未关联模型'
+  return specCanvasOf(store.data, draft.productModelId || draft.templateId)?.name || store.data.templates.find((item) => item.id === draft.templateId)?.name || '商品模型'
+})
+const planSource = computed(() => {
+  if (!draft.productPlanId) return ''
+  return store.data.productPlans.find((item) => item.id === draft.productPlanId)?.name || '商品规划'
+})
+const namedSkus = computed(() => draftSkus.value.filter((item) => item.skuName))
 const schemeName = computed(() => store.data.templates.find((item) => item.id === draft.templateId)?.name || '商品')
 const trail = computed(() => modelSelectionTrail(store.data, draft.templateId, modelNodes.value, selection.value))
 const builtModel = computed(() => (modelMode.value ? modelDraft() : null))
@@ -444,8 +464,18 @@ function truncateSelection(nodeId: string) {
   selection.value = truncateModelPath(store.data, draft.templateId, modelNodes.value, selection.value, nodeId)
 }
 function rowTitle(sku: Sku) {
+  if (sku.skuName) return sku.skuName
   const parts = specColumns.value.map((item) => sku.variantAttrs[item.name]).filter(Boolean)
   return parts.join(' / ') || '未填规格'
+}
+function specEntries(sku: Sku) {
+  const fromNodes = (sku.sourceNodeIds || []).flatMap((id) => {
+    const node = modelNodes.value.find((item) => item.id === id)
+    const name = node ? paramById(store.data, node.attributeId)?.name || '' : ''
+    return node && name && node.valueId ? [{ name, value: node.valueId }] : []
+  })
+  if (fromNodes.length) return fromNodes
+  return Object.entries(sku.variantAttrs).filter(([, value]) => value).map(([name, value]) => ({ name, value }))
 }
 function columnChoices(column: ModelSpecColumn, sku: Sku) {
   if (column.values.length) {
@@ -601,6 +631,7 @@ onMounted(() => {
         draft.id = uid('fam')
         draft.name = `${family.name} 副本`
         draft.origin = 'created'
+        draft.productPlanId = undefined
         draftSkus.value = draftSkus.value.map((item) => cloneSku(item, draft.id))
       }
       const copySkuId = String(route.query.copySku || '')
@@ -629,4 +660,11 @@ onBeforeRouteLeave(async () => {
 .path-now { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .path-now button { border: 0; background: transparent; color: #1f3b66; cursor: pointer; padding: 0; }
 .path-now button.is-on { color: #2f6fed; font-weight: 650; }
+.source-box { margin-top: 12px; padding: 10px 12px; background: #f7faff; border-radius: 8px; }
+.source-box p { display: flex; gap: 12px; margin: 4px 0; }
+.source-box span { color: #66788a; min-width: 72px; }
+.sku-lines { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.sku-line { padding: 10px 12px; background: #f7faff; border-radius: 8px; }
+.sku-line p { display: flex; gap: 8px; margin: 4px 0 0; }
+.sku-line span { color: #66788a; min-width: 48px; }
 </style>

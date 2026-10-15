@@ -6,6 +6,7 @@ import type {
   ParamDef,
   ParamRole,
   ProductFamily,
+  ProductPlan,
   ProductSpecNode,
   Sku,
   TemplateParam,
@@ -371,6 +372,183 @@ export function specPublishProblems(data: AppData, nodes: ProductSpecNode[]) {
   return problems
 }
 
+/** 一条规划只保留从根到当前取值的属性值，不展开同级组合。 */
+export function ancestorValueIds(nodes: ProductSpecNode[], id: string) {
+  const byId = new Map(nodes.map((item) => [item.id, item]))
+  const chain: string[] = []
+  let cursor = byId.get(id)
+  const guard = new Set<string>()
+  while (cursor && !guard.has(cursor.id)) {
+    guard.add(cursor.id)
+    if (cursor.nodeType === 'VALUE') chain.unshift(cursor.id)
+    cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined
+  }
+  return chain
+}
+
+export function togglePlanValue(nodes: ProductSpecNode[], selected: string[], id: string) {
+  const node = nodes.find((item) => item.id === id)
+  if (!node || node.nodeType !== 'VALUE') return selected
+  const path = ancestorValueIds(nodes, id)
+  const picked = new Set(selected)
+  const descendants = new Set<string>()
+  const walk = (parentId: string) => {
+    nodes.filter((item) => item.parentId === parentId).forEach((child) => {
+      descendants.add(child.id)
+      walk(child.id)
+    })
+  }
+  walk(id)
+  const hasDeeper = [...picked].some((item) => item !== id && descendants.has(item))
+  if (picked.has(id) && !hasDeeper) return path.filter((item) => item !== id)
+  return path
+}
+
+export function orderedPlanNodes(nodes: ProductSpecNode[], selected: string[]) {
+  const picked = new Set(selected)
+  const ordered: ProductSpecNode[] = []
+  const walk = (parentId: string | null) => {
+    nodes
+      .filter((item) => item.parentId === parentId)
+      .sort((a, b) => a.sort - b.sort)
+      .forEach((node) => {
+        if (node.nodeType === 'VALUE' && picked.has(node.id)) ordered.push(node)
+        walk(node.id)
+      })
+  }
+  walk(null)
+  return ordered
+}
+
+export function planTitle(nodes: ProductSpecNode[], selected: string[]) {
+  return orderedPlanNodes(nodes, selected).map((item) => item.valueId).filter(Boolean).join(' ')
+}
+
+export function documentIndent(prefix: string) {
+  const spaces = prefix.replace(/\t/g, '    ')
+  if (!spaces) return 0
+  return Math.max(1, Math.round(spaces.length / 4))
+}
+
+/** 文档模式：第一行是模型名，之后按缩进挂属性或属性值。空行、空名称和跳级缩进会被收掉。 */
+export function parseModelDocument(text: string) {
+  const rows: { depth: number; name: string }[] = []
+  let lastDepth = 0
+  text.split(/\r?\n/).forEach((line) => {
+    const prefix = line.match(/^[\t ]*/)?.[0] || ''
+    const name = line.slice(prefix.length).trim()
+    if (!name) return
+    let depth = documentIndent(prefix)
+    if (!rows.length) depth = 0
+    else if (depth > lastDepth + 1) depth = lastDepth + 1
+    rows.push({ depth, name })
+    lastDepth = depth
+  })
+  if (!rows.length) return { rootName: '', lines: [] as { depth: number; name: string }[] }
+  const rooted = rows[0].depth === 0
+  return {
+    rootName: rooted ? rows[0].name : '',
+    lines: (rooted ? rows.slice(1) : rows).map((row) => ({ depth: rooted ? Math.max(1, row.depth) : row.depth + 1, name: row.name })),
+  }
+}
+
+/** 把一条规划路径拆成公共属性和一条 SKU 的规格，不做组合展开。 */
+export function planProductParts(data: AppData, plan: ProductPlan) {
+  const version = (plan.modelVersionId ? modelVersionById(data, plan.modelVersionId) : undefined) || latestPublishedVersion(data, plan.productModelId)
+  if (!version || version.status !== 'published') return null
+  const nodes = version.nodesSnapshot
+  const chosen = orderedPlanNodes(nodes, plan.selectedNodes)
+  if (!chosen.length) return null
+  const commonAttrs: Record<string, string> = {}
+  const variantAttrs: Record<string, string> = {}
+  chosen.forEach((valueNode) => {
+    const parent = nodes.find((item) => item.id === valueNode.parentId && item.nodeType === 'ATTRIBUTE')
+    const attributeId = parent?.attributeId || valueNode.attributeId
+    const name = paramById(data, attributeId)?.name
+    if (!name || !valueNode.valueId) return
+    if (specAttributeRole(data, plan.productModelId, attributeId, nodes) === 'common') commonAttrs[name] = valueNode.valueId
+    else variantAttrs[name] = valueNode.valueId
+  })
+  return { commonAttrs, variantAttrs, modelVersionId: version.id, name: chosen.map((item) => item.valueId).filter(Boolean).join(' ') }
+}
+
+export interface PlanSkuLine {
+  name: string
+  variantAttrs: Record<string, string>
+  sourceNodeIds: string[]
+}
+
+/** 从规划落点往下按模型树展开规格。同级规格相乘，父子只走真实分支。 */
+export function planSkuLines(data: AppData, plan: ProductPlan) {
+  const version = (plan.modelVersionId ? modelVersionById(data, plan.modelVersionId) : undefined) || latestPublishedVersion(data, plan.productModelId)
+  if (!version || version.status !== 'published') return null
+  const nodes = version.nodesSnapshot
+  const chosen = orderedPlanNodes(nodes, plan.selectedNodes)
+  if (!chosen.length) return null
+  const anchor = chosen[chosen.length - 1]
+  const onPath = new Set(ancestorValueIds(nodes, anchor.id))
+  const commonValues: string[] = []
+  const fixed: { name: string; value: string; nodeId: string }[] = []
+  const commonAttrs: Record<string, string> = {}
+  chosen.forEach((valueNode) => {
+    if (!onPath.has(valueNode.id)) return
+    const parent = nodes.find((item) => item.id === valueNode.parentId && item.nodeType === 'ATTRIBUTE')
+    const attributeId = parent?.attributeId || valueNode.attributeId
+    const name = paramById(data, attributeId)?.name
+    if (!name || !valueNode.valueId) return
+    if (specAttributeRole(data, plan.productModelId, attributeId, nodes) === 'common') {
+      commonAttrs[name] = valueNode.valueId
+      commonValues.push(valueNode.valueId)
+      return
+    }
+    fixed.push({ name, value: valueNode.valueId, nodeId: valueNode.id })
+  })
+  const tails = expandVariantPaths(data, plan.productModelId, nodes, anchor.id)
+  const skus = (tails.length ? tails : [[]]).map((tail) => {
+    const steps = [...fixed, ...tail]
+    const variantAttrs: Record<string, string> = {}
+    steps.forEach((step) => {
+      variantAttrs[step.name] = step.value
+    })
+    return {
+      name: steps.map((step) => step.value).filter(Boolean).join(' ') || commonValues.join(' '),
+      variantAttrs,
+      sourceNodeIds: steps.map((step) => step.nodeId),
+    }
+  })
+  return {
+    productName: [...commonValues, ...fixed.map((step) => step.value)].filter(Boolean).join(' ') || plan.name,
+    commonAttrs,
+    modelVersionId: version.id,
+    skus,
+  }
+}
+
+function expandVariantPaths(data: AppData, templateId: string, nodes: ProductSpecNode[], parentId: string | null) {
+  const attributes = nodes
+    .filter((item) => item.parentId === parentId && item.nodeType === 'ATTRIBUTE' && specAttributeRole(data, templateId, item.attributeId, nodes) === 'variant')
+    .sort((a, b) => a.sort - b.sort)
+  let combos: { name: string; value: string; nodeId: string }[][] = [[]]
+  let grew = false
+  attributes.forEach((attribute) => {
+    const options = variantOptions(data, templateId, nodes, attribute)
+    if (!options.length) return
+    grew = true
+    combos = combos.flatMap((prefix) => options.map((option) => [...prefix, ...option]))
+  })
+  return grew ? combos : [[]]
+}
+
+function variantOptions(data: AppData, templateId: string, nodes: ProductSpecNode[], attribute: ProductSpecNode) {
+  const name = paramById(data, attribute.attributeId)?.name || attribute.attributeId
+  const values = nodes.filter((item) => item.parentId === attribute.id && item.nodeType === 'VALUE').sort((a, b) => a.sort - b.sort)
+  if (!values.length) return expandVariantPaths(data, templateId, nodes, attribute.id).filter((path) => path.length)
+  return values.flatMap((value) => {
+    const step = { name, value: value.valueId, nodeId: value.id }
+    return expandVariantPaths(data, templateId, nodes, value.id).map((path) => [step, ...path])
+  })
+}
+
 export function specCanvasOf(data: AppData, templateId: string) {
   return data.specCanvases?.find((item) => item.templateId === templateId)
 }
@@ -474,25 +652,52 @@ export function modelSpecColumns(data: AppData, templateId: string, nodes: Produ
   return rows
 }
 
-/** 按父子关系从左往右排成树。子节点跟在父节点右侧，不按属性层和取值层拆开。 */
-export function arrangeSpecPositions(nodes: ProductSpecNode[]) {
+/** 左向逻辑结构图。同级间距固定，父节点垂直居中，列距收短。 */
+export const SPEC_TREE_ORIGIN_X = 176
+export const SPEC_TREE_ORIGIN_Y = 24
+export const SPEC_TREE_COLUMN = 156
+export const SPEC_TREE_GAP = 8
+
+type SpecTreeItem = { id: string; parentId: string | null; sort: number; nodeType: ProductSpecNode['nodeType'] }
+
+function specTreeBox(nodeType: ProductSpecNode['nodeType']) {
+  return nodeType === 'VALUE' ? 26 : 64
+}
+
+export function layoutSpecTree(nodes: SpecTreeItem[]) {
   const childrenOf = (parentId: string | null) => nodes.filter((item) => item.parentId === parentId).sort((a, b) => a.sort - b.sort)
   const heightOf = (id: string): number => {
+    const node = nodes.find((item) => item.id === id)
+    const self = specTreeBox(node?.nodeType || 'ATTRIBUTE')
     const children = childrenOf(id)
-    if (children.length === 0) return 76
-    return Math.max(76, children.reduce((sum, child) => sum + heightOf(child.id), 0))
+    if (!children.length) return self
+    const inner = children.reduce((sum, child, index) => sum + heightOf(child.id) + (index ? SPEC_TREE_GAP : 0), 0)
+    return Math.max(self, inner)
   }
+  const placed = new Map<string, { x: number; y: number }>()
   const place = (parentId: string | null, left: number, top: number) => {
     let y = top
-    childrenOf(parentId).forEach((node) => {
+    childrenOf(parentId).forEach((node, index) => {
+      if (index) y += SPEC_TREE_GAP
       const height = heightOf(node.id)
-      node.positionX = left
-      node.positionY = Math.round(y + height / 2 - 28)
-      place(node.id, left + 230, y)
+      const self = specTreeBox(node.nodeType)
+      placed.set(node.id, { x: left, y: Math.round(y + height / 2 - self / 2) })
+      place(node.id, left + SPEC_TREE_COLUMN, y)
       y += height
     })
   }
-  place(null, 280, 40)
+  place(null, SPEC_TREE_ORIGIN_X, SPEC_TREE_ORIGIN_Y)
+  return placed
+}
+
+export function arrangeSpecPositions(nodes: ProductSpecNode[]) {
+  const placed = layoutSpecTree(nodes)
+  nodes.forEach((node) => {
+    const pos = placed.get(node.id)
+    if (!pos) return
+    node.positionX = pos.x
+    node.positionY = pos.y
+  })
 }
 
 /** 同一属性下的取值和并列属性会组合成一条路径。每一步都是属性名和取值。 */

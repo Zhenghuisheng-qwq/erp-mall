@@ -1,4 +1,4 @@
-export const DATA_VERSION = 6
+export const DATA_VERSION = 10
 export const STORAGE_KEY = 'iyge-v2-mock-db'
 
 export type SaleStatus = 'on_sale' | 'off_sale' | 'draft'
@@ -25,6 +25,16 @@ export interface Category {
   level?: number
   /** 可选缓存，从根到本级的分类 id。界面按父链计算，不要求历史数据携带。 */
   path?: string[]
+}
+
+/** 挂在分类下的产品类型。不是分类节点，后续商品模型从这里进入。 */
+export interface ProductType {
+  id: string
+  name: string
+  categoryId: string
+  status: 'enabled' | 'disabled'
+  sort: number
+  description: string
 }
 
 export interface CatalogTemplate {
@@ -89,17 +99,35 @@ export interface SpecModelVersion {
   publishTime: string
 }
 
+/** 从已发布商品模型中选出的一条准备经营的产品。不是正式商品，也不生成 SKU。 */
+export interface ProductPlan {
+  id: string
+  /** 商品模型。当前模型主键仍是模板 id。 */
+  productModelId: string
+  productTypeId: string
+  /** 规划当时采用的已发布版本。 */
+  modelVersionId?: string
+  name: string
+  status: 'saved'
+  selectedNodes: string[]
+  createdTime: string
+}
+
 /** 画布视口和正在编辑的版本状态。已发布快照在 specModelVersions，不写回这棵编辑树。 */
 export interface SpecCanvasConfig {
   templateId: string
+  /** 这个模型属于哪个产品类型。旧数据没有时，打开后会补到默认产品类型。 */
+  productTypeId?: string
+  /** 模型名称。旧数据没有时，用属性方案名称补上，不覆盖方案本身。 */
+  name?: string
   zoom: number
   panX: number
   panY: number
   status: SpecModelStatus
   version: number
   versionName: string
-  /** 横向思维导图。旧的上下布局会在打开时转成这一方向。 */
-  direction?: 'ltr'
+  /** 横向结构图。logic 是横平竖直的紧凑布局。 */
+  direction?: 'ltr' | 'tree' | 'logic'
   updatedAt?: string
 }
 
@@ -121,6 +149,12 @@ export interface ProductFamily {
   templateId: string
   /** 创建时使用的商品模型版本。没有发布模型的旧录入方式留空。 */
   modelVersionId?: string
+  /** 商品模型。与 templateId 相同，方便从规划侧读取。旧商品可以没有。 */
+  productModelId?: string
+  /** 生成时的产品类型。旧商品可以没有。 */
+  productTypeId?: string
+  /** 由哪条商品规划生成。手工录入的商品没有。 */
+  productPlanId?: string
   categoryId: string
   oaProductId: string
   commonAttrs: Record<string, string>
@@ -141,6 +175,10 @@ export interface Sku {
   status: SaleStatus
   variantAttrs: Record<string, string>
   projectedAttrs: Record<string, string>
+  /** 按模型路径生成的规格名称。旧 SKU 没有。 */
+  skuName?: string
+  /** 这条规格用到的模型取值节点。旧 SKU 没有。 */
+  sourceNodeIds?: string[]
 }
 
 export interface Brand {
@@ -214,6 +252,7 @@ export interface AppData {
   mode: AppMode
   activeRole: UserRole
   categories: Category[]
+  productTypes: ProductType[]
   templates: CatalogTemplate[]
   params: ParamDef[]
   templateParams: TemplateParam[]
@@ -221,6 +260,7 @@ export interface AppData {
   productSpecNodes: ProductSpecNode[]
   specCanvases: SpecCanvasConfig[]
   specModelVersions: SpecModelVersion[]
+  productPlans: ProductPlan[]
   rules: SpecRule[]
   families: ProductFamily[]
   skus: Sku[]

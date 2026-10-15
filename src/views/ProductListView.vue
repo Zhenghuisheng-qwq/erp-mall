@@ -62,7 +62,7 @@
               <el-table :data="store.skusOf(row.id)" size="small" @selection-change="onSelect(row.id, $event)">
                 <el-table-column type="selection" width="42" />
                 <el-table-column label="规格" min-width="220">
-                  <template #default="{ row: sku }">{{ skuTitle(sku, boundParams(store.data, row.templateId, 'variant')) }}</template>
+                  <template #default="{ row: sku }">{{ sku.skuName || (row.productPlanId ? row.name : skuTitle(sku, boundParams(store.data, row.templateId, 'variant'))) }}</template>
                 </el-table-column>
                 <el-table-column label="状态" width="120">
                   <template #default="{ row: sku }">
@@ -89,6 +89,7 @@
           <template #default="{ row }">
             <template v-if="col.key === 'name'">
               <button class="linkish" @click="router.push(`/products/${row.id}`)">{{ row.name }}</button>
+              <span v-if="planSource(row)" class="sku-hint">来自规划：{{ planSource(row) }}</span>
             </template>
             <template v-else-if="col.key === 'category'">{{ categoryPath(store.data, row.categoryId) }}</template>
             <template v-else-if="col.key === 'template'">{{ templateById(store.data, row.templateId)?.name }}</template>
@@ -150,6 +151,10 @@ const familyIds = ref<string[]>([])
 const createdRange = ref<[string, string] | null>(null)
 const categories = computed(() => store.data.categories)
 const brands = computed(() => Array.from(new Set(store.data.families.map((item) => item.commonAttrs['品牌']).filter(Boolean))))
+function planSource(row: { productPlanId?: string }) {
+  if (!row.productPlanId) return ''
+  return store.data.productPlans.find((item) => item.id === row.productPlanId)?.name || '商品规划'
+}
 const attrValues = computed(() => store.data.params.find((item) => item.name === attrKey.value)?.values ?? [])
 const visibleColumns = computed(() => store.data.columns.filter((item) => item.visible))
 

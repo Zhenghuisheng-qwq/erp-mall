@@ -102,6 +102,8 @@ const MENU: MenuGroup[] = [
           { index: '/products', title: '商品列表' },
           { index: '/import', title: '商品导入导出' },
           { index: '/categories', title: '商品分类中心' },
+          { index: '/product-types', title: '产品类型' },
+          { index: '/plans', title: '商品规划' },
         ],
       },
       {

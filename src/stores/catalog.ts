@@ -11,8 +11,8 @@ import {
 } from '../domain/categoryTree'
 import { blankVariantAttrs, descendantIds, familySkus, projectAttrs, sameSpecSnapshot, specPublishProblems } from '../domain/logic'
 import { arrangeSpecPositions } from '../domain/logic'
-import { createSeed, defaultColumns, emptyQuery, phoneCanvas, phoneSpecNodes } from '../domain/seed'
-import { DATA_VERSION, STORAGE_KEY, type AppData, type Category, type ColumnPref, type FeedbackItem, type ListQuery, type ListView, type ParamDef, type ProductFamily, type ProductGroup, type Sku, type SpecRule, type UserRole } from '../domain/types'
+import { createSeed, appendEbikeDemo, alignCaseDemo, cleanDemoResidue, ensureLeafProductTypes, installPhoneAcceptance, defaultColumns, emptyQuery, phoneCanvas, phoneSpecNodes } from '../domain/seed'
+import { DATA_VERSION, STORAGE_KEY, type AppData, type Category, type ColumnPref, type FeedbackItem, type ListQuery, type ListView, type ParamDef, type ProductFamily, type ProductGroup, type ProductType, type Sku, type SpecRule, type UserRole } from '../domain/types'
 
 type ModuleName = 'products' | 'categories' | 'templates' | 'params' | 'rules' | 'groups' | 'system'
 type StoredPayload = { version?: number; data?: AppData }
@@ -56,7 +56,7 @@ export function normalizeStored(parsed: StoredPayload): AppData | null {
     }
   })
   data.specCanvases.forEach((canvas) => {
-    if (canvas.direction === 'ltr') return
+    if (canvas.direction === 'ltr' || canvas.direction === 'tree' || canvas.direction === 'logic') return
     arrangeSpecPositions(data.productSpecNodes.filter((item) => item.templateId === canvas.templateId))
     canvas.direction = 'ltr'
     mark.changed = true
@@ -107,6 +107,38 @@ export function normalizeStored(parsed: StoredPayload): AppData | null {
     family.modelVersionId = latest.id
     mark.changed = true
   })
+  if (!data.categories.some((item) => item.id === 'c-phone-acc') && data.categories.some((item) => item.id === 'c-acc')) {
+    data.categories.push({ id: 'c-phone-acc', name: '手机配件', parentId: 'c-acc', sort: 3, enabled: true })
+    mark.changed = true
+  }
+  if (!Array.isArray(data.productTypes)) {
+    const demo: ProductType[] = [
+      { id: 'pt-phone', name: '手机', categoryId: 'c-phone', status: 'enabled', sort: 1, description: '' },
+      { id: 'pt-phone-part', name: '手机维修零件', categoryId: 'c-phone', status: 'enabled', sort: 2, description: '' },
+      { id: 'pt-case', name: '手机保护壳', categoryId: 'c-case', status: 'enabled', sort: 1, description: '' },
+      { id: 'pt-film', name: '手机膜', categoryId: 'c-phone-acc', status: 'enabled', sort: 2, description: '' },
+    ]
+    data.productTypes = demo.filter((item) => data.categories.some((category) => category.id === item.categoryId))
+    mark.changed = true
+  }
+  data.specCanvases.forEach((canvas) => {
+    if (!canvas.productTypeId || !data.productTypes.some((item) => item.id === canvas.productTypeId)) {
+      const mapping = data.mappings.find((item) => item.templateId === canvas.templateId)
+      let owner = data.productTypes.find((item) => mapping && item.categoryId === mapping.categoryId)
+      if (!owner) owner = data.productTypes[0]
+      if (!owner && data.categories[0]) {
+        owner = { id: `pt-migrated-${canvas.templateId}`, name: '默认产品类型', categoryId: data.categories[0].id, status: 'enabled', sort: 99, description: '旧模型迁移' }
+        data.productTypes.push(owner)
+      }
+      if (owner) canvas.productTypeId = owner.id
+      mark.changed = true
+    }
+    if (!canvas.name) {
+      const template = data.templates.find((item) => item.id === canvas.templateId)
+      canvas.name = canvas.templateId === 't-phone' ? '手机模型 V1' : `${template?.name || '未命名'}模型`
+      mark.changed = true
+    }
+  })
   if (!Array.isArray(data.brands)) {
     const names = new Set<string>()
     data.params.find((item) => item.name === '品牌')?.values.forEach((item) => names.add(item))
@@ -126,6 +158,17 @@ export function normalizeStored(parsed: StoredPayload): AppData | null {
       mark.changed = true
     }
   })
+  if (!Array.isArray(data.productPlans)) {
+    data.productPlans = []
+    mark.changed = true
+  }
+  if (appendEbikeDemo(data)) mark.changed = true
+  if (alignCaseDemo(data)) mark.changed = true
+  if (ensureLeafProductTypes(data)) mark.changed = true
+  if ((parsed.version ?? 1) < DATA_VERSION) {
+    if (cleanDemoResidue(data)) mark.changed = true
+    if (installPhoneAcceptance(data)) mark.changed = true
+  }
   if (data.listQuery) {
     const defaults = emptyQuery()
     const next = { ...defaults, ...data.listQuery, attrFilters: data.listQuery.attrFilters || {} }
@@ -184,6 +227,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     } else if (name === 'categories') {
       data.categories = fresh.categories
       data.mappings = fresh.mappings
+      data.productTypes = fresh.productTypes
     } else if (name === 'templates') {
       data.templates = fresh.templates
       data.templateParams = fresh.templateParams
@@ -304,9 +348,64 @@ export const useCatalogStore = defineStore('catalog', () => {
   function removeCategory(id: string) {
     const message = categoryRemovalBlock(id)
     if (message) return message
+    if (data.productTypes.some((item) => item.categoryId === id)) return '分类下还有产品类型，不能删除。'
     data.categories = data.categories.filter((item) => item.id !== id)
     data.mappings = data.mappings.filter((item) => item.categoryId !== id)
     return ''
+  }
+
+  function productTypesOf(categoryId: string) {
+    return data.productTypes.filter((item) => item.categoryId === categoryId).slice().sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, 'zh'))
+  }
+
+  function saveProductType(input: { id: string; name: string; categoryId: string; description: string; sort: number; status: ProductType['status'] }) {
+    const name = input.name.trim()
+    if (!name) return '请填写产品类型名称。'
+    if (!data.categories.some((item) => item.id === input.categoryId)) return '请先选择分类。'
+    const duplicated = data.productTypes.some((item) => item.categoryId === input.categoryId && item.name === name && item.id !== input.id)
+    if (duplicated) return '这个分类下已经有同名产品类型。'
+    const description = input.description.trim()
+    const sort = Number.isFinite(input.sort) ? input.sort : 1
+    if (input.id) {
+      const row = data.productTypes.find((item) => item.id === input.id)
+      if (!row) return '产品类型不存在。'
+      Object.assign(row, { name, categoryId: input.categoryId, description, sort, status: input.status })
+      return ''
+    }
+    data.productTypes.push({ id: uid('pt'), name, categoryId: input.categoryId, description, sort, status: input.status })
+    return ''
+  }
+
+  function removeProductType(id: string) {
+    data.productTypes = data.productTypes.filter((item) => item.id !== id)
+  }
+
+  function setProductTypeStatus(id: string, status: ProductType['status']) {
+    const row = data.productTypes.find((item) => item.id === id)
+    if (row) row.status = status
+  }
+
+  function createProductModel(input: { productTypeId: string; name: string }) {
+    const productType = data.productTypes.find((item) => item.id === input.productTypeId)
+    const name = input.name.trim()
+    if (!productType) return { ok: false, message: '请选择产品类型。', templateId: '' }
+    if (!name) return { ok: false, message: '请填写模型名称。', templateId: '' }
+    const templateId = uid('tpl')
+    data.templates.push({ id: templateId, name, parentId: null, enabled: true, structureOrder: [] })
+    data.specCanvases.push({
+      templateId,
+      productTypeId: productType.id,
+      name,
+      zoom: 1,
+      panX: 0,
+      panY: 0,
+      status: 'draft',
+      version: 1,
+      versionName: 'V1',
+      direction: 'ltr',
+      updatedAt: new Date().toISOString(),
+    })
+    return { ok: true, message: '', templateId }
   }
 
   function moveCategory(id: string, parentId: string | null) {
@@ -490,6 +589,11 @@ export const useCatalogStore = defineStore('catalog', () => {
     removeParamValue,
     categoryRemovalBlock,
     removeCategory,
+    productTypesOf,
+    saveProductType,
+    removeProductType,
+    setProductTypeStatus,
+    createProductModel,
     moveCategory,
     shiftCategory,
     relocateCategory,
@@ -511,4 +615,4 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 })
 
-export type { Category, FeedbackItem, ParamDef, ProductFamily, ProductGroup, SpecRule }
+export type { Category, FeedbackItem, ParamDef, ProductFamily, ProductGroup, ProductType, SpecRule }
