@@ -19,6 +19,9 @@ export function runCompatibilityChecks(material?: SheetProfile): CheckResult[] {
   const pro17 = sample.hosts.find((item) => item.modelName === 'iPhone 17 Pro Max')
   const pro18 = sample.hosts.find((item) => item.modelName === 'iPhone 18 Pro Max')
   check('A-hosts', Boolean(pro17 && pro18 && pro17.host.identityKey !== pro18.host.identityKey && pro17.planningIds.length === 2), `${pro17?.label || ''} / ${pro18?.label || ''}`)
+  const modelValues = data.params.find((item) => item.name === '型号')?.values || []
+  const seriesValues = data.params.find((item) => item.name === '系列')?.values || []
+  check('dict', !modelValues.includes('iPhone 18 Pro Max') && !seriesValues.includes('iPhone 18') && modelValues.includes('iPhone 17 Pro Max'), `型号 ${modelValues.join('、')}`)
   if (!pro17 || !pro18 || !phoneSku) return results
   const first = addCompatibility(data, { accessorySkuIds: [sample.filmA], hosts: [pro17.host, pro18.host], nextId })
   const fromFilm = linksOfSku(data, sample.filmA)

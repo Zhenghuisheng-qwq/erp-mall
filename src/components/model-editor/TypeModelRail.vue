@@ -1,12 +1,14 @@
 <template>
-  <aside class="rail">
-    <p class="label">当前分类</p>
-    <strong class="current">{{ path || '未选择分类' }}</strong>
+  <aside class="rail" :class="{ 'is-fold': folded }">
+    <div class="rail-head">
+      <strong v-show="!folded">模型</strong>
+      <button type="button" @click="emit('update:folded', !folded)">{{ folded ? '展开' : '收起' }}</button>
+    </div>
+    <template v-if="!folded">
+    <p class="current" :title="path">{{ path || '未选择分类' }}</p>
     <section v-if="groups.length" class="type-zone">
-      <p class="label">关联产品类型</p>
-      <p class="hint">分类不是产品类型。产品类型通过配置关联到当前分类。</p>
       <div class="relate">
-        <span>关联方式：分类关联</span>
+        <span>产品类型</span>
         <el-popover placement="bottom-start" :width="300" trigger="click">
           <template #reference>
             <button type="button" class="relate-link">查看关联关系</button>
@@ -44,6 +46,7 @@
       </div>
     </section>
     <p v-else class="none">{{ path ? '这个分类还没有关联产品类型。' : '先在左侧选择分类。' }}</p>
+    </template>
   </aside>
 </template>
 
@@ -69,6 +72,7 @@ const props = defineProps<{
   activeTypeId: string
   templateId: string
   viewing: boolean
+  folded: boolean
 }>()
 
 const emit = defineEmits<{
@@ -76,6 +80,7 @@ const emit = defineEmits<{
   'focus-type': [typeId: string]
   create: [typeId: string]
   copy: []
+  'update:folded': [value: boolean]
 }>()
 
 const activeId = computed(() => props.activeTypeId || props.groups[0]?.id || '')
@@ -86,11 +91,15 @@ const categoryName = computed(() => {
 </script>
 
 <style scoped>
-.rail { min-height: 0; overflow: auto; background: transparent; border: 0; border-left: 1px solid #f0f2f5; border-radius: 0; padding: 16px 16px 20px; }
-.label { margin: 20px 0 8px; color: #909399; font-size: 12px; line-height: 1.4; }
-.label:first-child { margin-top: 0; }
-.current { display: block; color: #303133; font-size: 15px; font-weight: 650; line-height: 1.45; }
-.type-zone { margin-top: 18px; padding: 12px 10px 10px; border: 1px solid #ebeef5; border-radius: 8px; background: #fafbfc; }
+.rail { min-height: 0; overflow: auto; background: transparent; border: 0; border-left: 1px solid var(--border-subtle, #eef2f6); border-radius: 0; padding: 12px 12px 16px; }
+.rail.is-fold { padding: 12px 4px; }
+.rail-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--text-muted, #8b98a8); }
+.rail.is-fold .rail-head { justify-content: center; }
+.rail-head strong { font-size: 12px; font-weight: 600; }
+.rail-head button { border: 0; background: none; color: var(--text-muted, #8b98a8); cursor: pointer; padding: 0; font-size: 12px; }
+.label { margin: 12px 0 6px; color: var(--text-muted, #8b98a8); font-size: 12px; line-height: 1.4; }
+.current { display: block; margin-top: 10px; color: var(--text-primary, #253044); font-size: 13px; font-weight: 650; line-height: 1.45; }
+.type-zone { margin-top: 12px; padding: 8px 8px 6px; border: 1px solid var(--border-subtle, #eef2f6); border-radius: 8px; background: var(--surface-muted, #f7f8fa); }
 .type-zone > .label { margin-top: 0; }
 .hint { margin: 0 0 8px; color: #909399; font-size: 12px; line-height: 1.45; }
 .relate { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; color: #606266; font-size: 12px; line-height: 1.4; }
@@ -101,7 +110,7 @@ const categoryName = computed(() => {
 .relate-body .relate-note { display: block; margin: 4px 0 0; color: #606266; font-size: 12px; line-height: 1.5; }
 .type-block { margin-top: 0; }
 .type-block + .type-block { margin-top: 14px; }
-.type-card { display: flex; align-items: center; gap: 8px; width: 100%; border: 1px solid #e4e7ed; background: #fff; text-align: left; padding: 8px 10px; color: #303133; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 6px; }
+.type-card { display: flex; align-items: center; gap: 8px; width: 100%; border: 1px solid var(--border-default, #e4e8ef); background: var(--surface-bg, #fff); text-align: left; padding: 7px 8px; color: var(--text-primary, #253044); font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 6px; }
 .type-card.is-on { border-color: #c6e2ff; box-shadow: inset 2px 0 0 #409eff; }
 .link-mark { flex: none; color: #409eff; font-size: 14px; }
 .label.sub { margin-top: 12px; }

@@ -1,48 +1,9 @@
 <template>
-  <div class="layout">
-    <aside class="sider" :class="{ 'is-collapse': collapsed }">
-      <div class="brand">
-        <span class="brand-mark">商</span>
-        <div class="brand-copy">
-          <strong>商品配置</strong>
-          <span>演示版</span>
-        </div>
-      </div>
-      <div class="sider-scroll">
-        <el-menu
-          ref="menuRef"
-          :default-active="active"
-          :default-openeds="initialOpeneds"
-          :collapse="collapsed"
-          :collapse-transition="false"
-          popper-class="iyge-menu-popup"
-          background-color="#304156"
-          text-color="#bfcbd9"
-          active-text-color="#ffffff"
-          router
-          @open="onOpen"
-          @close="onClose"
-        >
-          <el-sub-menu v-for="group in groups" :key="group.key" :index="group.key">
-            <template #title>
-              <el-icon><component :is="group.icon" /></el-icon>
-              <span>{{ group.title }}</span>
-            </template>
-            <el-menu-item v-for="item in group.items" :key="item.index" :index="item.index">{{ item.title }}</el-menu-item>
-            <el-sub-menu v-for="section in group.sections" :key="section.key" :index="section.key">
-              <template #title>{{ section.title }}</template>
-              <el-menu-item v-for="item in section.items" :key="item.index" :index="item.index">{{ item.title }}</el-menu-item>
-            </el-sub-menu>
-          </el-sub-menu>
-        </el-menu>
-      </div>
-    </aside>
+  <div class="layout" data-nav="flyout">
+    <RailNav :groups="groups" :active="active" :current-group="currentPlace.group" />
     <section class="main">
       <header class="topbar">
         <div class="topbar-left">
-          <button type="button" class="collapse-btn" :title="collapsed ? '展开菜单' : '收起菜单'" @click="toggleCollapse">
-            <el-icon :size="18"><Expand v-if="collapsed" /><Fold v-else /></el-icon>
-          </button>
           <div class="crumb">{{ title }}</div>
         </div>
         <div class="row-actions">
@@ -50,6 +11,9 @@
             <el-option label="身份：管理员" value="admin" />
             <el-option label="身份：运营" value="operator" />
           </el-select>
+          <button type="button" class="theme-switch" :title="themeTitle" :aria-label="themeTitle" @click="onToggleTheme">
+            <el-icon :size="16"><Sunny v-if="theme === 'dark'" /><Moon v-else /></el-icon>
+          </button>
           <el-dropdown>
             <el-button size="small">演示数据</el-button>
             <template #dropdown>
@@ -73,16 +37,15 @@
 </template>
 
 <script setup lang="ts">
-import { Expand, Fold, Goods, Setting, SetUp } from '@element-plus/icons-vue'
+import { Goods, Moon, Setting, SetUp, Sunny } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, markRaw, nextTick, ref, watch } from 'vue'
+import { computed, markRaw, ref } from 'vue'
 import type { Component } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCatalogStore } from '../stores/catalog'
 import type { UserRole } from '../domain/types'
-
-const COLLAPSE_KEY = 'iyge-v2-sider-collapsed'
-const OPEN_KEY = 'iyge-v2-sider-open'
+import RailNav from './RailNav.vue'
+import { applyTheme, readTheme, type AppTheme } from '../theme'
 
 type MenuLeaf = { index: string; title: string; admin?: boolean }
 type MenuSection = { key: string; title: string; admin?: boolean; items: MenuLeaf[] }
@@ -164,9 +127,14 @@ const MENU: MenuGroup[] = [
 
 const store = useCatalogStore()
 const route = useRoute()
+const theme = ref<AppTheme>(readTheme())
+const themeTitle = computed(() => (theme.value === 'dark' ? '当前暗黑模式，切换为明亮模式' : '当前明亮模式，切换为暗黑模式'))
+function onToggleTheme() {
+  const next: AppTheme = theme.value === 'dark' ? 'light' : 'dark'
+  theme.value = next
+  applyTheme(next)
+}
 const fileRef = ref<HTMLInputElement>()
-const menuRef = ref<{ open: (index: string) => void }>()
-const collapsed = ref(localStorage.getItem(COLLAPSE_KEY) === '1')
 const title = computed(() => String(route.meta.title || '商品配置'))
 const active = computed(() => {
   if (route.path === '/products' && route.query.panel === 'columns') return '/products?panel=columns'
@@ -192,15 +160,6 @@ const groups = computed(() =>
     .filter((group) => group.items.length > 0 || group.sections.length > 0),
 )
 
-function visibleMenuKeys() {
-  const keys: string[] = []
-  groups.value.forEach((group) => {
-    keys.push(group.key)
-    group.sections.forEach((section) => keys.push(section.key))
-  })
-  return keys
-}
-
 const currentPlace = computed(() => {
   const current = active.value
   for (const group of groups.value) {
@@ -211,87 +170,6 @@ const currentPlace = computed(() => {
   }
   return { group: '', section: '' }
 })
-
-function readOpeneds() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(OPEN_KEY) || '[]')
-    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string') : []
-  } catch {
-    return []
-  }
-}
-
-function resolveOpeneds() {
-  const visible = visibleMenuKeys()
-  const saved = localStorage.getItem(OPEN_KEY)
-  const next = (saved === null ? ['product', 'manage'] : readOpeneds()).filter((key) => visible.includes(key))
-  if (currentPlace.value.group && visible.includes(currentPlace.value.group) && !next.includes(currentPlace.value.group)) next.push(currentPlace.value.group)
-  if (currentPlace.value.section && visible.includes(currentPlace.value.section) && !next.includes(currentPlace.value.section)) next.push(currentPlace.value.section)
-  if (next.length === 0 && visible.includes('product')) next.push('product')
-  return next
-}
-
-const openedKeys = ref(resolveOpeneds())
-const initialOpeneds = openedKeys.value.slice()
-localStorage.setItem(OPEN_KEY, JSON.stringify(openedKeys.value))
-
-function persistOpeneds() {
-  localStorage.setItem(OPEN_KEY, JSON.stringify(openedKeys.value))
-}
-let suppressClose = false
-function onOpen(index: string) {
-  if (collapsed.value) return
-  if (!openedKeys.value.includes(index)) openedKeys.value = [...openedKeys.value, index]
-  persistOpeneds()
-}
-function onClose(index: string) {
-  if (collapsed.value || suppressClose) return
-  openedKeys.value = openedKeys.value.filter((key) => key !== index)
-  persistOpeneds()
-}
-function safeOpen(key: string) {
-  try {
-    menuRef.value?.open(key)
-  } catch {
-    // 分组尚未挂载时不打断导航
-  }
-}
-function openVisible() {
-  const visible = new Set(visibleMenuKeys())
-  for (const key of openedKeys.value) {
-    if (visible.has(key)) safeOpen(key)
-  }
-  if (currentPlace.value.group && visible.has(currentPlace.value.group)) safeOpen(currentPlace.value.group)
-  if (currentPlace.value.section && visible.has(currentPlace.value.section)) safeOpen(currentPlace.value.section)
-}
-function toggleCollapse() {
-  collapsed.value = !collapsed.value
-}
-
-watch(collapsed, (value) => {
-  localStorage.setItem(COLLAPSE_KEY, value ? '1' : '0')
-  if (value) return
-  suppressClose = true
-  nextTick(openVisible)
-  window.setTimeout(() => {
-    openVisible()
-    suppressClose = false
-  }, 360)
-})
-watch(active, () => {
-  if (collapsed.value) return
-  nextTick(() => {
-    if (currentPlace.value.group) safeOpen(currentPlace.value.group)
-    if (currentPlace.value.section) safeOpen(currentPlace.value.section)
-  })
-})
-watch(
-  () => store.data.activeRole,
-  () => {
-    openedKeys.value = resolveOpeneds()
-    nextTick(openVisible)
-  },
-)
 
 function onRole(value: string) {
   store.setRole(value as UserRole)

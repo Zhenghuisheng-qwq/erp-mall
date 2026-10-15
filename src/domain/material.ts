@@ -365,8 +365,26 @@ function nextTemporaryId(records: PlanningRecord[]) {
   return `TMP-${String(max + 1).padStart(6, '0')}`
 }
 
+function manualKey(attrs: ManualAttr[]) {
+  return attrs.map((item) => [item.attributeId, item.value, item.source].join('\u001f')).sort()
+}
+
+/** 旧临时编号只认模型和手工值。新编号再带上分类和产品类型，避免不同业务共用一个 TMP。 */
 function temporaryIdentity(modelId: string, attrs: ManualAttr[]) {
-  return ['temporary', modelId, ...attrs.map((item) => [item.attributeId, item.value, item.source].join('\u001f')).sort()].join('\u001e')
+  return ['temporary', modelId, ...manualKey(attrs)].join('\u001e')
+}
+
+function temporaryContextIdentity(categoryId: string, productTypeId: string, modelId: string, attrs: ManualAttr[]) {
+  return ['temporary', 'ctx', categoryId, productTypeId, modelId, ...manualKey(attrs)].join('\u001e')
+}
+
+function temporaryRecordMatchesContext(data: AppData, record: PlanningRecord, categoryId: string, productTypeId: string) {
+  const users = data.skus.filter((item) => item.planningId === record.planningId)
+  if (!users.length) return false
+  return users.every((sku) => {
+    const family = data.families.find((item) => item.id === sku.familyId)
+    return family?.categoryId === categoryId && family?.productTypeId === productTypeId
+  })
 }
 
 export function modelAttributeFields(data: AppData, productModelId: string) {
@@ -435,8 +453,13 @@ export function createTemporaryMaterial(data: AppData, input: {
   const dictSize = data.params.reduce((sum, item) => sum + item.values.length, 0)
   const nodeSize = data.productSpecNodes.length
   const versionText = JSON.stringify(data.specModelVersions)
-  const identityKey = temporaryIdentity(modelId, manualAttrs)
+  const identityKey = temporaryContextIdentity(input.categoryId, input.productTypeId, modelId, manualAttrs)
   let record = data.planningRecords.find((item) => item.origin === 'temporary' && item.identityKey === identityKey)
+  if (!record) {
+    const legacyKey = temporaryIdentity(modelId, manualAttrs)
+    const legacy = data.planningRecords.find((item) => item.origin === 'temporary' && item.identityKey === legacyKey)
+    if (legacy && temporaryRecordMatchesContext(data, legacy, input.categoryId, input.productTypeId)) record = legacy
+  }
   const now = input.now || new Date().toISOString()
   if (!record) {
     record = {

@@ -5,6 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>商品配置工作台</title>
+    <script>
+      (function () {
+        var theme = 'dark'
+        try { theme = localStorage.getItem('iyge-v2-theme') === 'light' ? 'light' : 'dark' } catch (e) {}
+        var root = document.documentElement
+        root.setAttribute('data-theme', theme)
+        if (theme === 'dark') root.classList.add('dark')
+      })()
+    </script>
+    <style>
+      html, body { background: #191718; color: #f1ecef; }
+      html[data-theme='light'], html[data-theme='light'] body { background: #f7f8fa; color: #253044; }
+    </style>
   </head>
   <body>
     <div id="app"></div>

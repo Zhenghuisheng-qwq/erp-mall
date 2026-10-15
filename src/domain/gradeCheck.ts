@@ -99,6 +99,23 @@ export function runGradeChecks(): CheckResult[] {
   if (hand) hand.nameSource = 'manual'
   check('H', named.name === '手机 Apple 特殊版本 紫色' && !named.name.includes('undefined') && renamed.ok && hand?.skuName === '苹果特殊紫色', named.name)
 
+  const formalBefore = data.planningRecords.filter((item) => item.origin !== 'temporary').map((item) => item.planningId).join()
+  const reused = createTemporaryMaterial(data, { requestId: 't-reuse', categoryId: 'c', productTypeId: 'pt', productModelId: 'm', modelVersionId: 'v1', attrs: [{ attributeId: 'p-color', value: '黑色', source: 'manual' }], materialCode: 'HAND-9', now: '2026-10-15T05:30:00.000Z', nextId })
+  data.categories.push({ id: 'c2', name: '穿戴', parentId: null, sort: 2, enabled: true })
+  data.productTypes.push({ id: 'pt2', name: '手表', categoryId: 'c2', status: 'enabled', sort: 2, description: '' })
+  data.productTypes.push({ id: 'pt3', name: '平板', categoryId: 'c', status: 'enabled', sort: 3, description: '' })
+  const otherType = createTemporaryMaterial(data, { requestId: 't-type', categoryId: 'c', productTypeId: 'pt3', productModelId: 'm', modelVersionId: 'v1', attrs: [{ attributeId: 'p-color', value: '黑色', source: 'manual' }], materialCode: 'HAND-3', now: '2026-10-15T05:40:00.000Z', nextId })
+  const otherCategory = createTemporaryMaterial(data, { requestId: 't-cat', categoryId: 'c2', productTypeId: 'pt2', productModelId: 'm', modelVersionId: 'v1', attrs: [{ attributeId: 'p-color', value: '黑色', source: 'manual' }], materialCode: 'HAND-4', now: '2026-10-15T05:50:00.000Z', nextId })
+  const legacyKey = ['temporary', 'm', ['p-color', '墨绿', 'manual'].join('\u001f')].join('\u001e')
+  data.planningRecords.push({ planningId: 'TMP-000088', productModelId: 'm', originModelVersionId: 'v1', modelVersionId: 'v1', modelVersionIds: ['v1'], steps: [], identityKey: legacyKey, status: 'active', createdTime: '2026-10-15T01:00:00.000Z', origin: 'temporary' })
+  data.families.unshift({ id: 'fam-legacy', name: '旧临时', templateId: 'm', productModelId: 'm', productTypeId: 'pt', line: 'v3', commonSignature: legacyKey, categoryId: 'c', oaProductId: '', commonAttrs: {}, productGroupIds: [], lifecycle: 'draft', origin: 'created', updatedAt: '2026-10-15T01:00:00.000Z' })
+  data.skus.push({ id: 'sku-legacy', familyId: 'fam-legacy', code: '', oaSkuId: '', status: 'draft', variantAttrs: { 颜色: '墨绿' }, projectedAttrs: {}, planningId: 'TMP-000088', materialCode: 'OLD-TMP', manualAttrs: [{ attributeId: 'p-color', attributeName: '颜色', value: '墨绿', source: 'manual' }] })
+  const legacyAgain = createTemporaryMaterial(data, { requestId: 't-legacy', categoryId: 'c', productTypeId: 'pt', productModelId: 'm', modelVersionId: 'v1', attrs: [{ attributeId: 'p-color', value: '墨绿', source: 'manual' }], materialCode: 'OLD-2', now: '2026-10-15T05:55:00.000Z', nextId })
+  const legacySplit = createTemporaryMaterial(data, { requestId: 't-legacy-split', categoryId: 'c', productTypeId: 'pt3', productModelId: 'm', modelVersionId: 'v1', attrs: [{ attributeId: 'p-color', value: '墨绿', source: 'manual' }], materialCode: 'OLD-3', now: '2026-10-15T05:56:00.000Z', nextId })
+  const keptLegacy = data.planningRecords.find((item) => item.planningId === 'TMP-000088')
+  const formalAfter = data.planningRecords.filter((item) => item.origin !== 'temporary').map((item) => item.planningId).join()
+  check('tmp-context', Boolean(hand && reused.ok && reused.planningId === hand.planningId && otherType.ok && otherCategory.ok && otherType.planningId !== hand.planningId && otherCategory.planningId !== hand.planningId && otherType.planningId !== otherCategory.planningId && legacyAgain.ok && legacyAgain.planningId === 'TMP-000088' && keptLegacy?.identityKey === legacyKey && legacySplit.ok && legacySplit.planningId !== 'TMP-000088' && formalBefore === formalAfter), `同上下文 ${reused.ok ? reused.planningId : reused.message}，换类型 ${otherType.ok ? otherType.planningId : otherType.message}`)
+
   const batch = setPlanningGrades(data.planningRecords, [first.planningId, second.planningId], 'core')
   const untouched = data.planningRecords.filter((item) => item.origin !== 'temporary' && item.planningId !== first.planningId && item.planningId !== second.planningId)
   const skuCount = data.skus.length

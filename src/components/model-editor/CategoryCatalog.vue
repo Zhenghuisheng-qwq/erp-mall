@@ -17,7 +17,7 @@
         <i v-if="row.hasChildren" class="twist">{{ row.expanded ? '▾' : '▸' }}</i>
         <span v-else class="twist"></span>
         <span class="cat-copy">
-          <span class="cat-name">{{ row.name }}</span>
+          <span class="cat-name" :title="row.name">{{ row.name }}</span>
           <span v-if="!row.hasChildren && stats[row.id]?.models" class="cat-meta">{{ stats[row.id].models }}个模型</span>
         </span>
       </button>

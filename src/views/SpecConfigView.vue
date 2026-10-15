@@ -1,6 +1,6 @@
 <template>
   <div class="designer">
-    <div class="workbench">
+    <div class="workbench" :class="{ 'is-cat-fold': treeFold, 'is-rail-fold': railFold }">
       <CategoryCatalog
         :rows="categoryRows"
         :leaf-id="leafId"
@@ -17,6 +17,8 @@
         :active-type-id="activeTypeId"
         :template-id="templateId"
         :viewing="viewing"
+        :folded="railFold"
+        @update:folded="railFold = $event"
         @open="openModel"
         @focus-type="focusType"
         @create="createModelFor"
@@ -31,67 +33,39 @@
               <el-tag size="small" :type="statusTagType">{{ canvasStatusText }}</el-tag>
             </div>
             <p class="meta-row">
-              <span><em>分类：</em>{{ leafPath || categoryText }}</span>
-              <span class="meta-type"><em>关联产品类型：</em>{{ productTypeText }}</span>
-              <span><em>关联方式：</em>分类关联</span>
-              <span><em>节点数：</em>{{ nodeTotal }}</span>
+              <span>{{ leafPath || categoryText }}</span>
+              <span class="meta-type">{{ productTypeText }}</span>
             </p>
           </div>
+          <div v-if="!viewing" class="studio-actions">
+            <el-button @click="saveModel">保存模型</el-button>
+            <el-button type="primary" @click="publish">发布模型</el-button>
+          </div>
         </header>
-        <div v-if="templateId" class="key-strip" aria-label="快捷键">
-          <span class="key-strip-label">快捷键</span>
-          <span><kbd>Tab</kbd> 新增子属性</span>
-          <span><kbd>V</kbd> 新增属性值</span>
-          <span><kbd>Enter</kbd> {{ enterAction }}</span>
-          <span v-if="menuKind !== 'value' || canPromote"><kbd>Shift+Tab</kbd> 提升节点</span>
-          <span><kbd>↑↓</kbd> 调整顺序</span>
-          <span><kbd>Delete</kbd> 删除节点</span>
-          <span><kbd>Ctrl+Z</kbd> 撤销</span>
-          <el-popover placement="bottom-start" :width="340" trigger="click">
-            <template #reference>
-              <button type="button" class="key-more">完整说明</button>
-            </template>
-            <strong>模型编辑快捷键</strong>
-            <p class="key-lead">Tab 新增子属性。V 在选中属性时新增属性值。两者都从属性词典选择，不会生成空白节点。</p>
-            <ul class="key-list">
-              <li><kbd>Tab</kbd> 新增子属性</li>
-              <li><kbd>V</kbd> 新增属性值</li>
-              <li><kbd>Enter</kbd> 新增同级节点</li>
-              <li><kbd>Shift+Tab</kbd> 提升节点层级</li>
-              <li><kbd>↑ ↓</kbd> 调整同级顺序</li>
-              <li><kbd>Delete</kbd> 删除选中节点</li>
-              <li><kbd>Ctrl+Z</kbd> 撤销</li>
-              <li><kbd>Ctrl+Enter</kbd> 完成编辑</li>
-              <li><kbd>Esc</kbd> 取消编辑</li>
-            </ul>
-            <p class="key-group">属性可以继续嵌套属性。属性值挂在所属属性下，也可以从属性值再挂条件属性。</p>
-          </el-popover>
-        </div>
-        <div v-if="templateId && !viewing && selected" class="node-ops">
-          <strong>{{ current ? nodeTitle(current) : '模型' }}</strong>
-          <el-button v-if="menuKind === 'model'" size="small" @click="runMenu('add-attribute')">添加属性</el-button>
-          <template v-else-if="menuKind === 'attribute'">
-            <el-button size="small" @click="runMenu('add-child')">添加子属性</el-button>
-            <el-button size="small" @click="runMenu('add-value')">添加属性值</el-button>
-            <el-button size="small" @click="runMenu('naming')">命名规则</el-button>
-            <el-button size="small" @click="runMenu('rename')">编辑</el-button>
-            <el-button size="small" type="danger" @click="runMenu('delete')">删除</el-button>
-          </template>
-          <template v-else>
-            <el-button size="small" @click="runMenu('add-child')">添加条件属性</el-button>
-            <el-button size="small" @click="runMenu('naming')">命名规则</el-button>
-            <el-button size="small" @click="runMenu('rename')">编辑</el-button>
-            <el-button size="small" type="danger" @click="runMenu('delete')">删除</el-button>
-          </template>
-        </div>
         <div v-if="templateId" class="head-tools">
             <el-segmented v-model="editorMode" class="view-switch" :options="modeOptions" />
             <div class="op-bar">
               <el-button-group>
                 <el-button v-if="!viewing" @click="tidy">自动布局</el-button>
+                <el-button @click="fitAll">适应全部</el-button>
+                <el-button @click="zoomReset">100%</el-button>
+                <el-button @click="zoomBy(1)">放大</el-button>
+                <el-button @click="zoomBy(-1)">缩小</el-button>
+                <el-button @click="toggleMap">{{ mapOpen ? '隐藏小地图' : '小地图' }}</el-button>
                 <el-button @click="setExpanded(true)">全部展开</el-button>
                 <el-button @click="setExpanded(false)">全部收起</el-button>
               </el-button-group>
+              <el-popover placement="bottom-end" :width="360" trigger="click">
+                <template #reference>
+                  <el-button>结构检查</el-button>
+                </template>
+                <div class="version-pop">
+                  <h3>当前父子关系</h3>
+                  <p v-if="structureNotes.length === 0">层级清楚。布局只调整位置，不会移动或删除节点。</p>
+                  <p v-for="(item, index) in structureNotes" :key="index">{{ item }}</p>
+                  <p v-if="canvas.direction === 'custom'">当前是手工摆放的位置。点「自动布局」才会按子树重新对齐，父子关系保持不变。</p>
+                </div>
+              </el-popover>
               <el-popover placement="bottom-end" :width="300" trigger="click">
                 <template #reference>
                   <el-button>发布记录</el-button>
@@ -104,9 +78,52 @@
                   <p v-for="item in records" :key="item.id">{{ item.versionName }} · {{ item.time }} · {{ item.products }} 个商品</p>
                 </div>
               </el-popover>
-              <el-button v-if="!viewing" @click="saveModel">保存模型</el-button>
-              <el-button v-if="!viewing" type="primary" @click="publish">发布模型</el-button>
+              <el-popover placement="bottom-start" :width="340" trigger="click">
+                <template #reference>
+                  <button type="button" class="key-more">快捷键</button>
+                </template>
+                <strong>模型编辑快捷键</strong>
+                <p class="key-lead">Tab 新增子属性。V 在选中属性时新增属性值。当前 Enter 是{{ enterAction }}。</p>
+                <ul class="key-list">
+                  <li><kbd>Tab</kbd> 新增子属性</li>
+                  <li><kbd>V</kbd> 新增属性值</li>
+                  <li><kbd>Enter</kbd> 新增同级节点</li>
+                  <li v-if="menuKind !== 'value' || canPromote"><kbd>Shift+Tab</kbd> 提升节点层级</li>
+                  <li><kbd>↑ ↓</kbd> 调整同级顺序</li>
+                  <li><kbd>Delete</kbd> 删除选中节点</li>
+                  <li><kbd>Ctrl+Z</kbd> 撤销</li>
+                  <li><kbd>Ctrl+Enter</kbd> 完成编辑</li>
+                  <li><kbd>Esc</kbd> 取消编辑</li>
+                </ul>
+                <p class="key-group">属性可以继续嵌套属性。属性值挂在所属属性下，也可以从属性值再挂条件属性。</p>
+              </el-popover>
             </div>
+        </div>
+        <div v-if="templateId" class="node-ops">
+          <template v-if="!viewing && selected">
+            <span class="ops-copy">
+              <strong>{{ current ? nodeTitle(current) : schemeTitle }}</strong>
+              <em v-if="selectionTrail">{{ selectionTrail }}</em>
+            </span>
+            <el-button v-if="menuKind === 'model'" size="small" @click="runMenu('add-attribute')">添加属性</el-button>
+            <template v-else-if="menuKind === 'attribute'">
+              <el-button size="small" @click="runMenu('add-child')">添加子属性</el-button>
+              <el-button size="small" @click="runMenu('add-value')">添加属性值</el-button>
+              <el-button size="small" @click="runMenu('naming')">命名规则</el-button>
+              <el-button size="small" @click="runMenu('rename')">编辑</el-button>
+              <el-button size="small" type="danger" plain @click="runMenu('delete')">删除</el-button>
+            </template>
+            <template v-else>
+              <el-button size="small" @click="runMenu('add-child')">添加条件属性</el-button>
+              <el-tooltip content="属性值下面不能再挂属性值，请到所属属性上添加" placement="bottom">
+                <span class="ops-disabled"><el-button size="small" disabled>添加属性值</el-button></span>
+              </el-tooltip>
+              <el-button size="small" @click="runMenu('naming')">命名规则</el-button>
+              <el-button size="small" @click="runMenu('rename')">编辑</el-button>
+              <el-button size="small" type="danger" plain @click="runMenu('delete')">删除</el-button>
+            </template>
+          </template>
+          <span v-else class="ops-idle">{{ viewing ? '查看模式下不能改结构' : '选中节点后，可以添加属性、属性值或条件属性' }}</span>
         </div>
         <EmptyModelGuide
           v-else-if="showEmptyGuide"
@@ -120,17 +137,20 @@
           <h2>{{ leafId ? '选择一个商品模型' : '从左侧选择分类' }}</h2>
           <p>{{ leafId ? '在中间选一个产品类型，再打开商品模型。' : '先选分类，再选产品类型和商品模型。' }}</p>
         </div>
-        <section v-if="templateId && comboRows.length" class="combo-preview">
-          <button type="button" class="combo-toggle" @click="comboOpen = !comboOpen">
-            <span>合法组合 {{ comboRows.length }} 条</span>
-            <span>{{ comboNumbered }} 条已有规划编号</span>
-          </button>
+        <section v-if="templateId" class="insight">
+          <div class="insight-bar">
+            <button type="button" class="combo-toggle" @click="comboOpen = !comboOpen">
+              <span>合法组合 {{ comboRows.length }} 条</span>
+              <span>{{ comboNumbered }} 条已有规划编号<span v-if="comboRows.length > comboNumbered"> · 其余发布后自动编号</span></span>
+            </button>
+            <el-button v-if="canvasContext.productTypeId" class="temp-entry" @click="temporaryOpen = true">创建临时物料</el-button>
+          </div>
           <div v-if="checkedIds.length" class="combo-batch">
             <span>已选 {{ checkedIds.length }} 条</span>
             <el-button size="small" @click="markGrade('core')">标为核心商品</el-button>
             <el-button size="small" @click="markGrade('general')">标为一般产品</el-button>
           </div>
-          <ul v-show="comboOpen">
+          <ul v-show="comboOpen && comboRows.length">
             <li v-for="row in comboRows" :key="row.key">
               <label v-if="row.planningId" class="combo-check"><input type="checkbox" :checked="checkedIds.includes(row.planningId)" @change="toggleCheck(row.planningId)" /></label>
               <button type="button" :class="{ 'is-on': row.key === selectedComboKey }" @click="selectedComboKey = row.key">
@@ -139,7 +159,7 @@
               </button>
             </li>
           </ul>
-          <el-button v-if="canvasContext.productTypeId" class="temp-entry" @click="temporaryOpen = true">创建临时物料</el-button>
+          <p v-show="comboOpen && !comboRows.length" class="insight-empty">发布模型后，这里会列出可以建档的合法组合。</p>
           <TemporaryMaterialDialog :open="temporaryOpen" :category-id="canvasContext.categoryId" :product-type-id="canvasContext.productTypeId" :product-model-id="templateId" :model-version-id="latestPublishedVersion(store.data, templateId)?.id" @close="temporaryOpen = false" @open="openTemporary" />
           <V3MaterialActions
             v-if="selectedCombo && canvasContext.productTypeId"
@@ -150,13 +170,11 @@
             :product-type-id="canvasContext.productTypeId"
             :retired="selectedCombo.retired"
           />
-        </section>
-        <section v-if="templateId && temporaryMaterials.length" class="combo-preview">
-          <button type="button" class="combo-toggle" @click="temporaryListOpen = !temporaryListOpen">
+          <button v-if="temporaryMaterials.length" type="button" class="combo-toggle temp-toggle" @click="temporaryListOpen = !temporaryListOpen">
             <span>临时物料 {{ temporaryMaterials.length }} 条</span>
             <span>对不上正式规划，编号以 TMP 开头</span>
           </button>
-          <ul v-show="temporaryListOpen">
+          <ul v-show="temporaryListOpen && temporaryMaterials.length">
             <li v-for="item in temporaryMaterials.slice(0, 30)" :key="item.id">
               <button type="button" @click="router.push(`/products/${item.familyId}`)">
                 <span>{{ item.materialCode }} · {{ item.skuName }}</span>
@@ -164,7 +182,7 @@
               </button>
             </li>
           </ul>
-          <p v-if="temporaryMaterials.length > 30" class="muted">这里只列出前 30 条。其余到商品列表按供应商编码或物料编码搜索。</p>
+          <p v-if="temporaryListOpen && temporaryMaterials.length > 30" class="insight-empty">这里只列出前 30 条。其余到商品列表按供应商编码或物料编码搜索。</p>
         </section>
         <div v-if="templateId" class="board" tabindex="0" @pointerdown="focusBoard">
       <div v-if="editorMode === 'canvas'" class="canvas">
@@ -186,28 +204,26 @@
           @move-end="onMoveEnd"
           @pane-click="closeFloating"
         >
-          <Background variant="dots" :gap="22" :size="1.1" pattern-color="#e1e8f0" />
-          <Controls />
-          <MiniMap />
+          <Background variant="dots" :gap="28" :size="1" pattern-color="#e7eef6" />
+          <MiniMap v-if="mapOpen" />
           <template #edge-tree="{ source, data }">
-            <path :d="treeBusPath(source, data?.childIds || [])" class="tree-bus" />
+            <path :d="treeBusPath(source, data?.childIds || [])" class="tree-bus" :class="{ 'is-hot': data?.hot !== false, 'is-dim': data?.hot === false }" />
           </template>
           <template #node-model="{ data }">
-            <div class="model-root" :class="{ 'is-on': data.selected, 'is-path': data.onPath }" title="双击修改名称">
+            <div class="model-root" :class="{ 'is-on': data.selected, 'is-path': data.onPath, 'is-quiet': data.quiet }" :style="{ width: data.boxWidth + 'px' }" title="双击修改名称">
               <input v-if="editingId === data.id" class="inline-edit root-edit" :value="data.label" @keydown.enter.prevent="commitRootName" @keydown.esc.stop="cancelRootEdit" @blur="commitRootName" @mousedown.stop @pointerdown.stop @click.stop @dblclick.stop />
               <strong v-else>{{ data.label }}</strong>
               <Handle type="source" :position="Position.Right" />
             </div>
           </template>
           <template #node-attribute="{ data }">
-            <div class="model-attr" :class="{ 'is-on': data.selected, 'is-path': data.onPath, 'is-head': data.head, 'is-unbound': !data.bound }" :title="data.bound ? `绑定：${data.label} · 属性词典` : '未绑定属性'">
+            <div class="model-attr" :class="{ 'is-on': data.selected, 'is-path': data.onPath, 'is-quiet': data.quiet, 'is-head': data.head, 'is-nested': !data.head, 'is-unbound': !data.bound }" :style="{ width: data.boxWidth + 'px' }" :title="data.bound ? `${data.label} · 来自属性词典` : '未绑定属性'">
               <Handle type="target" :position="Position.Left" />
               <select v-if="editingId === data.id" class="inline-edit" :value="data.editValue" @change="commitInline(data.id, 'attribute', $event)" @blur="editingId = ''" @mousedown.stop @pointerdown.stop @click.stop @dblclick.stop>
                 <option v-for="item in data.options" :key="item.value" :value="item.value">{{ item.label }}</option>
               </select>
               <template v-else>
                 <strong>{{ data.label }}</strong>
-                <p v-if="data.bound" class="attr-meta">属性来源：属性词典</p>
                 <button v-if="!data.bound && !viewing" type="button" class="pick-attr" @mousedown.stop @pointerdown.stop @click.stop="openBindAttribute(data.id)" @dblclick.stop>选择属性</button>
               </template>
               <button v-if="data.childCount" type="button" class="fold" @click.stop="toggleExpand(data.id)" @dblclick.stop>{{ data.expanded ? '−' : data.childCount }}</button>
@@ -215,7 +231,7 @@
             </div>
           </template>
           <template #node-value="{ data }">
-            <div class="model-value" :class="{ 'is-on': data.selected, 'is-path': data.onPath }" title="双击修改">
+            <div class="model-value" :class="{ 'is-on': data.selected, 'is-path': data.onPath, 'is-quiet': data.quiet }" :style="{ width: data.boxWidth + 'px' }" :title="data.label">
               <Handle type="target" :position="Position.Left" />
               <select v-if="editingId === data.id" class="inline-edit" :value="data.editValue" @change="commitInline(data.id, 'value', $event)" @blur="editingId = ''" @mousedown.stop @pointerdown.stop @click.stop @dblclick.stop>
                 <option v-for="item in data.options" :key="item.value" :value="item.value">{{ item.label }}</option>
@@ -379,7 +395,6 @@
 
 <script setup lang="ts">
 import { Background } from '@vue-flow/background'
-import { Controls } from '@vue-flow/controls'
 import { Handle, Position, useVueFlow, VueFlow } from '@vue-flow/core'
 import { MiniMap } from '@vue-flow/minimap'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -391,7 +406,7 @@ import { cloneProductModel } from '../components/model-editor/cloneModel'
 import EmptyModelGuide from '../components/model-editor/EmptyModelGuide.vue'
 import TypeModelRail from '../components/model-editor/TypeModelRail.vue'
 import { categoryChain, visibleCategoryRows } from '../domain/categoryTree'
-import { arrangeSpecPositions, categoryPath, latestPublishedVersion, layoutSpecTree, sameSpecSnapshot, SPEC_VALUE_TO_VALUE } from '../domain/logic'
+import { arrangeSpecPositions, categoryPath, latestPublishedVersion, layoutSpecTree, sameSpecSnapshot, specNodeSize, specTreeAdvance, SPEC_TREE_ORIGIN_X, SPEC_VALUE_TO_VALUE } from '../domain/logic'
 import { legalPlanningCombinations } from '../domain/planning'
 import NamingRuleDialog from '../components/NamingRuleDialog.vue'
 import TemporaryMaterialDialog from '../components/TemporaryMaterialDialog.vue'
@@ -401,13 +416,12 @@ import type { ProductSpecNode, ParamDef } from '../domain/types'
 import { uid, useCatalogStore } from '../stores/catalog'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
-import '@vue-flow/controls/dist/style.css'
 import '@vue-flow/minimap/dist/style.css'
 
 const store = useCatalogStore()
 const route = useRoute()
 const router = useRouter()
-const { fitView, findNode, onNodesChange } = useVueFlow({ id: 'model-designer' })
+const { fitView, findNode, getViewport, onNodesChange, setViewport, zoomIn, zoomOut } = useVueFlow({ id: 'model-designer' })
 const flowRevision = ref(0)
 onNodesChange(() => {
   flowRevision.value += 1
@@ -420,6 +434,7 @@ watch(
   },
 )
 const treeFold = ref(false)
+const railFold = ref(false)
 const viewing = computed(() => route.query.mode === 'view')
 const leafId = ref('')
 const activeTypeId = ref('')
@@ -542,17 +557,17 @@ const rootId = 'model-root'
 let skipRootCommit = false
 const attachParent = ref<string | null>(null)
 type FlowOption = { value: string; label: string }
-type FlowNodeData = { id: string; label: string; role?: string; head?: boolean; selected: boolean; onPath: boolean; expanded: boolean; childCount: number; editValue: string; options: FlowOption[]; bound: boolean; source: string; valueText: string }
+type FlowNodeData = { id: string; label: string; role?: string; head?: boolean; selected: boolean; onPath: boolean; quiet: boolean; expanded: boolean; childCount: number; editValue: string; options: FlowOption[]; bound: boolean; source: string; valueText: string; boxWidth: number }
 const flowNodes = ref<{ id: string; type: string; position: { x: number; y: number }; data: FlowNodeData }[]>([])
-const flowEdges = ref<{ id: string; source: string; target: string; type: string; data: { childIds: string[] } }[]>([])
-let didInitialFit = false
+const flowEdges = ref<{ id: string; source: string; target: string; type: string; data: { childIds: string[]; hot: boolean } }[]>([])
+const mapForced = ref<boolean | null>(null)
 
 const nodes = computed(() => store.data.productSpecNodes.filter((item) => item.templateId === templateId.value))
-const comboOpen = ref(true)
+const comboOpen = ref(false)
 const selectedComboKey = ref('')
 const checkedIds = ref<string[]>([])
 const temporaryOpen = ref(false)
-const temporaryListOpen = ref(true)
+const temporaryListOpen = ref(false)
 const temporaryMaterials = computed(() => {
   if (!templateId.value) return []
   const ids = new Set((store.data.planningRecords || []).filter((item) => item.origin === 'temporary' && item.productModelId === templateId.value).map((item) => item.planningId))
@@ -632,13 +647,52 @@ const currentProductType = computed(() => {
 const categoryText = computed(() => (currentProductType.value ? categoryPath(store.data, currentProductType.value.categoryId) : '未指定'))
 const productTypeText = computed(() => currentProductType.value?.name || '未指定')
 const nodeTotal = computed(() => nodes.value.length)
+const selectionTrail = computed(() => {
+  if (!current.value) return ''
+  const names: string[] = []
+  let parentId = current.value.parentId
+  const guard = new Set<string>()
+  while (parentId && !guard.has(parentId)) {
+    guard.add(parentId)
+    const parent = nodes.value.find((item) => item.id === parentId)
+    if (!parent) break
+    names.unshift(nodeTitle(parent))
+    parentId = parent.parentId
+  }
+  return names.join(' / ')
+})
+const structureNotes = computed(() => {
+  const notes: string[] = []
+  const groups = new Map<string, ProductSpecNode[]>()
+  nodes.value.filter((item) => item.nodeType === 'ATTRIBUTE' && item.attributeId).forEach((item) => {
+    const list = groups.get(item.attributeId) || []
+    list.push(item)
+    groups.set(item.attributeId, list)
+  })
+  groups.forEach((list) => {
+    if (list.length < 2) return
+    const name = nodeTitle(list[0])
+    const places = list.map((item) => {
+      const parent = item.parentId ? nodes.value.find((row) => row.id === item.parentId) : undefined
+      return parent ? nodeTitle(parent) : '模型根'
+    })
+    notes.push(`「${name}」出现了 ${list.length} 次，分别挂在 ${places.join('、')} 下面。这是当前保存的父子关系，自动布局不会删掉或挪走它们。`)
+  })
+  nodes.value.filter((item) => item.nodeType === 'VALUE').forEach((item) => {
+    const children = nodes.value.filter((row) => row.parentId === item.id && row.nodeType === 'ATTRIBUTE')
+    if (children.length < 4) return
+    notes.push(`「${nodeTitle(item)}」下面有 ${children.length} 个条件属性。它们会收成这一取值右侧的一组，不会改成别的父节点。`)
+  })
+  if (notes.length) notes.unshift(`当前模型共 ${nodeTotal.value} 个节点。`)
+  return notes
+})
 
 watch(templateId, () => {
   if (!templateId.value) return
-  didInitialFit = false
   selected.value = ''
   ensureCanvas()
   ensureTreeLayout()
+  frameCanvas()
   const canvasRow = store.data.specCanvases.find((item) => item.templateId === templateId.value)
   const owner = store.data.productTypes.find((item) => item.id === canvasRow?.productTypeId)
   if (owner) {
@@ -667,14 +721,35 @@ watch(
   },
 )
 
+function freshNodes() {
+  return nodes.value.filter((item) => item.positionX === 0 && item.positionY === 0)
+}
+function placeFreshNodes() {
+  freshNodes().slice().sort((a, b) => a.sort - b.sort).forEach((node) => {
+    const parent = node.parentId ? nodes.value.find((item) => item.id === node.parentId) : undefined
+    const siblings = nodes.value.filter((item) => item.parentId === node.parentId && item.id !== node.id && !(item.positionX === 0 && item.positionY === 0))
+    const step = parent ? specTreeAdvance(parent.nodeType, nodeTitle(parent)) : 0
+    node.positionX = parent ? (parent.positionX ?? SPEC_TREE_ORIGIN_X) + step : SPEC_TREE_ORIGIN_X
+    node.positionY = siblings.length ? Math.max(...siblings.map((item) => item.positionY ?? 12)) + (node.nodeType === 'VALUE' ? 38 : 54) : (parent?.positionY ?? 12)
+  })
+}
 function ensureTreeLayout() {
   const row = ensureCanvas()
-  if (row.direction === 'logic' || row.direction === 'custom') return
-  arrangeSpecPositions(nodes.value)
+  if (row.direction === 'custom') {
+    if (freshNodes().length) placeFreshNodes()
+    return
+  }
+  arrangeSpecPositions(nodes.value, nodeTitle)
   row.direction = 'logic'
 }
 function reflowTree() {
-  ensureCanvas()
+  const row = ensureCanvas()
+  if (row.direction === 'custom') {
+    placeFreshNodes()
+    return
+  }
+  arrangeSpecPositions(nodes.value, nodeTitle)
+  row.direction = 'logic'
 }
 function ensureCanvas() {
   let row = store.data.specCanvases.find((item) => item.templateId === templateId.value)
@@ -766,9 +841,22 @@ function pathIds() {
   }
   return ids
 }
+const mapOpen = computed(() => (mapForced.value === null ? nodes.value.length >= 48 : mapForced.value))
+function toggleMap() {
+  mapForced.value = !mapOpen.value
+}
 function paint() {
   const visible = nodes.value.filter(isShown)
   const highlight = pathIds()
+  const focused = Boolean(selected.value)
+  const near = new Set<string>()
+  if (selected.value) {
+    const parentKey = selected.value === rootId ? null : selected.value
+    visible.forEach((node) => {
+      if ((parentKey === null && !node.parentId) || node.parentId === parentKey) near.add(node.id)
+    })
+    if (selected.value !== rootId) near.add(selected.value)
+  }
   const projected = viewMode.value === 'all'
     ? null
     : layoutSpecTree(visible.map((node) => ({
@@ -776,13 +864,15 @@ function paint() {
       parentId: visibleAnchor(node) === rootId ? null : visibleAnchor(node),
       sort: node.sort,
       nodeType: node.nodeType,
+      label: nodeTitle(node),
     })))
   const posOf = (node: ProductSpecNode) => projected?.get(node.id) || { x: node.positionX ?? 248, y: node.positionY ?? 36 }
   const anchored = visible.filter((node) => visibleAnchor(node) === rootId)
   const basis = anchored.length ? anchored : visible
-  const rootY = basis.length ? Math.round(basis.reduce((sum, item) => sum + posOf(item).y + (item.nodeType === 'VALUE' ? 13 : 17), 0) / basis.length - 16) : 48
+  const rootY = basis.length ? Math.round(basis.reduce((sum, item) => sum + posOf(item).y + (item.nodeType === 'VALUE' ? 17 : 21), 0) / basis.length - 24) : 28
+  const rootWidth = Math.max(148, specNodeSize('ATTRIBUTE', schemeTitle.value).width)
   flowNodes.value = [
-    { id: rootId, type: 'model', position: { x: 16, y: rootY }, data: { id: rootId, label: schemeTitle.value, selected: selected.value === rootId, onPath: highlight.has(rootId), expanded: true, childCount: basis.length, editValue: '', options: [], bound: false, source: '', valueText: '' } },
+    { id: rootId, type: 'model', position: { x: 16, y: Math.max(8, rootY) }, data: { id: rootId, label: schemeTitle.value, selected: selected.value === rootId, onPath: highlight.has(rootId), quiet: focused && !highlight.has(rootId) && !near.has(rootId), expanded: true, childCount: basis.length, editValue: '', options: [], bound: false, source: '', valueText: '', boxWidth: rootWidth } },
     ...visible.map((node) => {
       const hint = node.nodeType === 'ATTRIBUTE' ? attributeHint(node) : { bound: false, source: '', values: '' }
       return {
@@ -796,6 +886,7 @@ function paint() {
           head: node.nodeType === 'ATTRIBUTE' && !node.parentId,
           selected: node.id === selected.value,
           onPath: highlight.has(node.id),
+          quiet: focused && !highlight.has(node.id) && !near.has(node.id),
           expanded: node.expanded !== false,
           childCount: viewChildCount(node.id),
           editValue: node.nodeType === 'ATTRIBUTE' ? node.attributeId : node.valueId,
@@ -803,6 +894,7 @@ function paint() {
           bound: hint.bound,
           source: hint.source,
           valueText: hint.values,
+          boxWidth: specNodeSize(node.nodeType, nodeTitle(node)).width,
         },
       }
     }),
@@ -819,7 +911,7 @@ function paint() {
     source,
     target: childIds[0],
     type: 'tree',
-    data: { childIds },
+    data: { childIds, hot: !focused || highlight.has(source) },
   }))
 }
 function measuredBox(id: string) {
@@ -828,8 +920,8 @@ function measuredBox(id: string) {
   const x = live?.position.x ?? stored?.position.x
   const y = live?.position.y ?? stored?.position.y
   if (x === undefined || y === undefined) return null
-  const width = live?.dimensions?.width || (id === rootId ? 124 : stored?.type === 'value' ? 72 : 112)
-  const height = live?.dimensions?.height || (id === rootId ? 36 : stored?.type === 'value' ? 28 : 44)
+  const width = live?.dimensions?.width || stored?.data.boxWidth || (id === rootId ? 160 : stored?.type === 'value' ? 84 : 136)
+  const height = live?.dimensions?.height || (id === rootId ? 48 : stored?.type === 'value' ? 34 : 42)
   return { x, y, width, height }
 }
 function treeBusPath(sourceId: string, childIds: string[]) {
@@ -844,18 +936,12 @@ function treeBusPath(sourceId: string, childIds: string[]) {
     .filter((item) => item.x > sx + 4)
     .sort((a, b) => a.y - b.y)
   if (!targets.length) return ''
-  if (targets.length === 1) {
-    const target = targets[0]
-    if (target.y === sy) return `M ${sx} ${sy} H ${target.x}`
-    const mid = Math.round(sx + (target.x - sx) / 2)
-    return `M ${sx} ${sy} H ${mid} V ${target.y} H ${target.x}`
-  }
-  const left = Math.min(...targets.map((item) => item.x))
-  const trunkX = Math.round(sx + Math.max(12, Math.min(20, (left - sx) / 2)))
+  if (targets.length === 1 && Math.abs(targets[0].y - sy) < 3) return `M ${sx} ${sy} H ${targets[0].x}`
+  const spine = Math.max(sx + 12, Math.min(...targets.map((item) => item.x)) - 14)
   const top = Math.min(sy, targets[0].y)
   const bottom = Math.max(sy, targets[targets.length - 1].y)
-  const parts = [`M ${sx} ${sy} H ${trunkX}`, `M ${trunkX} ${top} V ${bottom}`]
-  targets.forEach((item) => parts.push(`M ${trunkX} ${item.y} H ${item.x}`))
+  const parts = [`M ${sx} ${sy} H ${spine}`, `M ${spine} ${top} V ${bottom}`]
+  targets.forEach((item) => parts.push(`M ${spine} ${item.y} H ${item.x}`))
   return parts.join(' ')
 }
 function closeFloating() {
@@ -880,14 +966,82 @@ function onNodeClick(payload: { event?: { target?: EventTarget | null }; node: {
   revealAncestors(payload.node.id)
   menu.value.open = false
 }
+function canvasSize() {
+  const el = document.querySelector('.designer .canvas') as HTMLElement | null
+  if (!el) return null
+  return { width: el.clientWidth, height: el.clientHeight }
+}
+function contentBounds() {
+  const boxes = flowNodes.value.map((item) => measuredBox(item.id)).filter((item): item is { x: number; y: number; width: number; height: number } => Boolean(item))
+  if (!boxes.length) return null
+  const minX = Math.min(...boxes.map((item) => item.x))
+  const minY = Math.min(...boxes.map((item) => item.y))
+  const maxX = Math.max(...boxes.map((item) => item.x + item.width))
+  const maxY = Math.max(...boxes.map((item) => item.y + item.height))
+  return { minX, minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY) }
+}
 function frameCanvas() {
+  if (editorMode.value !== 'canvas' || !templateId.value) return
   nextTick(() => {
-    fitView({ padding: 0.16, maxZoom: 1, duration: 180 }).catch(() => undefined)
+    requestAnimationFrame(() => {
+      const bounds = contentBounds()
+      const size = canvasSize()
+      if (!bounds || !size || size.width < 80 || size.height < 80) return
+      const pad = 56
+      const fitZoom = Math.min((size.width - pad * 2) / bounds.width, (size.height - pad * 2) / bounds.height)
+      const zoom = fitZoom >= 1.4 ? 1.22 : 1
+      const fits = bounds.width * zoom + pad <= size.width && bounds.height * zoom + pad <= size.height
+      const x = fits ? (size.width - bounds.width * zoom) / 2 - bounds.minX * zoom : pad - bounds.minX * zoom
+      const y = bounds.height * zoom + pad <= size.height ? (size.height - bounds.height * zoom) / 2 - bounds.minY * zoom : pad - bounds.minY * zoom
+      setViewport({ x, y, zoom }, { duration: 180 }).catch(() => undefined)
+    })
+  })
+}
+function fitAll() {
+  fitView({ padding: 0.12, minZoom: 0.72, maxZoom: 1, duration: 180 }).catch(() => undefined)
+}
+function zoomReset() {
+  const size = canvasSize()
+  const vp = getViewport()
+  if (!size) return
+  const cx = size.width / 2
+  const cy = size.height / 2
+  const zoom = 1
+  setViewport({
+    x: cx - ((cx - vp.x) / vp.zoom) * zoom,
+    y: cy - ((cy - vp.y) / vp.zoom) * zoom,
+    zoom,
+  }, { duration: 160 }).catch(() => undefined)
+}
+function zoomBy(direction: 1 | -1) {
+  const action = direction > 0 ? zoomIn : zoomOut
+  action({ duration: 120 }).catch(() => undefined)
+}
+function revealNode(id: string) {
+  if (editorMode.value !== 'canvas' || !id) return
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      const box = measuredBox(id)
+      const size = canvasSize()
+      if (!box || !size) return
+      const vp = getViewport()
+      const left = box.x * vp.zoom + vp.x
+      const top = box.y * vp.zoom + vp.y
+      const right = (box.x + box.width) * vp.zoom + vp.x
+      const bottom = (box.y + box.height) * vp.zoom + vp.y
+      const margin = 48
+      let dx = 0
+      let dy = 0
+      if (left < margin) dx = margin - left
+      else if (right > size.width - margin) dx = size.width - margin - right
+      if (top < margin) dy = margin - top
+      else if (bottom > size.height - margin) dy = size.height - margin - bottom
+      if (!dx && !dy) return
+      setViewport({ x: vp.x + dx, y: vp.y + dy, zoom: vp.zoom }, { duration: 180 }).catch(() => undefined)
+    })
   })
 }
 function onNodesReady() {
-  if (didInitialFit) return
-  didInitialFit = true
   frameCanvas()
 }
 function onNodeDoubleClick(payload: { event: { target?: EventTarget | null }; node: { id: string } }) {
@@ -1353,11 +1507,11 @@ function onNodeDragStop(event: { node: { id: string; position: { x: number; y: n
 }
 function hitNode(x: number, y: number, selfId: string) {
   const root = flowNodes.value.find((item) => item.id === rootId)
-  if (root && x >= root.position.x && x <= root.position.x + 168 && y >= root.position.y && y <= root.position.y + 52) return rootId
+  if (root && x >= root.position.x && x <= root.position.x + 188 && y >= root.position.y && y <= root.position.y + 48) return rootId
   const target = flowNodes.value.find((item) => {
     if (item.id === selfId || item.id === rootId) return false
-    const width = item.type === 'attribute' ? 132 : item.type === 'value' ? 88 : 120
-    const height = item.type === 'attribute' ? 46 : 32
+    const width = item.type === 'attribute' ? 160 : item.type === 'value' ? 120 : 140
+    const height = item.type === 'attribute' ? 48 : 32
     return x >= item.position.x && x <= item.position.x + width && y >= item.position.y && y <= item.position.y + height
   })
   return target?.id || ''
@@ -1497,8 +1651,8 @@ function insertAttributeNodes(paramIds: string[]) {
   const parent = nodes.value.find((item) => item.id === parentId)
   if (parent && parent.expanded === false) parent.expanded = true
   const siblings = nodes.value.filter((item) => item.parentId === parentId)
-  const baseX = parent ? (parent.positionX ?? 300) + 340 : 300
-  let cursorY = siblings.length ? Math.max(...siblings.map((item) => item.positionY ?? 40)) + 136 : (parent?.positionY ?? 48)
+  const baseX = parent ? (parent.positionX ?? SPEC_TREE_ORIGIN_X) + specTreeAdvance(parent.nodeType, nodeTitle(parent)) : SPEC_TREE_ORIGIN_X
+  let cursorY = siblings.length ? Math.max(...siblings.map((item) => item.positionY ?? 12)) + 54 : (parent?.positionY ?? 12)
   let sort = nextSort(parentId)
   let lastId = ''
   paramIds.forEach((paramId) => {
@@ -1517,13 +1671,14 @@ function insertAttributeNodes(paramIds: string[]) {
       positionY: cursorY,
     })
     sort += 1
-    cursorY += 136
+    cursorY += 54
     lastId = id
   })
   reflowTree()
   selected.value = lastId
   attributeOpen.value = false
   attributeBindId.value = ''
+  revealNode(lastId)
 }
 function createDictionaryAttribute() {
   const name = newAttrName.value.trim()
@@ -1610,6 +1765,7 @@ function addValues() {
   reflowTree()
   selected.value = lastId
   valueOpen.value = false
+  revealNode(lastId)
 }
 function descendantIds(id: string): string[] {
   const children = nodes.value.filter((item) => item.parentId === id)
@@ -1781,20 +1937,23 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 </script>
 
 <style scoped>
-.designer { display: flex; flex-direction: column; height: calc(100vh - 132px); min-height: 520px; }
-.workbench { display: grid; grid-template-columns: 200px 248px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 0; flex: 1; min-height: 0; background: #fff; border: 1px solid #ebeef5; border-radius: 8px; overflow: hidden; }
-.workbench:has(.cat.is-fold) { grid-template-columns: 44px 248px minmax(0, 1fr); }
-.studio-head { margin-bottom: 6px; }
+.designer { display: flex; flex-direction: column; height: calc(100vh - 132px); min-height: 520px; color: var(--text-primary, #253044); }
+.workbench { display: grid; grid-template-columns: 212px 228px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 0; flex: 1; min-height: 0; background: var(--surface-bg, #fff); border: 1px solid var(--border-default, #e4e8ef); border-radius: 8px; overflow: hidden; }
+.workbench.is-cat-fold { grid-template-columns: 44px 228px minmax(0, 1fr); }
+.workbench.is-rail-fold { grid-template-columns: 212px 44px minmax(0, 1fr); }
+.workbench.is-cat-fold.is-rail-fold { grid-template-columns: 44px 44px minmax(0, 1fr); }
+.studio-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+.studio-actions { display: flex; flex: none; gap: 8px; }
 .version-name { color: #909399; font-size: 13px; font-weight: 500; }
 .meta-row { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 6px 0 0; color: #303133; font-size: 12px; line-height: 1.5; }
 .meta-row em { margin-right: 4px; color: #909399; font-style: normal; }
-.node-ops { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 8px; }
-.node-ops strong { margin-right: 4px; }
-.key-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; margin: 0 0 6px; padding: 2px 10px; border-radius: 6px; background: #f4f7fb; color: #8d9bab; font-size: 12px; line-height: 20px; }
-.key-strip-label { color: #9aa8b8; }
-.key-strip-label::after { content: "："; }
-.key-strip kbd { margin-right: 3px; padding: 0; border: 0; background: transparent; color: #7d8da1; font: 12px/20px Consolas, "Cascadia Mono", monospace; }
-.key-more { margin-left: auto; border: 0; background: none; padding: 0; color: #8aa0b8; font-size: 12px; line-height: 20px; cursor: pointer; }
+.node-ops { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 32px; margin: 0 0 8px; }
+.node-ops strong { margin-right: 4px; color: var(--text-primary, #253044); font-size: 13px; }
+.ops-copy { display: flex; flex-direction: column; min-width: 120px; margin-right: 4px; }
+.ops-copy em { color: var(--text-muted, #8b98a8); font-style: normal; font-size: 12px; line-height: 1.3; }
+.ops-idle { color: #98a4b3; font-size: 12px; }
+.ops-disabled { display: inline-flex; }
+.key-more { border: 0; background: none; padding: 0 2px; color: #8aa0b8; font-size: 13px; line-height: 32px; cursor: pointer; }
 .key-more:hover { color: #606266; }
 .studio-copy { min-width: 0; }
 .title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -1802,21 +1961,23 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .studio-head .meta-row { display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: center; margin: 6px 0 0; color: #303133; font-size: 12px; }
 .meta-type { padding: 1px 8px; border-radius: 4px; background: #f4f8fc; }
 .head-tools { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
-.combo-preview { margin: 0 0 8px; border: 1px solid #e6edf5; border-radius: 8px; background: #fff; }
-.combo-toggle { width: 100%; display: flex; justify-content: space-between; gap: 12px; border: 0; background: transparent; padding: 8px 12px; color: #1f3b66; font-size: 13px; cursor: pointer; }
-.combo-toggle span:last-child { color: #8aa0b8; }
-.combo-preview ul { max-height: 148px; margin: 0; padding: 0 12px 8px; overflow: auto; list-style: none; }
-.combo-preview li { padding: 0; }
-.combo-preview li { display: flex; align-items: center; gap: 6px; }
+.insight { margin: 0 0 8px; border: 1px solid #e6edf5; border-radius: 10px; background: #fff; }
+.insight-bar { display: flex; align-items: center; gap: 8px; padding-right: 8px; }
+.combo-toggle { flex: 1; display: flex; justify-content: space-between; gap: 12px; border: 0; background: transparent; padding: 8px 12px; color: #1f3b66; font-size: 13px; cursor: pointer; }
+.combo-toggle span:last-child { color: #8aa0b8; font-weight: 400; }
+.temp-toggle { width: 100%; border-top: 1px solid #f0f3f7; }
+.insight ul { max-height: 132px; margin: 0; padding: 0 12px 8px; overflow: auto; list-style: none; }
+.insight li { display: flex; align-items: center; gap: 6px; }
 .combo-check { display: flex; align-items: center; }
-.combo-batch { display: flex; align-items: center; gap: 8px; margin: 4px 12px; color: #607089; font-size: 13px; }
-.temp-entry { margin: 0 12px 8px; }
-.combo-preview button { width: 100%; display: flex; justify-content: space-between; gap: 12px; border: 0; background: transparent; padding: 4px 0; color: #1f2a37; font-size: 13px; text-align: left; cursor: pointer; }
-.combo-preview button.is-on { color: #1677ff; }
-.combo-preview em { color: #1677ff; font-style: normal; white-space: nowrap; }
+.combo-batch { display: flex; align-items: center; gap: 8px; margin: 0 12px 8px; color: #607089; font-size: 13px; }
+.temp-entry { flex: none; }
+.insight li button { width: 100%; display: flex; justify-content: space-between; gap: 12px; border: 0; background: transparent; padding: 4px 0; color: #1f2a37; font-size: 13px; text-align: left; cursor: pointer; }
+.insight li button.is-on { color: #1677ff; }
+.insight em { color: #8aa0b8; font-style: normal; white-space: nowrap; }
+.insight-empty { margin: 0; padding: 0 12px 10px; color: #98a4b3; font-size: 12px; }
 .op-bar { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .view-switch { --el-segmented-item-selected-bg-color: var(--el-color-primary); --el-segmented-item-selected-color: #fff; }
-.work-main { min-width: 0; min-height: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden; padding: 14px 16px 12px; background: #f5f7fa; border-left: 1px solid #eef0f3; }
+.work-main { min-width: 0; min-height: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden; padding: 12px 14px 10px; background: var(--canvas-bg, #f4f7fb); border-left: 1px solid var(--border-subtle, #eef2f6); }
 .quiet-guide { margin: 64px auto 0; max-width: 420px; color: #66788a; }
 .quiet-guide h2 { margin: 0 0 8px; color: #1f3b66; font-size: 18px; }
 .quiet-guide p { margin: 0; font-size: 13px; }
@@ -1839,40 +2000,44 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .doc-mode textarea { flex: 1; min-height: 360px; border: 0; resize: none; outline: none; font: 15px/1.7 "Cascadia Mono", Consolas, monospace; color: #1c2b3a; }
 .board { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; outline: none; }
 .board:focus-within { box-shadow: inset 0 0 0 1px #d7e4f4; border-radius: 8px; }
-.canvas { position: relative; flex: 1; width: 100%; min-width: 0; min-height: 0; border: 1px solid #e6edf5; border-radius: 8px; overflow: hidden; background: #f7f9fc; }
+.canvas { position: relative; flex: 1; width: 100%; min-width: 0; min-height: 0; border: 1px solid var(--border-default, #e4e8ef); border-radius: 12px; overflow: hidden; background: var(--canvas-bg, #f4f7fb); }
 .canvas-tools { position: absolute; top: 10px; right: 12px; z-index: 5; }
-.canvas :deep(.vue-flow) { width: 100%; height: 100%; background: #f7f9fc; }
+.canvas :deep(.vue-flow) { width: 100%; height: 100%; background: var(--canvas-bg, #f4f7fb); }
 .canvas :deep(.vue-flow__node) { padding: 0; border: 0; background: transparent; box-shadow: none; }
 .canvas :deep(.vue-flow__handle) { width: 8px; height: 8px; border: 0; background: transparent; opacity: 0; }
 .canvas :deep(.vue-flow__edge-path) { stroke-linecap: butt; stroke-linejoin: miter; }
 .canvas :deep(.vue-flow__controls) { left: 12px; bottom: 16px; box-shadow: none; border: 1px solid #e6edf5; }
-.canvas :deep(.vue-flow__minimap) { left: 12px; right: auto; bottom: 12px; border-radius: 8px; overflow: hidden; box-shadow: none; border: 1px solid #e6edf5; }
-.canvas :deep(.tree-bus) { fill: none; stroke: #c5d0dc; stroke-width: 1.25px; stroke-linejoin: round; stroke-linecap: butt; pointer-events: none; }
+.canvas :deep(.vue-flow__minimap) { left: 12px; right: auto; bottom: 12px; border-radius: 8px; overflow: hidden; box-shadow: none; border: 1px solid var(--border-default, #e4e8ef); background: var(--surface-bg, #fff); }
+.canvas :deep(.tree-bus) { fill: none; stroke: var(--connector-color, #8ea0b3); stroke-width: 1.15px; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; opacity: 0.8; }
+.canvas :deep(.tree-bus.is-hot) { stroke: var(--accent, #6d84c4); stroke-width: 1.7px; opacity: 1; }
+.canvas :deep(.tree-bus.is-dim) { opacity: 0.32; }
 .model-root, .model-attr, .model-value { position: relative; box-sizing: border-box; text-align: left; }
-.model-root { min-width: 108px; height: 36px; display: flex; align-items: center; background: #fff; color: #303133; border: 1px solid #dcdfe6; border-left: 3px solid #303133; border-radius: 6px; padding: 0 12px; font-size: 16px; font-weight: 600; }
-.model-attr { width: 128px; height: 44px; display: flex; flex-direction: column; justify-content: center; background: #fff; border: 1px solid #e4e7ed; border-radius: 6px; padding: 0 10px; }
-.model-attr strong { display: block; overflow: hidden; color: #303133; font-size: 13px; font-weight: 500; line-height: 18px; white-space: nowrap; text-overflow: ellipsis; }
+.model-root { height: 48px; display: flex; align-items: center; background: var(--accent, #2c4068); color: #fff; border: 0; border-radius: 12px; padding: 0 18px; font-size: 18px; font-weight: 650; }
+.model-root strong { overflow: hidden; color: inherit; font-size: 18px; font-weight: 650; white-space: nowrap; text-overflow: ellipsis; }
+.model-attr { height: 42px; display: flex; align-items: center; background: transparent; border: 0; border-radius: 10px; padding: 0 12px; }
+.model-attr strong { display: block; overflow: hidden; color: var(--node-text, var(--text-primary, #253044)); font-size: 16px; font-weight: 650; line-height: 24px; white-space: nowrap; text-overflow: ellipsis; }
 .model-attr.is-unbound strong { color: #909399; font-weight: 500; }
-.attr-meta { margin: 0; overflow: hidden; color: #909399; font-size: 11px; line-height: 14px; white-space: nowrap; text-overflow: ellipsis; }
+.attr-meta { margin: 0; overflow: hidden; color: #b0bcc8; font-size: 10px; line-height: 14px; white-space: nowrap; text-overflow: ellipsis; }
 .pick-attr { display: inline-block; margin-top: 2px; border: 0; background: none; padding: 0; color: #409eff; font-size: 12px; line-height: 1.4; cursor: pointer; }
 .dict-create { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
 .dict-create .el-input { flex: 1; }
 .dict-empty { margin: 0 0 8px; color: #909399; font-size: 13px; line-height: 1.45; }
-.model-attr.is-head { border-color: #dcdfe6; }
-.model-attr.is-head strong { color: #303133; font-size: 13px; font-weight: 500; }
-.model-value { min-width: 64px; height: 28px; display: flex; align-items: center; background: #f7f8fa; border: 1px solid #e4e7ed; border-radius: 6px; padding: 0 10px; color: #606266; font-size: 12px; font-weight: 400; line-height: 28px; }
+.model-attr.is-head { background: color-mix(in srgb, var(--accent, #409eff) 14%, var(--surface-bg, #fff)); }
+.model-attr.is-head strong { font-size: 16px; }
+.model-attr.is-nested { background: transparent; border-left: 3px solid var(--accent, #8ea0b8); border-radius: 0 10px 10px 0; padding-left: 10px; }
+.model-attr.is-nested strong { font-size: 15px; font-weight: 600; }
+.model-value { height: 34px; display: flex; align-items: center; background: var(--surface-muted, #eef2f6); border: 0; border-radius: 999px; padding: 0 14px; color: var(--text-primary, #253044); font-size: 15px; font-weight: 500; line-height: 34px; }
+.model-value span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .structure-empty { position: absolute; z-index: 4; top: 52px; left: 50%; transform: translateX(-50%); padding: 12px 14px; border: 1px solid #e6edf5; border-radius: 8px; background: rgba(255, 255, 255, 0.96); }
 .structure-empty p { margin: 0; color: #606266; font-size: 13px; }
 .structure-start { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; color: #909399; font-size: 12px; }
 .path-preview { position: absolute; left: 12px; top: 12px; z-index: 5; max-width: 460px; padding: 6px 10px; color: #7d8da1; background: rgba(255, 255, 255, 0.88); border-radius: 999px; font-size: 12px; pointer-events: none; }
 .path-preview i { margin: 0 6px; color: #c5d0de; font-style: normal; }
-.model-attr.is-on, .model-value.is-on, .model-root.is-on { border-color: #409eff; background: #f3f8ff; box-shadow: none; }
-.model-value.is-on { color: #303133; }
-.model-attr.is-path { border-color: #dcdfe6; }
-.model-value.is-path { border-color: #e4e7ed; background: #f7f8fa; }
-.model-root.is-path { background: #fff; }
-.model-attr.is-on, .model-value.is-on, .model-root.is-on { border-color: #409eff; background: #f3f8ff; }
-.model-value.is-on { color: #303133; }
+.model-attr.is-on, .model-value.is-on { background: var(--selected-bg, #e7eefc); box-shadow: inset 0 0 0 2px var(--accent, #409eff); }
+.model-root.is-on { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #8ea0b8) 55%, transparent); }
+.model-value.is-on { color: var(--text-primary, #1f3b66); }
+.model-attr.is-path strong { font-weight: 700; }
+.model-root.is-quiet, .model-attr.is-quiet, .model-value.is-quiet { opacity: 0.72; }
 .fold { position: absolute; right: -7px; top: 50%; width: 16px; height: 16px; margin-top: -8px; border: 1px solid #d5deea; border-radius: 50%; background: #fff; color: #7d8da1; cursor: pointer; font-size: 10px; line-height: 14px; padding: 0; }
 .inline-edit { width: 100%; max-width: 140px; border: 1px solid #9eb6d6; border-radius: 8px; background: #fff; color: #1f2d3d; font: inherit; }
 .model-root .root-edit { width: 148px; max-width: none; color: #1f2d3d; background: #fff; text-align: center; font-weight: 650; }

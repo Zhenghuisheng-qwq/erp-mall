@@ -40,6 +40,7 @@ export function runExcelChecks(profiles: SheetProfile[] = []): CheckResult[] {
     check('source-kept', Boolean(replayRow && replayRow.block === 'imported' && replayRow.message.includes('临时物料') && replayRow.message.includes('不会把临时物料改成正式规划')), replayRow?.message || '')
   }
   check('formal', formalRoundTrip(), '合成的一行能挂上已发布规划，再导入不会多一条')
+  check('rows', blankRowAndRollback(), '空行不改原表行号，失败时整批不落库')
   return results
 }
 
@@ -63,4 +64,23 @@ function formalRoundTrip() {
   const second = applyExcelImport(data, preview, (prefix) => `${prefix}-${++seq}`)
   const codes = data.skus.filter((item) => item.supplierCode === 'SUP-FORMAL').map((item) => item.materialCode)
   return first.filter((item) => item.ok && item.created).length === 2 && second.filter((item) => item.ok && !item.created).length === 2 && data.skus.length === before + 2 && new Set(codes).size === 2 && codes.every((item) => item?.startsWith('MAT-'))
+}
+
+function blankRowAndRollback() {
+  const data = createSeed()
+  const version = data.specModelVersions.find((item) => item.id === 'phone-model-v1')
+  if (!version) return false
+  data.planningRecords = reconcilePlanningRecords({ records: data.planningRecords, data, productModelId: 't-phone', modelVersionId: version.id, nodes: version.nodesSnapshot, now: '2026-10-15T00:00:00.000Z' }).records
+  const headers = ['9.0管家婆', '物料描述（可追溯）', '供应商编码', '一级', '二级', '产品类型', '属性1', '属1值', '属性2', '属2值', '属性3', '属3值', '属性4', '属4值']
+  const row = ['9001', 'Apple iPhone 128G 黑色', 'SUP-ROW', '主机', '手机', '手机', '品牌', 'Apple', '系列', 'iPhone', '颜色', '黑色', '容量', '128G']
+  const blank = headers.map(() => '')
+  const other = ['9002', 'Apple iPhone 128G 白色', 'SUP-ROW-2', '主机', '手机', '手机', '品牌', 'Apple', '系列', 'iPhone', '颜色', '白色', '容量', '128G']
+  const sheet = readSheet('行号', [headers, row, blank, other])
+  const preview = previewSheet(data, sheet, suggestMapping(sheet.headers, sheet.sample), 'rows')
+  if (preview.map((item) => item.rowNumber).join() !== '2,4') return false
+  const before = data.skus.map((item) => item.id).join()
+  let seq = 0
+  const bad = { ...preview[1], planningId: 'PLN-MISSING', requestId: 'excel:bad-row' }
+  const applied = applyExcelImport(data, [preview[0], bad], (prefix) => `${prefix}-row-${++seq}`)
+  return applied.every((item) => !item.ok) && data.skus.map((item) => item.id).join() === before
 }

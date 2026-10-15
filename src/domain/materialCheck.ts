@@ -109,8 +109,9 @@ export async function runMaterialChecks(): Promise<CheckResult[]> {
 
   const second = black ? create(branched, black.planningId, 'req-b', 'v1') : { ok: false as const, message: 'missing' }
   const duo = branched.skus.filter((item) => item.planningId === black?.planningId)
-  const inspected = branched.families[0] ? inspectFamily(branched, branched.families[0], duo, ['容量', '颜色']) : []
-  check('B', Boolean(second.ok && second.materialCode !== (created.ok ? created.materialCode : '') && duo.length === 2 && new Set(duo.map((item) => item.id)).size === 2 && duo.every((item) => item.planningId === black?.planningId)), `同规划物料 ${duo.map((item) => item.materialCode).join(',')}；若走 V2 判重会报 ${inspected.filter((item) => item.kind === 'duplicate').length} 条，但建档没有拦截`)
+  const owner = branched.families.find((item) => item.id === duo[0]?.familyId)
+  const inspected = owner ? inspectFamily(branched, owner, duo, ['容量', '颜色']) : []
+  check('B', Boolean(second.ok && second.materialCode !== (created.ok ? created.materialCode : '') && duo.length === 2 && new Set(duo.map((item) => item.id)).size === 2 && duo.every((item) => item.planningId === black?.planningId) && owner?.line === 'v3' && inspected.every((item) => item.kind !== 'duplicate')), `同规划物料 ${duo.map((item) => item.materialCode).join(',')}，V3 重复规格 ${inspected.filter((item) => item.kind === 'duplicate').length} 条`)
 
   const flat = world(flatNodes())
   publish(flat, flatNodes(), 'flat-v1')
@@ -142,6 +143,12 @@ export async function runMaterialChecks(): Promise<CheckResult[]> {
   const versionCount = store.data.specModelVersions.length
   const blocked = store.removeTemplate('t-phone')
   check('G', blocked.includes('不能删除') && store.data.specModelVersions.length === versionCount && store.data.families.some((item) => item.id === 'f-iphone'), blocked || '删除未被拦住')
+  const typeCount = store.data.productTypes.length
+  const blockedType = store.removeProductType('pt-phone')
+  const added = store.saveProductType({ id: '', name: '未被引用的类型', categoryId: store.data.categories[0].id, description: '', sort: 9, status: 'enabled' })
+  const freshType = store.data.productTypes.find((item) => item.name === '未被引用的类型')
+  const removedType = freshType ? store.removeProductType(freshType.id) : '没有创建出来'
+  check('type-guard', blockedType.includes('不能删除') && store.data.productTypes.length === typeCount && added === '' && removedType === '' && !store.data.productTypes.some((item) => item.name === '未被引用的类型'), blockedType || removedType)
 
   const retiredCreate = black ? create(branched, black.planningId, 'req-retired', 'v1') : { ok: false as const, message: 'missing' }
   const frozen = generateSkuFromModel({ commonAttrs: { 品牌: 'Apple' }, variantSelections: { 容量: ['128GB', '256GB'], 颜色: ['黑色', '白色'] }, modelSnapshot: flatNodes() })

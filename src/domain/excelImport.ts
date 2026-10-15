@@ -12,6 +12,8 @@ export interface SheetProfile {
   reason: string
   headers: string[]
   rows: string[][]
+  /** 与 rows 对齐的 Excel 原表行号。表头是第 1 行。 */
+  sourceRows?: number[]
   sample: string[]
 }
 
@@ -84,9 +86,9 @@ export function classifySheet(name: string, headers: string[]): { kind: SheetKin
 export function readSheet(name: string, matrix: unknown[][]): SheetProfile {
   const rows = matrix.map((row) => (Array.isArray(row) ? row : []).map((cell) => cell == null ? '' : String(cell).trim()))
   const headers = rows[0] || []
-  const data = rows.slice(1).filter((row) => row.some((cell) => cell))
+  const body = rows.slice(1).map((row, index) => ({ row, excelRow: index + 2 })).filter((item) => item.row.some((cell) => cell))
   const kind = classifySheet(name, headers)
-  return { name, ...kind, headers, rows: data, sample: data[0] || [] }
+  return { name, ...kind, headers, rows: body.map((item) => item.row), sourceRows: body.map((item) => item.excelRow), sample: body[0]?.row || [] }
 }
 
 export function suggestMapping(headers: string[], sample: string[]): ColumnMapping[] {
@@ -236,7 +238,7 @@ export function previewSheet(data: AppData, sheet: SheetProfile, mapping: Column
   const temporaryGroups = new Set(options.temporaryGroups || [])
   const seenSupplier = new Map<string, number>()
   return sheet.rows.map((row, index) => {
-    const rowNumber = index + 2
+    const rowNumber = sheet.sourceRows?.[index] ?? index + 2
     const supplierCode = cell(row, mapping, 'supplier')
     const guanjiapoCode = cell(row, mapping, 'guanjiapo')
     const skuName = cell(row, mapping, 'skuName')
@@ -313,47 +315,81 @@ function groupOf(block: ImportBlock, productTypeId: string, categoryId: string, 
   return `${block}:${productTypeId}:${categoryId}:${message}`
 }
 
-export function applyExcelImport(data: AppData, rows: ImportPreviewRow[], nextId: (prefix: string) => string) {
-  const imported: MaterialCreateResult[] = []
-  rows.filter((item) => item.status === 'ready').forEach((row) => {
-    if (row.action === 'formal') {
-      imported.push(createV3Material(data, {
-        productModelId: row.productModelId,
-        modelVersionId: row.modelVersionId,
-        planningId: row.planningId,
-        requestId: row.requestId,
-        categoryId: row.categoryId,
-        productTypeId: row.productTypeId,
-        skuName: row.skuName,
-        supplierCode: row.supplierCode,
-        guanjiapoCode: row.guanjiapoCode,
-        materialDescription: row.legacyName,
-        now: new Date().toISOString(),
-        nextId,
-      }))
-      return
-    }
-    const attrs = row.attrs.flatMap((item) => {
-      const param = data.params.find((param) => param.name === item.name)
-      if (!param) return []
-      const source = param.values.includes(item.value) ? 'dictionary' as const : 'manual' as const
-      return [{ attributeId: param.id, value: item.value, source }]
-    })
-    imported.push(createTemporaryMaterial(data, {
+function captureImportState(data: AppData) {
+  return JSON.stringify({
+    families: data.families,
+    skus: data.skus,
+    planningRecords: data.planningRecords || [],
+    materialReceipts: data.materialReceipts || [],
+    params: data.params,
+    productSpecNodes: data.productSpecNodes,
+  })
+}
+
+function restoreImportState(data: AppData, raw: string) {
+  const snap = JSON.parse(raw) as Pick<AppData, 'families' | 'skus' | 'planningRecords' | 'materialReceipts' | 'params' | 'productSpecNodes'>
+  data.families = snap.families
+  data.skus = snap.skus
+  data.planningRecords = snap.planningRecords
+  data.materialReceipts = snap.materialReceipts
+  data.params = snap.params
+  data.productSpecNodes = snap.productSpecNodes
+}
+
+function writeImportRow(data: AppData, row: ImportPreviewRow, nextId: (prefix: string) => string): MaterialCreateResult {
+  if (row.action === 'formal') {
+    return createV3Material(data, {
+      productModelId: row.productModelId,
+      modelVersionId: row.modelVersionId,
+      planningId: row.planningId,
       requestId: row.requestId,
       categoryId: row.categoryId,
       productTypeId: row.productTypeId,
-      productModelId: row.productModelId,
-      modelVersionId: row.modelVersionId,
-      attrs,
-      materialCode: nextMaterialCode(data),
       skuName: row.skuName,
       supplierCode: row.supplierCode,
       guanjiapoCode: row.guanjiapoCode,
       materialDescription: row.legacyName,
       now: new Date().toISOString(),
       nextId,
-    }))
+    })
+  }
+  const attrs = row.attrs.flatMap((item) => {
+    const param = data.params.find((param) => param.name === item.name)
+    if (!param) return []
+    const source = param.values.includes(item.value) ? 'dictionary' as const : 'manual' as const
+    return [{ attributeId: param.id, value: item.value, source }]
   })
+  return createTemporaryMaterial(data, {
+    requestId: row.requestId,
+    categoryId: row.categoryId,
+    productTypeId: row.productTypeId,
+    productModelId: row.productModelId,
+    modelVersionId: row.modelVersionId,
+    attrs,
+    materialCode: nextMaterialCode(data),
+    skuName: row.skuName,
+    supplierCode: row.supplierCode,
+    guanjiapoCode: row.guanjiapoCode,
+    materialDescription: row.legacyName,
+    now: new Date().toISOString(),
+    nextId,
+  })
+}
+
+/** 先整批写入。任一失败或中断时退回本批开始前的数据，避免只落下一半。相同来源再次确认仍走回执，不会再建一条。 */
+export function applyExcelImport(data: AppData, rows: ImportPreviewRow[], nextId: (prefix: string) => string) {
+  const ready = rows.filter((item) => item.status === 'ready')
+  const snap = captureImportState(data)
+  const imported: MaterialCreateResult[] = []
+  try {
+    for (const row of ready) imported.push(writeImportRow(data, row, nextId))
+  } catch (error) {
+    restoreImportState(data, snap)
+    return [{ ok: false as const, message: error instanceof Error ? error.message : '导入中断，这一批没有写入。' }]
+  }
+  if (imported.some((item) => !item.ok)) {
+    restoreImportState(data, snap)
+    return imported.map((item) => (item.ok ? { ok: false as const, message: '同一批里有行没有通过，整批都没有写入。' } : item))
+  }
   return imported
 }

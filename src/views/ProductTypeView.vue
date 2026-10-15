@@ -124,7 +124,11 @@ async function onRemove(id: string) {
   } catch {
     return
   }
-  store.removeProductType(id)
+  const message = store.removeProductType(id)
+  if (message) {
+    ElMessage.warning(message)
+    return
+  }
   ElMessage.success('已删除')
 }
 </script>

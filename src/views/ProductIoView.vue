@@ -211,7 +211,8 @@ function confirm() {
   const replayed = result.filter((item) => item.ok && !item.created).length
   const failed = result.filter((item) => !item.ok)
   resultText.value = `新写入 ${created} 条，已导入过的 ${replayed} 条没有重复创建，失败 ${failed.length} 条。${failed[0] && !failed[0].ok ? failed[0].message : ''}`
-  ElMessage.success(resultText.value)
+  if (failed.length && created === 0) ElMessage.warning(resultText.value)
+  else ElMessage.success(resultText.value)
 }
 </script>
 

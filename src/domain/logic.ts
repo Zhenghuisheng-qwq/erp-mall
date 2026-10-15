@@ -180,6 +180,7 @@ export function inspectFamily(data: AppData, family: ProductFamily, skus: Sku[],
       }
       pushConstraintIssue(issues, data, family.templateId, item, value, selected, sku.id, index)
     })
+    if (family.line === 'v3') return
     const key = variants.map((item) => sku.variantAttrs[item.param.name] || '').join('|')
     const previous = seen.get(key)
     if (previous) {
@@ -655,46 +656,73 @@ export function modelSpecColumns(data: AppData, templateId: string, nodes: Produ
   return rows
 }
 
-/** 左向逻辑结构图。同级间距固定，父节点垂直居中，列距收短。 */
-export const SPEC_TREE_ORIGIN_X = 168
-export const SPEC_TREE_ORIGIN_Y = 20
-export const SPEC_TREE_COLUMN = 176
-export const SPEC_TREE_GAP = 8
+/** 从左向右的业务导图。横向间距跟着节点宽度走，纵向按子树收拢，父节点落在直接子节点的中部。 */
+export const SPEC_TREE_ORIGIN_X = 220
+export const SPEC_TREE_ORIGIN_Y = 16
+export const SPEC_TREE_COLUMN = 148
+export const SPEC_LINK_GAP = 40
+export const SPEC_TREE_GAP = 16
+export const SPEC_TREE_ROOT_GAP = 24
 
-type SpecTreeItem = { id: string; parentId: string | null; sort: number; nodeType: ProductSpecNode['nodeType'] }
+type SpecTreeItem = { id: string; parentId: string | null; sort: number; nodeType: ProductSpecNode['nodeType']; label?: string }
 
-function specTreeBox(nodeType: ProductSpecNode['nodeType']) {
-  return nodeType === 'VALUE' ? 28 : 44
+function labelWidth(label = '') {
+  let width = 0
+  for (const char of label) width += char.charCodeAt(0) > 255 ? 16 : 9
+  return width
+}
+
+export function specNodeSize(nodeType: ProductSpecNode['nodeType'], label = '') {
+  const text = labelWidth(label)
+  if (nodeType === 'VALUE') return { width: Math.min(220, Math.max(76, text + 32)), height: 34 }
+  return { width: Math.min(240, Math.max(128, text + 44)), height: 42 }
+}
+
+export function specTreeAdvance(nodeType: ProductSpecNode['nodeType'], label = '') {
+  return specNodeSize(nodeType, label).width + SPEC_LINK_GAP
+}
+
+function siblingGap(parentId: string | null) {
+  return parentId ? SPEC_TREE_GAP : SPEC_TREE_ROOT_GAP
 }
 
 export function layoutSpecTree(nodes: SpecTreeItem[]) {
+  const byId = new Map(nodes.map((item) => [item.id, item]))
   const childrenOf = (parentId: string | null) => nodes.filter((item) => item.parentId === parentId).sort((a, b) => a.sort - b.sort)
   const heightOf = (id: string): number => {
-    const node = nodes.find((item) => item.id === id)
-    const self = specTreeBox(node?.nodeType || 'ATTRIBUTE')
+    const node = byId.get(id)
+    const self = specNodeSize(node?.nodeType || 'ATTRIBUTE', node?.label).height
     const children = childrenOf(id)
     if (!children.length) return self
-    const inner = children.reduce((sum, child, index) => sum + heightOf(child.id) + (index ? SPEC_TREE_GAP : 0), 0)
+    const gap = siblingGap(id)
+    const inner = children.reduce((sum, child, index) => sum + heightOf(child.id) + (index ? gap : 0), 0)
     return Math.max(self, inner)
   }
   const placed = new Map<string, { x: number; y: number }>()
   const place = (parentId: string | null, left: number, top: number) => {
     let y = top
+    const gap = siblingGap(parentId)
     childrenOf(parentId).forEach((node, index) => {
-      if (index) y += SPEC_TREE_GAP
-      const height = heightOf(node.id)
-      const self = specTreeBox(node.nodeType)
-      placed.set(node.id, { x: left, y: Math.round(y + height / 2 - self / 2) })
-      place(node.id, left + SPEC_TREE_COLUMN, y)
-      y += height
+      if (index) y += gap
+      const block = heightOf(node.id)
+      const self = specNodeSize(node.nodeType, node.label)
+      placed.set(node.id, { x: left, y: Math.round(y + block / 2 - self.height / 2) })
+      place(node.id, left + self.width + SPEC_LINK_GAP, y)
+      y += block
     })
   }
   place(null, SPEC_TREE_ORIGIN_X, SPEC_TREE_ORIGIN_Y)
   return placed
 }
 
-export function arrangeSpecPositions(nodes: ProductSpecNode[]) {
-  const placed = layoutSpecTree(nodes)
+export function arrangeSpecPositions(nodes: ProductSpecNode[], labelOf?: (node: ProductSpecNode) => string) {
+  const placed = layoutSpecTree(nodes.map((node) => ({
+    id: node.id,
+    parentId: node.parentId,
+    sort: node.sort,
+    nodeType: node.nodeType,
+    label: labelOf?.(node) || (node.nodeType === 'VALUE' ? node.valueId : ''),
+  })))
   nodes.forEach((node) => {
     const pos = placed.get(node.id)
     if (!pos) return

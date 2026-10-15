@@ -6,8 +6,56 @@ import type { AppData, ProductSpecNode, SpecNodeRole } from './types'
 
 const now = '2026-10-15T16:00:00.000Z'
 
+/** 样例曾经写进正式词典、又不属于种子数据的取值。正式节点或商品用到时保留。 */
+const SAMPLE_ONLY_VALUES: Record<string, string[]> = {
+  系列: ['iPhone 18'],
+  型号: ['iPhone 18 Pro Max'],
+}
+
+/** 清掉测试样例留在正式属性词典里的型号。不删已经被正式模型或商品使用的值。 */
+export function scrubSampleDictionary(data: AppData) {
+  const used = new Set<string>()
+  const note = (templateId: string, attributeId: string, value: string) => {
+    if (!attributeId || !value || templateId === 't-compat-sample') return
+    used.add(`${attributeId}\u001f${value}`)
+  }
+  data.productSpecNodes.forEach((node) => {
+    if (node.nodeType === 'VALUE') note(node.templateId, node.attributeId, node.valueId)
+  })
+  data.specModelVersions.forEach((version) => {
+    version.nodesSnapshot.forEach((node) => {
+      if (node.nodeType === 'VALUE') note(version.templateId, node.attributeId, node.valueId)
+    })
+  })
+  const remember = (name: string, value: string) => {
+    const param = data.params.find((item) => item.name === name)
+    if (param && value) used.add(`${param.id}\u001f${value}`)
+  }
+  data.families.forEach((family) => {
+    if (family.templateId === 't-compat-sample') return
+    Object.entries(family.commonAttrs).forEach(([name, value]) => remember(name, value))
+  })
+  data.skus.forEach((sku) => {
+    const family = data.families.find((item) => item.id === sku.familyId)
+    if (family?.templateId === 't-compat-sample') return
+    Object.entries(sku.variantAttrs).forEach(([name, value]) => remember(name, value))
+  })
+  let changed = false
+  Object.entries(SAMPLE_ONLY_VALUES).forEach(([name, values]) => {
+    const param = data.params.find((item) => item.name === name)
+    if (!param) return
+    const next = param.values.filter((value) => !values.includes(value) || used.has(`${param.id}\u001f${value}`))
+    if (next.length !== param.values.length) {
+      param.values = next
+      changed = true
+    }
+  })
+  return changed
+}
+
 /** 只补测试样例。不改原手机模型，也不把这些物料说成 Excel 已导入。 */
 export function installCompatibilitySamples(data: AppData, nextId: (prefix: string) => string) {
+  scrubSampleDictionary(data)
   const before = JSON.stringify({
     nodes: data.productSpecNodes.filter((item) => item.templateId === 't-phone'),
     version: data.specModelVersions.find((item) => item.id === 'phone-model-v1'),
@@ -112,8 +160,6 @@ function rowsToNodes(data: AppData, templateId: string, levels: { name: string; 
       nodes.push({ id: attrId, templateId, parentId, nodeType: 'ATTRIBUTE', attributeId, valueId: '', sort: sort++, role: level?.role || 'VARIANT' })
       let valueSort = 1
       values.forEach((child, value) => {
-        const param = data.params.find((item) => item.id === attributeId)
-        if (param && !param.values.includes(value)) param.values.push(value)
         const valueId = `${templateId}-n${++seq.n}`
         nodes.push({ id: valueId, templateId, parentId: attrId, nodeType: 'VALUE', attributeId, valueId: value, sort: valueSort++ })
         nodes.push(...walk(child, valueId))

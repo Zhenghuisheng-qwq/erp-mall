@@ -12,6 +12,7 @@ import {
 import { blankVariantAttrs, descendantIds, familySkus, projectAttrs, sameSpecSnapshot, specPublishProblems } from '../domain/logic'
 import { reconcilePlanningRecords } from '../domain/planning'
 import { compatibilityFamilyBlock, compatibilityModelBlock, compatibilitySkuBlock } from '../domain/compatibility'
+import { scrubSampleDictionary } from '../domain/compatibilitySamples'
 import { createTemporaryMaterial, createV3Material, setPlanningGrades, updateV3Material } from '../domain/material'
 import type { ProductGrade } from '../domain/types'
 import { arrangeSpecPositions } from '../domain/logic'
@@ -157,6 +158,7 @@ export function normalizeStored(parsed: StoredPayload): AppData | null {
     data.compatibilities = []
     mark.changed = true
   }
+  if (scrubSampleDictionary(data)) mark.changed = true
   if (data.listQuery) {
     const defaults = emptyQuery()
     const next = { ...defaults, ...data.listQuery, attrFilters: data.listQuery.attrFilters || {} }
@@ -371,7 +373,22 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function removeProductType(id: string) {
+    const message = productTypeRemovalBlock(id)
+    if (message) return message
     data.productTypes = data.productTypes.filter((item) => item.id !== id)
+    return ''
+  }
+
+  function productTypeRemovalBlock(id: string) {
+    if (!data.productTypes.some((item) => item.id === id)) return '产品类型不存在。'
+    const modelIds = new Set(data.specCanvases.filter((item) => item.productTypeId === id).map((item) => item.templateId))
+    const usedByModel = modelIds.size > 0
+    const usedByVersion = data.specModelVersions.some((item) => item.status === 'published' && modelIds.has(item.templateId))
+    const usedByPlanning = (data.planningRecords || []).some((item) => modelIds.has(item.productModelId)) || (data.productPlans || []).some((item) => item.productTypeId === id)
+    const usedByMaterial = data.families.some((item) => item.productTypeId === id) || data.skus.some((sku) => data.families.some((item) => item.id === sku.familyId && item.productTypeId === id))
+    const usedByLink = (data.compatibilities || []).some((item) => item.host.productTypeId === id)
+    if (usedByModel || usedByVersion || usedByPlanning || usedByMaterial || usedByLink) return '该产品类型已被商品模型 / 已发布数据引用，不能删除。'
+    return ''
   }
 
   function setProductTypeStatus(id: string, status: ProductType['status']) {
