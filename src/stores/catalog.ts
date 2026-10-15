@@ -10,8 +10,12 @@ import {
   type DropPosition,
 } from '../domain/categoryTree'
 import { blankVariantAttrs, descendantIds, familySkus, projectAttrs, sameSpecSnapshot, specPublishProblems } from '../domain/logic'
+import { reconcilePlanningRecords } from '../domain/planning'
+import { compatibilityFamilyBlock, compatibilityModelBlock, compatibilitySkuBlock } from '../domain/compatibility'
+import { createTemporaryMaterial, createV3Material, setPlanningGrades, updateV3Material } from '../domain/material'
+import type { ProductGrade } from '../domain/types'
 import { arrangeSpecPositions } from '../domain/logic'
-import { createSeed, appendEbikeDemo, alignCaseDemo, cleanDemoResidue, ensureLeafProductTypes, installPhoneAcceptance, defaultColumns, emptyQuery, phoneCanvas, phoneSpecNodes } from '../domain/seed'
+import { createSeed, defaultColumns, emptyQuery, phoneCanvas, phoneSpecNodes } from '../domain/seed'
 import { DATA_VERSION, STORAGE_KEY, type AppData, type Category, type ColumnPref, type FeedbackItem, type ListQuery, type ListView, type ParamDef, type ProductFamily, type ProductGroup, type ProductType, type Sku, type SpecRule, type UserRole } from '../domain/types'
 
 type ModuleName = 'products' | 'categories' | 'templates' | 'params' | 'rules' | 'groups' | 'system'
@@ -56,7 +60,7 @@ export function normalizeStored(parsed: StoredPayload): AppData | null {
     }
   })
   data.specCanvases.forEach((canvas) => {
-    if (canvas.direction === 'ltr' || canvas.direction === 'tree' || canvas.direction === 'logic') return
+    if (canvas.direction === 'ltr' || canvas.direction === 'tree' || canvas.direction === 'logic' || canvas.direction === 'custom') return
     arrangeSpecPositions(data.productSpecNodes.filter((item) => item.templateId === canvas.templateId))
     canvas.direction = 'ltr'
     mark.changed = true
@@ -90,7 +94,7 @@ export function normalizeStored(parsed: StoredPayload): AppData | null {
       version: canvas?.version || 1,
       versionName: canvas?.versionName || 'V1',
       status: 'published',
-      nodesSnapshot: nodes.map((item) => ({ ...item })),
+      nodesSnapshot: nodes.map((item) => ({ ...item, namingRule: item.namingRule?.map((part) => ({ ...part })) })),
       createdTime: now,
       publishTime: now,
     })
@@ -107,35 +111,14 @@ export function normalizeStored(parsed: StoredPayload): AppData | null {
     family.modelVersionId = latest.id
     mark.changed = true
   })
-  if (!data.categories.some((item) => item.id === 'c-phone-acc') && data.categories.some((item) => item.id === 'c-acc')) {
-    data.categories.push({ id: 'c-phone-acc', name: '手机配件', parentId: 'c-acc', sort: 3, enabled: true })
-    mark.changed = true
-  }
   if (!Array.isArray(data.productTypes)) {
-    const demo: ProductType[] = [
-      { id: 'pt-phone', name: '手机', categoryId: 'c-phone', status: 'enabled', sort: 1, description: '' },
-      { id: 'pt-phone-part', name: '手机维修零件', categoryId: 'c-phone', status: 'enabled', sort: 2, description: '' },
-      { id: 'pt-case', name: '手机保护壳', categoryId: 'c-case', status: 'enabled', sort: 1, description: '' },
-      { id: 'pt-film', name: '手机膜', categoryId: 'c-phone-acc', status: 'enabled', sort: 2, description: '' },
-    ]
-    data.productTypes = demo.filter((item) => data.categories.some((category) => category.id === item.categoryId))
+    data.productTypes = []
     mark.changed = true
   }
   data.specCanvases.forEach((canvas) => {
-    if (!canvas.productTypeId || !data.productTypes.some((item) => item.id === canvas.productTypeId)) {
-      const mapping = data.mappings.find((item) => item.templateId === canvas.templateId)
-      let owner = data.productTypes.find((item) => mapping && item.categoryId === mapping.categoryId)
-      if (!owner) owner = data.productTypes[0]
-      if (!owner && data.categories[0]) {
-        owner = { id: `pt-migrated-${canvas.templateId}`, name: '默认产品类型', categoryId: data.categories[0].id, status: 'enabled', sort: 99, description: '旧模型迁移' }
-        data.productTypes.push(owner)
-      }
-      if (owner) canvas.productTypeId = owner.id
-      mark.changed = true
-    }
     if (!canvas.name) {
       const template = data.templates.find((item) => item.id === canvas.templateId)
-      canvas.name = canvas.templateId === 't-phone' ? '手机模型 V1' : `${template?.name || '未命名'}模型`
+      canvas.name = template?.name || '未命名模型'
       mark.changed = true
     }
   })
@@ -162,12 +145,17 @@ export function normalizeStored(parsed: StoredPayload): AppData | null {
     data.productPlans = []
     mark.changed = true
   }
-  if (appendEbikeDemo(data)) mark.changed = true
-  if (alignCaseDemo(data)) mark.changed = true
-  if (ensureLeafProductTypes(data)) mark.changed = true
-  if ((parsed.version ?? 1) < DATA_VERSION) {
-    if (cleanDemoResidue(data)) mark.changed = true
-    if (installPhoneAcceptance(data)) mark.changed = true
+  if (!Array.isArray(data.planningRecords)) {
+    data.planningRecords = []
+    mark.changed = true
+  }
+  if (!Array.isArray(data.materialReceipts)) {
+    data.materialReceipts = []
+    mark.changed = true
+  }
+  if (!Array.isArray(data.compatibilities)) {
+    data.compatibilities = []
+    mark.changed = true
   }
   if (data.listQuery) {
     const defaults = emptyQuery()
@@ -275,8 +263,11 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function removeFamily(id: string) {
+    const blocked = compatibilityFamilyBlock(data, id)
+    if (blocked) return blocked
     data.families = data.families.filter((item) => item.id !== id)
     data.skus = data.skus.filter((item) => item.familyId !== id)
+    return ''
   }
 
   function patchSku(id: string, patch: Partial<Sku>) {
@@ -288,12 +279,15 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function removeSku(id: string) {
+    const blocked = compatibilitySkuBlock(data, id)
+    if (blocked) return blocked
     const sku = data.skus.find((item) => item.id === id)
-    if (!sku) return
+    if (!sku) return ''
     data.skus = data.skus.filter((item) => item.id !== id)
     if (!data.skus.some((item) => item.familyId === sku.familyId)) {
       data.families = data.families.filter((item) => item.id !== sku.familyId)
     }
+    return ''
   }
 
   function setSkuStatus(ids: string[], status: Sku['status']) {
@@ -471,6 +465,8 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   function removeTemplate(id: string) {
     const ids = [id, ...descendantIds(data.templates, id)]
+    const blocked = modelRemovalBlock(ids)
+    if (blocked) return blocked
     if (data.families.some((family) => ids.includes(family.templateId))) return '方案下还有商品，不能删除。'
     data.templates = data.templates.filter((item) => !ids.includes(item.id))
     data.templateParams = data.templateParams.filter((item) => !ids.includes(item.templateId))
@@ -479,6 +475,21 @@ export const useCatalogStore = defineStore('catalog', () => {
     data.specCanvases = data.specCanvases.filter((item) => !ids.includes(item.templateId))
     data.specModelVersions = data.specModelVersions.filter((item) => !ids.includes(item.templateId))
     data.rules = data.rules.filter((item) => !ids.includes(item.templateId))
+    return ''
+  }
+
+  function modelRemovalBlock(ids: string[]) {
+    const versions = data.specModelVersions.filter((item) => ids.includes(item.templateId))
+    const versionIds = new Set(versions.map((item) => item.id))
+    const plans = (data.planningRecords || []).filter((item) => ids.includes(item.productModelId) || item.modelVersionIds.some((id) => versionIds.has(id)))
+    const planIds = new Set(plans.map((item) => item.planningId))
+    const materials = data.skus.filter((item) => (item.modelVersionId && versionIds.has(item.modelVersionId)) || (item.planningId && planIds.has(item.planningId)))
+    const families = data.families.filter((item) => ids.includes(item.templateId) || ids.includes(item.productModelId || '') || Boolean(item.modelVersionId && versionIds.has(item.modelVersionId)))
+    const linked = compatibilityModelBlock(data, ids)
+    if (linked) return linked
+    if (families.length || materials.length) return `不能删除。已有 ${families.length} 款商品、${materials.length} 条物料还指向这个模型，删掉后就打不开当时的规格。`
+    if (plans.length) return `不能删除。还有 ${plans.length} 条规格编号需要这些发布版本才能查看。`
+    if (versions.length) return `不能删除。这个模型已有 ${versions.length} 个发布版本，直接删除会丢掉历史快照。`
     return ''
   }
 
@@ -536,17 +547,20 @@ export const useCatalogStore = defineStore('catalog', () => {
       canvas.version = latest.version
       canvas.versionName = latest.versionName
       canvas.updatedAt = now
+      const outcome = alignPlanning(templateId, latest.id, now)
+      if (outcome.created > 0) return { ok: true, message: `当前内容和 ${latest.versionName} 一致，没有生成新版本。已为 ${outcome.created} 条规格组合生成规划编号。` }
       return { ok: false, message: `当前内容和 ${latest.versionName} 一致，没有生成新版本。` }
     }
     const version = (latest?.version || 0) + 1
     const versionName = `V${version}`
+    const versionId = uid('mv')
     data.specModelVersions.push({
-      id: uid('mv'),
+      id: versionId,
       templateId,
       version,
       versionName,
       status: 'published',
-      nodesSnapshot: nodes.map((item) => ({ ...item })),
+      nodesSnapshot: nodes.map((item) => ({ ...item, namingRule: item.namingRule?.map((part) => ({ ...part })) })),
       createdTime: now,
       publishTime: now,
     })
@@ -554,7 +568,43 @@ export const useCatalogStore = defineStore('catalog', () => {
     canvas.version = version
     canvas.versionName = versionName
     canvas.updatedAt = now
-    return { ok: true, message: `已发布 ${versionName}。新建商品读取这一版，已有版本不会被覆盖。` }
+    const outcome = alignPlanning(templateId, versionId, now)
+    const retired = outcome.retired ? `，停用 ${outcome.retired} 个不再存在的组合` : ''
+    return { ok: true, message: `已发布 ${versionName}。合法组合 ${outcome.created + outcome.reused} 条，新增编号 ${outcome.created} 个，沿用 ${outcome.reused} 个${retired}。已有版本不会被覆盖。` }
+  }
+
+  function alignPlanning(templateId: string, versionId: string, now: string) {
+    if (!Array.isArray(data.planningRecords)) data.planningRecords = []
+    const version = data.specModelVersions.find((item) => item.id === versionId)
+    if (!version) return { created: 0, reused: 0, retired: 0 }
+    const outcome = reconcilePlanningRecords({
+      records: data.planningRecords,
+      data,
+      productModelId: templateId,
+      modelVersionId: version.id,
+      nodes: version.nodesSnapshot,
+      now,
+    })
+    data.planningRecords = outcome.records
+    return outcome
+  }
+
+  function createMaterial(input: { productModelId: string; modelVersionId: string; planningId: string; requestId: string; categoryId: string; productTypeId: string; familyId?: string; skuName?: string; supplierCode?: string; guanjiapoCode?: string; oaSkuId?: string; materialDescription?: string }) {
+    return createV3Material(data, { ...input, nextId: uid })
+  }
+
+  function createTemporary(input: { requestId: string; categoryId: string; productTypeId: string; productModelId?: string; modelVersionId?: string; attrs: { attributeId: string; value: string; source: 'dictionary' | 'manual' }[]; materialCode: string; skuName?: string; supplierCode?: string; guanjiapoCode?: string; oaSkuId?: string; materialDescription?: string }) {
+    return createTemporaryMaterial(data, { ...input, nextId: uid })
+  }
+
+  function markPlanningGrades(ids: string[], grade: ProductGrade) {
+    const result = setPlanningGrades(data.planningRecords || [], ids, grade)
+    data.planningRecords = result.records
+    return result.changed
+  }
+
+  function updateMaterial(input: { skuId: string; skuName: string; supplierCode: string; guanjiapoCode: string; oaSkuId: string; materialDescription: string }) {
+    return updateV3Material(data, input)
   }
 
   function blankSku(familyId: string, templateId: string): Sku {
@@ -604,6 +654,10 @@ export const useCatalogStore = defineStore('catalog', () => {
     shiftSpecNode,
     removeTemplate,
     publishSpecModel,
+    createMaterial,
+    createTemporary,
+    markPlanningGrades,
+    updateMaterial,
     removeGroup,
     saveView,
     applyView,

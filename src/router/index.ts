@@ -12,6 +12,7 @@ const router = createRouter({
         { path: '', name: 'home', component: () => import('../views/WorkbenchView.vue'), meta: { title: '商品工作台', group: '商品工作台', mode: 'daily' } },
         { path: 'products', name: 'products', component: () => import('../views/ProductListView.vue'), meta: { title: '商品列表', group: '商品工作台', mode: 'daily' } },
         { path: 'import', name: 'import', component: () => import('../views/ProductIoView.vue'), meta: { title: '导入导出', group: '商品中心', mode: 'daily' } },
+        { path: 'compatibility', name: 'compatibility', component: () => import('../views/CompatibilityView.vue'), meta: { title: '适用关系', group: '商品中心', mode: 'daily' } },
         { path: 'products/new', name: 'product-new', component: () => import('../views/ProductEditView.vue'), meta: { title: '新增商品', group: '商品工作台', mode: 'daily', hide: true } },
         { path: 'products/:id', name: 'product-edit', component: () => import('../views/ProductEditView.vue'), meta: { title: '编辑商品', group: '商品工作台', mode: 'daily', hide: true } },
         { path: 'check', name: 'check', component: () => import('../views/CheckView.vue'), meta: { title: '商品质量检查', group: '商品分析', mode: 'daily' } },

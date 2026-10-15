@@ -43,7 +43,7 @@
         <el-button v-if="templateId" link @click="emit('copy')">复制模型</el-button>
       </div>
     </section>
-    <p v-else class="none">先在左侧选择分类。</p>
+    <p v-else class="none">{{ path ? '这个分类还没有关联产品类型。' : '先在左侧选择分类。' }}</p>
   </aside>
 </template>
 

@@ -40,43 +40,49 @@
         </header>
         <div v-if="templateId" class="key-strip" aria-label="快捷键">
           <span class="key-strip-label">快捷键</span>
+          <span><kbd>Tab</kbd> 新增子属性</span>
+          <span><kbd>V</kbd> 新增属性值</span>
           <span><kbd>Enter</kbd> {{ enterAction }}</span>
-          <span v-if="tabAction"><kbd>Tab</kbd> {{ tabAction }}</span>
           <span v-if="menuKind !== 'value' || canPromote"><kbd>Shift+Tab</kbd> 提升节点</span>
           <span><kbd>↑↓</kbd> 调整顺序</span>
           <span><kbd>Delete</kbd> 删除节点</span>
           <span><kbd>Ctrl+Z</kbd> 撤销</span>
-          <span class="key-cap">支持添加属性、添加属性值</span>
-          <el-popover placement="bottom-start" :width="320" trigger="click">
+          <el-popover placement="bottom-start" :width="340" trigger="click">
             <template #reference>
               <button type="button" class="key-more">完整说明</button>
             </template>
             <strong>模型编辑快捷键</strong>
-            <p class="key-lead">当前设计支持添加属性和添加属性值。</p>
-            <p class="key-group">模型节点</p>
+            <p class="key-lead">Tab 新增子属性。V 在选中属性时新增属性值。两者都从属性词典选择，不会生成空白节点。</p>
             <ul class="key-list">
-              <li><kbd>Enter</kbd> 新增同级</li>
-              <li><kbd>Tab</kbd> 选择属性</li>
-            </ul>
-            <p class="key-group">属性节点</p>
-            <ul class="key-list">
-              <li><kbd>Enter</kbd> 新增同级属性</li>
-              <li><kbd>Tab</kbd> 选择属性值</li>
-            </ul>
-            <p class="key-group">属性值节点</p>
-            <ul class="key-list">
-              <li><kbd>Enter</kbd> 新增同级值</li>
-            </ul>
-            <p class="key-group">通用</p>
-            <ul class="key-list">
-              <li><kbd>Shift+Tab</kbd> 提升节点</li>
-              <li><kbd>↑ ↓</kbd> 调整顺序</li>
-              <li><kbd>Delete</kbd> 删除节点</li>
-              <li><kbd>Ctrl+Z</kbd> 撤销操作</li>
+              <li><kbd>Tab</kbd> 新增子属性</li>
+              <li><kbd>V</kbd> 新增属性值</li>
+              <li><kbd>Enter</kbd> 新增同级节点</li>
+              <li><kbd>Shift+Tab</kbd> 提升节点层级</li>
+              <li><kbd>↑ ↓</kbd> 调整同级顺序</li>
+              <li><kbd>Delete</kbd> 删除选中节点</li>
+              <li><kbd>Ctrl+Z</kbd> 撤销</li>
               <li><kbd>Ctrl+Enter</kbd> 完成编辑</li>
               <li><kbd>Esc</kbd> 取消编辑</li>
             </ul>
+            <p class="key-group">属性可以继续嵌套属性。属性值挂在所属属性下，也可以从属性值再挂条件属性。</p>
           </el-popover>
+        </div>
+        <div v-if="templateId && !viewing && selected" class="node-ops">
+          <strong>{{ current ? nodeTitle(current) : '模型' }}</strong>
+          <el-button v-if="menuKind === 'model'" size="small" @click="runMenu('add-attribute')">添加属性</el-button>
+          <template v-else-if="menuKind === 'attribute'">
+            <el-button size="small" @click="runMenu('add-child')">添加子属性</el-button>
+            <el-button size="small" @click="runMenu('add-value')">添加属性值</el-button>
+            <el-button size="small" @click="runMenu('naming')">命名规则</el-button>
+            <el-button size="small" @click="runMenu('rename')">编辑</el-button>
+            <el-button size="small" type="danger" @click="runMenu('delete')">删除</el-button>
+          </template>
+          <template v-else>
+            <el-button size="small" @click="runMenu('add-child')">添加条件属性</el-button>
+            <el-button size="small" @click="runMenu('naming')">命名规则</el-button>
+            <el-button size="small" @click="runMenu('rename')">编辑</el-button>
+            <el-button size="small" type="danger" @click="runMenu('delete')">删除</el-button>
+          </template>
         </div>
         <div v-if="templateId" class="head-tools">
             <el-segmented v-model="editorMode" class="view-switch" :options="modeOptions" />
@@ -114,6 +120,52 @@
           <h2>{{ leafId ? '选择一个商品模型' : '从左侧选择分类' }}</h2>
           <p>{{ leafId ? '在中间选一个产品类型，再打开商品模型。' : '先选分类，再选产品类型和商品模型。' }}</p>
         </div>
+        <section v-if="templateId && comboRows.length" class="combo-preview">
+          <button type="button" class="combo-toggle" @click="comboOpen = !comboOpen">
+            <span>合法组合 {{ comboRows.length }} 条</span>
+            <span>{{ comboNumbered }} 条已有规划编号</span>
+          </button>
+          <div v-if="checkedIds.length" class="combo-batch">
+            <span>已选 {{ checkedIds.length }} 条</span>
+            <el-button size="small" @click="markGrade('core')">标为核心商品</el-button>
+            <el-button size="small" @click="markGrade('general')">标为一般产品</el-button>
+          </div>
+          <ul v-show="comboOpen">
+            <li v-for="row in comboRows" :key="row.key">
+              <label v-if="row.planningId" class="combo-check"><input type="checkbox" :checked="checkedIds.includes(row.planningId)" @change="toggleCheck(row.planningId)" /></label>
+              <button type="button" :class="{ 'is-on': row.key === selectedComboKey }" @click="selectedComboKey = row.key">
+                <span>{{ row.label }}</span>
+                <em>{{ row.retired ? '已停用' : row.note }}</em>
+              </button>
+            </li>
+          </ul>
+          <el-button v-if="canvasContext.productTypeId" class="temp-entry" @click="temporaryOpen = true">创建临时物料</el-button>
+          <TemporaryMaterialDialog :open="temporaryOpen" :category-id="canvasContext.categoryId" :product-type-id="canvasContext.productTypeId" :product-model-id="templateId" :model-version-id="latestPublishedVersion(store.data, templateId)?.id" @close="temporaryOpen = false" @open="openTemporary" />
+          <V3MaterialActions
+            v-if="selectedCombo && canvasContext.productTypeId"
+            :product-model-id="templateId"
+            :model-version-id="selectedCombo.modelVersionId"
+            :planning-id="selectedCombo.planningId"
+            :category-id="canvasContext.categoryId"
+            :product-type-id="canvasContext.productTypeId"
+            :retired="selectedCombo.retired"
+          />
+        </section>
+        <section v-if="templateId && temporaryMaterials.length" class="combo-preview">
+          <button type="button" class="combo-toggle" @click="temporaryListOpen = !temporaryListOpen">
+            <span>临时物料 {{ temporaryMaterials.length }} 条</span>
+            <span>对不上正式规划，编号以 TMP 开头</span>
+          </button>
+          <ul v-show="temporaryListOpen">
+            <li v-for="item in temporaryMaterials.slice(0, 30)" :key="item.id">
+              <button type="button" @click="router.push(`/products/${item.familyId}`)">
+                <span>{{ item.materialCode }} · {{ item.skuName }}</span>
+                <em>{{ item.planningId }} · 供应商 {{ item.supplierCode || '未填' }}</em>
+              </button>
+            </li>
+          </ul>
+          <p v-if="temporaryMaterials.length > 30" class="muted">这里只列出前 30 条。其余到商品列表按供应商编码或物料编码搜索。</p>
+        </section>
         <div v-if="templateId" class="board" tabindex="0" @pointerdown="focusBoard">
       <div v-if="editorMode === 'canvas'" class="canvas">
         <VueFlow
@@ -123,7 +175,7 @@
           :nodes-connectable="false"
           :nodes-draggable="!viewing"
           :default-viewport="{ x: canvas.panX, y: canvas.panY, zoom: canvas.zoom || 0.88 }"
-          :default-edge-options="{ type: 'step' }"
+          :default-edge-options="{ type: 'tree' }"
           :min-zoom="0.2"
           :max-zoom="1.6"
           @nodes-initialized="onNodesReady"
@@ -137,6 +189,9 @@
           <Background variant="dots" :gap="22" :size="1.1" pattern-color="#e1e8f0" />
           <Controls />
           <MiniMap />
+          <template #edge-tree="{ source, data }">
+            <path :d="treeBusPath(source, data?.childIds || [])" class="tree-bus" />
+          </template>
           <template #node-model="{ data }">
             <div class="model-root" :class="{ 'is-on': data.selected, 'is-path': data.onPath }" title="双击修改名称">
               <input v-if="editingId === data.id" class="inline-edit root-edit" :value="data.label" @keydown.enter.prevent="commitRootName" @keydown.esc.stop="cancelRootEdit" @blur="commitRootName" @mousedown.stop @pointerdown.stop @click.stop @dblclick.stop />
@@ -145,15 +200,14 @@
             </div>
           </template>
           <template #node-attribute="{ data }">
-            <div class="model-attr" :class="{ 'is-on': data.selected, 'is-path': data.onPath, 'is-head': data.head, 'is-unbound': !data.bound }" :title="data.bound ? `来源：${data.source}` : '未绑定属性'">
+            <div class="model-attr" :class="{ 'is-on': data.selected, 'is-path': data.onPath, 'is-head': data.head, 'is-unbound': !data.bound }" :title="data.bound ? `绑定：${data.label} · 属性词典` : '未绑定属性'">
               <Handle type="target" :position="Position.Left" />
               <select v-if="editingId === data.id" class="inline-edit" :value="data.editValue" @change="commitInline(data.id, 'attribute', $event)" @blur="editingId = ''" @mousedown.stop @pointerdown.stop @click.stop @dblclick.stop>
                 <option v-for="item in data.options" :key="item.value" :value="item.value">{{ item.label }}</option>
               </select>
               <template v-else>
                 <strong>{{ data.label }}</strong>
-                <p v-if="data.bound" class="attr-meta">来源：{{ data.source }}</p>
-                <p v-if="data.bound && data.valueText" class="attr-meta">属性值：{{ data.valueText }}</p>
+                <p v-if="data.bound" class="attr-meta">属性来源：属性词典</p>
                 <button v-if="!data.bound && !viewing" type="button" class="pick-attr" @mousedown.stop @pointerdown.stop @click.stop="openBindAttribute(data.id)" @dblclick.stop>选择属性</button>
               </template>
               <button v-if="data.childCount" type="button" class="fold" @click.stop="toggleExpand(data.id)" @dblclick.stop>{{ data.expanded ? '−' : data.childCount }}</button>
@@ -176,7 +230,7 @@
           <p>还没有商品结构</p>
           <div v-if="!viewing" class="structure-start">
             <span>快速开始</span>
-            <el-button size="small" @click="openAttributeAt(null)">选择属性</el-button>
+            <el-button size="small" @click="openAttributeAt(null)">添加属性</el-button>
             <el-button size="small" @click="openCopyPicker">复制已有模型</el-button>
           </div>
         </div>
@@ -244,21 +298,25 @@
     </div>
     <div v-if="menu.open && !viewing" class="context-menu" :style="{ left: menu.x + 'px', top: menu.y + 'px' }" @pointerdown.stop @click.stop>
       <template v-if="menuKind === 'model'">
-        <el-button text @click="runMenu('add-attribute')">选择属性</el-button>
+        <el-button text @click="runMenu('add-attribute')">添加属性</el-button>
       </template>
       <template v-else-if="menuKind === 'attribute'">
-        <el-button text @click="runMenu('bind')">选择属性</el-button>
-        <el-button text @click="runMenu('add-value')">选择属性值</el-button>
-        <el-button text @click="runMenu('sibling')">选择同级属性</el-button>
+        <el-button text @click="runMenu('add-child')">添加子属性</el-button>
+        <el-button text @click="runMenu('add-value')">添加属性值</el-button>
+        <el-button text @click="runMenu('sibling')">添加同级属性</el-button>
         <el-button text @click="runMenu('rename')">编辑名称</el-button>
-        <el-button text type="danger" @click="runMenu('delete')">删除</el-button>
+        <el-button text @click="runMenu('naming')">命名规则</el-button>
+        <el-button text type="danger" @click="runMenu('delete')">删除节点</el-button>
       </template>
       <template v-else>
-        <el-button text @click="runMenu('sibling')">选择同级值</el-button>
+        <el-button text @click="runMenu('sibling')">添加同级属性值</el-button>
+        <el-button text @click="runMenu('add-child')">添加条件属性</el-button>
         <el-button text @click="runMenu('rename')">编辑名称</el-button>
-        <el-button text type="danger" @click="runMenu('delete')">删除</el-button>
+        <el-button text @click="runMenu('naming')">命名规则</el-button>
+        <el-button text type="danger" @click="runMenu('delete')">删除节点</el-button>
       </template>
     </div>
+    <NamingRuleDialog :open="namingOpen" :node-id="selected" :template-id="templateId" @close="namingOpen = false" @saved="markWorkingDraft" />
     <el-dialog v-model="attributeOpen" :title="attributeTitle" width="420px" @closed="resetAttrComposer">
       <el-select v-if="attributeBindId" v-model="attributePick" filterable placeholder="选择属性词典中的属性" style="width: 100%">
         <el-option v-for="item in attributeChoices" :key="item.id" :label="item.name" :value="item.id" />
@@ -333,7 +391,12 @@ import { cloneProductModel } from '../components/model-editor/cloneModel'
 import EmptyModelGuide from '../components/model-editor/EmptyModelGuide.vue'
 import TypeModelRail from '../components/model-editor/TypeModelRail.vue'
 import { categoryChain, visibleCategoryRows } from '../domain/categoryTree'
-import { arrangeSpecPositions, categoryPath, layoutSpecTree, sameSpecSnapshot, SPEC_VALUE_TO_VALUE } from '../domain/logic'
+import { arrangeSpecPositions, categoryPath, latestPublishedVersion, layoutSpecTree, sameSpecSnapshot, SPEC_VALUE_TO_VALUE } from '../domain/logic'
+import { legalPlanningCombinations } from '../domain/planning'
+import NamingRuleDialog from '../components/NamingRuleDialog.vue'
+import TemporaryMaterialDialog from '../components/TemporaryMaterialDialog.vue'
+import { filingText, gradeText } from '../domain/material'
+import V3MaterialActions from '../components/V3MaterialActions.vue'
 import type { ProductSpecNode, ParamDef } from '../domain/types'
 import { uid, useCatalogStore } from '../stores/catalog'
 import '@vue-flow/core/dist/style.css'
@@ -344,7 +407,11 @@ import '@vue-flow/minimap/dist/style.css'
 const store = useCatalogStore()
 const route = useRoute()
 const router = useRouter()
-const { fitView } = useVueFlow({ id: 'model-designer' })
+const { fitView, findNode, onNodesChange } = useVueFlow({ id: 'model-designer' })
+const flowRevision = ref(0)
+onNodesChange(() => {
+  flowRevision.value += 1
+})
 const templateId = ref(typeof route.query.template === 'string' ? route.query.template : '')
 watch(
   () => route.query.template,
@@ -393,14 +460,6 @@ const activeType = computed(() => leafTypes.value.find((item) => item.id === act
 const activeTypeName = computed(() => activeType.value?.name || '')
 const activeTypeModels = computed(() => typeGroups.value.find((item) => item.id === activeType.value?.id)?.models || [])
 const showEmptyGuide = computed(() => Boolean(leafId.value && activeType.value && activeTypeModels.value.length === 0 && !templateId.value))
-function ensureLeafProductType(categoryId: string) {
-  const found = store.data.productTypes.filter((item) => item.categoryId === categoryId)
-  if (found.length) return found
-  const category = store.data.categories.find((item) => item.id === categoryId)
-  const created = { id: uid('pt'), name: category?.name || '产品类型', categoryId, status: 'enabled' as const, sort: 1, description: '' }
-  store.data.productTypes.push(created)
-  return [created]
-}
 function toggleCategory(id: string) {
   const next = new Set(closedIds.value)
   if (next.has(id)) next.delete(id)
@@ -416,7 +475,6 @@ function belongsToLeaf(id: string) {
 }
 function selectCategory(id: string) {
   leafId.value = id
-  ensureLeafProductType(id)
   if (!leafTypes.value.some((item) => item.id === activeTypeId.value)) activeTypeId.value = leafTypes.value[0]?.id || ''
   if (templateId.value && !belongsToLeaf(templateId.value)) clearOpenModel()
 }
@@ -466,6 +524,7 @@ const editingId = ref('')
 const menu = ref({ open: false, x: 0, y: 0 })
 const attributeOpen = ref(false)
 const copyOpen = ref(false)
+const namingOpen = ref(false)
 const copyPick = ref(false)
 const copySourceId = ref('')
 const copyTargetTypeId = ref('')
@@ -485,19 +544,47 @@ const attachParent = ref<string | null>(null)
 type FlowOption = { value: string; label: string }
 type FlowNodeData = { id: string; label: string; role?: string; head?: boolean; selected: boolean; onPath: boolean; expanded: boolean; childCount: number; editValue: string; options: FlowOption[]; bound: boolean; source: string; valueText: string }
 const flowNodes = ref<{ id: string; type: string; position: { x: number; y: number }; data: FlowNodeData }[]>([])
-const flowEdges = ref<{ id: string; source: string; target: string; type?: string; pathOptions?: { borderRadius: number }; style?: { stroke: string; strokeWidth: number } }[]>([])
+const flowEdges = ref<{ id: string; source: string; target: string; type: string; data: { childIds: string[] } }[]>([])
 let didInitialFit = false
 
 const nodes = computed(() => store.data.productSpecNodes.filter((item) => item.templateId === templateId.value))
+const comboOpen = ref(true)
+const selectedComboKey = ref('')
+const checkedIds = ref<string[]>([])
+const temporaryOpen = ref(false)
+const temporaryListOpen = ref(true)
+const temporaryMaterials = computed(() => {
+  if (!templateId.value) return []
+  const ids = new Set((store.data.planningRecords || []).filter((item) => item.origin === 'temporary' && item.productModelId === templateId.value).map((item) => item.planningId))
+  return store.data.skus.filter((item) => item.planningId && ids.has(item.planningId))
+})
+const comboRows = computed(() => {
+  if (!templateId.value) return []
+  const known = store.data.planningRecords || []
+  const versionId = latestPublishedVersion(store.data, templateId.value)?.id || ''
+  return legalPlanningCombinations(store.data, templateId.value, nodes.value).map((row) => {
+    const matched = known.find((item) => item.productModelId === templateId.value && item.identityKey === row.identityKey)
+    return {
+      key: row.identityKey,
+      label: row.label,
+      planningId: matched?.status === 'active' ? matched.planningId : '',
+      modelVersionId: matched?.status === 'active' ? matched.modelVersionId : versionId,
+      retired: matched?.status === 'retired',
+      note: matched?.status === 'retired' ? '已停用' : matched?.planningId ? `${matched.planningId} · ${gradeText(matched.grade)} · ${filingText(matched.grade, store.data.skus.filter((item) => item.planningId === matched.planningId).length)}` : '发布后自动编号',
+    }
+  })
+})
+const comboNumbered = computed(() => comboRows.value.filter((item) => item.planningId).length)
+const selectedCombo = computed(() => comboRows.value.find((item) => item.key === selectedComboKey.value))
+const canvasContext = computed(() => {
+  const canvas = store.data.specCanvases.find((item) => item.templateId === templateId.value)
+  const productType = store.data.productTypes.find((item) => item.id === canvas?.productTypeId)
+  return { productTypeId: canvas?.productTypeId || '', categoryId: productType?.categoryId || '' }
+})
 const current = computed(() => nodes.value.find((item) => item.id === selected.value))
 const menuKind = computed<'model' | 'attribute' | 'value'>(() => {
   if (!current.value || selected.value === rootId) return 'model'
   return current.value.nodeType === 'VALUE' ? 'value' : 'attribute'
-})
-const tabAction = computed(() => {
-  if (menuKind.value === 'model') return '选择属性'
-  if (menuKind.value === 'attribute') return '选择属性值'
-  return ''
 })
 const canPromote = computed(() => {
   const node = current.value
@@ -510,7 +597,7 @@ const canPromote = computed(() => {
 const enterAction = computed(() => {
   if (menuKind.value === 'attribute') return '新增同级属性'
   if (menuKind.value === 'value') return '新增同级值'
-  return '新增同级'
+  return '新增同级节点'
 })
 const canvas = computed(() => store.data.specCanvases.find((item) => item.templateId === templateId.value) || { templateId: templateId.value, zoom: 1, panX: 0, panY: 0, status: 'draft' as const, version: 1, versionName: 'V1' })
 const canvasStatusText = computed(() => (canvas.value.status === 'published' ? '已发布' : canvas.value.status === 'offline' ? '已下线' : '草稿'))
@@ -582,13 +669,12 @@ watch(
 
 function ensureTreeLayout() {
   const row = ensureCanvas()
-  if (row.direction === 'logic') return
+  if (row.direction === 'logic' || row.direction === 'custom') return
   arrangeSpecPositions(nodes.value)
   row.direction = 'logic'
 }
 function reflowTree() {
-  arrangeSpecPositions(nodes.value)
-  ensureCanvas().direction = 'logic'
+  ensureCanvas()
 }
 function ensureCanvas() {
   let row = store.data.specCanvases.find((item) => item.templateId === templateId.value)
@@ -721,11 +807,56 @@ function paint() {
       }
     }),
   ]
-  flowEdges.value = visible.map((node) => edge(visibleAnchor(node), node.id, highlight))
+  const buses = new Map<string, string[]>()
+  visible.forEach((node) => {
+    const parent = visibleAnchor(node)
+    const list = buses.get(parent) || []
+    list.push(node.id)
+    buses.set(parent, list)
+  })
+  flowEdges.value = [...buses.entries()].map(([source, childIds]) => ({
+    id: `bus-${source}`,
+    source,
+    target: childIds[0],
+    type: 'tree',
+    data: { childIds },
+  }))
 }
-function edge(source: string, target: string, highlight: Set<string>) {
-  const onPath = highlight.has(source) && highlight.has(target)
-  return { id: `e-${source}-${target}`, source, target, type: 'step' as const, pathOptions: { borderRadius: 0 }, style: { stroke: onPath ? '#b7c5d6' : '#d5dee8', strokeWidth: onPath ? 1.35 : 1 } }
+function measuredBox(id: string) {
+  const live = findNode(id)
+  const stored = flowNodes.value.find((item) => item.id === id)
+  const x = live?.position.x ?? stored?.position.x
+  const y = live?.position.y ?? stored?.position.y
+  if (x === undefined || y === undefined) return null
+  const width = live?.dimensions?.width || (id === rootId ? 124 : stored?.type === 'value' ? 72 : 112)
+  const height = live?.dimensions?.height || (id === rootId ? 36 : stored?.type === 'value' ? 28 : 44)
+  return { x, y, width, height }
+}
+function treeBusPath(sourceId: string, childIds: string[]) {
+  flowRevision.value
+  const parent = measuredBox(sourceId)
+  const children = childIds.map((id) => measuredBox(id)).filter((item): item is { x: number; y: number; width: number; height: number } => Boolean(item))
+  if (!parent || !children.length) return ''
+  const sx = Math.round(parent.x + parent.width)
+  const sy = Math.round(parent.y + parent.height / 2)
+  const targets = children
+    .map((item) => ({ x: Math.round(item.x), y: Math.round(item.y + item.height / 2) }))
+    .filter((item) => item.x > sx + 4)
+    .sort((a, b) => a.y - b.y)
+  if (!targets.length) return ''
+  if (targets.length === 1) {
+    const target = targets[0]
+    if (target.y === sy) return `M ${sx} ${sy} H ${target.x}`
+    const mid = Math.round(sx + (target.x - sx) / 2)
+    return `M ${sx} ${sy} H ${mid} V ${target.y} H ${target.x}`
+  }
+  const left = Math.min(...targets.map((item) => item.x))
+  const trunkX = Math.round(sx + Math.max(12, Math.min(20, (left - sx) / 2)))
+  const top = Math.min(sy, targets[0].y)
+  const bottom = Math.max(sy, targets[targets.length - 1].y)
+  const parts = [`M ${sx} ${sy} H ${trunkX}`, `M ${trunkX} ${top} V ${bottom}`]
+  targets.forEach((item) => parts.push(`M ${trunkX} ${item.y} H ${item.x}`))
+  return parts.join(' ')
 }
 function closeFloating() {
   menu.value.open = false
@@ -935,41 +1066,35 @@ async function renameOutline(payload: { id: string; name: string }) {
 function addOutline(payload: { id: string; kind: 'sibling' | 'child-value' | 'child-attribute' }) {
   if (viewing.value) return
   const source = payload.id === rootId ? undefined : nodes.value.find((item) => item.id === payload.id)
-  let parentId: string | null = null
-  let nodeType: 'ATTRIBUTE' | 'VALUE' = 'ATTRIBUTE'
-  if (payload.kind === 'sibling') {
-    if (!source) {
-      parentId = null
-      nodeType = 'ATTRIBUTE'
-    } else {
-      parentId = source.parentId
-      nodeType = source.nodeType
-    }
-  } else if (payload.id === rootId || !source) {
-    parentId = null
-    nodeType = 'ATTRIBUTE'
-  } else if (payload.kind === 'child-value') {
-    if (source.nodeType !== 'ATTRIBUTE') {
-      ElMessage.warning('属性值只能挂在属性下面')
+  if (payload.kind === 'child-value') {
+    const attributeId = source?.nodeType === 'ATTRIBUTE' ? source.id : source?.nodeType === 'VALUE' ? source.parentId : ''
+    const attribute = attributeId ? nodes.value.find((item) => item.id === attributeId && item.nodeType === 'ATTRIBUTE') : undefined
+    if (!attribute) {
+      ElMessage.warning('请先选中一个属性，再添加属性值')
       return
     }
-    parentId = source.id
-    nodeType = 'VALUE'
-  } else {
-    parentId = source.id
-    nodeType = 'ATTRIBUTE'
+    openValuePicker(attribute.id)
+    return
   }
-  const parent = parentId ? nodes.value.find((item) => item.id === parentId) : undefined
-  if (nodeType === 'VALUE') {
-    if (parent?.nodeType !== 'ATTRIBUTE') {
+  if (payload.kind === 'child-attribute') {
+    if (source && source.expanded === false) source.expanded = true
+    openAttributeAt(source ? source.id : null)
+    return
+  }
+  if (!source) {
+    openAttributeAt(null)
+    return
+  }
+  if (source.nodeType === 'VALUE') {
+    const parent = nodes.value.find((item) => item.id === source.parentId && item.nodeType === 'ATTRIBUTE')
+    if (!parent) {
       ElMessage.warning('属性值只能挂在属性下面')
       return
     }
     openValuePicker(parent.id)
     return
   }
-  if (parent && parent.expanded === false) parent.expanded = true
-  openAttributeAt(parentId)
+  openAttributeAt(source.parentId)
 }
 async function removeOutline(id: string) {
   const hasChildren = nodes.value.some((item) => item.parentId === id)
@@ -1158,15 +1283,19 @@ function onNodeMenu(payload: { event: { preventDefault: () => void; clientX?: nu
   payload.event.preventDefault()
   openNodeMenu({ id: payload.node.id, x: payload.event.clientX || 0, y: payload.event.clientY || 0 })
 }
-function runMenu(action: 'add-attribute' | 'add-value' | 'sibling' | 'rename' | 'delete' | 'bind') {
+function runMenu(action: 'add-attribute' | 'add-child' | 'add-value' | 'sibling' | 'rename' | 'delete' | 'bind' | 'naming') {
   menu.value.open = false
   const id = selected.value || rootId
+  if (action === 'naming') {
+    namingOpen.value = true
+    return
+  }
   if (action === 'bind') {
     openBindAttribute(id)
     return
   }
-  if (action === 'add-attribute') {
-    addOutline({ id: rootId, kind: 'child-attribute' })
+  if (action === 'add-attribute' || action === 'add-child') {
+    addOutline({ id, kind: 'child-attribute' })
     return
   }
   if (action === 'add-value') {
@@ -1207,6 +1336,7 @@ function onNodeDragStop(event: { node: { id: string; position: { x: number; y: n
     }
     row.positionX = event.node.position.x
     row.positionY = event.node.position.y
+    ensureCanvas().direction = 'custom'
     return
   }
   const message = reparent(row, hit)
@@ -1215,7 +1345,10 @@ function onNodeDragStop(event: { node: { id: string; position: { x: number; y: n
     paint()
     return
   }
-  reflowTree()
+  if (ensureCanvas().direction === 'custom') {
+    row.positionX = event.node.position.x
+    row.positionY = event.node.position.y
+  } else reflowTree()
   ElMessage.success('已调整层级')
 }
 function hitNode(x: number, y: number, selfId: string) {
@@ -1223,8 +1356,8 @@ function hitNode(x: number, y: number, selfId: string) {
   if (root && x >= root.position.x && x <= root.position.x + 168 && y >= root.position.y && y <= root.position.y + 52) return rootId
   const target = flowNodes.value.find((item) => {
     if (item.id === selfId || item.id === rootId) return false
-    const width = item.type === 'attribute' ? 148 : 120
-    const height = item.type === 'attribute' ? 64 : 32
+    const width = item.type === 'attribute' ? 132 : item.type === 'value' ? 88 : 120
+    const height = item.type === 'attribute' ? 46 : 32
     return x >= item.position.x && x <= item.position.x + width && y >= item.position.y && y <= item.position.y + height
   })
   return target?.id || ''
@@ -1259,7 +1392,8 @@ function onMoveEnd(event: { flowTransform: { x: number; y: number; zoom: number 
   row.zoom = event.flowTransform.zoom
 }
 function tidy() {
-  reflowTree()
+  arrangeSpecPositions(nodes.value)
+  ensureCanvas().direction = 'logic'
   frameCanvas()
   ElMessage.success('已按产品结构整理')
 }
@@ -1574,21 +1708,39 @@ function focusBoard(event: PointerEvent) {
   if (target?.closest('input, textarea, select, button, a')) return
   board.focus()
 }
+function toggleCheck(id: string) {
+  checkedIds.value = checkedIds.value.includes(id) ? checkedIds.value.filter((item) => item !== id) : [...checkedIds.value, id]
+}
+function markGrade(grade: 'core' | 'general') {
+  const count = store.markPlanningGrades(checkedIds.value, grade)
+  checkedIds.value = []
+  ElMessage.success(`已标记 ${count} 条规划，没有新建物料。`)
+}
+function openTemporary(familyId: string, skuId: string) {
+  temporaryOpen.value = false
+  router.push(`/products/${familyId}?sku=${skuId}`)
+}
+function shortcutBlocked() {
+  if (attributeOpen.value || valueOpen.value || copyOpen.value || nodeDraftOpen.value || editingId.value || namingOpen.value) return true
+  if (document.querySelector('.v3-material-dialog')) return true
+  return false
+}
 function onKey(event: KeyboardEvent) {
+  if (document.querySelector('.v3-material-dialog')) return
   const target = event.target as HTMLElement | null
   if (!target?.closest?.('.board')) return
   const tag = target.tagName
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
     event.preventDefault()
-    saveModel()
+    if (!shortcutBlocked()) saveModel()
     return
   }
   if ((editorMode.value === 'outline' || editorMode.value === 'document') && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
     event.preventDefault()
-    undoOutline()
+    if (!shortcutBlocked()) undoOutline()
     return
   }
-  if (editorMode.value === 'outline' || editorMode.value === 'document' || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+  if (editorMode.value === 'outline' || editorMode.value === 'document' || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable || shortcutBlocked()) return
   if (event.key === 'Escape') {
     closeFloating()
     editingId.value = ''
@@ -1599,24 +1751,24 @@ function onKey(event: KeyboardEvent) {
     setExpanded(true)
     return
   }
+  if (event.key.toLowerCase() === 'v' && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.repeat) {
+    if (current.value?.nodeType !== 'ATTRIBUTE') return
+    event.preventDefault()
+    addOutline({ id: current.value.id, kind: 'child-value' })
+    return
+  }
   if (event.key === 'Tab') {
     event.preventDefault()
     if (event.shiftKey) {
       if (current.value) promoteOutline(current.value.id)
       return
     }
-    const id = selected.value || rootId
-    if (!current.value || id === rootId) addOutline({ id: rootId, kind: 'child-attribute' })
-    else if (current.value.nodeType === 'ATTRIBUTE') addOutline({ id, kind: 'child-value' })
+    addOutline({ id: selected.value || rootId, kind: 'child-attribute' })
     return
   }
   if (event.key === 'Enter') {
     event.preventDefault()
-    if (!current.value || selected.value === rootId) {
-      openAttributeAt(null)
-      return
-    }
-    addOutline({ id: current.value.id, kind: 'sibling' })
+    addOutline({ id: selected.value || rootId, kind: 'sibling' })
     return
   }
   if ((event.key === 'Delete' || event.key === 'Backspace') && current.value) {
@@ -1636,11 +1788,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .version-name { color: #909399; font-size: 13px; font-weight: 500; }
 .meta-row { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 6px 0 0; color: #303133; font-size: 12px; line-height: 1.5; }
 .meta-row em { margin-right: 4px; color: #909399; font-style: normal; }
+.node-ops { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 8px; }
+.node-ops strong { margin-right: 4px; }
 .key-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; margin: 0 0 6px; padding: 2px 10px; border-radius: 6px; background: #f4f7fb; color: #8d9bab; font-size: 12px; line-height: 20px; }
 .key-strip-label { color: #9aa8b8; }
 .key-strip-label::after { content: "："; }
 .key-strip kbd { margin-right: 3px; padding: 0; border: 0; background: transparent; color: #7d8da1; font: 12px/20px Consolas, "Cascadia Mono", monospace; }
-.key-cap { color: #606266; }
 .key-more { margin-left: auto; border: 0; background: none; padding: 0; color: #8aa0b8; font-size: 12px; line-height: 20px; cursor: pointer; }
 .key-more:hover { color: #606266; }
 .studio-copy { min-width: 0; }
@@ -1649,6 +1802,18 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .studio-head .meta-row { display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: center; margin: 6px 0 0; color: #303133; font-size: 12px; }
 .meta-type { padding: 1px 8px; border-radius: 4px; background: #f4f8fc; }
 .head-tools { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.combo-preview { margin: 0 0 8px; border: 1px solid #e6edf5; border-radius: 8px; background: #fff; }
+.combo-toggle { width: 100%; display: flex; justify-content: space-between; gap: 12px; border: 0; background: transparent; padding: 8px 12px; color: #1f3b66; font-size: 13px; cursor: pointer; }
+.combo-toggle span:last-child { color: #8aa0b8; }
+.combo-preview ul { max-height: 148px; margin: 0; padding: 0 12px 8px; overflow: auto; list-style: none; }
+.combo-preview li { padding: 0; }
+.combo-preview li { display: flex; align-items: center; gap: 6px; }
+.combo-check { display: flex; align-items: center; }
+.combo-batch { display: flex; align-items: center; gap: 8px; margin: 4px 12px; color: #607089; font-size: 13px; }
+.temp-entry { margin: 0 12px 8px; }
+.combo-preview button { width: 100%; display: flex; justify-content: space-between; gap: 12px; border: 0; background: transparent; padding: 4px 0; color: #1f2a37; font-size: 13px; text-align: left; cursor: pointer; }
+.combo-preview button.is-on { color: #1677ff; }
+.combo-preview em { color: #1677ff; font-style: normal; white-space: nowrap; }
 .op-bar { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .view-switch { --el-segmented-item-selected-bg-color: var(--el-color-primary); --el-segmented-item-selected-color: #fff; }
 .work-main { min-width: 0; min-height: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden; padding: 14px 16px 12px; background: #f5f7fa; border-left: 1px solid #eef0f3; }
@@ -1682,31 +1847,32 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .canvas :deep(.vue-flow__edge-path) { stroke-linecap: butt; stroke-linejoin: miter; }
 .canvas :deep(.vue-flow__controls) { left: 12px; bottom: 16px; box-shadow: none; border: 1px solid #e6edf5; }
 .canvas :deep(.vue-flow__minimap) { left: 12px; right: auto; bottom: 12px; border-radius: 8px; overflow: hidden; box-shadow: none; border: 1px solid #e6edf5; }
-.model-root, .model-attr, .model-value { position: relative; text-align: left; }
-.model-root { min-width: 108px; background: #fff; color: #303133; border: 1px solid #dcdfe6; border-left: 3px solid #303133; border-radius: 4px; padding: 8px 14px; font-size: 16px; font-weight: 700; }
-.model-attr { min-width: 96px; max-width: 148px; background: #fff; border: 1px solid #e4e7ed; border-radius: 4px; padding: 4px 12px 5px; }
-.model-attr strong { display: block; overflow: hidden; color: #303133; font-size: 14px; font-weight: 500; line-height: 1.3; white-space: nowrap; text-overflow: ellipsis; }
+.canvas :deep(.tree-bus) { fill: none; stroke: #c5d0dc; stroke-width: 1.25px; stroke-linejoin: round; stroke-linecap: butt; pointer-events: none; }
+.model-root, .model-attr, .model-value { position: relative; box-sizing: border-box; text-align: left; }
+.model-root { min-width: 108px; height: 36px; display: flex; align-items: center; background: #fff; color: #303133; border: 1px solid #dcdfe6; border-left: 3px solid #303133; border-radius: 6px; padding: 0 12px; font-size: 16px; font-weight: 600; }
+.model-attr { width: 128px; height: 44px; display: flex; flex-direction: column; justify-content: center; background: #fff; border: 1px solid #e4e7ed; border-radius: 6px; padding: 0 10px; }
+.model-attr strong { display: block; overflow: hidden; color: #303133; font-size: 13px; font-weight: 500; line-height: 18px; white-space: nowrap; text-overflow: ellipsis; }
 .model-attr.is-unbound strong { color: #909399; font-weight: 500; }
-.attr-meta { margin: 1px 0 0; color: #909399; font-size: 11px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.attr-meta { margin: 0; overflow: hidden; color: #909399; font-size: 11px; line-height: 14px; white-space: nowrap; text-overflow: ellipsis; }
 .pick-attr { display: inline-block; margin-top: 2px; border: 0; background: none; padding: 0; color: #409eff; font-size: 12px; line-height: 1.4; cursor: pointer; }
 .dict-create { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
 .dict-create .el-input { flex: 1; }
 .dict-empty { margin: 0 0 8px; color: #909399; font-size: 13px; line-height: 1.45; }
 .model-attr.is-head { border-color: #dcdfe6; }
-.model-attr.is-head strong { color: #303133; font-size: 14px; font-weight: 600; }
-.model-value { min-width: 40px; background: #fafafa; border: 1px solid #ebeef5; border-radius: 4px; padding: 3px 10px; color: #a8abb2; font-size: 12px; font-weight: 400; line-height: 1.3; }
+.model-attr.is-head strong { color: #303133; font-size: 13px; font-weight: 500; }
+.model-value { min-width: 64px; height: 28px; display: flex; align-items: center; background: #f7f8fa; border: 1px solid #e4e7ed; border-radius: 6px; padding: 0 10px; color: #606266; font-size: 12px; font-weight: 400; line-height: 28px; }
 .structure-empty { position: absolute; z-index: 4; top: 52px; left: 50%; transform: translateX(-50%); padding: 12px 14px; border: 1px solid #e6edf5; border-radius: 8px; background: rgba(255, 255, 255, 0.96); }
 .structure-empty p { margin: 0; color: #606266; font-size: 13px; }
 .structure-start { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; color: #909399; font-size: 12px; }
 .path-preview { position: absolute; left: 12px; top: 12px; z-index: 5; max-width: 460px; padding: 6px 10px; color: #7d8da1; background: rgba(255, 255, 255, 0.88); border-radius: 999px; font-size: 12px; pointer-events: none; }
 .path-preview i { margin: 0 6px; color: #c5d0de; font-style: normal; }
-.model-attr.is-on, .model-value.is-on, .model-root.is-on { border-color: #409eff; box-shadow: none; }
-.model-attr.is-on { background: #f5f7fa; }
-.model-value.is-on { background: #f5f7fa; color: #606266; }
-.model-root.is-on { background: #fff; }
+.model-attr.is-on, .model-value.is-on, .model-root.is-on { border-color: #409eff; background: #f3f8ff; box-shadow: none; }
+.model-value.is-on { color: #303133; }
 .model-attr.is-path { border-color: #dcdfe6; }
-.model-value.is-path { border-color: #e4e7ed; background: #fafafa; }
+.model-value.is-path { border-color: #e4e7ed; background: #f7f8fa; }
 .model-root.is-path { background: #fff; }
+.model-attr.is-on, .model-value.is-on, .model-root.is-on { border-color: #409eff; background: #f3f8ff; }
+.model-value.is-on { color: #303133; }
 .fold { position: absolute; right: -7px; top: 50%; width: 16px; height: 16px; margin-top: -8px; border: 1px solid #d5deea; border-radius: 50%; background: #fff; color: #7d8da1; cursor: pointer; font-size: 10px; line-height: 14px; padding: 0; }
 .inline-edit { width: 100%; max-width: 140px; border: 1px solid #9eb6d6; border-radius: 8px; background: #fff; color: #1f2d3d; font: inherit; }
 .model-root .root-edit { width: 148px; max-width: none; color: #1f2d3d; background: #fff; text-align: center; font-weight: 650; }

@@ -31,15 +31,14 @@
       <span v-if="!viewing" class="grip" draggable="true" @dragstart.stop="onDragStart(row.node.id, $event)" @dragend="drop = { id: '', place: '' }">⋮⋮</span>
       <span class="line-wrap">
         <input class="line" :class="{ 'is-unbound': isUnbound(row.node) }" :data-line="row.node.id" :value="label(row.node)" :readonly="viewing || isUnbound(row.node) || row.node.nodeType === 'VALUE'" @focus="markEditing(row.node.id, $event)" @input="onEditingInput" @keydown="onLineKey(row.node, $event)" @blur="commitLine(row.node, $event)" />
-        <span v-if="row.node.nodeType === 'ATTRIBUTE' && attributeHint(row.node).bound" class="bind-note">
-          <span>来源：{{ attributeHint(row.node).source }}</span>
-          <span v-if="attributeHint(row.node).values">属性值：{{ attributeHint(row.node).values }}</span>
-        </span>
+        <span v-if="row.node.nodeType === 'ATTRIBUTE' && attributeHint(row.node).bound" class="bind-note" :title="`绑定：${label(row.node)} · 属性词典`">属性来源：属性词典</span>
         <button v-else-if="row.node.nodeType === 'ATTRIBUTE' && !viewing" type="button" class="bind-btn" @mousedown.stop @click.stop="emit('bind', row.node.id)">选择属性</button>
       </span>
       <el-button-group v-if="!viewing" class="ops" @mousedown.stop @click.stop>
-        <el-button v-if="row.node.nodeType === 'ATTRIBUTE'" size="small" @click.stop="emit('add', { id: row.node.id, kind: 'child-value' })">选择属性值</el-button>
-        <el-button size="small" @click.stop="emit('add', { id: row.node.id, kind: 'sibling' })">{{ row.node.nodeType === 'VALUE' ? '选择同级值' : '选择同级属性' }}</el-button>
+        <el-button v-if="row.node.nodeType === 'ATTRIBUTE'" size="small" @click.stop="emit('add', { id: row.node.id, kind: 'child-attribute' })">添加子属性</el-button>
+        <el-button v-if="row.node.nodeType === 'ATTRIBUTE'" size="small" @click.stop="emit('add', { id: row.node.id, kind: 'child-value' })">添加属性值</el-button>
+        <el-button v-if="row.node.nodeType === 'VALUE'" size="small" @click.stop="emit('add', { id: row.node.id, kind: 'child-attribute' })">添加条件属性</el-button>
+        <el-button size="small" @click.stop="emit('add', { id: row.node.id, kind: 'sibling' })">{{ row.node.nodeType === 'VALUE' ? '添加同级属性值' : '添加同级属性' }}</el-button>
         <el-button size="small" type="danger" @click.stop="emit('remove', row.node.id)">删除</el-button>
       </el-button-group>
     </div>
@@ -47,7 +46,7 @@
       <p>还没有商品结构</p>
       <div v-if="!viewing" class="outline-start">
         <span>快速开始</span>
-        <el-button size="small" @click="emit('createAttribute')">选择属性</el-button>
+        <el-button size="small" @click="emit('createAttribute')">添加属性</el-button>
         <el-button size="small" @click="emit('copyModel')">复制已有模型</el-button>
       </div>
     </div>
@@ -178,7 +177,7 @@ function commitRoot(event: Event) {
   })
 }
 function onRootKey(event: KeyboardEvent) {
-  if (props.viewing) return
+  if (props.viewing || event.isComposing) return
   if (event.key === 'Enter') {
     event.preventDefault()
     commitRoot(event)
@@ -191,7 +190,7 @@ function onRootKey(event: KeyboardEvent) {
   emit('add', { id: props.rootId, kind: 'child-attribute' })
 }
 function onLineKey(node: ProductSpecNode, event: KeyboardEvent) {
-  if (props.viewing) return
+  if (props.viewing || event.isComposing) return
   const input = event.target as HTMLInputElement
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
     event.preventDefault()
@@ -225,9 +224,8 @@ function onLineKey(node: ProductSpecNode, event: KeyboardEvent) {
   }
   if (event.key === 'Tab') {
     event.preventDefault()
-    if (node.nodeType !== 'ATTRIBUTE') return
     commitLine(node, event)
-    emit('add', { id: node.id, kind: 'child-value' })
+    emit('add', { id: node.id, kind: 'child-attribute' })
     return
   }
   if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {

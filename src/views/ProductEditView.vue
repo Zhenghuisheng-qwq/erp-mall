@@ -1,9 +1,11 @@
 <template>
   <div>
-    <PageHead :title="isNew ? '新增商品' : '编辑商品'" desc="分类只选一次。上面填这款商品的共同信息，下面直接加规格，不用再进别的页面。">
+    <PageHead :title="isNew ? '新增商品' : '编辑商品'" :desc="pageDesc">
       <el-tag v-if="draft.origin === 'sample'" type="info">预设演示</el-tag>
     </PageHead>
 
+    <V3FamilyBoard v-if="v3View" :family-id="familyRouteId" :sku-id="skuQuery" />
+    <template v-else>
     <div class="panel">
       <h2>基本信息</h2>
       <el-form label-width="110px">
@@ -11,10 +13,13 @@
           <el-select :model-value="draft.categoryId" :disabled="locked" filterable default-first-option placeholder="选择分类" style="width: 320px" @change="onCategory">
             <el-option v-for="item in flatCategories" :key="item.id" :label="item.label" :value="item.id" />
           </el-select>
-          <span v-if="isNew && draft.categoryId && modelGate === 'none'" class="issue-error" style="margin-left: 8px">当前分类未配置商品模型，使用普通录入。</span>
+          <span v-if="isNew && draft.categoryId && modelGate === 'none' && !v3Create" class="issue-error" style="margin-left: 8px">当前分类未配置商品模型，使用普通录入。</span>
           <span v-else-if="isNew && modelGate === 'unpublished'" class="issue-error" style="margin-left: 8px">当前模型未发布，不能用于新增商品。</span>
           <span v-else-if="isNew && modelGate === 'invalid'" class="issue-error" style="margin-left: 8px">商品模型配置异常，请联系管理员。</span>
         </el-form-item>
+      </el-form>
+      <V3CreateFlow v-if="v3Create" :category-id="draft.categoryId" />
+      <el-form v-if="!v3Create" label-width="110px">
         <el-form-item label="商品名称" required>
           <el-input v-model="draft.name" style="width: 320px" @input="nameTouched = true" />
           <el-button link type="primary" @click="fillName">按公共信息生成</el-button>
@@ -34,7 +39,7 @@
         </el-form-item>
         </template>
       </el-form>
-      <div class="source-box">
+      <div v-if="!v3Create" class="source-box">
         <p><span>来源模型</span>{{ sourceModel }}</p>
         <p><span>来源规划</span>{{ planSource || '不是由规划生成' }}</p>
         <p><span>SKU数量</span>{{ draftSkus.length }}</p>
@@ -56,18 +61,18 @@
       <p class="muted">商品状态：{{ shelfLabel }}。已发布后不能改分类。历史规格仍按原来的属性名和值保存。</p>
     </div>
 
-    <div v-if="modelMode" class="panel">
+    <div v-if="modelMode && !v3Create" class="panel">
       <h2>规格模型</h2>
       <p>当前商品模型：{{ modelTitle }}</p>
       <p class="muted">公共属性单选，选中后继续展开下一层。规格属性可多选，系统按全部组合自动生成规格。</p>
       <ProductModelSelector :template-id="draft.templateId" :nodes="modelNodes" :model-value="selection" @update:model-value="onSelection" />
     </div>
 
-    <div v-if="spuOnly" class="panel">
+    <div v-if="spuOnly && !v3Create" class="panel">
       <h2>规格</h2>
       <p>此商品没有规格，只生成商品本身。</p>
     </div>
-    <div v-else class="panel">
+    <div v-else-if="!v3Create" class="panel">
       <div class="row-actions" style="margin-bottom: 10px">
         <h2 style="margin: 0">规格</h2>
         <el-button v-if="showSchemeFields" type="primary" :disabled="!draft.templateId" @click="addSku">新增规格</el-button>
@@ -123,7 +128,7 @@
       </el-table>
     </div>
 
-    <div class="panel">
+    <div v-if="!v3Create" class="panel">
       <h2>配置预览</h2>
       <p>{{ draft.name || '未命名商品' }} · {{ categoryPath(store.data, draft.categoryId) || '未选分类' }}</p>
       <p class="muted" style="margin: 8px 0">公共信息：{{ commonText }}</p>
@@ -162,7 +167,7 @@
       </div>
     </div>
 
-    <div class="footer-bar">
+    <div v-if="!v3Create" class="footer-bar">
       <div>
         <button class="linkish summary" @click="locate(firstIssue)">{{ summary }}</button>
       </div>
@@ -195,6 +200,7 @@
         <el-button type="primary" @click="applyBatch">生成</el-button>
       </template>
     </el-dialog>
+    </template>
   </div>
 </template>
 
@@ -204,6 +210,9 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import PageHead from '../components/PageHead.vue'
 import ProductModelSelector from '../components/ProductModelSelector.vue'
+import V3CreateFlow from '../components/V3CreateFlow.vue'
+import V3FamilyBoard from '../components/V3FamilyBoard.vue'
+import { publishedModelsForCategory } from '../domain/material'
 import { blankVariantAttrs, boundParams, categoryPath, collectModelSelections, constraintOf, emptyModelSelection, generateSkuFromModel, inspectFamily, latestPublishedVersion, mappingForCategory, modelPathText, modelSelectionTrail, modelVersionById, paramById, pathVariantColumns, productModelGate, selectedById, shelfOf, shelfText, specCanvasOf, statusText, truncateModelPath, type ModelSelection, type ModelSpecColumn } from '../domain/logic'
 import type { ConstraintResult, FieldIssue, ProductFamily, Sku } from '../domain/types'
 import { uid, useCatalogStore } from '../stores/catalog'
@@ -215,7 +224,17 @@ const router = useRouter()
 const saved = ref(false)
 const nameTouched = ref(false)
 const isNew = computed(() => route.name === 'product-new')
+const familyRouteId = computed(() => String(route.params.id || ''))
+const skuQuery = computed(() => String(route.query.sku || ''))
+const v3View = computed(() => !isNew.value && draft.line === 'v3')
+const v3Create = computed(() => isNew.value && !route.query.from && publishedModelsForCategory(store.data, draft.categoryId).length > 0)
+const pageDesc = computed(() => {
+  if (v3View.value) return '这里维护已经建好的物料。规格来自建档时的模型，不用再选。'
+  if (v3Create.value) return '先确认分类和规格，再填写这一条物料。已经确定的规格不用重填。'
+  return '分类只选一次。上面填这款商品的共同信息，下面直接加规格，不用再进别的页面。'
+})
 const draft = reactive<ProductFamily>(blankFamily())
+watch(v3Create, (value) => { if (value) saved.value = true })
 const draftSkus = ref<Sku[]>([])
 const valueOpen = ref(false)
 const valueText = ref('')
@@ -244,10 +263,10 @@ const flatCategories = computed(() => {
   return rows.filter((item) => item.enabled || item.id === draft.categoryId)
 })
 const modelGate = computed(() => (draft.categoryId ? productModelGate(store.data, draft.templateId) : 'none'))
-const modelMode = computed(() => isNew.value && !route.query.from && modelGate.value === 'ready')
+const modelMode = computed(() => isNew.value && !route.query.from && modelGate.value === 'ready' && !v3Create.value)
 const modelNodes = computed(() => (draft.modelVersionId ? modelVersionById(store.data, draft.modelVersionId)?.nodesSnapshot || [] : []))
 const usingModel = computed(() => Boolean(draft.modelVersionId) && modelNodes.value.length > 0)
-const showSchemeFields = computed(() => !modelMode.value && !usingModel.value && Boolean(draft.templateId) && modelGate.value !== 'unpublished' && modelGate.value !== 'invalid')
+const showSchemeFields = computed(() => !v3Create.value && !modelMode.value && !usingModel.value && Boolean(draft.templateId) && modelGate.value !== 'unpublished' && modelGate.value !== 'invalid')
 const commons = computed(() => (draft.templateId ? boundParams(store.data, draft.templateId, 'common') : []))
 const variants = computed(() => (draft.templateId ? boundParams(store.data, draft.templateId, 'variant') : []))
 const visibleVariants = computed(() => variants.value.filter((item) => item.required || showOptional.value))
@@ -257,6 +276,7 @@ const specColumns = computed(() => {
   return visibleVariants.value.map((item) => ({ paramId: item.paramId, name: item.param.name, required: item.required, values: [] as string[], role: 'variant' as const }))
 })
 const issues = computed(() => {
+  if (v3View.value || v3Create.value) return []
   if (!draft.templateId) return []
   if (usingModel.value) {
     return inspectFamily(store.data, draft, draftSkus.value, specColumns.value.map((item) => item.name)).filter((issue) => !(spuOnly.value && issue.message === '至少添加一条规格'))
@@ -320,7 +340,9 @@ function blankFamily(): ProductFamily {
   }
 }
 function cloneSku(source: Sku, familyId: string): Sku {
-  return { ...source, id: uid('sku'), familyId, variantAttrs: { ...source.variantAttrs }, projectedAttrs: {} }
+  const next: Sku = { ...source, id: uid('sku'), familyId, variantAttrs: { ...source.variantAttrs }, projectedAttrs: {} }
+  delete next.materialCode
+  return next
 }
 function onCategory(categoryId: string) {
   const category = store.data.categories.find((item) => item.id === categoryId)
@@ -330,6 +352,14 @@ function onCategory(categoryId: string) {
   }
   const mapping = mappingForCategory(store.data, categoryId)
   draft.categoryId = categoryId
+  if (publishedModelsForCategory(store.data, categoryId).length) {
+    draft.templateId = ''
+    draft.modelVersionId = ''
+    draft.commonAttrs = {}
+    draftSkus.value = []
+    selection.value = emptyModelSelection()
+    return
+  }
   if (!mapping) {
     draft.templateId = ''
     if (isNew.value && !route.query.from) draft.modelVersionId = ''
@@ -617,7 +647,7 @@ async function cancel() {
   router.push('/products')
 }
 
-onMounted(() => {
+function loadRoutedFamily() {
   const from = String(route.query.from || '')
   const id = String(route.params.id || '')
   const sourceId = from || id
@@ -625,6 +655,15 @@ onMounted(() => {
     const family = store.data.families.find((item) => item.id === sourceId)
     if (family) {
       Object.assign(draft, JSON.parse(JSON.stringify(family)) as ProductFamily)
+      if (family.line === 'v3' && !from) {
+        saved.value = true
+        return
+      }
+      if (family.line === 'v3' && from) {
+        saved.value = true
+        router.replace('/products')
+        return
+      }
       draftSkus.value = store.skusOf(family.id).map((item) => JSON.parse(JSON.stringify(item)) as Sku)
       nameTouched.value = !from
       if (from) {
@@ -643,7 +682,9 @@ onMounted(() => {
   }
   const category = String(route.query.category || '')
   if (category && isNew.value && !from) onCategory(category)
-})
+}
+onMounted(loadRoutedFamily)
+watch(() => [route.params.id, route.query.from, route.query.sku], loadRoutedFamily)
 
 onBeforeRouteLeave(async () => {
   if (saved.value) return true

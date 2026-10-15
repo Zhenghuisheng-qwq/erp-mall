@@ -54,15 +54,18 @@
           <template #default="{ row }">
             <div style="padding: 0 12px 8px">
               <div class="row-actions" style="margin-bottom: 8px">
-                <el-button size="small" @click="router.push(`/products/${row.id}`)">编辑整款商品</el-button>
-                <el-button size="small" @click="router.push(`/products/${row.id}?add=1`)">新增规格</el-button>
+                <el-button size="small" @click="router.push(`/products/${row.id}`)">{{ row.line === 'v3' ? '查看物料' : '编辑整款商品' }}</el-button>
+                <el-button v-if="row.line !== 'v3'" size="small" @click="router.push(`/products/${row.id}?add=1`)">新增规格</el-button>
                 <el-button size="small" :disabled="selected[row.id]?.length === 0" @click="batchStatus(row.id, 'on_sale')">所选改在售</el-button>
                 <el-button size="small" :disabled="selected[row.id]?.length === 0" @click="batchStatus(row.id, 'off_sale')">所选改停售</el-button>
               </div>
               <el-table :data="store.skusOf(row.id)" size="small" @selection-change="onSelect(row.id, $event)">
                 <el-table-column type="selection" width="42" />
                 <el-table-column label="规格" min-width="220">
-                  <template #default="{ row: sku }">{{ sku.skuName || (row.productPlanId ? row.name : skuTitle(sku, boundParams(store.data, row.templateId, 'variant'))) }}</template>
+                  <template #default="{ row: sku }">
+                    <div>{{ sku.materialCode ? `${sku.materialCode} · ` : '' }}{{ sku.skuName || (row.productPlanId ? row.name : skuTitle(sku, boundParams(store.data, row.templateId, 'variant'))) }}</div>
+                    <div v-if="row.line === 'v3'" class="muted">{{ sku.planningId || '无规划编号' }} · 供应商 {{ sku.supplierCode || '未填' }} · 管家婆 {{ sku.guanjiapoCode || '未填' }}{{ sku.materialDescription ? ` · ${sku.materialDescription}` : '' }}</div>
+                  </template>
                 </el-table-column>
                 <el-table-column label="状态" width="120">
                   <template #default="{ row: sku }">
@@ -77,7 +80,7 @@
                 <el-table-column label="操作" width="180">
                   <template #default="{ row: sku }">
                     <el-button link type="primary" @click="router.push(`/products/${row.id}?sku=${sku.id}`)">编辑</el-button>
-                    <el-button link @click="copySku(row.id, sku.id)">复制</el-button>
+                    <el-button v-if="row.line !== 'v3'" link @click="copySku(row.id, sku.id)">复制</el-button>
                     <el-button link type="danger" @click="removeSku(sku.id)">删除</el-button>
                   </template>
                 </el-table-column>
@@ -101,8 +104,9 @@
             <template v-else>{{ row.oaProductId || '-' }}</template>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
+            <el-button v-if="row.line === 'v3'" link type="primary" @click="router.push(compatTarget(row))">{{ compatTitle(row) }}</el-button>
             <el-button link type="primary" @click="router.push(`/products/${row.id}`)">编辑</el-button>
             <el-button link @click="copyFamily(row.id)">复制</el-button>
             <el-button link type="danger" @click="removeFamily(row.id, row.name)">删除</el-button>
@@ -135,6 +139,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PageHead from '../components/PageHead.vue'
+import { catalogRole, compatibilityFamilyBlock } from '../domain/compatibility'
 import { boundParams, categoryPath, projectAttrs, shelfOf, shelfText, skuTitle, templateById } from '../domain/logic'
 import type { ProductFamily, Sku } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
@@ -162,7 +167,7 @@ const filtered = computed(() => {
   const q = query
   let rows = store.data.families.filter((family) => {
     const skus = store.skusOf(family.id)
-    const text = `${family.name} ${categoryPath(store.data, family.categoryId)} ${family.oaProductId} ${skus.map((sku) => `${sku.id} ${sku.oaSkuId} ${Object.entries(projectAttrs(family, sku)).map(([name, value]) => name + value).join(' ')}`).join(' ')}`
+    const text = `${family.name} ${categoryPath(store.data, family.categoryId)} ${family.oaProductId} ${skus.map((sku) => `${sku.id} ${sku.oaSkuId} ${sku.skuName || ''} ${sku.materialCode || ''} ${sku.supplierCode || ''} ${sku.guanjiapoCode || ''} ${sku.planningId || ''} ${Object.entries(projectAttrs(family, sku)).map(([name, value]) => name + value).join(' ')}`).join(' ')}`
     if (q.keyword && !text.toLowerCase().includes(q.keyword.toLowerCase())) return false
     if (q.categoryId && family.categoryId !== q.categoryId) return false
     if (q.shelf && shelfOf(family) !== q.shelf) return false
@@ -213,7 +218,20 @@ function saveView() {
   viewName.value = ''
   ElMessage.success('视图已保存，刷新后还在')
 }
+function compatTitle(row: ProductFamily) {
+  return catalogRole(store.data, row.categoryId) === 'accessory' ? '适用主机' : '适用配件'
+}
+function compatTarget(row: ProductFamily) {
+  if (catalogRole(store.data, row.categoryId) !== 'accessory') return `/compatibility?family=${row.id}`
+  const sku = store.skusOf(row.id)[0]
+  return sku ? `/compatibility?sku=${sku.id}` : '/compatibility'
+}
 function copyFamily(id: string) {
+  const family = store.data.families.find((item) => item.id === id)
+  if (family?.line === 'v3') {
+    ElMessage.warning('物料请在对应规格上继续创建，不会整款复制。')
+    return
+  }
   router.push(`/products/new?from=${id}`)
 }
 async function removeFamily(id: string, name: string) {
@@ -223,7 +241,11 @@ async function removeFamily(id: string, name: string) {
     return
   }
   await ElMessageBox.confirm(`删除「${name}」和它下面的全部规格？`, '删除商品')
-  store.removeFamily(id)
+  const blocked = store.removeFamily(id)
+  if (blocked) {
+    ElMessage.warning(blocked)
+    return
+  }
   ElMessage.success('已删除')
 }
 function onFamilySelect(rows: ProductFamily[]) {
@@ -253,13 +275,19 @@ async function removeMany() {
     return
   }
   await ElMessageBox.confirm(`删除选中的 ${familyIds.value.length} 款商品和它们的规格？`, '批量删除')
+  const blocked = familyIds.value.map((id) => compatibilityFamilyBlock(store.data, id)).find(Boolean)
+  if (blocked) {
+    ElMessage.warning(blocked)
+    return
+  }
   familyIds.value.forEach((id) => store.removeFamily(id))
   familyIds.value = []
   ElMessage.success('已删除')
 }
 async function removeSku(id: string) {
   await ElMessageBox.confirm('删除这条规格。如果这是最后一条，整款商品也会去掉。', '删除规格')
-  store.removeSku(id)
+  const blocked = store.removeSku(id)
+  if (blocked) ElMessage.warning(blocked)
 }
 function copySku(familyId: string, skuId: string) {
   router.push(`/products/${familyId}?copySku=${skuId}`)

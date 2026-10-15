@@ -101,6 +101,7 @@ const MENU: MenuGroup[] = [
         items: [
           { index: '/products', title: '商品列表' },
           { index: '/import', title: '商品导入导出' },
+          { index: '/compatibility', title: '适用关系' },
           { index: '/categories', title: '商品分类中心' },
           { index: '/product-types', title: '产品类型' },
           { index: '/plans', title: '商品规划' },
@@ -299,7 +300,7 @@ function onRole(value: string) {
 
 const moduleOf = computed(() => {
   const path = route.path
-  if (path.startsWith('/products') || path.startsWith('/import') || path === '/' || path.startsWith('/check') || path.startsWith('/overview')) return 'products' as const
+  if (path.startsWith('/products') || path.startsWith('/import') || path.startsWith('/compatibility') || path === '/' || path.startsWith('/check') || path.startsWith('/overview')) return 'products' as const
   if (path.startsWith('/categories') || path.startsWith('/mappings')) return 'categories' as const
   if (path.startsWith('/templates') || path.startsWith('/specs') || path.startsWith('/models')) return 'templates' as const
   if (path.startsWith('/params')) return 'params' as const

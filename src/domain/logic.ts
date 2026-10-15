@@ -1,3 +1,4 @@
+import { expandFilteredPaths } from './planning'
 import type {
   AppData,
   ConstraintResult,
@@ -320,7 +321,8 @@ export function specCombinations(data: AppData, templateId: string): SpecCombina
 }
 
 export function sameSpecSnapshot(left: ProductSpecNode[], right: ProductSpecNode[]) {
-  const keyOf = (node: ProductSpecNode) => [node.id, node.parentId || '', node.nodeType, node.attributeId, node.valueId, node.role || '', node.sort].join('|')
+  const namingKey = (node: ProductSpecNode) => (node.namingRule || []).map((part) => [part.kind, part.key || '', part.text || ''].join(':')).join(',')
+  const keyOf = (node: ProductSpecNode) => [node.id, node.parentId || '', node.nodeType, node.attributeId, node.valueId, node.role || '', node.sort, namingKey(node)].join('|')
   const a = left.map(keyOf).sort()
   const b = right.map(keyOf).sort()
   return a.length === b.length && a.every((item, index) => item === b[index])
@@ -364,7 +366,24 @@ export function specPublishProblems(data: AppData, nodes: ProductSpecNode[]) {
       const children = nodes.filter((item) => item.parentId === attribute.id)
       const values = children.filter((item) => item.nodeType === 'VALUE')
       const nested = children.filter((item) => item.nodeType === 'ATTRIBUTE')
-      if (values.length === 0 && nested.length === 0) problems.push(`属性「${specNodeLabel(data, attribute)}」下面没有取值。`)
+      const locate = (attribute: ProductSpecNode) => {
+        const names: string[] = []
+        const byId = new Map(nodes.map((item) => [item.id, item]))
+        let id: string | null = attribute.id
+        const guard = new Set<string>()
+        while (id && !guard.has(id)) {
+          guard.add(id)
+          const node = byId.get(id)
+          if (!node) break
+          if (node.nodeType === 'ATTRIBUTE') names.unshift(specNodeLabel(data, node))
+          id = node.parentId
+        }
+        return names.filter(Boolean).join(' / ') || specNodeLabel(data, attribute)
+      }
+      if (values.length > 0 && nested.length > 0) {
+        problems.push(`属性「${locate(attribute)}」同时挂了属性值和子属性。请把子属性放到属性值下面，或只保留其中一种，否则规格路径不明确，不能发布。`)
+      }
+      if (values.length === 0 && nested.length === 0) problems.push(`属性「${locate(attribute)}」下面没有取值。`)
     })
   if (problems.length === 0 && specCombinationsFrom(data, nodes[0]?.templateId || '', nodes).length === 0) {
     problems.push('当前结构生成不出完整规格路径，不能发布。')
@@ -525,28 +544,12 @@ export function planSkuLines(data: AppData, plan: ProductPlan) {
 }
 
 function expandVariantPaths(data: AppData, templateId: string, nodes: ProductSpecNode[], parentId: string | null) {
-  const attributes = nodes
-    .filter((item) => item.parentId === parentId && item.nodeType === 'ATTRIBUTE' && specAttributeRole(data, templateId, item.attributeId, nodes) === 'variant')
-    .sort((a, b) => a.sort - b.sort)
-  let combos: { name: string; value: string; nodeId: string }[][] = [[]]
-  let grew = false
-  attributes.forEach((attribute) => {
-    const options = variantOptions(data, templateId, nodes, attribute)
-    if (!options.length) return
-    grew = true
-    combos = combos.flatMap((prefix) => options.map((option) => [...prefix, ...option]))
-  })
-  return grew ? combos : [[]]
-}
-
-function variantOptions(data: AppData, templateId: string, nodes: ProductSpecNode[], attribute: ProductSpecNode) {
-  const name = paramById(data, attribute.attributeId)?.name || attribute.attributeId
-  const values = nodes.filter((item) => item.parentId === attribute.id && item.nodeType === 'VALUE').sort((a, b) => a.sort - b.sort)
-  if (!values.length) return expandVariantPaths(data, templateId, nodes, attribute.id).filter((path) => path.length)
-  return values.flatMap((value) => {
-    const step = { name, value: value.valueId, nodeId: value.id }
-    return expandVariantPaths(data, templateId, nodes, value.id).map((path) => [step, ...path])
-  })
+  return expandFilteredPaths(
+    nodes,
+    parentId,
+    (attribute) => specAttributeRole(data, templateId, attribute.attributeId, nodes) === 'variant',
+    (attribute) => paramById(data, attribute.attributeId)?.name || attribute.attributeId,
+  )
 }
 
 export function specCanvasOf(data: AppData, templateId: string) {
@@ -653,15 +656,15 @@ export function modelSpecColumns(data: AppData, templateId: string, nodes: Produ
 }
 
 /** 左向逻辑结构图。同级间距固定，父节点垂直居中，列距收短。 */
-export const SPEC_TREE_ORIGIN_X = 176
-export const SPEC_TREE_ORIGIN_Y = 24
-export const SPEC_TREE_COLUMN = 156
+export const SPEC_TREE_ORIGIN_X = 168
+export const SPEC_TREE_ORIGIN_Y = 20
+export const SPEC_TREE_COLUMN = 176
 export const SPEC_TREE_GAP = 8
 
 type SpecTreeItem = { id: string; parentId: string | null; sort: number; nodeType: ProductSpecNode['nodeType'] }
 
 function specTreeBox(nodeType: ProductSpecNode['nodeType']) {
-  return nodeType === 'VALUE' ? 26 : 64
+  return nodeType === 'VALUE' ? 28 : 44
 }
 
 export function layoutSpecTree(nodes: SpecTreeItem[]) {
