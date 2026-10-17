@@ -49,9 +49,9 @@ function formalRoundTrip() {
   const version = data.specModelVersions.find((item) => item.id === 'phone-model-v1')
   if (!version) return false
   data.planningRecords = reconcilePlanningRecords({ records: data.planningRecords, data, productModelId: 't-phone', modelVersionId: version.id, nodes: version.nodesSnapshot, now: '2026-10-15T00:00:00.000Z' }).records
-  const headers = ['9.0管家婆', '物料描述（可追溯）', '供应商编码', '一级', '二级', '产品类型', '属性1', '属1值', '属性2', '属2值', '属性3', '属3值', '属性4', '属4值']
-  const row = ['9001', 'Apple iPhone 128G 黑色', 'SUP-FORMAL', '主机', '手机', '手机', '品牌', 'Apple', '系列', 'iPhone', '颜色', '黑色', '容量', '128G']
-  const other = ['9002', 'Apple iPhone 128G 白色', 'SUP-FORMAL', '主机', '手机', '手机', '品牌', 'Apple', '系列', 'iPhone', '颜色', '白色', '容量', '128G']
+  const headers = ['9.0管家婆', '物料描述（可追溯）', '供应商编码', '一级', '二级', '产品类型', '属性1', '属1值', '属性2', '属2值', '属性3', '属3值', '属性4', '属4值', '属性5', '属5值']
+  const row = ['9001', 'Apple iPhone 128G 黑色', 'SUP-FORMAL', '主机', '手机', '手机', '品牌', 'Apple', '系列', 'iPhone', '颜色', '黑色', '容量', '128G', '型号', 'iPhone 17']
+  const other = ['9002', 'Apple iPhone 128G 白色', 'SUP-FORMAL', '主机', '手机', '手机', '品牌', 'Apple', '系列', 'iPhone', '颜色', '白色', '容量', '128G', '型号', 'iPhone 17']
   const sheet = readSheet('合成物料', [headers, row, other])
   const mapping = suggestMapping(sheet.headers, sheet.sample)
   const preview = previewSheet(data, sheet, mapping, 'synthetic')

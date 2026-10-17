@@ -19,6 +19,14 @@
         </el-form-item>
       </el-form>
       <V3CreateFlow v-if="v3Create" :category-id="draft.categoryId" />
+      <div v-else-if="isNew && categoryTypes.length" class="row-actions">
+        <el-select v-if="categoryTypes.length > 1" v-model="temporaryTypeId" placeholder="选择产品类型" style="width: 220px">
+          <el-option v-for="item in categoryTypes" :key="item.id" :label="item.name" :value="item.id" />
+        </el-select>
+        <el-button @click="temporaryOpen = true">创建临时物料</el-button>
+        <span class="muted">没有已发布的商品模型。临时物料不会生成正式规划编号，也不会写入属性词典。</span>
+      </div>
+      <TemporaryMaterialDialog v-if="isNew && !v3Create" :open="temporaryOpen" :category-id="draft.categoryId" :product-type-id="temporaryTypeId" @close="temporaryOpen = false" @open="openTemporary" />
       <el-form v-if="!v3Create" label-width="110px">
         <el-form-item label="商品名称" required>
           <el-input v-model="draft.name" style="width: 320px" @input="nameTouched = true" />
@@ -210,6 +218,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import PageHead from '../components/PageHead.vue'
 import ProductModelSelector from '../components/ProductModelSelector.vue'
+import TemporaryMaterialDialog from '../components/TemporaryMaterialDialog.vue'
 import V3CreateFlow from '../components/V3CreateFlow.vue'
 import V3FamilyBoard from '../components/V3FamilyBoard.vue'
 import { publishedModelsForCategory } from '../domain/material'
@@ -222,6 +231,8 @@ const store = useCatalogStore()
 const route = useRoute()
 const router = useRouter()
 const saved = ref(false)
+const temporaryOpen = ref(false)
+const temporaryTypeId = ref('')
 const nameTouched = ref(false)
 const isNew = computed(() => route.name === 'product-new')
 const familyRouteId = computed(() => String(route.params.id || ''))
@@ -527,8 +538,17 @@ function modelDraft() {
   })
   return { complete: true, spuOnly: generated.skus.length === 0, common: generated.commonAttrs, skus: generated.skus }
 }
+const categoryTypes = computed(() => store.data.productTypes.filter((item) => item.categoryId === draft.categoryId && item.status === 'enabled'))
+watch(categoryTypes, (rows) => {
+  if (!rows.some((item) => item.id === temporaryTypeId.value)) temporaryTypeId.value = rows[0]?.id || ''
+})
+function openTemporary(familyId: string, skuId: string) {
+  temporaryOpen.value = false
+  saved.value = true
+  router.push(`/products/${familyId}?sku=${skuId}`)
+}
 function syncFromModel() {
-  if (!modelMode.value) return
+  if (!modelMode.value || publishedModelsForCategory(store.data, draft.categoryId).length) return
   const built = modelDraft()
   draft.commonAttrs = { ...built.common }
   if (!built.complete) {

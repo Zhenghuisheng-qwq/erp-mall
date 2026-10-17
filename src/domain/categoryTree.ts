@@ -148,13 +148,30 @@ export function relocateBlockMessage(categories: Category[], id: string, targetI
   return ''
 }
 
-export function relocateCategoryNodes(categories: Category[], id: string, targetId: string, position: DropPosition) {
+export const TYPED_CATEGORY_CHILD_BLOCK = '当前分类已经关联产品类型，不能直接新增子分类。请先处理产品类型关联。'
+export const NON_LEAF_TYPE_BLOCK = '只有末级分类可以关联产品类型。'
+
+export function blockChildOfTypedCategory(parentId: string | null, typedCategoryIds: ReadonlySet<string>) {
+  if (parentId && typedCategoryIds.has(parentId)) return TYPED_CATEGORY_CHILD_BLOCK
+  return ''
+}
+
+export function blockTypeOnNonLeaf(categories: Category[], categoryId: string) {
+  if (categories.some((item) => item.parentId === categoryId)) return NON_LEAF_TYPE_BLOCK
+  return ''
+}
+
+export function relocateCategoryNodes(categories: Category[], id: string, targetId: string, position: DropPosition, typedCategoryIds: ReadonlySet<string> = new Set()) {
   const message = relocateBlockMessage(categories, id, targetId, position)
   if (message) return message
   const category = categories.find((item) => item.id === id)
   const target = categories.find((item) => item.id === targetId)
   if (!category || !target) return '分类不存在'
   const nextParentId = position === 'inner' ? targetId : target.parentId
+  if ((category.parentId || null) !== (nextParentId || null)) {
+    const blocked = blockChildOfTypedCategory(nextParentId, typedCategoryIds)
+    if (blocked) return blocked
+  }
   const oldParentId = category.parentId
   category.parentId = nextParentId
   clearDerived(category)
@@ -171,13 +188,15 @@ export function relocateCategoryNodes(categories: Category[], id: string, target
   return ''
 }
 
-export function moveCategoryNode(categories: Category[], id: string, parentId: string | null) {
+export function moveCategoryNode(categories: Category[], id: string, parentId: string | null, typedCategoryIds: ReadonlySet<string> = new Set()) {
   if (id === parentId) return '不能移动到自己下面'
   if (parentId && descendantIds(categories, id).includes(parentId)) return '不能移动到自己的子分类下面'
   const category = categories.find((item) => item.id === id)
   if (!category) return '分类不存在'
   if (parentId && !categories.some((item) => item.id === parentId)) return '父分类不存在'
   if (category.parentId === parentId) return ''
+  const blocked = blockChildOfTypedCategory(parentId, typedCategoryIds)
+  if (blocked) return blocked
   const oldParentId = category.parentId
   category.parentId = parentId
   clearDerived(category)
@@ -207,13 +226,14 @@ export function updateCategoryNode(
   categories: Category[],
   id: string,
   patch: { name: string; enabled: boolean; sort: number; parentId: string | null; icon?: string },
+  typedCategoryIds: ReadonlySet<string> = new Set(),
 ) {
   const category = categories.find((item) => item.id === id)
   if (!category) return '分类不存在'
   const name = patch.name.trim()
   if (!name) return '请填写分类名称'
   if ((patch.parentId || null) !== (category.parentId || null)) {
-    const message = moveCategoryNode(categories, id, patch.parentId)
+    const message = moveCategoryNode(categories, id, patch.parentId, typedCategoryIds)
     if (message) return message
   }
   category.name = name

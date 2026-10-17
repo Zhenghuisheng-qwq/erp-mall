@@ -3,56 +3,47 @@ import { existsSync } from 'node:fs'
 
 const require = createRequire(existsSync('D:/tmp/pw/package.json') ? 'D:/tmp/pw/package.json' : import.meta.url)
 const { chromium } = require('playwright-core')
-const base = process.env.SMOKE_URL || 'http://127.0.0.1:5211'
+const base = process.env.SMOKE_URL || 'http://127.0.0.1:5243'
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-const clicks = []
-async function click(locator, label) {
-  await locator.click()
-  clicks.push(label)
+const errors = []
+page.on('pageerror', (error) => errors.push(String(error)))
+
+function overlaps(boxes) {
+  const hits = []
+  boxes.forEach((left, index) => {
+    boxes.slice(index + 1).forEach((right) => {
+      const separated = left.right <= right.left || right.right <= left.left || left.bottom <= right.top || right.bottom <= left.top
+      if (!separated) hits.push(`${left.id}/${right.id}`)
+    })
+  })
+  return hits
 }
+
 try {
   await page.goto(`${base}/specs?template=t-phone`, { waitUntil: 'networkidle' })
-  await click(page.getByText('大纲视图', { exact: true }), '打开大纲')
-  const brand = page.locator('input.line[value="品牌"]')
-  await brand.waitFor()
-  await brand.click({ button: 'right' })
-  clicks.push('右键品牌')
-  await click(page.getByRole('button', { name: '命名规则' }), '打开命名规则')
-  await page.getByRole('dialog', { name: '命名规则' }).waitFor()
-  const dialog = page.getByRole('dialog', { name: '命名规则' })
-  async function addField(label) {
-    await dialog.locator('.el-select').first().click()
-    clicks.push('打开字段列表')
-    await page.getByRole('option', { name: label, exact: true }).click()
-    clicks.push(`选择${label}`)
-    await dialog.getByRole('button', { name: '加入', exact: true }).click()
-    clicks.push(`加入${label}`)
-  }
-  await addField('产品类型')
-  await addField('品牌')
-  await addField('容量')
-  await addField('颜色')
-  const preview = (await page.locator('.preview').innerText()).trim()
-  if (!preview.includes('手机') || preview.includes('undefined') || preview.includes('  ')) {
-    throw new Error('预览不对：' + preview)
-  }
-  await click(page.getByRole('button', { name: '保存规则' }), '保存规则')
-  await click(page.getByRole('button', { name: '发布模型' }), '发布模型')
-  await page.getByText(/已发布 V/).waitFor()
-  await page.getByRole('button', { name: /128G/ }).filter({ hasText: '黑色' }).filter({ hasText: 'Apple' }).first().click()
-  clicks.push('选择黑色规格')
-  await click(page.getByRole('button', { name: '创建物料' }), '创建物料')
-  const createDialog = page.getByRole('dialog', { name: '创建物料' })
-  await createDialog.waitFor()
-  const name = await createDialog.locator('input').last().inputValue()
-  if (!name.includes('手机') || !name.includes('Apple') || name.includes('undefined')) throw new Error(`建档名称 ${name} 预览 ${preview}`)
-  const planBefore = await page.evaluate(() => JSON.parse(localStorage.getItem('iyge-v2-mock-db')).data.planningRecords.length)
-  await click(createDialog.getByRole('button', { name: '确认创建' }), '确认创建')
-  await page.getByText(/已创建物料 MAT-/).waitFor()
-  const planAfter = await page.evaluate(() => JSON.parse(localStorage.getItem('iyge-v2-mock-db')).data.planningRecords.length)
-  if (planAfter !== planBefore) throw new Error('创建物料改变了规划编号数量')
-  console.log(JSON.stringify({ ok: true, clicks: clicks.length, preview, name }, null, 2))
+  await page.getByRole('button', { name: '自动布局' }).click()
+  await page.waitForTimeout(300)
+  const boxes = await page.locator('.vue-flow__node').evaluateAll((nodes) => nodes.map((node) => {
+    const rect = node.getBoundingClientRect()
+    return { id: node.getAttribute('data-id'), left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }
+  }))
+  const hits = overlaps(boxes.filter((item) => item.right - item.left > 2))
+  if (hits.length) throw new Error('结构节点重叠 ' + hits.slice(0, 8).join(','))
+  const apple = boxes.find((item) => item.id === 'sn-brand-apple')
+  const huawei = boxes.find((item) => item.id === 'sn-brand-huawei')
+  if (!apple || !huawei || Math.abs(apple.top - huawei.top) < 8) throw new Error('品牌分支没有分开 ' + JSON.stringify({ apple, huawei, nodes: boxes.length }))
+  await page.goto(`${base}/plans`, { waitUntil: 'networkidle' })
+  await page.getByRole('heading', { name: '商品规划' }).waitFor()
+  await page.goto(`${base}/products`, { waitUntil: 'networkidle' })
+  await page.getByRole('button', { name: '新增商品' }).waitFor()
+  await page.goto(`${base}/compatibility`, { waitUntil: 'networkidle' })
+  await page.getByRole('heading', { name: '适用关系' }).waitFor()
+  if (errors.length) throw new Error(errors.join('\n'))
+  console.log(JSON.stringify({ ok: true, nodes: boxes.length, appleTop: apple.top, huaweiTop: huawei.top }))
+} catch (error) {
+  console.error('FAIL', error)
+  process.exitCode = 1
 } finally {
   await browser.close()
 }

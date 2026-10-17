@@ -36,7 +36,40 @@ export function emptyQuery(): ListQuery {
   }
 }
 
+/**
+ * 全新初始化使用的手机条件分支。
+ * 品牌各自往下走，容量决定颜色。不在读取旧 LocalStorage 时调用。
+ */
 export function phoneSpecNodes(): ProductSpecNode[] {
+  const nodes: ProductSpecNode[] = [
+    { id: 'sn-brand', templateId: 't-phone', parentId: null, nodeType: 'ATTRIBUTE', attributeId: 'p-brand', valueId: '', sort: 1, role: 'COMMON' },
+    { id: 'sn-brand-apple', templateId: 't-phone', parentId: 'sn-brand', nodeType: 'VALUE', attributeId: 'p-brand', valueId: 'Apple', sort: 1 },
+    { id: 'sn-brand-huawei', templateId: 't-phone', parentId: 'sn-brand', nodeType: 'VALUE', attributeId: 'p-brand', valueId: '华为', sort: 2 },
+    { id: 'sn-apple-series', templateId: 't-phone', parentId: 'sn-brand-apple', nodeType: 'ATTRIBUTE', attributeId: 'p-series', valueId: '', sort: 1, role: 'COMMON' },
+    { id: 'sn-apple-series-iphone', templateId: 't-phone', parentId: 'sn-apple-series', nodeType: 'VALUE', attributeId: 'p-series', valueId: 'iPhone', sort: 1 },
+    { id: 'sn-apple-model', templateId: 't-phone', parentId: 'sn-apple-series-iphone', nodeType: 'ATTRIBUTE', attributeId: 'p-model', valueId: '', sort: 1, role: 'COMMON' },
+    { id: 'sn-apple-model-17', templateId: 't-phone', parentId: 'sn-apple-model', nodeType: 'VALUE', attributeId: 'p-model', valueId: 'iPhone 17', sort: 1 },
+    { id: 'sn-apple-cap', templateId: 't-phone', parentId: 'sn-apple-model-17', nodeType: 'ATTRIBUTE', attributeId: 'p-cap', valueId: '', sort: 1, role: 'VARIANT' },
+    { id: 'sn-apple-cap-128', templateId: 't-phone', parentId: 'sn-apple-cap', nodeType: 'VALUE', attributeId: 'p-cap', valueId: '128G', sort: 1 },
+    { id: 'sn-apple-color-128', templateId: 't-phone', parentId: 'sn-apple-cap-128', nodeType: 'ATTRIBUTE', attributeId: 'p-color', valueId: '', sort: 1, role: 'VARIANT' },
+    { id: 'sn-apple-128-black', templateId: 't-phone', parentId: 'sn-apple-color-128', nodeType: 'VALUE', attributeId: 'p-color', valueId: '黑色', sort: 1 },
+    { id: 'sn-apple-128-white', templateId: 't-phone', parentId: 'sn-apple-color-128', nodeType: 'VALUE', attributeId: 'p-color', valueId: '白色', sort: 2 },
+    { id: 'sn-apple-cap-256', templateId: 't-phone', parentId: 'sn-apple-cap', nodeType: 'VALUE', attributeId: 'p-cap', valueId: '256G', sort: 2 },
+    { id: 'sn-apple-color-256', templateId: 't-phone', parentId: 'sn-apple-cap-256', nodeType: 'ATTRIBUTE', attributeId: 'p-color', valueId: '', sort: 1, role: 'VARIANT' },
+    { id: 'sn-apple-256-white', templateId: 't-phone', parentId: 'sn-apple-color-256', nodeType: 'VALUE', attributeId: 'p-color', valueId: '白色', sort: 1 },
+    { id: 'sn-huawei-series', templateId: 't-phone', parentId: 'sn-brand-huawei', nodeType: 'ATTRIBUTE', attributeId: 'p-series', valueId: '', sort: 1, role: 'COMMON' },
+    { id: 'sn-huawei-series-mate', templateId: 't-phone', parentId: 'sn-huawei-series', nodeType: 'VALUE', attributeId: 'p-series', valueId: 'Mate', sort: 1 },
+    { id: 'sn-huawei-cap', templateId: 't-phone', parentId: 'sn-huawei-series-mate', nodeType: 'ATTRIBUTE', attributeId: 'p-cap', valueId: '', sort: 1, role: 'VARIANT' },
+    { id: 'sn-huawei-cap-128', templateId: 't-phone', parentId: 'sn-huawei-cap', nodeType: 'VALUE', attributeId: 'p-cap', valueId: '128G', sort: 1 },
+    { id: 'sn-huawei-color', templateId: 't-phone', parentId: 'sn-huawei-cap-128', nodeType: 'ATTRIBUTE', attributeId: 'p-color', valueId: '', sort: 1, role: 'VARIANT' },
+    { id: 'sn-huawei-black', templateId: 't-phone', parentId: 'sn-huawei-color', nodeType: 'VALUE', attributeId: 'p-color', valueId: '黑色', sort: 1 },
+  ]
+  arrangeSpecPositions(nodes)
+  return nodes
+}
+
+/** 旧演示把品牌、系列、容量、颜色并列在根上。只保留给历史快照对照，不再作为初始模型。 */
+export function legacyPhoneSpecNodes(): ProductSpecNode[] {
   const nodes: ProductSpecNode[] = [
     { id: 'sn-brand', templateId: 't-phone', parentId: null, nodeType: 'ATTRIBUTE', attributeId: 'p-brand', valueId: '', sort: 1, role: 'COMMON' },
     { id: 'sn-brand-apple', templateId: 't-phone', parentId: 'sn-brand', nodeType: 'VALUE', attributeId: 'p-brand', valueId: 'Apple', sort: 1 },
@@ -53,6 +86,25 @@ export function phoneSpecNodes(): ProductSpecNode[] {
   ]
   arrangeSpecPositions(nodes)
   return nodes
+}
+
+/**
+ * 显式把正在编辑的手机节点换成正确分支，供随后走现有发布生成新版本。
+ * 不改已发布 nodesSnapshot、规划编号、物料和回执。
+ */
+export function stagePhoneModelCorrection(data: AppData) {
+  if (!data.templates.some((item) => item.id === 't-phone')) return { ok: false as const, message: '没有手机模型，不能生成新的修正版本。' }
+  const versions = JSON.stringify(data.specModelVersions)
+  const plans = JSON.stringify(data.planningRecords || [])
+  const skus = JSON.stringify(data.skus)
+  const receipts = JSON.stringify(data.materialReceipts || [])
+  const previous = data.productSpecNodes
+  data.productSpecNodes = [...data.productSpecNodes.filter((item) => item.templateId !== 't-phone'), ...phoneSpecNodes()]
+  if (JSON.stringify(data.specModelVersions) !== versions || JSON.stringify(data.planningRecords || []) !== plans || JSON.stringify(data.skus) !== skus || JSON.stringify(data.materialReceipts || []) !== receipts) {
+    data.productSpecNodes = previous
+    return { ok: false as const, message: '修正碰到了已发布数据，已停止，没有改动。' }
+  }
+  return { ok: true as const, message: '' }
 }
 
 export function phoneCanvas(): AppData['specCanvases'][number] {
@@ -229,10 +281,10 @@ export function createSeed(): AppData {
       { id: 'c-case', name: '保护壳', parentId: 'c-phone-acc', sort: 1 },
     ].map((item) => ({ ...item, enabled: true })),
     productTypes: [
-      { id: 'pt-phone', name: '手机', categoryId: 'c-phone', status: 'enabled', sort: 1, description: '' },
+      { id: 'pt-phone', name: '手机', categoryId: 'c-phone', status: 'enabled', sort: 1, description: '', catalogRole: 'host' },
       { id: 'pt-phone-part', name: '手机维修零件', categoryId: 'c-phone', status: 'enabled', sort: 2, description: '' },
-      { id: 'pt-case', name: '手机保护壳', categoryId: 'c-case', status: 'enabled', sort: 1, description: '' },
-      { id: 'pt-film', name: '手机膜', categoryId: 'c-phone-acc', status: 'enabled', sort: 2, description: '' },
+      { id: 'pt-case', name: '手机保护壳', categoryId: 'c-case', status: 'enabled', sort: 1, description: '', catalogRole: 'accessory' },
+      { id: 'pt-film', name: '手机膜', categoryId: 'c-phone-acc', status: 'enabled', sort: 2, description: '', catalogRole: 'accessory' },
     ],
     templates: [
       { id: 't-host', name: '主机', parentId: null, enabled: true, structureOrder: [] },
@@ -271,7 +323,7 @@ export function createSeed(): AppData {
     params: [
       { id: 'p-brand', name: '品牌', values: ['Apple', '华为', 'huawei'], valueGroups: [], participateInStructure: true },
       { id: 'p-series', name: '系列', values: ['iPhone', 'Mate', 'iPhone 17', 'iPhone 16', 'iPhone 15', 'Watch Series 10', 'iPad', 'MacBook'], valueGroups: [], participateInStructure: true },
-      { id: 'p-model', name: '型号', values: ['iPhone 17', 'iPhone 17 Pro', 'iPhone 17 Pro Max', 'iPhone 16', 'iPad Air', 'MacBook Air', 'Watch 42'], valueGroups: [], participateInStructure: true },
+      { id: 'p-model', name: '型号', values: ['iPhone 17', 'iPhone 17 Pro', 'iPhone 17 Pro Max', 'iPhone 16', 'iPad Air', 'MacBook Air', 'Watch 42'], valueGroups: [], participateInStructure: true, identityRole: 'host-model' },
       { id: 'p-cap', name: '容量', values: ['128G', '256G', '512G'], valueGroups: [{ id: 'vg-cap', name: '常用容量', values: ['128G', '256G'] }], participateInStructure: true },
       { id: 'p-color', name: '颜色', values: ['蓝色', '白色', '橙色', '黑色', '银色', '透明'], valueGroups: [], participateInStructure: true },
       { id: 'p-config', name: '配置', values: ['M4 16GB/256GB'], valueGroups: [], participateInStructure: true },
@@ -350,6 +402,7 @@ export function createSeed(): AppData {
     planningRecords: [],
     materialReceipts: [],
     compatibilities: [],
+    nodeCompatibilityRules: [],
     rules: [
       rule('r1', 't-phone', 'p-series', ['p-brand'], { 'p-brand': 'Apple' }, ['iPhone 17', 'iPhone 16'], 'Apple 只能选这两个系列'),
       rule('r2', 't-phone', 'p-model', ['p-brand', 'p-series'], { 'p-brand': 'Apple', 'p-series': 'iPhone 17' }, ['iPhone 17', 'iPhone 17 Pro'], 'iPhone 17 系列的型号'),

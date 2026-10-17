@@ -1,4 +1,4 @@
-export const DATA_VERSION = 12
+export const DATA_VERSION = 13
 export const STORAGE_KEY = 'iyge-v2-mock-db'
 
 export type SaleStatus = 'on_sale' | 'off_sale' | 'draft'
@@ -44,6 +44,8 @@ export interface ProductType {
   status: 'enabled' | 'disabled'
   sort: number
   description: string
+  /** 主机或配件。缺省时仍按分类名称推断，旧数据不用补。 */
+  catalogRole?: 'host' | 'accessory' | 'other'
 }
 
 export interface CatalogTemplate {
@@ -61,6 +63,8 @@ export interface ParamDef {
   values: string[]
   valueGroups: { id: string; name: string; values: string[] }[]
   participateInStructure: boolean
+  /** 主机型号身份。看属性 id，不看中文名。缺省表示不是型号身份。 */
+  identityRole?: 'host-model'
 }
 
 export interface TemplateParam {
@@ -195,6 +199,8 @@ export interface SpecCanvasConfig {
   versionName: string
   /** 横向结构图。logic 是横平竖直的紧凑布局。 */
   direction?: 'ltr' | 'tree' | 'logic' | 'custom'
+  /** 只有明确点过「手工摆放」才锁定坐标。以前拖动节点写成的 custom 不能挡住自动排版。 */
+  layoutLocked?: boolean
   updatedAt?: string
 }
 
@@ -291,13 +297,32 @@ export interface CompatibilityLink {
   updatedAt: string
 }
 
-/** 一次建档请求的回执。相同 requestId 再次提交时返回原来的物料。 */
+/**
+ * 规划节点上的适用主机。只描述这个节点自己的配置。
+ * modelVersionId 为空是当前草稿；发布时复制到版本上，不改旧版本。
+ * 父子合并、覆盖、排除和历史物料回填还没有确认，不能从这里自动写到物料上。
+ */
+export interface NodeCompatibilityRule {
+  id: string
+  templateId: string
+  nodeId: string
+  modelVersionId: string
+  hosts: CompatibilityHost[]
+  updatedAt: string
+}
+
+/** 一次建档请求的回执。相同 requestId 再次提交时返回原来的物料。旧数据可以没有生命周期字段。 */
 export interface MaterialCreateReceipt {
   requestId: string
   skuId: string
   planningId: string
   materialCode: string
   createdTime: string
+  /** 缺省表示早期回执，仍按物料是否还在来判断。删除后保留回执并标成 deleted。 */
+  lifecycle?: 'active' | 'deleted'
+  deletedTime?: string
+  /** 行内容身份。不含文件名。旧回执没有该字段时仍按 requestId 判重。 */
+  sourceDigest?: string
 }
 
 export interface Brand {
@@ -386,6 +411,8 @@ export interface AppData {
   materialReceipts: MaterialCreateReceipt[]
   /** 配件适用哪些主机。旧数据没有时保持空数组，不改已有物料。 */
   compatibilities: CompatibilityLink[]
+  /** 规划节点上的适用主机。旧数据没有时保持空数组，不回填历史物料。 */
+  nodeCompatibilityRules: NodeCompatibilityRule[]
   rules: SpecRule[]
   families: ProductFamily[]
   skus: Sku[]

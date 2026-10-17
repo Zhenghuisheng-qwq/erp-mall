@@ -145,7 +145,7 @@ export async function runMaterialChecks(): Promise<CheckResult[]> {
   check('G', blocked.includes('不能删除') && store.data.specModelVersions.length === versionCount && store.data.families.some((item) => item.id === 'f-iphone'), blocked || '删除未被拦住')
   const typeCount = store.data.productTypes.length
   const blockedType = store.removeProductType('pt-phone')
-  const added = store.saveProductType({ id: '', name: '未被引用的类型', categoryId: store.data.categories[0].id, description: '', sort: 9, status: 'enabled' })
+  const added = store.saveProductType({ id: '', name: '未被引用的类型', categoryId: 'c-watch', description: '', sort: 9, status: 'enabled' })
   const freshType = store.data.productTypes.find((item) => item.name === '未被引用的类型')
   const removedType = freshType ? store.removeProductType(freshType.id) : '没有创建出来'
   check('type-guard', blockedType.includes('不能删除') && store.data.productTypes.length === typeCount && added === '' && removedType === '' && !store.data.productTypes.some((item) => item.name === '未被引用的类型'), blockedType || removedType)

@@ -4,6 +4,7 @@
       <el-button @click="loadSamples">放入测试样例</el-button>
     </PageHead>
     <p v-if="sampleNote" class="panel muted">{{ sampleNote }}</p>
+    <p v-if="unconfiguredNote" class="panel muted">{{ unconfiguredNote }}</p>
     <div v-if="skuMode" class="layout">
       <section class="panel">
         <h2>适用主机</h2>
@@ -100,11 +101,16 @@ import { ElMessage } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PageHead from '../components/PageHead.vue'
-import { accessoryCandidates, accessoryTypes, addCompatibility, hostFrom, hostLabel, linksOfSku, listHostModels, removeCompatibility, updateCompatibilityNote, type HostModelOption } from '../domain/compatibility'
+import { accessoryCandidates, accessoryTypes, addCompatibility, hostFrom, hostLabel, linksOfSku, listHostModels, removeCompatibility, unconfiguredHostPlans, updateCompatibilityNote, type HostModelOption } from '../domain/compatibility'
 import { installCompatibilitySamples } from '../domain/compatibilitySamples'
 import { uid, useCatalogStore } from '../stores/catalog'
 
 const store = useCatalogStore()
+const unconfiguredNote = computed(() => {
+  const rows = unconfiguredHostPlans(store.data)
+  if (!rows.length) return ''
+  return `有 ${rows.length} 条主机规划还没有型号身份。${rows[0]?.reason || ''}`
+})
 const route = useRoute()
 const router = useRouter()
 const hostKeyword = ref(String(route.query.q || ''))

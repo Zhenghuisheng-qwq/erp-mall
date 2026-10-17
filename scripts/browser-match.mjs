@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module'
+import { assertDefaultPhone } from './phone-expect.mjs'
 import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -55,8 +56,9 @@ try {
   if (padText.split('MD7W4CH/A').length < 3) throw new Error('同供应商的两条平板没有同时留下')
   notes.push('MD7 的银色和黄色仍是两条物料')
   await page.goto(`${base}/specs?template=t-phone`, { waitUntil: 'networkidle' })
-  await page.getByText('合法组合 16 条').waitFor()
-  notes.push('原手机模型仍是 16 条组合')
+  await page.locator('.combo-toggle').first().click()
+  assertDefaultPhone(await page.locator('section.insight').innerText())
+  notes.push('原手机模型仍是正确条件分支')
   await page.goto(`${base}/specs?template=t-excel-case`, { waitUntil: 'networkidle' })
   await page.getByText('保护壳').first().waitFor()
   notes.push('保护壳模型单独存在')

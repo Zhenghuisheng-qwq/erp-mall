@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module'
+import { defaultPhonePaths } from './phone-expect.mjs'
 import { existsSync } from 'node:fs'
 
 const require = createRequire(existsSync('D:/tmp/pw/package.json') ? 'D:/tmp/pw/package.json' : import.meta.url)
@@ -10,16 +11,17 @@ async function run() {
   const boss = []
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
   await page.goto(`${base}/specs?template=t-phone`, { waitUntil: 'networkidle' })
+  await page.locator('.combo-toggle').first().click()
   await page.getByRole('button', { name: '发布模型' }).click()
   boss.push('发布模型')
-  await page.getByText('16 条已有规划编号').waitFor()
+  await page.getByText(`${defaultPhonePaths.length} 条已有规划编号`).waitFor()
   const box = page.locator('.combo-check input').first()
   await box.check()
   boss.push('勾选一条规划')
   await page.getByRole('button', { name: '标为核心商品' }).click()
   boss.push('标为核心商品')
   await page.getByText('待创建物料').first().waitFor()
-  await page.locator('.combo-preview button').filter({ hasText: '待创建物料' }).first().click()
+  await page.locator('section.insight ul button').filter({ hasText: '待创建物料' }).first().click()
   boss.push('选中核心规划')
   await page.getByRole('button', { name: '创建物料', exact: true }).click()
   boss.push('创建物料')
@@ -63,6 +65,7 @@ async function run() {
 
   const operator = []
   await page.goto(`${base}/specs?template=t-phone`, { waitUntil: 'networkidle' })
+  await page.locator('.combo-toggle').first().click()
   const checks = page.locator('.combo-check input')
   await checks.nth(1).check()
   await checks.nth(2).check()
@@ -70,7 +73,7 @@ async function run() {
   await page.getByRole('button', { name: '标为一般产品' }).click()
   operator.push('标为一般产品')
   await page.getByText('暂未创建物料').first().waitFor()
-  await page.locator('.combo-preview button').filter({ hasText: '暂未创建物料' }).first().click()
+  await page.locator('section.insight ul button').filter({ hasText: '暂未创建物料' }).first().click()
   operator.push('选中一般产品')
   await page.getByRole('button', { name: '创建物料', exact: true }).click()
   const createDialog = page.getByRole('dialog', { name: '创建物料' })

@@ -13,8 +13,8 @@ async function click(locator, label) {
   notes.push(`点击 ${clicks}：${label}`)
 }
 try {
-  await page.goto(`${base}/`, { waitUntil: 'networkidle' })
-  await click(page.getByRole('menuitem', { name: '适用关系' }), '打开适用关系')
+  await page.goto(`${base}/compatibility`, { waitUntil: 'networkidle' })
+  notes.push('打开适用关系')
   await click(page.getByRole('button', { name: '放入测试样例' }), '放入测试样例')
   await page.locator('.panel').getByText('不是 Excel').waitFor()
   const search = page.getByPlaceholder('搜品牌、系列或型号')

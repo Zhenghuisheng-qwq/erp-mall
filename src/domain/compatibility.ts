@@ -43,13 +43,21 @@ export function catalogRole(data: AppData, categoryId: string): 'host' | 'access
   return 'other'
 }
 
+/** 产品类型上的显式角色优先。没有配置时才看分类名称，避免把新数据猜成主机或配件。 */
+export function roleOfType(data: AppData, productTypeId: string): 'host' | 'accessory' | 'other' {
+  const type = data.productTypes.find((item) => item.id === productTypeId)
+  if (!type) return 'other'
+  if (type.catalogRole) return type.catalogRole
+  return catalogRole(data, type.categoryId)
+}
+
 export function listHostModels(data: AppData, keyword = ''): HostModelOption[] {
   const groups = new Map<string, { steps: PlanningStep[]; records: PlanningRecord[]; productTypeId: string }>()
   activeRecords(data).forEach((record) => {
-    const chain = modelChain(record)
+    const chain = modelChain(data, record)
     if (!chain) return
     const productTypeId = productTypeOfModel(data, record.productModelId)
-    if (!productTypeId || catalogRole(data, productTypeCategory(data, productTypeId)) !== 'host') return
+    if (!productTypeId || roleOfType(data, productTypeId) !== 'host') return
     const key = hostIdentityKey(chain)
     const found = groups.get(`${record.productModelId}\u001f${key}`)
     if (found) found.records.push(record)
@@ -74,7 +82,7 @@ export function accessoryCandidates(data: AppData, productTypeId: string, keywor
   return data.skus.flatMap((sku) => {
     const family = data.families.find((item) => item.id === sku.familyId)
     if (!family?.productTypeId || family.productTypeId !== productTypeId) return []
-    if (catalogRole(data, family.categoryId) !== 'accessory') return []
+    if (roleOfType(data, family.productTypeId) !== 'accessory') return []
     const productTypeName = data.productTypes.find((item) => item.id === family.productTypeId)?.name || ''
     const spec = Object.entries(sku.variantAttrs).map(([name, value]) => `${name} ${value}`).join(' · ')
     const hay = `${sku.materialCode || ''} ${sku.skuName || ''} ${spec} ${sku.supplierCode || ''}`.toLowerCase()
@@ -215,13 +223,13 @@ function validatePair(data: AppData, skuId: string, host: CompatibilityHost) {
   if (!sku) return '找不到这条配件物料。'
   const family = data.families.find((item) => item.id === sku.familyId)
   if (!family) return '这条物料没有所属商品。'
-  if (catalogRole(data, family.categoryId) !== 'accessory') return '这条物料不是配件，不能把它关联到主机。'
+  if (!family.productTypeId || roleOfType(data, family.productTypeId) !== 'accessory') return '这条物料不是配件，不能把它关联到主机。'
   const known = listHostModels(data).find((item) => item.host.productModelId === host.productModelId && item.host.identityKey === host.identityKey)
   if (!known) return '找不到这款已建档的主机型号，没有自动新建。'
   if (host.scope === 'planning') {
     if (!host.planningId || !known.planningIds.includes(host.planningId)) return '指定的规格不属于这款主机型号。'
   }
-  if (catalogRole(data, productTypeCategory(data, host.productTypeId)) !== 'host') return '所选目标不是主机型号。'
+  if (roleOfType(data, host.productTypeId) !== 'host') return '所选目标不是主机型号。'
   return ''
 }
 
@@ -248,8 +256,15 @@ export function hostIdentityKey(steps: { attributeId: string; valueId: string }[
   return steps.map((step) => `${step.attributeId}=${step.valueId}`).join('\u001e')
 }
 
-function modelChain(record: PlanningRecord) {
-  const modelStep = record.steps.find((step) => step.attributeName === '型号')
+function identityAttributeIds(data: AppData) {
+  return new Set(data.params.filter((item) => item.identityRole === 'host-model').map((item) => item.id))
+}
+
+function modelChain(data: AppData, record: PlanningRecord) {
+  const ids = identityAttributeIds(data)
+  const modelStep = ids.size
+    ? record.steps.find((step) => ids.has(step.attributeId))
+    : record.steps.find((step) => step.attributeName === '型号')
   if (!modelStep) return null
   const byValue = new Map(record.steps.map((step) => [step.valueNodeId, step]))
   const chain: PlanningStep[] = []
@@ -271,10 +286,6 @@ function productTypeOfModel(data: AppData, productModelId: string) {
   return data.specCanvases.find((item) => item.templateId === productModelId)?.productTypeId || ''
 }
 
-function productTypeCategory(data: AppData, productTypeId: string) {
-  return data.productTypes.find((item) => item.id === productTypeId)?.categoryId || ''
-}
-
 function categoryNames(data: AppData, categoryId: string) {
   const names: string[] = []
   let cursor = data.categories.find((item) => item.id === categoryId)
@@ -291,8 +302,29 @@ function valueOf(host: CompatibilityHost, name: string) {
   return host.steps.find((step) => step.attributeName === name)?.valueId || ''
 }
 
+export function unconfiguredHostPlans(data: AppData) {
+  return activeRecords(data).flatMap((record) => {
+    const productTypeId = productTypeOfModel(data, record.productModelId)
+    if (!productTypeId || roleOfType(data, productTypeId) !== 'host') return []
+    if (modelChain(data, record)) return []
+    return [{ planningId: record.planningId, reason: '这条规划没有主机型号属性，不能把系列当成具体型号。' }]
+  })
+}
+
+/** 适用型号只做精确匹配。斜杠、顿号和范围先待确认，不做模糊包含。 */
+export function previewHostText(data: AppData, raw: string) {
+  const text = raw.trim()
+  if (!text) return { status: 'none' as const, hosts: [] as ReturnType<typeof listHostModels>, reason: '' }
+  if (/[/／,，、~～]|\d+\s*-\s*\d+/.test(text)) {
+    return { status: 'ambiguous' as const, hosts: [], reason: `适用型号「${text}」有多种读法，没有自动关联。` }
+  }
+  const hosts = listHostModels(data).filter((item) => item.modelName === text)
+  if (hosts.length !== 1) return { status: 'unresolved' as const, hosts: [], reason: `适用型号「${text}」对不上已建档的主机型号。` }
+  return { status: 'exact' as const, hosts, reason: '' }
+}
+
 export function accessoryTypes(data: AppData) {
-  return data.productTypes.filter((item) => catalogRole(data, item.categoryId) === 'accessory' && item.status === 'enabled')
+  return data.productTypes.filter((item) => roleOfType(data, item.id) === 'accessory' && item.status === 'enabled')
 }
 
 export function skuSpec(sku: Sku) {

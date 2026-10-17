@@ -63,11 +63,9 @@ const MENU: MenuGroup[] = [
         title: '商品管理',
         items: [
           { index: '/products', title: '商品列表' },
-          { index: '/import', title: '商品导入导出' },
           { index: '/compatibility', title: '适用关系' },
           { index: '/categories', title: '商品分类中心' },
           { index: '/product-types', title: '产品类型' },
-          { index: '/plans', title: '商品规划' },
         ],
       },
       {
@@ -107,6 +105,8 @@ const MENU: MenuGroup[] = [
     admin: true,
     items: [
       { index: '/tree', title: '商品结构视图' },
+      { index: '/plans', title: '商品规划（旧）' },
+      { index: '/import', title: '商品导入导出' },
       { index: '/products?panel=columns', title: '列配置与视图' },
     ],
     sections: [],

@@ -28,7 +28,7 @@ export function runMatchChecks(profiles: SheetProfile[]): CheckResult[] {
   if (phoneVersion) numbered.planningRecords = reconcilePlanningRecords({ records: numbered.planningRecords, data: numbered, productModelId: 't-phone', modelVersionId: phoneVersion.id, nodes: phoneVersion.nodesSnapshot, now: '2026-10-15T00:00:00.000Z' }).records
   const aliased = previewSheet(numbered, material, mapping, 'match', { aliases })
   const black = aliased.find((item) => item.supplierCode === 'MYEV3CH/A')
-  check('no-merge', Boolean(black && black.block === 'spec' && black.message.includes('系列「iPhone 16」') && black.message.includes('不会把系列和型号当成同一个值') && !black.message.includes('容量「128GB」')), black?.message || '')
+  check('no-merge', Boolean(black && black.block === 'spec' && black.message.includes('系列「iPhone 16」') && black.message.includes('型号「iPhone 16」') && black.message.includes('不会自动改成临时物料') && !black.message.includes('容量「128GB」')), black?.message || '')
   const pad = preview.find((item) => item.productTypeName === '平板电脑')
   const shell = preview.find((item) => item.productTypeName === '保护壳')
   check('gaps', Boolean(pad && pad.block === 'category' && pad.message.includes('平板电脑') && shell && shell.block === 'product-type' && shell.categoryName.includes('保护及保护设备')), `${pad?.block}:${pad?.message} | ${shell?.block}`)

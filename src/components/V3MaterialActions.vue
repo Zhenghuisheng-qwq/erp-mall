@@ -4,7 +4,7 @@
     <p v-else-if="!planningId" class="muted">发布模型后，这里才能创建物料。</p>
     <template v-else-if="preview">
       <p class="spec">{{ preview.label }}</p>
-      <p class="meta">规划编号 {{ preview.planningId }} · {{ preview.versionName }} · {{ gradeLabel }} · {{ filingLabel }}</p>
+      <p class="meta">规划编号 {{ preview.planningId }} · {{ preview.versionName }} · {{ gradeLabel }} · {{ filingLabel }} · {{ codeText || '尚未建档' }}</p>
       <div class="row-actions">
         <el-button type="primary" @click="openCreate">创建物料</el-button>
         <el-button :disabled="count === 0" @click="listOpen = true">查看已有物料</el-button>
@@ -46,7 +46,7 @@
         <li v-for="item in filtered" :key="item.id">
           <div>
             <strong>{{ item.materialCode }}</strong>
-            <span>{{ item.skuName }}</span>
+            <span>{{ item.skuName }} · {{ item.status === 'on_sale' ? '在售' : item.status === 'off_sale' ? '停售' : '草稿' }}</span>
             <em v-if="item.materialDescription">{{ item.materialDescription }}</em>
           </div>
           <button type="button" class="linkish" @click="openMaterial(item)">打开</button>
@@ -113,6 +113,7 @@ const existingName = computed(() => {
   return found.length === 1 ? found[0].name : ''
 })
 const materials = computed(() => store.data.skus.filter((item) => item.planningId === props.planningId))
+const codeText = computed(() => materials.value.map((item) => item.materialCode).filter(Boolean).join('、'))
 const filtered = computed(() => {
   const text = keyword.value.trim()
   if (!text) return materials.value

@@ -30,7 +30,38 @@
       <span v-else class="twist"></span>
       <span v-if="!viewing" class="grip" draggable="true" @dragstart.stop="onDragStart(row.node.id, $event)" @dragend="drop = { id: '', place: '' }">⋮⋮</span>
       <span class="line-wrap">
-        <input class="line" :class="{ 'is-unbound': isUnbound(row.node) }" :data-line="row.node.id" :value="label(row.node)" :readonly="viewing || isUnbound(row.node) || row.node.nodeType === 'VALUE'" @focus="markEditing(row.node.id, $event)" @input="onEditingInput" @keydown="onLineKey(row.node, $event)" @blur="commitLine(row.node, $event)" />
+        <el-select
+          v-if="!viewing && pickingId === row.node.id"
+          class="line-pick"
+          :model-value="boundToken(row.node)"
+          filterable
+          default-first-option
+          automatic-dropdown
+          placeholder="从词典选择"
+          style="flex: 1; min-width: 160px"
+          :data-line="row.node.id"
+          @change="onPick(row.node, $event)"
+          @visible-change="onPickVisible"
+          @keydown.esc.stop.prevent="closePick"
+          @keydown.delete.stop
+          @keydown.enter.stop
+          @keydown.tab.stop
+          @mousedown.stop
+          @click.stop
+        >
+          <el-option v-for="item in optionsFor(row.node)" :key="item.value" :label="item.label" :value="item.value" />
+        </el-select>
+        <button
+          v-else-if="!viewing && canPick(row.node)"
+          type="button"
+          class="line"
+          :class="{ 'is-unbound': isUnbound(row.node) }"
+          :data-line="row.node.id"
+          @focus="markEditing(row.node.id, $event)"
+          @click.stop="openPick(row.node)"
+          @keydown="onLineKey(row.node, $event)"
+        >{{ label(row.node) }}</button>
+        <input v-else class="line" :class="{ 'is-unbound': isUnbound(row.node) }" :data-line="row.node.id" :value="label(row.node)" readonly @focus="markEditing(row.node.id, $event)" />
         <span v-if="row.node.nodeType === 'ATTRIBUTE' && attributeHint(row.node).bound" class="bind-note" :title="`绑定：${label(row.node)} · 属性词典`">属性来源：属性词典</span>
         <button v-else-if="row.node.nodeType === 'ATTRIBUTE' && !viewing" type="button" class="bind-btn" @mousedown.stop @click.stop="emit('bind', row.node.id)">选择属性</button>
       </span>
@@ -68,6 +99,7 @@ const props = defineProps<{
   focusId: string
   label: (node: ProductSpecNode) => string
   attributeHint: (node: ProductSpecNode) => { bound: boolean; source: string; values: string }
+  optionsFor: (node: ProductSpecNode) => { value: string; label: string }[]
 }>()
 
 const emit = defineEmits<{
@@ -86,6 +118,7 @@ const emit = defineEmits<{
   move: [payload: { id: string; targetId: string; place: 'before' | 'after' | 'inside' }]
   menu: [payload: { id: string; x: number; y: number }]
   bind: [id: string]
+  choose: [payload: { id: string; token: string }]
 }>()
 
 const rootEl = ref<HTMLElement | null>(null)
@@ -93,6 +126,8 @@ const drop = ref({ id: '', place: '' as '' | 'before' | 'after' | 'inside' })
 const draggingId = ref('')
 const editingId = ref('')
 const editingText = ref('')
+const pickingId = ref('')
+let pickOpened = false
 let lastCommit = ''
 let skipCommit = false
 
@@ -116,6 +151,12 @@ watch(
   () => props.focusTick,
   () => {
     if (!props.focusId) return
+    const node = props.nodes.find((item) => item.id === props.focusId)
+    if (node && !props.viewing && canPick(node)) {
+      pickingId.value = node.id
+      emit('select', node.id)
+      return
+    }
     nextTick(() => {
       const input = rootEl.value?.querySelector<HTMLInputElement>(`[data-line="${props.focusId}"]`)
       input?.focus()
@@ -128,6 +169,40 @@ onMounted(() => nextTick(scrollActive))
 
 function isUnbound(node: ProductSpecNode) {
   return node.nodeType === 'ATTRIBUTE' && !props.attributeHint(node).bound
+}
+function canPick(node: ProductSpecNode) {
+  return node.nodeType === 'ATTRIBUTE' || node.nodeType === 'VALUE'
+}
+function boundToken(node: ProductSpecNode) {
+  return node.nodeType === 'ATTRIBUTE' ? node.attributeId : node.valueId
+}
+function openPick(node: ProductSpecNode) {
+  if (!props.optionsFor(node).length) {
+    emit('choose', { id: node.id, token: '' })
+    return
+  }
+  pickingId.value = node.id
+  pickOpened = false
+  emit('select', node.id)
+  nextTick(() => rootEl.value?.querySelector<HTMLElement>('.line-pick')?.querySelector('input')?.click())
+}
+function onPick(node: ProductSpecNode, token: string | number | boolean) {
+  const next = String(token)
+  pickingId.value = ''
+  pickOpened = false
+  if (next && next !== boundToken(node)) emit('choose', { id: node.id, token: next })
+}
+function onPickVisible(open: boolean) {
+  if (open) {
+    pickOpened = true
+    return
+  }
+  if (!pickOpened) return
+  pickOpened = false
+  pickingId.value = ''
+}
+function closePick() {
+  pickingId.value = ''
 }
 function openMenu(id: string, event: MouseEvent) {
   if (props.viewing) return
@@ -192,12 +267,7 @@ function onRootKey(event: KeyboardEvent) {
 function onLineKey(node: ProductSpecNode, event: KeyboardEvent) {
   if (props.viewing || event.isComposing) return
   const input = event.target as HTMLInputElement
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
-    event.preventDefault()
-    event.stopPropagation()
-    emit('undo')
-    return
-  }
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') return
   if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
     event.preventDefault()
     input.blur()
@@ -233,7 +303,8 @@ function onLineKey(node: ProductSpecNode, event: KeyboardEvent) {
     emit('shift', { id: node.id, direction: event.key === 'ArrowUp' ? -1 : 1 })
     return
   }
-  if (event.key === 'Delete' || (event.key === 'Backspace' && !input.value)) {
+  const canBackspace = input.tagName === 'INPUT' && !input.value
+  if (event.key === 'Delete' || (event.key === 'Backspace' && canBackspace)) {
     event.preventDefault()
     emit('remove', node.id)
   }
@@ -292,6 +363,7 @@ function onDrop(targetId: string, root: boolean) {
 .outline-row.drop-in, .outline-root.drop-in { background: #e8f0ff; }
 .root-line, .line { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; font: inherit; color: #1c2b3a; padding: 8px 0; }
 .root-line { font-size: 18px; font-weight: 650; }
+button.line { width: 100%; text-align: left; cursor: pointer; }
 .line { font-size: 14px; color: #303133; font-weight: 500; }
 .outline-row.is-head .line { color: #303133; font-weight: 600; }
 .outline-row.is-value .line { font-size: 13px; color: #a8abb2; font-weight: 400; }

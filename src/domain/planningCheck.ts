@@ -297,7 +297,14 @@ export async function runPlanningChecks(): Promise<CheckResult[]> {
   setActivePinia(createPinia())
   const restored = useCatalogStore()
   const restoredIds = idsOf(restored.data.planningRecords, 't-phone')
-  check('12-refresh', published.ok && phoneIds.length === 16 && !publishedAgain.ok && phoneIdsAgain.join() === phoneIds.join() && restoredIds.join() === phoneIds.join() && JSON.stringify(restored.data.specModelVersions) === beforeVersions && restored.data.families.every((item) => !item.line) && restored.data.skus.every((item) => !item.planningId), `发布「${published.message}」；刷新后 ${restoredIds.length} 个编号`)
+  const expectedPhone = [
+    '品牌 Apple · 系列 iPhone · 型号 iPhone 17 · 容量 128G · 颜色 黑色',
+    '品牌 Apple · 系列 iPhone · 型号 iPhone 17 · 容量 128G · 颜色 白色',
+    '品牌 Apple · 系列 iPhone · 型号 iPhone 17 · 容量 256G · 颜色 白色',
+    '品牌 华为 · 系列 Mate · 容量 128G · 颜色 黑色',
+  ].sort()
+  const phoneLabels = legalPlanningCombinations(store.data, 't-phone', store.data.productSpecNodes.filter((item) => item.templateId === 't-phone')).map((item) => item.label).sort()
+  check('12-refresh', published.ok && phoneLabels.join('\n') === expectedPhone.join('\n') && phoneIds.length === expectedPhone.length && !publishedAgain.ok && phoneIdsAgain.join() === phoneIds.join() && restoredIds.join() === phoneIds.join() && JSON.stringify(restored.data.specModelVersions) === beforeVersions && restored.data.families.every((item) => !item.line) && restored.data.skus.every((item) => !item.planningId), `发布「${published.message}」；路径 ${phoneLabels.join(' | ')}`)
 
   return results
 }

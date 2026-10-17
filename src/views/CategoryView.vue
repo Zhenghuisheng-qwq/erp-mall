@@ -157,9 +157,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHead from '../components/PageHead.vue'
-import { branchIds, categoryChain, relocateBlockMessage, subtreeCounts, visibleCategoryRows, type CategoryRow, type DropPosition } from '../domain/categoryTree'
+import { blockChildOfTypedCategory, branchIds, categoryChain, relocateBlockMessage, subtreeCounts, visibleCategoryRows, type CategoryRow, type DropPosition } from '../domain/categoryTree'
 import { descendantIds, shelfOf, templateById } from '../domain/logic'
-import { uid, useCatalogStore } from '../stores/catalog'
+import { useCatalogStore } from '../stores/catalog'
 
 const store = useCatalogStore()
 const router = useRouter()
@@ -364,15 +364,12 @@ function create() {
     return
   }
   const parentId = parentForCreate.value
-  const siblings = store.data.categories.filter((item) => item.parentId === parentId)
-  const id = uid('cat')
-  store.data.categories.push({
-    id,
-    name,
-    parentId,
-    sort: siblings.reduce((max, item) => Math.max(max, item.sort), 0) + 1,
-    enabled: true,
-  })
+  const created = store.addCategory(name, parentId)
+  if (created.message) {
+    ElMessage.warning(created.message)
+    return
+  }
+  const id = created.id
   if (parentId) reveal(id)
   selected.value = id
   createOpen.value = false
@@ -443,8 +440,8 @@ async function copyNode(id: string) {
     return
   }
   const nextId = store.copyCategory(id)
-  if (!nextId) {
-    ElMessage.warning('分类不存在')
+  if (!nextId || !store.data.categories.some((row) => row.id === nextId)) {
+    ElMessage.warning(nextId || '分类不存在')
     return
   }
   reveal(nextId)
@@ -530,7 +527,11 @@ function onDragOver(row: CategoryRow, event: DragEvent) {
   if (!editing.value || !dragId.value) return
   event.preventDefault()
   const position = dropPosition(event)
-  const message = relocateBlockMessage(store.data.categories, dragId.value, row.id, position)
+  const moving = store.data.categories.find((item) => item.id === dragId.value)
+  const nextParent = position === 'inner' ? row.id : row.parentId
+  const parentChanged = (moving?.parentId || null) !== (nextParent || null)
+  const typedBlock = parentChanged ? blockChildOfTypedCategory(nextParent, new Set(store.data.productTypes.map((item) => item.categoryId))) : ''
+  const message = relocateBlockMessage(store.data.categories, dragId.value, row.id, position) || typedBlock
   dropState.value = { id: row.id, position, blocked: Boolean(message) }
   if (event.dataTransfer) event.dataTransfer.dropEffect = message ? 'none' : 'move'
 }

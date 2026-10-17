@@ -38,7 +38,7 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
 import { computed, reactive, ref, watch } from 'vue'
-import { modelAttributeFields } from '../domain/material'
+import { temporaryAttributeFields } from '../domain/material'
 import { suggestTemporaryName } from '../domain/naming'
 import { uid, useCatalogStore } from '../stores/catalog'
 
@@ -73,7 +73,7 @@ const suggestion = computed(() => suggestTemporaryName({
 
 watch(() => props.open, (open) => {
   if (!open) return
-  const fields = modelAttributeFields(store.data, props.productModelId || '')
+  const fields = temporaryAttributeFields(store.data, { categoryId: props.categoryId, productTypeId: props.productTypeId, productModelId: props.productModelId })
   rows.splice(0, rows.length, ...fields.map((item) => ({ ...item, value: '', mode: item.values.length ? 'dictionary' as const : 'manual' as const })))
   skuName.value = ''
   nameTouched.value = false

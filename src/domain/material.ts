@@ -27,7 +27,23 @@ export interface MaterialChoice {
 
 export type MaterialCreateResult =
   | { ok: true; created: boolean; familyId: string; skuId: string; materialCode: string; planningId: string; label: string; name: string; namingStatus: 'rule' | 'default' | 'conflict'; namingMessage: string }
-  | { ok: false; message: string; choices?: MaterialChoice[] }
+  | { ok: false; message: string; choices?: MaterialChoice[]; reason?: 'material-deleted' }
+
+export const MATERIAL_DELETED_MESSAGE = '该请求对应的物料已经删除。如需重新建档，请发起新的创建请求。'
+
+function deletedReceiptResult(): MaterialCreateResult {
+  return { ok: false, reason: 'material-deleted', message: MATERIAL_DELETED_MESSAGE }
+}
+
+/** 删除物料后保留原回执，只标记已删除。不改 requestId，不回收物料编码。 */
+export function tombstoneMaterialReceipts(data: AppData, skuId: string, now = new Date().toISOString()) {
+  if (!Array.isArray(data.materialReceipts)) return
+  data.materialReceipts.forEach((item) => {
+    if (item.skuId !== skuId || item.lifecycle === 'deleted') return
+    item.lifecycle = 'deleted'
+    item.deletedTime = now
+  })
+}
 
 export interface PublishedModelOption {
   productModelId: string
@@ -215,7 +231,7 @@ export function createV3Material(data: AppData, input: {
   const receipt = data.materialReceipts.find((item) => item.requestId === requestId)
   if (receipt) {
     const sku = data.skus.find((item) => item.id === receipt.skuId)
-    if (!sku) return { ok: false, message: '上次创建的物料已经不在了。' }
+    if (!sku) return deletedReceiptResult()
     return { ok: true, created: false, familyId: sku.familyId, skuId: sku.id, materialCode: sku.materialCode || receipt.materialCode, planningId: sku.planningId || receipt.planningId, label: sku.skuName || '', name: sku.skuName || '', namingStatus: sku.nameSource === 'manual' ? 'default' : 'rule', namingMessage: '' }
   }
   const resolved = resolveV3MaterialSpec(data, input)
@@ -291,7 +307,7 @@ export function createV3Material(data: AppData, input: {
   sku.createdAt = now
   sku.updatedAt = now
   data.skus.push(sku)
-  const saved: MaterialCreateReceipt = { requestId, skuId: sku.id, planningId: spec.planningId, materialCode, createdTime: now }
+  const saved: MaterialCreateReceipt = { requestId, skuId: sku.id, planningId: spec.planningId, materialCode, createdTime: now, lifecycle: 'active' }
   data.materialReceipts.push(saved)
   return { ok: true, created: true, familyId: family.id, skuId: sku.id, materialCode, planningId: spec.planningId, label: spec.label, name: chosenName, namingStatus: suggestion.status, namingMessage: suggestion.message }
 }
@@ -387,6 +403,26 @@ function temporaryRecordMatchesContext(data: AppData, record: PlanningRecord, ca
   })
 }
 
+/** 临时建档用的属性。优先已发布或草稿模型，没有模型时才读分类上的属性方案。不写词典，也不伪造发布版本。 */
+export function temporaryAttributeFields(data: AppData, input: { categoryId: string; productTypeId: string; productModelId?: string }) {
+  const preferred = input.productModelId || data.specCanvases.find((item) => item.productTypeId === input.productTypeId)?.templateId || ''
+  if (preferred) {
+    const fields = modelAttributeFields(data, preferred)
+    if (fields.length) return fields
+  }
+  const mapped = data.mappings.find((item) => item.categoryId === input.categoryId)?.templateId || ''
+  const seen = new Set<string>()
+  const rows: { attributeId: string; name: string; values: string[] }[] = []
+  data.templateParams.filter((item) => item.templateId === mapped).forEach((item) => {
+    if (!item.paramId || seen.has(item.paramId)) return
+    seen.add(item.paramId)
+    const param = data.params.find((param) => param.id === item.paramId)
+    if (!param) return
+    rows.push({ attributeId: param.id, name: param.name, values: [...param.values] })
+  })
+  return rows
+}
+
 export function modelAttributeFields(data: AppData, productModelId: string) {
   const version = productModelId ? latestPublishedVersion(data, productModelId) : undefined
   const nodes = version?.nodesSnapshot || data.productSpecNodes.filter((item) => item.templateId === productModelId)
@@ -424,7 +460,7 @@ export function createTemporaryMaterial(data: AppData, input: {
   const receipt = data.materialReceipts.find((item) => item.requestId === requestId)
   if (receipt) {
     const sku = data.skus.find((item) => item.id === receipt.skuId)
-    if (!sku) return { ok: false, message: '上次创建的物料已经不在了。' }
+    if (!sku) return deletedReceiptResult()
     return { ok: true, created: false, familyId: sku.familyId, skuId: sku.id, materialCode: sku.materialCode || receipt.materialCode, planningId: sku.planningId || receipt.planningId, label: sku.skuName || '', name: sku.skuName || '', namingStatus: 'default', namingMessage: '' }
   }
   const materialCode = input.materialCode.trim()
@@ -532,7 +568,7 @@ export function createTemporaryMaterial(data: AppData, input: {
   }
   sku.projectedAttrs = projectAttrs(family, sku)
   data.skus.push(sku)
-  data.materialReceipts.push({ requestId, skuId: sku.id, planningId: record.planningId, materialCode, createdTime: now })
+  data.materialReceipts.push({ requestId, skuId: sku.id, planningId: record.planningId, materialCode, createdTime: now, lifecycle: 'active' })
   if (data.params.reduce((sum, item) => sum + item.values.length, 0) !== dictSize) return { ok: false, message: '临时值不应写入属性词典。' }
   if (data.productSpecNodes.length !== nodeSize || JSON.stringify(data.specModelVersions) !== versionText) return { ok: false, message: '临时建档不应改动正式模型。' }
   return { ok: true, created: true, familyId: family.id, skuId: sku.id, materialCode, planningId: record.planningId, label: manualAttrs.map((item) => `${item.attributeName} ${item.value}`).join(' · '), name: chosenName, namingStatus: suggestion.status, namingMessage: suggestion.message }

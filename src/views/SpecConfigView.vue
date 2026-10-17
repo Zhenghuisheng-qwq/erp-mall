@@ -47,6 +47,7 @@
             <div class="op-bar">
               <el-button-group>
                 <el-button v-if="!viewing" @click="tidy">自动布局</el-button>
+                <el-button v-if="!viewing" @click="useManualLayout">手工摆放</el-button>
                 <el-button @click="fitAll">适应全部</el-button>
                 <el-button @click="zoomReset">100%</el-button>
                 <el-button @click="zoomBy(1)">放大</el-button>
@@ -63,7 +64,7 @@
                   <h3>当前父子关系</h3>
                   <p v-if="structureNotes.length === 0">层级清楚。布局只调整位置，不会移动或删除节点。</p>
                   <p v-for="(item, index) in structureNotes" :key="index">{{ item }}</p>
-                  <p v-if="canvas.direction === 'custom'">当前是手工摆放的位置。点「自动布局」才会按子树重新对齐，父子关系保持不变。</p>
+                  <p v-if="canvas.layoutLocked">当前是手工摆放的位置。点「自动布局」才会按子树重新对齐，父子关系保持不变。</p>
                 </div>
               </el-popover>
               <el-popover placement="bottom-end" :width="300" trigger="click">
@@ -78,26 +79,14 @@
                   <p v-for="item in records" :key="item.id">{{ item.versionName }} · {{ item.time }} · {{ item.products }} 个商品</p>
                 </div>
               </el-popover>
-              <el-popover placement="bottom-start" :width="340" trigger="click">
-                <template #reference>
-                  <button type="button" class="key-more">快捷键</button>
-                </template>
-                <strong>模型编辑快捷键</strong>
-                <p class="key-lead">Tab 新增子属性。V 在选中属性时新增属性值。当前 Enter 是{{ enterAction }}。</p>
-                <ul class="key-list">
-                  <li><kbd>Tab</kbd> 新增子属性</li>
-                  <li><kbd>V</kbd> 新增属性值</li>
-                  <li><kbd>Enter</kbd> 新增同级节点</li>
-                  <li v-if="menuKind !== 'value' || canPromote"><kbd>Shift+Tab</kbd> 提升节点层级</li>
-                  <li><kbd>↑ ↓</kbd> 调整同级顺序</li>
-                  <li><kbd>Delete</kbd> 删除选中节点</li>
-                  <li><kbd>Ctrl+Z</kbd> 撤销</li>
-                  <li><kbd>Ctrl+Enter</kbd> 完成编辑</li>
-                  <li><kbd>Esc</kbd> 取消编辑</li>
-                </ul>
-                <p class="key-group">属性可以继续嵌套属性。属性值挂在所属属性下，也可以从属性值再挂条件属性。</p>
-              </el-popover>
+              <button type="button" class="key-more" @click="keysOpen = true">全部快捷键</button>
             </div>
+        </div>
+        <div v-if="templateId && !viewing" class="key-strip" aria-label="常用快捷键">
+          <span v-for="item in quickHints" :key="item.keys + item.label" class="key-chip" :class="{ 'is-off': !item.enabled }" :title="item.note">
+            <kbd>{{ item.keys }}</kbd>{{ item.label }}
+          </span>
+          <button type="button" class="key-more" @click="keysOpen = true">全部快捷键</button>
         </div>
         <div v-if="templateId" class="node-ops">
           <template v-if="!viewing && selected">
@@ -110,6 +99,7 @@
               <el-button size="small" @click="runMenu('add-child')">添加子属性</el-button>
               <el-button size="small" @click="runMenu('add-value')">添加属性值</el-button>
               <el-button size="small" @click="runMenu('naming')">命名规则</el-button>
+              <el-button size="small" @click="runMenu('hosts')">配置适用主机</el-button>
               <el-button size="small" @click="runMenu('rename')">编辑</el-button>
               <el-button size="small" type="danger" plain @click="runMenu('delete')">删除</el-button>
             </template>
@@ -119,6 +109,7 @@
                 <span class="ops-disabled"><el-button size="small" disabled>添加属性值</el-button></span>
               </el-tooltip>
               <el-button size="small" @click="runMenu('naming')">命名规则</el-button>
+              <el-button size="small" @click="runMenu('hosts')">配置适用主机</el-button>
               <el-button size="small" @click="runMenu('rename')">编辑</el-button>
               <el-button size="small" type="danger" plain @click="runMenu('delete')">删除</el-button>
             </template>
@@ -265,9 +256,11 @@
         :focus-id="outlineCue.id"
         :label="nodeTitle"
         :attribute-hint="attributeHint"
+        :options-for="outlineOptions"
         @select="pickNode"
         @rename-root="applyRootName"
         @rename="renameOutline"
+        @choose="applyOutlineChoice"
         @add="addOutline"
         @remove="removeOutline"
         @promote="promoteOutline"
@@ -293,9 +286,11 @@
         :focus-id="outlineCue.id"
         :label="nodeTitle"
         :attribute-hint="attributeHint"
+        :options-for="outlineOptions"
         @select="pickNode"
         @rename-root="applyRootName"
         @rename="renameOutline"
+        @choose="applyOutlineChoice"
         @add="addOutline"
         @remove="removeOutline"
         @promote="promoteOutline"
@@ -322,6 +317,7 @@
         <el-button text @click="runMenu('sibling')">添加同级属性</el-button>
         <el-button text @click="runMenu('rename')">编辑名称</el-button>
         <el-button text @click="runMenu('naming')">命名规则</el-button>
+        <el-button text @click="runMenu('hosts')">配置适用主机</el-button>
         <el-button text type="danger" @click="runMenu('delete')">删除节点</el-button>
       </template>
       <template v-else>
@@ -329,9 +325,21 @@
         <el-button text @click="runMenu('add-child')">添加条件属性</el-button>
         <el-button text @click="runMenu('rename')">编辑名称</el-button>
         <el-button text @click="runMenu('naming')">命名规则</el-button>
+        <el-button text @click="runMenu('hosts')">配置适用主机</el-button>
         <el-button text type="danger" @click="runMenu('delete')">删除节点</el-button>
       </template>
     </div>
+    <el-drawer v-model="keysOpen" title="全部快捷键" direction="rtl" size="380px" :modal="false" append-to-body class="key-drawer">
+      <p class="key-lead">先点选节点，让结构区域获得焦点，再按键。输入框、下拉和弹窗里这些键只用于输入，不会改模型。</p>
+      <section v-for="group in shortcutGroups" :key="group.title" class="key-group-block">
+        <h3>{{ group.title }}</h3>
+        <p v-for="item in group.items" :key="item.name" class="key-row" :class="{ 'is-off': !item.enabled }">
+          <span>{{ item.name }}</span>
+          <kbd>{{ item.keys }}</kbd>
+          <em>{{ item.when }}</em>
+        </p>
+      </section>
+    </el-drawer>
     <NamingRuleDialog :open="namingOpen" :node-id="selected" :template-id="templateId" @close="namingOpen = false" @saved="markWorkingDraft" />
     <el-dialog v-model="attributeOpen" :title="attributeTitle" width="420px" @closed="resetAttrComposer">
       <el-select v-if="attributeBindId" v-model="attributePick" filterable placeholder="选择属性词典中的属性" style="width: 100%">
@@ -375,6 +383,24 @@
         <el-button type="primary" @click="confirmNodeDraft">确认</el-button>
       </template>
     </el-dialog>
+    <el-dialog v-model="hostOpen" title="配置适用主机" width="480px">
+      <p class="dict-empty">来源：当前草稿节点。下级物料是否沿用这份配置还需要确认，所以这里只保存在这个节点上，不会写进已有物料，也不会改已发布版本。</p>
+      <p v-if="draftHostRows.length === 0" class="dict-empty">这个节点还没有适用主机。</p>
+      <p v-for="item in draftHostRows" :key="item.identityKey" class="dict-empty">
+        {{ item.label }}
+        <el-button link type="danger" @click="dropDraftHost(item.identityKey)">移除</el-button>
+      </p>
+      <el-input v-model="hostKeyword" placeholder="搜已建档的主机型号" clearable />
+      <p v-if="hostChoices.length === 0" class="dict-empty">没有找到已建档的主机型号。不会按中文名自动新建。</p>
+      <label v-for="item in hostChoices" :key="item.key" class="dict-empty">
+        <input type="checkbox" :checked="hostPicks.includes(item.key) || item.already" :disabled="item.already" @change="toggleHostPick(item.key)" />
+        {{ item.label }}
+      </label>
+      <template #footer>
+        <el-button @click="hostOpen = false">关闭</el-button>
+        <el-button type="primary" :disabled="hostPicks.length === 0" @click="saveDraftHosts">添加 {{ hostPicks.length }} 款主机</el-button>
+      </template>
+    </el-dialog>
     <el-dialog v-model="copyOpen" title="复制模型" width="440px">
       <p class="copy-label">原模型</p>
       <strong v-if="!copyPick" class="copy-source">{{ copySourceName }}</strong>
@@ -406,7 +432,10 @@ import { cloneProductModel } from '../components/model-editor/cloneModel'
 import EmptyModelGuide from '../components/model-editor/EmptyModelGuide.vue'
 import TypeModelRail from '../components/model-editor/TypeModelRail.vue'
 import { categoryChain, visibleCategoryRows } from '../domain/categoryTree'
-import { arrangeSpecPositions, categoryPath, latestPublishedVersion, layoutSpecTree, sameSpecSnapshot, specNodeSize, specTreeAdvance, SPEC_TREE_ORIGIN_X, SPEC_VALUE_TO_VALUE } from '../domain/logic'
+import { hostLabel, listHostModels } from '../domain/compatibility'
+import { arrangeSpecPositions, categoryPath, latestPublishedVersion, layoutSpecTree, sameSpecSnapshot, specNodeSize, specTreeAdvance, SPEC_LINK_GAP, SPEC_TREE_GAP, SPEC_TREE_ORIGIN_X, SPEC_TREE_ORIGIN_Y, SPEC_VALUE_TO_VALUE } from '../domain/logic'
+import { addDraftNodeHosts, readDraftNodeHosts, removeDraftNodeHost } from '../domain/nodeCompatibility'
+import { outlineChoices, rebindSpecNode } from '../domain/outlineEdit'
 import { legalPlanningCombinations } from '../domain/planning'
 import NamingRuleDialog from '../components/NamingRuleDialog.vue'
 import TemporaryMaterialDialog from '../components/TemporaryMaterialDialog.vue'
@@ -539,6 +568,9 @@ const editingId = ref('')
 const menu = ref({ open: false, x: 0, y: 0 })
 const attributeOpen = ref(false)
 const copyOpen = ref(false)
+const hostOpen = ref(false)
+const hostKeyword = ref('')
+const hostPicks = ref<string[]>([])
 const namingOpen = ref(false)
 const copyPick = ref(false)
 const copySourceId = ref('')
@@ -585,7 +617,7 @@ const comboRows = computed(() => {
       planningId: matched?.status === 'active' ? matched.planningId : '',
       modelVersionId: matched?.status === 'active' ? matched.modelVersionId : versionId,
       retired: matched?.status === 'retired',
-      note: matched?.status === 'retired' ? '已停用' : matched?.planningId ? `${matched.planningId} · ${gradeText(matched.grade)} · ${filingText(matched.grade, store.data.skus.filter((item) => item.planningId === matched.planningId).length)}` : '发布后自动编号',
+      note: matched?.status === 'retired' ? '已停用' : matched?.planningId ? `${matched.planningId} · ${gradeText(matched.grade)} · ${filingText(matched.grade, store.data.skus.filter((item) => item.planningId === matched.planningId).length)}${store.data.skus.some((item) => item.planningId === matched.planningId) ? ` · ${store.data.skus.filter((item) => item.planningId === matched.planningId).map((item) => item.materialCode).filter(Boolean).join('、')}` : ''}` : '发布后自动编号',
     }
   })
 })
@@ -603,7 +635,7 @@ const menuKind = computed<'model' | 'attribute' | 'value'>(() => {
 })
 const canPromote = computed(() => {
   const node = current.value
-  if (!node?.parentId) return menuKind.value !== 'value'
+  if (!node?.parentId) return false
   if (node.nodeType !== 'VALUE') return true
   const parent = nodes.value.find((item) => item.id === node.parentId)
   const grand = parent?.parentId ? nodes.value.find((item) => item.id === parent.parentId) : undefined
@@ -613,6 +645,56 @@ const enterAction = computed(() => {
   if (menuKind.value === 'attribute') return '新增同级属性'
   if (menuKind.value === 'value') return '新增同级值'
   return '新增同级节点'
+})
+const keysOpen = ref(localStorage.getItem('iyge-spec-keys-open') === '1')
+watch(keysOpen, (open) => localStorage.setItem('iyge-spec-keys-open', open ? '1' : '0'))
+const quickHints = computed(() => {
+  const kind = menuKind.value
+  return [
+    { keys: 'Tab', label: kind === 'value' ? '条件属性' : kind === 'model' ? '添加属性' : '子属性', enabled: true, note: '' },
+    { keys: 'V', label: '属性值', enabled: kind === 'attribute', note: kind === 'attribute' ? '给当前属性添加取值' : '只有选中属性时才能添加属性值' },
+    { keys: 'Enter', label: kind === 'value' ? '同级取值' : '同级', enabled: true, note: enterAction.value },
+    { keys: 'Delete', label: '删除', enabled: kind !== 'model', note: kind === 'model' ? '不能删除模型本身' : '删除当前节点' },
+    { keys: 'Ctrl+Z', label: '撤销', enabled: true, note: '撤销最近一次结构编辑。输入框里仍是文字撤销' },
+  ]
+})
+const shortcutGroups = computed(() => {
+  const kind = menuKind.value
+  return [
+    {
+      title: '节点创建',
+      items: [
+        { name: kind === 'value' ? '添加条件属性' : kind === 'model' ? '添加属性' : '添加子属性', keys: 'Tab', enabled: true, when: '画布有焦点，且没有打开输入框或弹窗' },
+        { name: '添加属性值', keys: 'V', enabled: kind === 'attribute', when: kind === 'attribute' ? '当前选中的是属性' : '取值和模型上按 V 不会添加节点' },
+        { name: enterAction.value, keys: 'Enter', enabled: true, when: '属性上是同级属性，取值上是同级取值' },
+      ],
+    },
+    {
+      title: '节点管理',
+      items: [
+        { name: '提升一层', keys: 'Shift+Tab', enabled: canPromote.value, when: '已经是第一层，或取值提升后无处可挂时，只提示，不改结构' },
+        { name: '调整同级顺序', keys: '↑ ↓', enabled: kind !== 'model', when: '结构视图在画布有焦点时可用。大纲和幕布在当前编辑行上可用' },
+        { name: '删除节点', keys: 'Delete', enabled: kind !== 'model', when: '不能删除模型本身。已被商品使用的节点仍会被拦住' },
+      ],
+    },
+    {
+      title: '编辑',
+      items: [
+        { name: '撤销结构编辑', keys: 'Ctrl+Z', enabled: true, when: '画布有焦点时撤销模型。输入框里交给文字自己撤销' },
+        { name: '保存模型', keys: 'Ctrl+S', enabled: true, when: '画布有焦点，且没有弹窗' },
+        { name: '结束本行编辑', keys: 'Ctrl+Enter', enabled: editorMode.value !== 'canvas', when: '只在大纲或幕布正在编辑一行时可用' },
+        { name: '取消编辑或关闭菜单', keys: 'Esc', enabled: true, when: '大纲里取消当前行。结构视图里关闭节点菜单' },
+        { name: '全部展开', keys: 'Ctrl+A', enabled: editorMode.value === 'canvas', when: '只在结构视图、画布有焦点时展开节点' },
+      ],
+    },
+    {
+      title: '画布',
+      items: [
+        { name: '缩放和平移', keys: '鼠标', enabled: true, when: '滚轮缩放，按住空白拖动画布。没有单独的键盘缩放键' },
+        { name: '适应全部 / 100%', keys: '工具栏', enabled: true, when: '用画布工具上的按钮，不是快捷键' },
+      ],
+    },
+  ]
 })
 const canvas = computed(() => store.data.specCanvases.find((item) => item.templateId === templateId.value) || { templateId: templateId.value, zoom: 1, panX: 0, panY: 0, status: 'draft' as const, version: 1, versionName: 'V1' })
 const canvasStatusText = computed(() => (canvas.value.status === 'published' ? '已发布' : canvas.value.status === 'offline' ? '已下线' : '草稿'))
@@ -702,6 +784,7 @@ watch(templateId, () => {
 }, { immediate: true })
 watch(editorMode, (mode) => {
   menu.value.open = false
+  if (mode === 'canvas') reflowTree()
   if ((mode === 'outline' || mode === 'document') && selected.value) revealAncestors(selected.value)
 })
 watch(
@@ -721,35 +804,61 @@ watch(
   },
 )
 
+function layoutOriginX() {
+  const rootWidth = Math.max(148, specNodeSize('ATTRIBUTE', schemeTitle.value).width)
+  return 16 + rootWidth + SPEC_LINK_GAP
+}
 function freshNodes() {
   return nodes.value.filter((item) => item.positionX === 0 && item.positionY === 0)
 }
 function placeFreshNodes() {
   freshNodes().slice().sort((a, b) => a.sort - b.sort).forEach((node) => {
     const parent = node.parentId ? nodes.value.find((item) => item.id === node.parentId) : undefined
-    const siblings = nodes.value.filter((item) => item.parentId === node.parentId && item.id !== node.id && !(item.positionX === 0 && item.positionY === 0))
     const step = parent ? specTreeAdvance(parent.nodeType, nodeTitle(parent)) : 0
-    node.positionX = parent ? (parent.positionX ?? SPEC_TREE_ORIGIN_X) + step : SPEC_TREE_ORIGIN_X
-    node.positionY = siblings.length ? Math.max(...siblings.map((item) => item.positionY ?? 12)) + (node.nodeType === 'VALUE' ? 38 : 54) : (parent?.positionY ?? 12)
+    const leftEdge = parent ? (parent.positionX ?? layoutOriginX()) + step : layoutOriginX()
+    node.positionX = leftEdge
+    const size = specNodeSize(node.nodeType, nodeTitle(node))
+    let y = parent?.positionY ?? SPEC_TREE_ORIGIN_Y
+    const placed = () => nodes.value.filter((item) => item.id !== node.id && !(item.positionX === 0 && item.positionY === 0))
+    const hits = (top: number) => placed().some((item) => {
+      const box = specNodeSize(item.nodeType, nodeTitle(item))
+      const left = item.positionX ?? 0
+      const itemTop = item.positionY ?? 0
+      const separated = leftEdge + size.width <= left || left + box.width <= leftEdge || top + size.height <= itemTop || itemTop + box.height <= top
+      return !separated
+    })
+    let guard = 0
+    while (hits(y) && guard < 64) {
+      const bottoms = placed().map((item) => (item.positionY ?? 0) + specNodeSize(item.nodeType, nodeTitle(item)).height)
+      y = Math.max(y + size.height, ...bottoms) + SPEC_TREE_GAP
+      guard += 1
+    }
+    node.positionY = y
   })
+}
+function manualHold() {
+  const row = ensureCanvas()
+  return row.direction === 'custom' && row.layoutLocked === true
 }
 function ensureTreeLayout() {
   const row = ensureCanvas()
-  if (row.direction === 'custom') {
+  if (manualHold()) {
     if (freshNodes().length) placeFreshNodes()
     return
   }
-  arrangeSpecPositions(nodes.value, nodeTitle)
+  arrangeSpecPositions(nodes.value, nodeTitle, layoutOriginX())
   row.direction = 'logic'
+  row.layoutLocked = false
 }
 function reflowTree() {
   const row = ensureCanvas()
-  if (row.direction === 'custom') {
+  if (manualHold()) {
     placeFreshNodes()
     return
   }
-  arrangeSpecPositions(nodes.value, nodeTitle)
+  arrangeSpecPositions(nodes.value, nodeTitle, layoutOriginX())
   row.direction = 'logic'
+  row.layoutLocked = false
 }
 function ensureCanvas() {
   let row = store.data.specCanvases.find((item) => item.templateId === templateId.value)
@@ -781,6 +890,60 @@ function attributeHint(node: ProductSpecNode): { bound: boolean; source: string;
   const param = node.nodeType === 'ATTRIBUTE' && node.attributeId ? store.data.params.find((item) => item.id === node.attributeId) : undefined
   if (!param) return { bound: false, source: '', values: '' }
   return { bound: true, source: attributeSourceLabel(param.name), values: attributeValueText(node) }
+}
+function outlineOptions(node: ProductSpecNode) {
+  return outlineChoices(store.data, node.id)
+}
+const draftHostRows = computed(() => readDraftNodeHosts(store.data, templateId.value, selected.value).map((host) => ({
+  identityKey: `${host.productModelId}\u001f${host.identityKey}\u001f${host.scope}\u001f${host.planningId || ''}`,
+  label: hostLabel(host),
+  host,
+})))
+const hostChoices = computed(() => {
+  const owned = new Set(draftHostRows.value.map((item) => item.identityKey))
+  return listHostModels(store.data, hostKeyword.value).map((item) => ({
+    key: item.key,
+    label: item.label,
+    host: item.host,
+    already: owned.has(`${item.host.productModelId}\u001f${item.host.identityKey}\u001f${item.host.scope}\u001f${item.host.planningId || ''}`),
+  }))
+})
+function applyOutlineChoice(payload: { id: string; token: string }) {
+  const node = nodes.value.find((item) => item.id === payload.id)
+  if (!node) return
+  if (!payload.token) {
+    ElMessage.warning(node.nodeType === 'ATTRIBUTE' ? '属性词典里还没有可选属性' : '这个属性还没有可选取值')
+    return
+  }
+  pushUndo()
+  const result = rebindSpecNode(store.data, node.id, node.nodeType === 'ATTRIBUTE' ? { attributeId: payload.token } : { valueId: payload.token })
+  if (!result.ok || !result.changed) undoStack.value.pop()
+  if (!result.ok) ElMessage.warning(result.message)
+  else if (result.changed) reflowTree()
+}
+function toggleHostPick(key: string) {
+  hostPicks.value = hostPicks.value.includes(key) ? hostPicks.value.filter((item) => item !== key) : [...hostPicks.value, key]
+}
+function openHostConfig() {
+  if (viewing.value || !current.value) return
+  hostKeyword.value = ''
+  hostPicks.value = []
+  hostOpen.value = true
+}
+function saveDraftHosts() {
+  const hosts = hostChoices.value.filter((item) => hostPicks.value.includes(item.key)).map((item) => item.host)
+  const result = addDraftNodeHosts(store.data, { templateId: templateId.value, nodeId: selected.value, hosts, nextId: uid })
+  hostPicks.value = []
+  if (result.failed.length && !result.added.length) ElMessage.warning(result.failed[0].message)
+  else {
+    hostOpen.value = false
+    ElMessage.success(`已添加 ${result.added.length} 款，跳过 ${result.skipped} 款。已有物料没有改。`)
+  }
+}
+function dropDraftHost(identityKey: string) {
+  const row = draftHostRows.value.find((item) => item.identityKey === identityKey)
+  if (!row) return
+  removeDraftNodeHost(store.data, templateId.value, selected.value, row.host)
 }
 function nodeTitle(node: ProductSpecNode) {
   if (node.nodeType === 'VALUE') return node.valueId || '未命名取值'
@@ -865,7 +1028,7 @@ function paint() {
       sort: node.sort,
       nodeType: node.nodeType,
       label: nodeTitle(node),
-    })))
+    })), layoutOriginX())
   const posOf = (node: ProductSpecNode) => projected?.get(node.id) || { x: node.positionX ?? 248, y: node.positionY ?? 36 }
   const anchored = visible.filter((node) => visibleAnchor(node) === rootId)
   const basis = anchored.length ? anchored : visible
@@ -965,6 +1128,7 @@ function onNodeClick(payload: { event?: { target?: EventTarget | null }; node: {
   selected.value = payload.node.id
   revealAncestors(payload.node.id)
   menu.value.open = false
+  nextTick(() => document.querySelector<HTMLElement>('.designer .board')?.focus())
 }
 function canvasSize() {
   const el = document.querySelector('.designer .canvas') as HTMLElement | null
@@ -1041,7 +1205,10 @@ function revealNode(id: string) {
     })
   })
 }
+const framedTemplate = ref('')
 function onNodesReady() {
+  if (framedTemplate.value === templateId.value) return
+  framedTemplate.value = templateId.value
   frameCanvas()
 }
 function onNodeDoubleClick(payload: { event: { target?: EventTarget | null }; node: { id: string } }) {
@@ -1424,8 +1591,12 @@ function commitInline(id: string, kind: 'attribute' | 'value', event: Event) {
       linkAttribute(node, value)
     }
   }
-  if (kind === 'value' && node.nodeType === 'VALUE') node.valueId = value
+  if (kind === 'value' && node.nodeType === 'VALUE' && node.valueId !== value) {
+    pushUndo()
+    node.valueId = value
+  }
   editingId.value = ''
+  reflowTree()
 }
 function openNodeMenu(payload: { id: string; x: number; y: number }) {
   if (viewing.value) return
@@ -1437,9 +1608,13 @@ function onNodeMenu(payload: { event: { preventDefault: () => void; clientX?: nu
   payload.event.preventDefault()
   openNodeMenu({ id: payload.node.id, x: payload.event.clientX || 0, y: payload.event.clientY || 0 })
 }
-function runMenu(action: 'add-attribute' | 'add-child' | 'add-value' | 'sibling' | 'rename' | 'delete' | 'bind' | 'naming') {
+function runMenu(action: 'add-attribute' | 'add-child' | 'add-value' | 'sibling' | 'rename' | 'delete' | 'bind' | 'naming' | 'hosts') {
   menu.value.open = false
   const id = selected.value || rootId
+  if (action === 'hosts') {
+    openHostConfig()
+    return
+  }
   if (action === 'naming') {
     namingOpen.value = true
     return
@@ -1483,14 +1658,17 @@ function onNodeDragStop(event: { node: { id: string; position: { x: number; y: n
   const row = store.data.productSpecNodes.find((item) => item.id === event.node.id)
   if (!row) return
   const hit = hitNode(event.node.position.x + 36, event.node.position.y + 16, row.id)
-  if (!hit) {
+    if (!hit) {
     if (viewMode.value !== 'all') {
       paint()
       return
     }
-    row.positionX = event.node.position.x
-    row.positionY = event.node.position.y
-    ensureCanvas().direction = 'custom'
+    if (manualHold()) {
+      row.positionX = event.node.position.x
+      row.positionY = event.node.position.y
+      return
+    }
+    reflowTree()
     return
   }
   const message = reparent(row, hit)
@@ -1499,7 +1677,7 @@ function onNodeDragStop(event: { node: { id: string; position: { x: number; y: n
     paint()
     return
   }
-  if (ensureCanvas().direction === 'custom') {
+  if (manualHold()) {
     row.positionX = event.node.position.x
     row.positionY = event.node.position.y
   } else reflowTree()
@@ -1546,20 +1724,29 @@ function onMoveEnd(event: { flowTransform: { x: number; y: number; zoom: number 
   row.zoom = event.flowTransform.zoom
 }
 function tidy() {
-  arrangeSpecPositions(nodes.value)
-  ensureCanvas().direction = 'logic'
-  frameCanvas()
+  const row = ensureCanvas()
+  row.layoutLocked = false
+  row.direction = 'logic'
+  arrangeSpecPositions(nodes.value, nodeTitle, layoutOriginX())
   ElMessage.success('已按产品结构整理')
+}
+function useManualLayout() {
+  const row = ensureCanvas()
+  row.direction = 'custom'
+  row.layoutLocked = true
+  ElMessage.success('已改为手工摆放。新增节点不会挪动现有位置，需要分区时再点自动布局。')
 }
 function setExpanded(expanded: boolean) {
   nodes.value.forEach((item) => {
     if (childCount(item.id)) item.expanded = expanded
   })
+  reflowTree()
 }
 function toggleExpand(id: string) {
   const row = store.data.productSpecNodes.find((item) => item.id === id)
   if (!row || !childCount(id)) return
   row.expanded = row.expanded === false
+  reflowTree()
 }
 function saveModel() {
   const problems = illegalStructure()
@@ -1876,38 +2063,53 @@ function openTemporary(familyId: string, skuId: string) {
   temporaryOpen.value = false
   router.push(`/products/${familyId}?sku=${skuId}`)
 }
+function visibleOverlay(selector: string) {
+  return [...document.querySelectorAll(selector)].some((el) => {
+    const overlay = (el.closest('.el-overlay') || el) as HTMLElement
+    return getComputedStyle(overlay).display !== 'none' && getComputedStyle(overlay).visibility !== 'hidden'
+  })
+}
 function shortcutBlocked() {
-  if (attributeOpen.value || valueOpen.value || copyOpen.value || nodeDraftOpen.value || editingId.value || namingOpen.value) return true
+  if (attributeOpen.value || valueOpen.value || copyOpen.value || nodeDraftOpen.value || editingId.value || namingOpen.value || temporaryOpen.value || hostOpen.value) return true
   if (document.querySelector('.v3-material-dialog')) return true
-  return false
+  return visibleOverlay('.el-overlay-dialog, .el-message-box')
+}
+function isTypingTarget(target: EventTarget | null) {
+  const node = target as HTMLElement | null
+  if (!node?.closest) return false
+  const tag = node.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || node.isContentEditable) return true
+  return Boolean(node.closest('.el-dialog, .el-message-box, .el-popper, .el-select, .context-menu, #nav-flyout'))
 }
 function onKey(event: KeyboardEvent) {
-  if (document.querySelector('.v3-material-dialog')) return
+  if (viewing.value || event.isComposing) return
+  if (isTypingTarget(event.target) || document.getElementById('nav-flyout') || shortcutBlocked()) return
   const target = event.target as HTMLElement | null
   if (!target?.closest?.('.board')) return
-  const tag = target.tagName
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+  const key = event.key.toLowerCase()
+  if ((event.ctrlKey || event.metaKey) && key === 's') {
     event.preventDefault()
-    if (!shortcutBlocked()) saveModel()
+    saveModel()
     return
   }
-  if ((editorMode.value === 'outline' || editorMode.value === 'document') && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+  if ((event.ctrlKey || event.metaKey) && key === 'z' && !event.shiftKey) {
+    if (!undoStack.value.length) return
     event.preventDefault()
-    if (!shortcutBlocked()) undoOutline()
+    undoOutline()
     return
   }
-  if (editorMode.value === 'outline' || editorMode.value === 'document' || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable || shortcutBlocked()) return
+  if (editorMode.value === 'outline' || editorMode.value === 'document') return
   if (event.key === 'Escape') {
     closeFloating()
     editingId.value = ''
     return
   }
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+  if ((event.ctrlKey || event.metaKey) && key === 'a') {
     event.preventDefault()
     setExpanded(true)
     return
   }
-  if (event.key.toLowerCase() === 'v' && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.repeat) {
+  if (key === 'v' && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.repeat) {
     if (current.value?.nodeType !== 'ATTRIBUTE') return
     event.preventDefault()
     addOutline({ id: current.value.id, kind: 'child-value' })
@@ -1925,6 +2127,11 @@ function onKey(event: KeyboardEvent) {
   if (event.key === 'Enter') {
     event.preventDefault()
     addOutline({ id: selected.value || rootId, kind: 'sibling' })
+    return
+  }
+  if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && current.value) {
+    event.preventDefault()
+    shiftOutline({ id: current.value.id, direction: event.key === 'ArrowUp' ? -1 : 1 })
     return
   }
   if ((event.key === 'Delete' || event.key === 'Backspace') && current.value) {
@@ -1953,8 +2160,18 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .ops-copy em { color: var(--text-muted, #8b98a8); font-style: normal; font-size: 12px; line-height: 1.3; }
 .ops-idle { color: #98a4b3; font-size: 12px; }
 .ops-disabled { display: inline-flex; }
-.key-more { border: 0; background: none; padding: 0 2px; color: #8aa0b8; font-size: 13px; line-height: 32px; cursor: pointer; }
-.key-more:hover { color: #606266; }
+.key-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-height: 28px; margin: 0 0 8px; color: var(--text-secondary, #66758b); font-size: 12px; }
+.key-chip { display: inline-flex; align-items: center; gap: 4px; }
+.key-chip.is-off { opacity: 0.45; }
+.key-strip kbd, .key-row kbd { display: inline-block; min-width: 1.4em; padding: 0 5px; border: 1px solid var(--border-default, #e4e8ef); border-radius: 4px; background: var(--surface-bg, #fff); color: var(--text-primary, #253044); font: 11px/18px Consolas, "Cascadia Mono", monospace; text-align: center; }
+.key-more { border: 0; background: none; padding: 0 2px; color: var(--accent, #409eff); font-size: 12px; line-height: 28px; cursor: pointer; }
+.key-more:hover { text-decoration: underline; }
+.key-lead { margin: 0 0 12px; color: var(--text-secondary, #66758b); font-size: 13px; line-height: 1.5; }
+.key-group-block { margin: 0 0 16px; }
+.key-group-block h3 { margin: 0 0 8px; font-size: 14px; }
+.key-row { display: grid; grid-template-columns: 112px auto minmax(0, 1fr); gap: 8px; align-items: start; margin: 0 0 8px; color: var(--text-primary, #253044); font-size: 13px; }
+.key-row em { color: var(--text-muted, #8b98a8); font-style: normal; font-size: 12px; line-height: 1.45; }
+.key-row.is-off { opacity: 0.55; }
 .studio-copy { min-width: 0; }
 .title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .studio-head h2 { margin: 0; font-size: 16px; font-weight: 650; line-height: 1.3; }
@@ -1984,8 +2201,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .key-list { margin: 4px 0 0; padding: 0; list-style: none; }
 .key-list kbd { display: inline-block; margin-right: 4px; padding: 1px 5px; border: 1px solid #e1e7ef; border-radius: 4px; background: #fff; color: #607089; font: 11px/1.4 Consolas, monospace; }
 .key-list li { margin: 6px 0; color: #1f2a37; font-size: 13px; }
-.key-lead { margin: 8px 0 0; color: #606266; font-size: 12px; line-height: 1.5; }
-.key-group { margin: 10px 0 0; color: #909399; font-size: 12px; }
 .key-extra { display: flex; gap: 12px; margin-top: 8px; }
 .key-extra button { border: 0; background: none; color: #2f6fed; cursor: pointer; padding: 0; }
 .copy-label { margin: 12px 0 6px; color: #8aa0b8; font-size: 12px; }

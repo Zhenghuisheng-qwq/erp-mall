@@ -1,3 +1,4 @@
+import { addCompatibility, previewHostText } from './compatibility'
 import { latestPublishedVersion } from './logic'
 import { createTemporaryMaterial, createV3Material, nextMaterialCode, type MaterialCreateResult } from './material'
 import type { AppData } from './types'
@@ -47,6 +48,9 @@ export interface ImportPreviewRow {
   modelVersionId: string
   message: string
   requestId: string
+  sourceDigest?: string
+  compatibilityStatus?: 'none' | 'exact' | 'ambiguous' | 'unresolved' | 'pending'
+  compatibilityReason?: string
 }
 
 export interface ValueAlias {
@@ -100,13 +104,24 @@ export function suggestMapping(headers: string[], sample: string[]): ColumnMappi
   }))
 }
 
+/** 来源身份看这一行的业务内容，不看文件名。改名不会变成新来源；编码相同但属性不同则是另一来源。 */
+export function excelSourceDigest(input: { sheet: string; guanjiapoCode: string; supplierCode: string; skuName: string; productTypeName: string; attrs: { name: string; value: string }[] }) {
+  const body = [input.sheet, input.guanjiapoCode, input.supplierCode, input.skuName, input.productTypeName, ...input.attrs.map((item) => `${item.name}=${item.value}`).sort()].join('\u001e')
+  let hash = 2166136261
+  for (let index = 0; index < body.length; index += 1) {
+    hash ^= body.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  return `src-${(hash >>> 0).toString(16)}`
+}
+
 function targetOf(header: string): ColumnTarget {
   if (header === '9.0管家婆') return 'guanjiapo'
   if (header === '9.0物料描述') return 'legacyName'
   if (header.includes('库存')) return 'stock'
   if (header === '供应商编码') return 'supplier'
   if (header.includes('物料描述')) return 'skuName'
-  if (header === '一级' || header === '二级' || header === '三级') return 'category'
+  if (header === '一级' || header === '二级' || header === '三级' || header === '一级分类' || header === '二级分类' || header === '三级分类') return 'category'
   if (header === '产品类型') return 'productType'
   if (header === '管理方式') return 'manage'
   if (/^属性\d+$/.test(header)) return 'attrName'
@@ -247,23 +262,30 @@ export function previewSheet(data: AppData, sheet: SheetProfile, mapping: Column
     const categoryNames = categoriesOf(row, mapping)
     const attrs = attributesOf(row, mapping)
     const requestId = `excel:${fileKey}:${sheet.name}:${rowNumber}:${guanjiapoCode}`
+    const sourceDigest = excelSourceDigest({ sheet: sheet.name, guanjiapoCode, supplierCode, skuName, productTypeName, attrs })
     const dup = supplierCode && seenSupplier.get(supplierCode)
     if (supplierCode) seenSupplier.set(supplierCode, rowNumber)
     const withDup = (message: string) => `${dup ? `供应商编码和上面第 ${dup} 行相同，仍会分成两条物料。` : ''}${message}`
-    const base = { sheet: sheet.name, rowNumber, supplierCode, guanjiapoCode, skuName, legacyName, categoryName: categoryNames.join(' / '), productTypeName, attrs, requestId, planningId: '', categoryId: '', productTypeId: '', productModelId: '', modelVersionId: '', groupKey: '' }
+    const base = { sheet: sheet.name, rowNumber, supplierCode, guanjiapoCode, skuName, legacyName, categoryName: categoryNames.join(' / '), productTypeName, attrs, requestId, sourceDigest, planningId: '', categoryId: '', productTypeId: '', productModelId: '', modelVersionId: '', groupKey: '' }
     const finish = (block: ImportBlock, status: 'ready' | 'blocked', action: 'formal' | 'temporary' | 'skip', message: string, extra: Partial<ImportPreviewRow> = {}): ImportPreviewRow => {
       const groupKey = extra.groupKey || groupOf(block, extra.productTypeId || '', extra.categoryId || '', message)
       const temporary = (block === 'spec' || block === 'source') && temporaryGroups.has(groupKey)
-      if (temporary) return { ...base, ...extra, block: 'temporary', status: 'ready', action: 'temporary', groupKey, message: withDup('已确认按临时物料导入，不占用正式规划编号。') }
-      return { ...base, ...extra, block, status, action, groupKey, message: withDup(message) }
+      const built = temporary
+        ? { ...base, ...extra, block: 'temporary' as const, status: 'ready' as const, action: 'temporary' as const, groupKey, message: withDup('已确认按临时物料导入，不占用正式规划编号。') }
+        : { ...base, ...extra, block, status, action, groupKey, message: withDup(message) }
+      const applicable = attrs.find((item) => item.name === '适用型号')?.value || ''
+      if (!applicable) return { ...built, compatibilityStatus: 'none', compatibilityReason: '' }
+      const preview = previewHostText(data, applicable)
+      return { ...built, compatibilityStatus: preview.status, compatibilityReason: preview.reason || (preview.status === 'exact' ? `可关联 ${preview.hosts.map((item) => item.modelName).join('、')}` : '') }
     }
     if (!skuName && !supplierCode && !guanjiapoCode) return finish('empty', 'blocked', 'skip', '空行', { groupKey: 'empty' })
-    const receipt = (data.materialReceipts || []).find((item) => item.requestId === requestId)
+    const receipt = (data.materialReceipts || []).find((item) => item.requestId === requestId || (item.sourceDigest && item.sourceDigest === sourceDigest))
     if (receipt) {
       const sku = data.skus.find((item) => item.id === receipt.skuId)
-      const record = (data.planningRecords || []).find((item) => item.planningId === (sku?.planningId || receipt.planningId))
-      const kind = record?.origin === 'temporary' || (sku?.planningId || '').startsWith('TMP-') ? '临时物料' : '正式物料'
-      return finish('imported', 'blocked', 'skip', `这条来源已经导入过，当时记为${kind}，编码 ${sku?.materialCode || receipt.materialCode}。不会再自动建一条，也不会把临时物料改成正式规划。`, { groupKey: 'imported' })
+      if (!sku || receipt.lifecycle === 'deleted') return finish('imported', 'blocked', 'skip', '这条来源以前建过档，对应物料已经删除，不会按同一来源静默重建。', { groupKey: 'imported' })
+      const record = (data.planningRecords || []).find((item) => item.planningId === (sku.planningId || receipt.planningId))
+      const kind = record?.origin === 'temporary' || (sku.planningId || '').startsWith('TMP-') ? '临时物料' : '正式物料'
+      return finish('imported', 'blocked', 'skip', `这条来源已经导入过，当时记为${kind}，编码 ${sku.materialCode || receipt.materialCode}。不会再自动建一条，也不会把临时物料改成正式规划。`, { groupKey: 'imported' })
     }
     const located = resolveCategoryPath(data, categoryNames)
     if (!located.category) {
@@ -336,9 +358,15 @@ function restoreImportState(data: AppData, raw: string) {
   data.productSpecNodes = snap.productSpecNodes
 }
 
+function rememberDigest(data: AppData, row: ImportPreviewRow) {
+  if (!row.sourceDigest) return
+  const receipt = (data.materialReceipts || []).find((item) => item.requestId === row.requestId)
+  if (receipt) receipt.sourceDigest = row.sourceDigest
+}
+
 function writeImportRow(data: AppData, row: ImportPreviewRow, nextId: (prefix: string) => string): MaterialCreateResult {
   if (row.action === 'formal') {
-    return createV3Material(data, {
+    const result = createV3Material(data, {
       productModelId: row.productModelId,
       modelVersionId: row.modelVersionId,
       planningId: row.planningId,
@@ -352,6 +380,8 @@ function writeImportRow(data: AppData, row: ImportPreviewRow, nextId: (prefix: s
       now: new Date().toISOString(),
       nextId,
     })
+    if (result.ok) rememberDigest(data, row)
+    return result
   }
   const attrs = row.attrs.flatMap((item) => {
     const param = data.params.find((param) => param.name === item.name)
@@ -359,7 +389,7 @@ function writeImportRow(data: AppData, row: ImportPreviewRow, nextId: (prefix: s
     const source = param.values.includes(item.value) ? 'dictionary' as const : 'manual' as const
     return [{ attributeId: param.id, value: item.value, source }]
   })
-  return createTemporaryMaterial(data, {
+  const result = createTemporaryMaterial(data, {
     requestId: row.requestId,
     categoryId: row.categoryId,
     productTypeId: row.productTypeId,
@@ -374,6 +404,44 @@ function writeImportRow(data: AppData, row: ImportPreviewRow, nextId: (prefix: s
     now: new Date().toISOString(),
     nextId,
   })
+  if (result.ok) rememberDigest(data, row)
+  return result
+}
+
+/** 物料建档和适用关系分开。关系对不上时不回滚已成功的物料，也不把失败说成整单完成。 */
+export function attachExactCompatibility(data: AppData, rows: ImportPreviewRow[], nextId: (prefix: string) => string) {
+  let linked = 0
+  let pending = 0
+  const notes: string[] = []
+  rows.forEach((row) => {
+    if (!row.compatibilityStatus || row.compatibilityStatus === 'none') return
+    if (row.compatibilityStatus !== 'exact') {
+      pending += 1
+      notes.push(`第 ${row.rowNumber} 行：${row.compatibilityReason || '适用关系待确认'}`)
+      return
+    }
+    const receipt = (data.materialReceipts || []).find((item) => item.requestId === row.requestId || item.sourceDigest === row.sourceDigest)
+    const sku = data.skus.find((item) => item.id === receipt?.skuId)
+    if (!sku) {
+      pending += 1
+      notes.push(`第 ${row.rowNumber} 行物料尚未建档，适用关系未写入。`)
+      return
+    }
+    const text = row.attrs.find((item) => item.name === '适用型号')?.value || ''
+    const preview = previewHostText(data, text)
+    if (preview.status !== 'exact') {
+      pending += 1
+      notes.push(`第 ${row.rowNumber} 行：${preview.reason}`)
+      return
+    }
+    const result = addCompatibility(data, { accessorySkuIds: [sku.id], hosts: preview.hosts.map((item) => item.host), nextId })
+    linked += result.created.length
+    if (result.failed.length) {
+      pending += result.failed.length
+      notes.push(...result.failed.map((item) => `第 ${row.rowNumber} 行：${item.message}`))
+    }
+  })
+  return { linked, pending, notes }
 }
 
 /** 先整批写入。任一失败或中断时退回本批开始前的数据，避免只落下一半。相同来源再次确认仍走回执，不会再建一条。 */

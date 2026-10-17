@@ -16,6 +16,8 @@ h1, h2, h3, p { margin: 0; }
 .content { flex: 1; min-height: 0; overflow: auto; padding: 16px 20px 28px; }
 .demo-strip { flex: none; background: var(--demo-bg); color: var(--demo-text); font-size: 13px; padding: 8px 20px; }
 
+.el-modal-drawer { pointer-events: none; }
+.el-modal-drawer .el-drawer { pointer-events: auto; }
 .page-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 14px; }
 .page-head h1 { font-size: 22px; font-weight: 650; color: var(--text-primary); }
 .page-head p { margin-top: 6px; color: var(--text-secondary); font-size: 13px; }

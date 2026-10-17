@@ -358,6 +358,9 @@ export function specPublishProblems(data: AppData, nodes: ProductSpecNode[]) {
     }
     if (!reachable.has(node.id)) problems.push(`「${label}」没有连到模型根上，属于孤立节点。`)
     const parent = node.parentId ? nodes.find((item) => item.id === node.parentId) : undefined
+    const bound = node.attributeId ? paramById(data, node.attributeId) : undefined
+    if (node.attributeId && !bound) problems.push(`「${label}」引用的属性已不在属性词典中。`)
+    if (node.nodeType === 'VALUE' && bound && node.valueId && !bound.values.includes(node.valueId)) problems.push(`「${label}」引用的属性值已不在属性词典中。`)
     if (!parent && node.nodeType !== 'ATTRIBUTE') problems.push(`「${label}」不能作为根节点，根上只能放属性。`)
     if (parent?.nodeType === 'VALUE' && node.nodeType !== 'ATTRIBUTE' && !problems.includes(SPEC_VALUE_TO_VALUE)) problems.push(SPEC_VALUE_TO_VALUE)
   })
@@ -664,7 +667,16 @@ export const SPEC_LINK_GAP = 40
 export const SPEC_TREE_GAP = 16
 export const SPEC_TREE_ROOT_GAP = 24
 
-type SpecTreeItem = { id: string; parentId: string | null; sort: number; nodeType: ProductSpecNode['nodeType']; label?: string }
+type SpecTreeItem = { id: string; parentId: string | null; sort: number; nodeType: ProductSpecNode['nodeType']; label?: string; expanded?: boolean }
+
+export interface SpecTreeFrame {
+  x: number
+  y: number
+  width: number
+  height: number
+  top: number
+  bottom: number
+}
 
 function labelWidth(label = '') {
   let width = 0
@@ -686,43 +698,119 @@ function siblingGap(parentId: string | null) {
   return parentId ? SPEC_TREE_GAP : SPEC_TREE_ROOT_GAP
 }
 
-export function layoutSpecTree(nodes: SpecTreeItem[]) {
-  const byId = new Map(nodes.map((item) => [item.id, item]))
-  const childrenOf = (parentId: string | null) => nodes.filter((item) => item.parentId === parentId).sort((a, b) => a.sort - b.sort)
-  const heightOf = (id: string): number => {
-    const node = byId.get(id)
-    const self = specNodeSize(node?.nodeType || 'ATTRIBUTE', node?.label).height
-    const children = childrenOf(id)
-    if (!children.length) return self
-    const gap = siblingGap(id)
-    const inner = children.reduce((sum, child, index) => sum + heightOf(child.id) + (index ? gap : 0), 0)
-    return Math.max(self, inner)
-  }
-  const placed = new Map<string, { x: number; y: number }>()
-  const place = (parentId: string | null, left: number, top: number) => {
-    let y = top
-    const gap = siblingGap(parentId)
-    childrenOf(parentId).forEach((node, index) => {
-      if (index) y += gap
-      const block = heightOf(node.id)
-      const self = specNodeSize(node.nodeType, node.label)
-      placed.set(node.id, { x: left, y: Math.round(y + block / 2 - self.height / 2) })
-      place(node.id, left + self.width + SPEC_LINK_GAP, y)
-      y += block
+function treeChildren(nodes: SpecTreeItem[], parentId: string | null) {
+  const parent = parentId ? nodes.find((item) => item.id === parentId) : undefined
+  if (parent && parent.expanded === false) return []
+  return nodes.filter((item) => item.parentId === parentId).sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
+}
+
+function subtreeSpan(nodes: SpecTreeItem[], id: string): number {
+  const node = nodes.find((item) => item.id === id)
+  const self = specNodeSize(node?.nodeType || 'ATTRIBUTE', node?.label).height
+  const children = treeChildren(nodes, id)
+  if (!children.length) return self
+  const gap = siblingGap(id)
+  const inner = children.reduce((sum, child, index) => sum + subtreeSpan(nodes, child.id) + (index ? gap : 0), 0)
+  return Math.max(self, inner)
+}
+
+function columnOffsets(nodes: SpecTreeItem[], originX: number) {
+  const widths: number[] = []
+  const visit = (parentId: string | null, depth: number) => {
+    treeChildren(nodes, parentId).forEach((node) => {
+      const width = specNodeSize(node.nodeType, node.label).width
+      widths[depth] = Math.max(widths[depth] || 0, width)
+      visit(node.id, depth + 1)
     })
   }
-  place(null, SPEC_TREE_ORIGIN_X, SPEC_TREE_ORIGIN_Y)
+  visit(null, 0)
+  const offsets: number[] = []
+  let cursor = originX
+  widths.forEach((width, depth) => {
+    offsets[depth] = cursor
+    cursor += width + SPEC_LINK_GAP
+  })
+  return offsets
+}
+
+/** 每个节点的 top/bottom 是它独占的垂直带子，兄弟带子互不交叉。同一层共用这一层最宽节点的列宽。 */
+export function layoutSpecFrames(nodes: SpecTreeItem[], originX = SPEC_TREE_ORIGIN_X) {
+  const frames = new Map<string, SpecTreeFrame>()
+  const columns = columnOffsets(nodes, originX)
+  const place = (parentId: string | null, depth: number, top: number) => {
+    let cursor = top
+    const gap = siblingGap(parentId)
+    treeChildren(nodes, parentId).forEach((node, index) => {
+      if (index) cursor += gap
+      const block = subtreeSpan(nodes, node.id)
+      const self = specNodeSize(node.nodeType, node.label)
+      const y = Math.round(cursor + block / 2 - self.height / 2)
+      frames.set(node.id, { x: columns[depth] ?? originX, y, width: self.width, height: self.height, top: cursor, bottom: cursor + block })
+      place(node.id, depth + 1, cursor)
+      cursor += block
+    })
+  }
+  place(null, 0, SPEC_TREE_ORIGIN_Y)
+  return frames
+}
+
+export function layoutSpecTree(nodes: SpecTreeItem[], originX = SPEC_TREE_ORIGIN_X) {
+  const placed = new Map<string, { x: number; y: number }>()
+  layoutSpecFrames(nodes, originX).forEach((frame, id) => placed.set(id, { x: frame.x, y: frame.y }))
   return placed
 }
 
-export function arrangeSpecPositions(nodes: ProductSpecNode[], labelOf?: (node: ProductSpecNode) => string) {
+/** 同一父节点下，前一棵子树的底部加上分支间距后，不能进入下一棵子树。 */
+export function siblingSubtreeCrossings(nodes: SpecTreeItem[], originX = SPEC_TREE_ORIGIN_X) {
+  const frames = layoutSpecFrames(nodes, originX)
+  const hits: string[] = []
+  const parents = new Set<string | null>([null])
+  nodes.forEach((node) => parents.add(node.parentId))
+  parents.forEach((parentId) => {
+    const kids = treeChildren(nodes, parentId)
+    for (let index = 1; index < kids.length; index += 1) {
+      const previous = frames.get(kids[index - 1].id)
+      const next = frames.get(kids[index].id)
+      if (!previous || !next) continue
+      if (previous.bottom + SPEC_TREE_GAP > next.top + 0.01) hits.push(`${kids[index - 1].id}/${kids[index].id}`)
+    }
+  })
+  const walk = (id: string) => {
+    const band = frames.get(id)
+    if (!band) return
+    treeChildren(nodes, id).forEach((child) => {
+      const childBand = frames.get(child.id)
+      if (!childBand) return
+      if (childBand.top < band.top - 0.01 || childBand.bottom > band.bottom + 0.01) hits.push(`out:${child.id}`)
+      if (childBand.x < band.x + band.width + SPEC_LINK_GAP - 0.01) hits.push(`x:${child.id}`)
+      walk(child.id)
+    })
+  }
+  treeChildren(nodes, null).forEach((node) => walk(node.id))
+  return hits
+}
+
+export function specFramesOverlap(nodes: SpecTreeItem[], originX = SPEC_TREE_ORIGIN_X) {
+  const frames = [...layoutSpecFrames(nodes, originX).entries()]
+  const hits: string[] = []
+  frames.forEach(([leftId, left], index) => {
+    frames.slice(index + 1).forEach(([rightId, right]) => {
+      const separated = left.x + left.width <= right.x || right.x + right.width <= left.x || left.y + left.height <= right.y || right.y + right.height <= left.y
+      if (!separated) hits.push(`${leftId}/${rightId}`)
+    })
+  })
+  return hits
+}
+
+export function arrangeSpecPositions(nodes: ProductSpecNode[], labelOf?: (node: ProductSpecNode) => string, originX = SPEC_TREE_ORIGIN_X) {
   const placed = layoutSpecTree(nodes.map((node) => ({
     id: node.id,
     parentId: node.parentId,
     sort: node.sort,
     nodeType: node.nodeType,
     label: labelOf?.(node) || (node.nodeType === 'VALUE' ? node.valueId : ''),
-  })))
+    expanded: node.expanded !== false,
+  })), originX)
   nodes.forEach((node) => {
     const pos = placed.get(node.id)
     if (!pos) return

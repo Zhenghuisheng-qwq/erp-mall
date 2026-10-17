@@ -28,7 +28,8 @@ try {
   await page.goto(`${base}/specs?template=t-phone`, { waitUntil: 'networkidle' })
   const before = await readData()
   const beforePlans = before ? before.planningRecords.length : 0
-  await page.getByText('容量', { exact: true }).first().click()
+  await page.getByRole('button', { name: '自动布局' }).click()
+  await page.getByText('容量', { exact: true }).first().evaluate((element) => element.click())
   await page.getByRole('button', { name: '添加属性值' }).click()
   const dialog = page.getByRole('dialog', { name: '选择属性值' })
   await dialog.waitFor()
@@ -42,7 +43,7 @@ try {
   const added = nodes.find((item) => item.valueId === '512G')
   if (!cap || !added || added.parentId !== cap.id) throw new Error('512G 没有挂在容量下面 ' + JSON.stringify(added))
   if (!(added.x > cap.x) || added.y < 10) throw new Error(`512G 仍游离 x=${added.x} y=${added.y} 容量 x=${cap.x} y=${cap.y}`)
-  await page.getByText('颜色', { exact: true }).first().click()
+  await page.getByText('颜色', { exact: true }).first().evaluate((element) => element.click())
   await page.getByRole('button', { name: '添加属性值' }).click()
   await dialog.waitFor()
   await dialog.locator('.el-select').click()

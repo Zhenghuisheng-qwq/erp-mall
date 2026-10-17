@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, reactive, watch } from 'vue'
 import {
+  blockChildOfTypedCategory,
+  blockTypeOnNonLeaf,
   categoryRemovalBlock as blockCategoryRemoval,
   moveCategoryNode,
   planCategoryCopy,
@@ -9,11 +11,13 @@ import {
   updateCategoryNode,
   type DropPosition,
 } from '../domain/categoryTree'
+import { dictionaryRemovalBlock } from '../domain/dictionaryGuard'
 import { blankVariantAttrs, descendantIds, familySkus, projectAttrs, sameSpecSnapshot, specPublishProblems } from '../domain/logic'
 import { reconcilePlanningRecords } from '../domain/planning'
 import { compatibilityFamilyBlock, compatibilityModelBlock, compatibilitySkuBlock } from '../domain/compatibility'
+import { draftHostRulesDiffer, forgetDraftNodeRules, freezeDraftNodeHosts } from '../domain/nodeCompatibility'
 import { scrubSampleDictionary } from '../domain/compatibilitySamples'
-import { createTemporaryMaterial, createV3Material, setPlanningGrades, updateV3Material } from '../domain/material'
+import { createTemporaryMaterial, createV3Material, setPlanningGrades, tombstoneMaterialReceipts, updateV3Material } from '../domain/material'
 import type { ProductGrade } from '../domain/types'
 import { arrangeSpecPositions } from '../domain/logic'
 import { createSeed, defaultColumns, emptyQuery, phoneCanvas, phoneSpecNodes } from '../domain/seed'
@@ -158,6 +162,10 @@ export function normalizeStored(parsed: StoredPayload): AppData | null {
     data.compatibilities = []
     mark.changed = true
   }
+  if (!Array.isArray(data.nodeCompatibilityRules)) {
+    data.nodeCompatibilityRules = []
+    mark.changed = true
+  }
   if (scrubSampleDictionary(data)) mark.changed = true
   if (data.listQuery) {
     const defaults = emptyQuery()
@@ -267,8 +275,10 @@ export const useCatalogStore = defineStore('catalog', () => {
   function removeFamily(id: string) {
     const blocked = compatibilityFamilyBlock(data, id)
     if (blocked) return blocked
+    const removed = data.skus.filter((item) => item.familyId === id)
     data.families = data.families.filter((item) => item.id !== id)
     data.skus = data.skus.filter((item) => item.familyId !== id)
+    removed.forEach((item) => tombstoneMaterialReceipts(data, item.id))
     return ''
   }
 
@@ -289,6 +299,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (!data.skus.some((item) => item.familyId === sku.familyId)) {
       data.families = data.families.filter((item) => item.id !== sku.familyId)
     }
+    tombstoneMaterialReceipts(data, id)
     return ''
   }
 
@@ -305,12 +316,8 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function removeParam(id: string) {
-    const param = data.params.find((item) => item.id === id)
-    if (!param) return '参数不存在'
-    const usedTemplate = data.templateParams.some((item) => item.paramId === id)
-    const usedRule = data.rules.some((rule) => !rule.legacy && (rule.targetParamId === id || rule.sourceParamIds.includes(id)))
-    const usedProduct = data.families.some((family) => family.commonAttrs[param.name]) || data.skus.some((sku) => sku.variantAttrs[param.name])
-    if (usedTemplate || usedRule || usedProduct) return '这个属性还被属性方案、规则或商品使用，不能删除。'
+    const message = dictionaryRemovalBlock(data, id)
+    if (message) return message
     data.params = data.params.filter((item) => item.id !== id)
     data.templates.forEach((template) => {
       template.structureOrder = template.structureOrder.filter((item) => item !== id)
@@ -319,13 +326,10 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function removeParamValue(paramId: string, value: string) {
+    const message = dictionaryRemovalBlock(data, paramId, value)
+    if (message) return message
     const param = data.params.find((item) => item.id === paramId)
     if (!param) return '参数不存在'
-    const used =
-      data.families.some((family) => family.commonAttrs[param.name] === value) ||
-      data.skus.some((sku) => sku.variantAttrs[param.name] === value) ||
-      data.rules.some((rule) => !rule.legacy && (Object.values(rule.conditions).includes(value) || rule.options.includes(value)))
-    if (used) return '这个取值还被商品或规则使用，不能删除。'
     param.values = param.values.filter((item) => item !== value)
     param.valueGroups.forEach((group) => {
       group.values = group.values.filter((item) => item !== value)
@@ -358,6 +362,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     const name = input.name.trim()
     if (!name) return '请填写产品类型名称。'
     if (!data.categories.some((item) => item.id === input.categoryId)) return '请先选择分类。'
+    const leafBlock = blockTypeOnNonLeaf(data.categories, input.categoryId)
+    if (leafBlock) return leafBlock
     const duplicated = data.productTypes.some((item) => item.categoryId === input.categoryId && item.name === name && item.id !== input.id)
     if (duplicated) return '这个分类下已经有同名产品类型。'
     const description = input.description.trim()
@@ -419,8 +425,29 @@ export const useCatalogStore = defineStore('catalog', () => {
     return { ok: true, message: '', templateId }
   }
 
+  function typedCategoryIds() {
+    return new Set(data.productTypes.map((item) => item.categoryId))
+  }
+
+  function addCategory(name: string, parentId: string | null) {
+    const trimmed = name.trim()
+    if (!trimmed) return { id: '', message: '请填写分类名称' }
+    const blocked = blockChildOfTypedCategory(parentId, typedCategoryIds())
+    if (blocked) return { id: '', message: blocked }
+    const siblings = data.categories.filter((item) => item.parentId === parentId)
+    const id = uid('cat')
+    data.categories.push({
+      id,
+      name: trimmed,
+      parentId,
+      sort: siblings.reduce((max, item) => Math.max(max, item.sort), 0) + 1,
+      enabled: true,
+    })
+    return { id, message: '' }
+  }
+
   function moveCategory(id: string, parentId: string | null) {
-    return moveCategoryNode(data.categories, id, parentId)
+    return moveCategoryNode(data.categories, id, parentId, typedCategoryIds())
   }
 
   function shiftCategory(id: string, direction: -1 | 1) {
@@ -428,14 +455,18 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function relocateCategory(id: string, targetId: string, position: DropPosition) {
-    return relocateCategoryNodes(data.categories, id, targetId, position)
+    return relocateCategoryNodes(data.categories, id, targetId, position, typedCategoryIds())
   }
 
   function updateCategory(id: string, patch: { name: string; enabled: boolean; sort: number; parentId: string | null; icon?: string }) {
-    return updateCategoryNode(data.categories, id, patch)
+    return updateCategoryNode(data.categories, id, patch, typedCategoryIds())
   }
 
   function copyCategory(id: string) {
+    const source = data.categories.find((item) => item.id === id)
+    if (!source) return ''
+    const blocked = blockChildOfTypedCategory(source.parentId, typedCategoryIds())
+    if (blocked) return blocked
     const plan = planCategoryCopy(data.categories, data.mappings, id, () => uid('cat'))
     if (!plan) return ''
     data.categories.push(...plan.categories)
@@ -465,6 +496,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     })
     if (used) return '这个节点或下级取值已经被商品使用，不能删除。'
     data.productSpecNodes = data.productSpecNodes.filter((item) => !ids.includes(item.id))
+    forgetDraftNodeRules(data, ids)
     return ''
   }
 
@@ -559,7 +591,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       canvas = { templateId, zoom: 1, panX: 0, panY: 0, status: 'draft', version: 1, versionName: 'V1', direction: 'ltr', updatedAt: now }
       data.specCanvases.push(canvas)
     }
-    if (latest && latest.status === 'published' && sameSpecSnapshot(latest.nodesSnapshot, nodes)) {
+    if (latest && latest.status === 'published' && sameSpecSnapshot(latest.nodesSnapshot, nodes) && !draftHostRulesDiffer(data, templateId, latest.id)) {
       canvas.status = 'published'
       canvas.version = latest.version
       canvas.versionName = latest.versionName
@@ -581,6 +613,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       createdTime: now,
       publishTime: now,
     })
+    freezeDraftNodeHosts(data, templateId, versionId, now, uid)
     canvas.status = 'published'
     canvas.version = version
     canvas.versionName = versionName
@@ -661,6 +694,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     removeProductType,
     setProductTypeStatus,
     createProductModel,
+    addCategory,
     moveCategory,
     shiftCategory,
     relocateCategory,
