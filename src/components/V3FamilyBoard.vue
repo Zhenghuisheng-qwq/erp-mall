@@ -3,10 +3,23 @@
     <div class="head">
       <div>
         <h2>{{ family.name }}</h2>
-        <p class="muted">{{ category }} · {{ modelName }}。规格来自建档时的模型，这里只改物料档案。</p>
+        <p v-if="active" class="muted">物料 {{ active.materialCode?.trim() || '未分配编码' }} · 规划 {{ active.planningId?.trim() || '无规划编号' }}</p>
       </div>
       <button v-if="modelId" type="button" class="linkish" @click="router.push(`/specs?template=${modelId}`)">返回商品模型</button>
     </div>
+    <section class="basics">
+      <h3>商品基本信息</h3>
+      <label>商品名称<span class="req">必填</span><el-input v-model="productName" maxlength="80" /></label>
+      <p class="muted">所属分类 {{ category || '未记录分类' }}</p>
+      <p class="muted">产品类型 {{ typeName }}</p>
+      <p class="muted">来源模型 {{ modelName }} · {{ versionName(family.modelVersionId) }}</p>
+      <p class="muted">当前状态 {{ shelfText(shelfOf(family)) }}</p>
+      <p class="muted">适用身份 {{ identity.label }}。{{ identity.note }}</p>
+      <div class="row-actions">
+        <el-button type="primary" @click="saveProductName">保存商品名称</el-button>
+      </div>
+      <p v-if="nameError" class="warn">{{ nameError }}</p>
+    </section>
     <div class="archive">
       <section>
         <el-input v-model="keyword" placeholder="搜编码、名称或描述" clearable />
@@ -24,17 +37,21 @@
       <form v-if="active" class="sheet" @submit.prevent="save">
         <h3>规格</h3>
         <p>{{ specText(active) }}</p>
-        <p class="muted">规划编号 {{ active.planningId || '无' }} · {{ versionName(active.modelVersionId) }}</p>
+        <p class="muted">规划编号 {{ active.planningId?.trim() || '无' }} · {{ versionName(active.modelVersionId) }}</p>
         <p v-for="item in active.manualAttrs || []" :key="item.attributeId" class="muted">{{ item.attributeName }} {{ item.value }} · {{ item.source === 'manual' ? '手工填写' : '词典取值' }}</p>
         <p v-if="active.manualAttrs?.some((item) => item.source === 'manual')" class="muted">手工填写的值只属于这条物料，不会改成词典取值，也不会写进商品模型。</p>
         <h3>物料</h3>
         <label>物料名称<span class="req">必填</span><el-input v-model="draft.skuName" /></label>
         <label>物料描述<el-input v-model="draft.materialDescription" type="textarea" :rows="3" /></label>
-        <h3>编码</h3>
-        <label>系统物料编码<el-input :model-value="active.materialCode || ''" disabled /></label>
-        <label>供应商编码<el-input v-model="draft.supplierCode" /></label>
-        <label>管家婆编号<el-input v-model="draft.guanjiapoCode" /></label>
-        <label>OA SKU 编号<el-input v-model="draft.oaSkuId" /></label>
+        <h3>系统编码</h3>
+        <label>系统物料编号
+          <div class="code-line">
+            <el-input :model-value="active.materialCode || '未分配'" readonly />
+            <el-button native-type="button" :disabled="!active.materialCode?.trim()" @click="copyMaterialCode">复制</el-button>
+          </div>
+        </label>
+        <p class="muted">创建时自动生成。已有编号只读，不能修改，也不能重新生成。</p>
+        <label>供应商编码<span class="opt">可选</span><el-input v-model="draft.supplierCode" clearable placeholder="可留空" /></label>
         <p v-if="errorText" class="warn">{{ errorText }}</p>
         <div class="row-actions">
           <el-button type="primary" native-type="submit">保存物料</el-button>
@@ -62,8 +79,8 @@
 import { ElMessage } from 'element-plus'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { catalogRole, hostLabel, linksOfSku, listHostModels } from '../domain/compatibility'
-import { categoryPath, latestPublishedVersion, modelVersionById, specCanvasOf } from '../domain/logic'
+import { catalogRole, hostLabel, linksOfSku, listHostModels, roleOfType } from '../domain/compatibility'
+import { categoryPath, latestPublishedVersion, modelVersionById, shelfOf, shelfText, specCanvasOf } from '../domain/logic'
 import { suggestMaterialName } from '../domain/naming'
 import type { Sku } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
@@ -74,9 +91,21 @@ const router = useRouter()
 const keyword = ref('')
 const activeId = ref(props.skuId || '')
 const errorText = ref('')
-const draft = reactive({ skuName: '', materialDescription: '', supplierCode: '', guanjiapoCode: '', oaSkuId: '' })
+const draft = reactive({ skuName: '', materialDescription: '', supplierCode: '' })
+const productName = ref('')
+const nameError = ref('')
 const family = computed(() => store.data.families.find((item) => item.id === props.familyId && item.line === 'v3'))
 const category = computed(() => (family.value ? categoryPath(store.data, family.value.categoryId) : ''))
+const typeName = computed(() => store.data.productTypes.find((item) => item.id === family.value?.productTypeId)?.name || '未记录产品类型')
+const identity = computed(() => {
+  const current = family.value
+  if (!current) return { label: '未标记', note: '' }
+  const type = store.data.productTypes.find((item) => item.id === current.productTypeId)
+  const role = current.productTypeId ? roleOfType(store.data, current.productTypeId) : catalogRole(store.data, current.categoryId)
+  const label = role === 'host' ? '主机' : role === 'accessory' ? '配件' : '未标记'
+  const note = type?.catalogRole ? '来自产品类型的显式标记。' : '产品类型没有单独标记，目前沿用分类路径。'
+  return { label, note }
+})
 const modelId = computed(() => family.value?.productModelId || family.value?.templateId || '')
 const modelName = computed(() => (modelId.value ? specCanvasOf(store.data, modelId.value)?.name || '商品模型' : ''))
 const materials = computed(() => store.data.skus.filter((item) => item.familyId === props.familyId))
@@ -86,14 +115,36 @@ const filtered = computed(() => {
   return rows.slice().sort((a, b) => (a.materialCode || '').localeCompare(b.materialCode || ''))
 })
 const active = computed(() => materials.value.find((item) => item.id === activeId.value) || filtered.value[0])
-const accessoryMode = computed(() => (family.value ? catalogRole(store.data, family.value.categoryId) === 'accessory' : false))
+const accessoryMode = computed(() => {
+  const current = family.value
+  if (!current) return false
+  const role = current.productTypeId ? roleOfType(store.data, current.productTypeId) : catalogRole(store.data, current.categoryId)
+  return role === 'accessory'
+})
 const skuHosts = computed(() => (active.value ? linksOfSku(store.data, active.value.id) : []).map((item) => ({ ...item, label: hostLabel(item.host) })))
 const familyHosts = computed(() => {
-  if (!family.value || catalogRole(store.data, family.value.categoryId) !== 'host') return []
+  if (!family.value) return []
+  const role = family.value.productTypeId ? roleOfType(store.data, family.value.productTypeId) : catalogRole(store.data, family.value.categoryId)
+  if (role !== 'host') return []
   const plans = new Set(materials.value.map((item) => item.planningId).filter(Boolean))
   return listHostModels(store.data).filter((item) => item.planningIds.some((id) => plans.has(id)))
 })
 
+watch(family, (row) => {
+  productName.value = row?.name || ''
+  nameError.value = ''
+}, { immediate: true })
+function saveProductName() {
+  if (!family.value) return
+  const result = store.renameProduct(family.value.id, productName.value)
+  if (!result.ok) {
+    nameError.value = result.message
+    return
+  }
+  nameError.value = ''
+  productName.value = family.value.name
+  ElMessage.success('商品名称已保存')
+}
 watch(active, (sku) => {
   if (!sku) return
   activeId.value = sku.id
@@ -101,8 +152,6 @@ watch(active, (sku) => {
   draft.skuName = sku.skuName || ''
   draft.materialDescription = sku.materialDescription || ''
   draft.supplierCode = sku.supplierCode || ''
-  draft.guanjiapoCode = sku.guanjiapoCode || ''
-  draft.oaSkuId = sku.oaSkuId || ''
 }, { immediate: true })
 
 function specText(sku: Sku) {
@@ -135,9 +184,38 @@ function regenerate() {
   draft.skuName = suggestion.name
   errorText.value = `按当前已发布规则，名称会改成「${suggestion.name}」。保存后才会写入。`
 }
+async function copyMaterialCode() {
+  const code = active.value?.materialCode?.trim()
+  if (!code) return
+  try {
+    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(code)
+    else {
+      const area = document.createElement('textarea')
+      area.value = code
+      area.setAttribute('readonly', 'true')
+      area.style.position = 'fixed'
+      area.style.left = '-9999px'
+      document.body.appendChild(area)
+      area.select()
+      const copied = document.execCommand('copy')
+      area.remove()
+      if (!copied) throw new Error('copy')
+    }
+    ElMessage.success('已复制系统物料编号')
+  } catch {
+    ElMessage.warning('没能复制，请选中编号后手动复制')
+  }
+}
 function save() {
   if (!active.value) return
-  const result = store.updateMaterial({ skuId: active.value.id, ...draft })
+  const result = store.updateMaterial({
+    skuId: active.value.id,
+    skuName: draft.skuName,
+    supplierCode: draft.supplierCode,
+    guanjiapoCode: active.value.guanjiapoCode || '',
+    oaSkuId: active.value.oaSkuId || '',
+    materialDescription: draft.materialDescription,
+  })
   if (!result.ok) {
     errorText.value = result.message
     return
@@ -149,14 +227,22 @@ function save() {
 
 <style scoped>
 .head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.basics { margin: 14px 0; padding-bottom: 12px; border-bottom: 1px solid var(--border-default); }
+.basics h3 { margin: 0 0 8px; font-size: 15px; }
+.basics label { display: block; margin: 8px 0 4px; font-size: 13px; }
+.basics .el-input { max-width: 360px; }
+.basics .muted { margin-top: 4px; }
 .archive { display: grid; grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1.2fr); gap: 18px; }
 .materials { margin: 8px 0 0; padding: 0; list-style: none; max-height: 420px; overflow: auto; }
 .materials button { width: 100%; border: 0; border-bottom: 1px solid #eef2f6; background: transparent; padding: 8px 4px; text-align: left; cursor: pointer; }
 .materials button.is-on { background: #f3f8ff; }
 .materials strong, .sheet h3 { display: block; margin: 0; }
 .materials span, .materials em, .muted { display: block; color: #607089; font-size: 13px; font-style: normal; }
-.sheet label { display: block; margin: 10px 0 4px; color: #303133; font-size: 13px; }
+.sheet label { display: block; margin: 10px 0 4px; color: var(--text-primary, #303133); font-size: 13px; }
+.code-line { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+.code-line .el-input { flex: 1; min-width: 0; }
 .req { margin-left: 6px; color: #c45656; font-size: 12px; }
+.opt { margin-left: 6px; color: var(--text-secondary, #607089); font-size: 12px; }
 .sheet h3 { margin-top: 14px; }
 .warn { color: #c45656; }
 .linkish { border: 0; background: none; color: #1677ff; cursor: pointer; padding: 0; }

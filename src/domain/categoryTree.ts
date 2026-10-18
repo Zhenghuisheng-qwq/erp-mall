@@ -161,6 +161,38 @@ export function blockTypeOnNonLeaf(categories: Category[], categoryId: string) {
   return ''
 }
 
+/** 产品类型改挂分类。只读检查，不改任何记录。有历史引用时拒绝，避免商品仍停在旧分类。 */
+export function productTypeCategoryMoveMessage(data: {
+  categories: Category[]
+  productTypes: { id: string; categoryId: string }[]
+  specCanvases: { templateId: string; productTypeId?: string }[]
+  specModelVersions: { templateId: string; status: string }[]
+  planningRecords?: { productModelId: string }[]
+  productPlans?: { productTypeId: string }[]
+  families: { id: string; productTypeId?: string }[]
+  skus: { id: string; familyId: string }[]
+  compatibilities?: { accessorySkuId: string; host: { productTypeId: string } }[]
+}, productTypeId: string, nextCategoryId: string, categoryLabel = '') {
+  const type = data.productTypes.find((item) => item.id === productTypeId)
+  if (!type) return '产品类型不存在。'
+  if (type.categoryId === nextCategoryId) return ''
+  const next = data.categories.find((item) => item.id === nextCategoryId)
+  if (!next) return '目标分类不存在或已经删除。'
+  if (next.enabled === false) return '目标分类已停用，不能关联。'
+  const leaf = blockTypeOnNonLeaf(data.categories, nextCategoryId)
+  if (leaf) return leaf
+  const modelIds = new Set(data.specCanvases.filter((item) => item.productTypeId === productTypeId).map((item) => item.templateId))
+  const published = data.specModelVersions.filter((item) => item.status === 'published' && modelIds.has(item.templateId)).length
+  const planning = (data.planningRecords || []).filter((item) => modelIds.has(item.productModelId)).length + (data.productPlans || []).filter((item) => item.productTypeId === productTypeId).length
+  const families = data.families.filter((item) => item.productTypeId === productTypeId)
+  const familyIds = new Set(families.map((item) => item.id))
+  const materials = data.skus.filter((item) => familyIds.has(item.familyId)).length
+  const links = (data.compatibilities || []).filter((item) => item.host.productTypeId === productTypeId || data.skus.some((sku) => familyIds.has(sku.familyId) && sku.id === item.accessorySkuId)).length
+  if (!modelIds.size && !published && !planning && !families.length && !materials && !links) return ''
+  const where = categoryLabel || next.name
+  return `不能改到「${where}」。已有 ${modelIds.size} 个商品模型、${published} 个已发布版本、${planning} 条规划、${families.length} 款商品、${materials} 条物料、${links} 条适用关系。这些记录仍使用原来的分类。本次不会改写发布快照、规划编号和物料编码。`
+}
+
 export function relocateCategoryNodes(categories: Category[], id: string, targetId: string, position: DropPosition, typedCategoryIds: ReadonlySet<string> = new Set()) {
   const message = relocateBlockMessage(categories, id, targetId, position)
   if (message) return message

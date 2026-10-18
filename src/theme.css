@@ -374,6 +374,21 @@ html[data-theme='dark'] .cat-hit {
   background: #6a5b32;
   color: #f1ecef;
 }
+html[data-theme='dark'] .cat-expand {
+  color: var(--text-secondary);
+}
+html[data-theme='dark'] .info-card {
+  background: var(--surface-elevated);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+html[data-theme='dark'] .info-card h3,
+html[data-theme='dark'] .info-card p > span {
+  color: var(--text-secondary);
+}
+html[data-theme='dark'] .info-card .owned-product > span {
+  color: var(--status-warning);
+}
 html[data-theme='dark'] .materials button,
 html[data-theme='dark'] .combos button {
   background: transparent;

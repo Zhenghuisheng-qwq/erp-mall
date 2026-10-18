@@ -129,38 +129,16 @@
           <p>{{ leafId ? '在中间选一个产品类型，再打开商品模型。' : '先选分类，再选产品类型和商品模型。' }}</p>
         </div>
         <section v-if="templateId" class="insight">
-          <div class="insight-bar">
-            <button type="button" class="combo-toggle" @click="comboOpen = !comboOpen">
-              <span>合法组合 {{ comboRows.length }} 条</span>
+          <div class="insight-summary">
+            <div class="summary-stats">
+              <strong>合法组合 {{ comboRows.length }} 条</strong>
+              <span>已选 {{ checkedIds.length }} 条</span>
               <span>{{ comboNumbered }} 条已有规划编号<span v-if="comboRows.length > comboNumbered"> · 其余发布后自动编号</span></span>
-            </button>
-            <el-button v-if="canvasContext.productTypeId" class="temp-entry" @click="temporaryOpen = true">创建临时物料</el-button>
+              <span>{{ comboFiled ? `已建物料 ${comboFiled} 条组合` : '尚无已建物料' }}</span>
+            </div>
+            <el-button type="primary" @click="comboManageOpen = true">管理合法组合</el-button>
           </div>
-          <div v-if="checkedIds.length" class="combo-batch">
-            <span>已选 {{ checkedIds.length }} 条</span>
-            <el-button size="small" @click="markGrade('core')">标为核心商品</el-button>
-            <el-button size="small" @click="markGrade('general')">标为一般产品</el-button>
-          </div>
-          <ul v-show="comboOpen && comboRows.length">
-            <li v-for="row in comboRows" :key="row.key">
-              <label v-if="row.planningId" class="combo-check"><input type="checkbox" :checked="checkedIds.includes(row.planningId)" @change="toggleCheck(row.planningId)" /></label>
-              <button type="button" :class="{ 'is-on': row.key === selectedComboKey }" @click="selectedComboKey = row.key">
-                <span>{{ row.label }}</span>
-                <em>{{ row.retired ? '已停用' : row.note }}</em>
-              </button>
-            </li>
-          </ul>
-          <p v-show="comboOpen && !comboRows.length" class="insight-empty">发布模型后，这里会列出可以建档的合法组合。</p>
           <TemporaryMaterialDialog :open="temporaryOpen" :category-id="canvasContext.categoryId" :product-type-id="canvasContext.productTypeId" :product-model-id="templateId" :model-version-id="latestPublishedVersion(store.data, templateId)?.id" @close="temporaryOpen = false" @open="openTemporary" />
-          <V3MaterialActions
-            v-if="selectedCombo && canvasContext.productTypeId"
-            :product-model-id="templateId"
-            :model-version-id="selectedCombo.modelVersionId"
-            :planning-id="selectedCombo.planningId"
-            :category-id="canvasContext.categoryId"
-            :product-type-id="canvasContext.productTypeId"
-            :retired="selectedCombo.retired"
-          />
           <button v-if="temporaryMaterials.length" type="button" class="combo-toggle temp-toggle" @click="temporaryListOpen = !temporaryListOpen">
             <span>临时物料 {{ temporaryMaterials.length }} 条</span>
             <span>对不上正式规划，编号以 TMP 开头</span>
@@ -175,6 +153,76 @@
           </ul>
           <p v-if="temporaryListOpen && temporaryMaterials.length > 30" class="insight-empty">这里只列出前 30 条。其余到商品列表按供应商编码或物料编码搜索。</p>
         </section>
+        <el-dialog v-model="comboManageOpen" class="combo-manage-dialog" title="合法组合管理" width="82vw" align-center :close-on-click-modal="false">
+          <template #header>
+            <div class="combo-dialog-title">
+              <strong>合法组合管理</strong>
+              <p>共 {{ comboRows.length }} 条，已选 {{ checkedIds.length }} 条，{{ schemeTitle }}</p>
+            </div>
+          </template>
+          <div class="combo-manage">
+            <div class="combo-toolbar">
+              <el-button size="small" @click="selectAllCombos">全选</el-button>
+              <el-button size="small" :disabled="!checkedIds.length" @click="clearComboSelection">取消全选</el-button>
+              <el-button size="small" @click="invertComboSelection">反选</el-button>
+              <el-button size="small" :disabled="!checkedIds.length" @click="markGrade('core')">标为核心商品</el-button>
+              <el-button size="small" :disabled="!checkedIds.length" @click="markGrade('general')">标为一般产品</el-button>
+              <el-button size="small" :disabled="!checkedIds.length" @click="batchCreateMaterials">批量创建物料</el-button>
+              <el-button v-if="canvasContext.productTypeId" size="small" @click="temporaryOpen = true">创建临时物料</el-button>
+              <el-checkbox v-model="comboUnfiledOnly">仅看未建物料</el-checkbox>
+              <el-input v-model="comboKeyword" class="combo-search" clearable placeholder="搜索组合描述、规划编号或物料编号" />
+            </div>
+            <p v-if="!comboRows.length" class="insight-empty">发布模型后，这里会列出可以建档的合法组合。</p>
+            <div v-else class="combo-table-wrap">
+              <el-table class="combo-table" :data="visibleComboRows" row-key="key" height="100%" border>
+                <el-table-column width="52" align="center">
+                  <template #default="{ row }">
+                    <el-checkbox :model-value="!!row.planningId && checkedIds.includes(row.planningId)" :disabled="!row.planningId" :title="row.planningId ? '勾选这条组合' : '发布后才能勾选'" @change="row.planningId && toggleCheck(row.planningId)" />
+                  </template>
+                </el-table-column>
+                <el-table-column prop="label" label="组合描述" min-width="280" show-overflow-tooltip />
+                <el-table-column label="规划编号" width="140">
+                  <template #default="{ row }">{{ row.recordId || '发布后自动编号' }}</template>
+                </el-table-column>
+                <el-table-column label="商品类型" width="128">
+                  <template #default="{ row }">
+                    <span class="combo-grade">{{ row.gradeLabel }}</span>
+                    <el-tag v-if="row.retired" size="small" type="info">已停用</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="物料状态" width="128">
+                  <template #default="{ row }"><span :class="row.materialCount ? 'is-filed' : 'is-empty'">{{ row.materialStatus }}</span></template>
+                </el-table-column>
+                <el-table-column label="物料编号" min-width="160" show-overflow-tooltip>
+                  <template #default="{ row }">{{ row.materialCodes || '—' }}</template>
+                </el-table-column>
+                <el-table-column label="操作" width="168" fixed="right">
+                  <template #default="{ row }">
+                    <el-button link type="primary" :disabled="row.materialCount === 0" @click="openComboMaterial(row, 'list')">查看物料</el-button>
+                    <el-button link type="primary" :disabled="!row.planningId" @click="openComboMaterial(row, 'create')">单条创建</el-button>
+                  </template>
+                </el-table-column>
+                <template #empty>没有符合条件的组合。</template>
+              </el-table>
+            </div>
+          </div>
+          <V3MaterialActions
+            v-if="actionCombo && materialLaunch.token && canvasContext.productTypeId"
+            :key="materialLaunch.token"
+            bare
+            :product-model-id="templateId"
+            :model-version-id="actionCombo.modelVersionId"
+            :planning-id="actionCombo.recordId"
+            :category-id="canvasContext.categoryId"
+            :product-type-id="canvasContext.productTypeId"
+            :retired="actionCombo.retired"
+            :open-create-tick="materialLaunch.mode === 'create' ? materialLaunch.token : 0"
+            :open-list-tick="materialLaunch.mode === 'list' ? materialLaunch.token : 0"
+          />
+          <template #footer>
+            <el-button @click="comboManageOpen = false">关闭</el-button>
+          </template>
+        </el-dialog>
         <div v-if="templateId" class="board" tabindex="0" @pointerdown="focusBoard">
       <div v-if="editorMode === 'canvas'" class="canvas">
         <VueFlow
@@ -439,7 +487,7 @@ import { outlineChoices, rebindSpecNode } from '../domain/outlineEdit'
 import { legalPlanningCombinations } from '../domain/planning'
 import NamingRuleDialog from '../components/NamingRuleDialog.vue'
 import TemporaryMaterialDialog from '../components/TemporaryMaterialDialog.vue'
-import { filingText, gradeText } from '../domain/material'
+import { gradeText } from '../domain/material'
 import V3MaterialActions from '../components/V3MaterialActions.vue'
 import type { ProductSpecNode, ParamDef } from '../domain/types'
 import { uid, useCatalogStore } from '../stores/catalog'
@@ -595,9 +643,11 @@ const flowEdges = ref<{ id: string; source: string; target: string; type: string
 const mapForced = ref<boolean | null>(null)
 
 const nodes = computed(() => store.data.productSpecNodes.filter((item) => item.templateId === templateId.value))
-const comboOpen = ref(false)
-const selectedComboKey = ref('')
 const checkedIds = ref<string[]>([])
+const comboManageOpen = ref(false)
+const comboKeyword = ref('')
+const comboUnfiledOnly = ref(false)
+const materialLaunch = ref<{ token: number; key: string; mode: '' | 'create' | 'list' }>({ token: 0, key: '', mode: '' })
 const temporaryOpen = ref(false)
 const temporaryListOpen = ref(false)
 const temporaryMaterials = computed(() => {
@@ -610,19 +660,50 @@ const comboRows = computed(() => {
   const known = store.data.planningRecords || []
   const versionId = latestPublishedVersion(store.data, templateId.value)?.id || ''
   return legalPlanningCombinations(store.data, templateId.value, nodes.value).map((row) => {
-    const matched = known.find((item) => item.productModelId === templateId.value && item.identityKey === row.identityKey)
+    const matched = known.find((item) => item.productModelId === templateId.value && item.identityKey === row.identityKey && item.origin !== 'temporary')
+    const active = matched?.status === 'active'
+    const recordId = matched?.planningId || ''
+    const planningId = active ? recordId : ''
+    const skus = recordId ? store.data.skus.filter((item) => item.planningId === recordId) : []
+    const materialCodes = skus.map((item) => item.materialCode).filter(Boolean).join('、')
     return {
       key: row.identityKey,
       label: row.label,
-      planningId: matched?.status === 'active' ? matched.planningId : '',
-      modelVersionId: matched?.status === 'active' ? matched.modelVersionId : versionId,
+      planningId,
+      recordId,
+      modelVersionId: active && matched ? matched.modelVersionId : versionId,
       retired: matched?.status === 'retired',
-      note: matched?.status === 'retired' ? '已停用' : matched?.planningId ? `${matched.planningId} · ${gradeText(matched.grade)} · ${filingText(matched.grade, store.data.skus.filter((item) => item.planningId === matched.planningId).length)}${store.data.skus.some((item) => item.planningId === matched.planningId) ? ` · ${store.data.skus.filter((item) => item.planningId === matched.planningId).map((item) => item.materialCode).filter(Boolean).join('、')}` : ''}` : '发布后自动编号',
+      grade: matched?.grade,
+      gradeLabel: gradeText(matched?.grade),
+      materialCount: skus.length,
+      materialCodes,
+      materialStatus: skus.length ? `已创建 ${skus.length} 条` : '未创建',
     }
   })
 })
 const comboNumbered = computed(() => comboRows.value.filter((item) => item.planningId).length)
-const selectedCombo = computed(() => comboRows.value.find((item) => item.key === selectedComboKey.value))
+const comboFiled = computed(() => comboRows.value.filter((item) => item.materialCount > 0).length)
+const visibleComboRows = computed(() => {
+  const text = comboKeyword.value.trim().toLowerCase()
+  return comboRows.value.filter((row) => {
+    if (comboUnfiledOnly.value && row.materialCount > 0) return false
+    if (!text) return true
+    return `${row.label} ${row.recordId} ${row.materialCodes}`.toLowerCase().includes(text)
+  })
+})
+const actionCombo = computed(() => comboRows.value.find((item) => item.key === materialLaunch.value.key))
+watch(templateId, () => {
+  checkedIds.value = []
+  comboManageOpen.value = false
+  comboKeyword.value = ''
+  comboUnfiledOnly.value = false
+  materialLaunch.value = { token: 0, key: '', mode: '' }
+})
+watch(comboRows, (rows) => {
+  const alive = new Set(rows.map((item) => item.planningId).filter(Boolean))
+  const next = checkedIds.value.filter((id) => alive.has(id))
+  if (next.length !== checkedIds.value.length) checkedIds.value = next
+})
 const canvasContext = computed(() => {
   const canvas = store.data.specCanvases.find((item) => item.templateId === templateId.value)
   const productType = store.data.productTypes.find((item) => item.id === canvas?.productTypeId)
@@ -2052,9 +2133,88 @@ function focusBoard(event: PointerEvent) {
   board.focus()
 }
 function toggleCheck(id: string) {
+  if (!id) return
   checkedIds.value = checkedIds.value.includes(id) ? checkedIds.value.filter((item) => item !== id) : [...checkedIds.value, id]
 }
+function visibleSelectableIds() {
+  return visibleComboRows.value.map((row) => row.planningId).filter(Boolean)
+}
+function selectAllCombos() {
+  const ids = visibleSelectableIds()
+  if (!ids.length) {
+    ElMessage.warning('没有可选择的组合。发布模型后才能勾选。')
+    return
+  }
+  checkedIds.value = [...new Set([...checkedIds.value, ...ids])]
+}
+function clearComboSelection() {
+  checkedIds.value = []
+}
+function invertComboSelection() {
+  const visible = visibleSelectableIds()
+  if (!visible.length) {
+    ElMessage.warning('没有可选择的组合。发布模型后才能勾选。')
+    return
+  }
+  const selected = new Set(checkedIds.value)
+  visible.forEach((id) => {
+    if (selected.has(id)) selected.delete(id)
+    else selected.add(id)
+  })
+  checkedIds.value = [...selected]
+}
+function openComboMaterial(row: { key: string }, mode: 'create' | 'list') {
+  materialLaunch.value = { token: materialLaunch.value.token + 1, key: row.key, mode }
+}
+function batchCreateMaterials() {
+  if (!checkedIds.value.length) {
+    ElMessage.warning('请先选择组合')
+    return
+  }
+  const context = canvasContext.value
+  if (!context.productTypeId) {
+    ElMessage.warning('当前模型还没有产品类型，不能创建物料。')
+    return
+  }
+  const picked = new Set(checkedIds.value)
+  const rows = comboRows.value.filter((row) => row.planningId && picked.has(row.planningId))
+  let created = 0
+  let skipped = 0
+  const failed: string[] = []
+  rows.forEach((row) => {
+    if (row.materialCount > 0) {
+      skipped += 1
+      return
+    }
+    const result = store.createMaterial({
+      productModelId: templateId.value,
+      modelVersionId: row.modelVersionId,
+      planningId: row.planningId,
+      requestId: uid('req'),
+      categoryId: context.categoryId,
+      productTypeId: context.productTypeId,
+    })
+    if (!result.ok) failed.push(`${row.label}：${result.message}`)
+    else if (result.created) created += 1
+    else skipped += 1
+  })
+  if (failed.length && !created) {
+    ElMessage.warning(failed.length === 1 ? failed[0] : `${failed.length} 条没有创建。${failed[0]}`)
+    return
+  }
+  if (!created) {
+    ElMessage.info(skipped ? `所选组合里 ${skipped} 条已经有物料，没有重复创建。` : '没有可创建的组合。')
+    return
+  }
+  const extra = failed.length ? `，${failed.length} 条需要单条创建` : ''
+  const skipText = skipped ? `，跳过已有物料 ${skipped} 条` : ''
+  ElMessage.success(`已创建 ${created} 条物料${skipText}${extra}`)
+}
 function markGrade(grade: 'core' | 'general') {
+  if (!checkedIds.value.length) {
+    ElMessage.warning('请先选择组合')
+    return
+  }
   const count = store.markPlanningGrades(checkedIds.value, grade)
   checkedIds.value = []
   ElMessage.success(`已标记 ${count} 条规划，没有新建物料。`)
@@ -2070,7 +2230,7 @@ function visibleOverlay(selector: string) {
   })
 }
 function shortcutBlocked() {
-  if (attributeOpen.value || valueOpen.value || copyOpen.value || nodeDraftOpen.value || editingId.value || namingOpen.value || temporaryOpen.value || hostOpen.value) return true
+  if (attributeOpen.value || valueOpen.value || copyOpen.value || nodeDraftOpen.value || editingId.value || namingOpen.value || temporaryOpen.value || hostOpen.value || comboManageOpen.value) return true
   if (document.querySelector('.v3-material-dialog')) return true
   return visibleOverlay('.el-overlay-dialog, .el-message-box')
 }
@@ -2178,20 +2338,31 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .studio-head .meta-row { display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: center; margin: 6px 0 0; color: #303133; font-size: 12px; }
 .meta-type { padding: 1px 8px; border-radius: 4px; background: #f4f8fc; }
 .head-tools { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
-.insight { margin: 0 0 8px; border: 1px solid #e6edf5; border-radius: 10px; background: #fff; }
-.insight-bar { display: flex; align-items: center; gap: 8px; padding-right: 8px; }
-.combo-toggle { flex: 1; display: flex; justify-content: space-between; gap: 12px; border: 0; background: transparent; padding: 8px 12px; color: #1f3b66; font-size: 13px; cursor: pointer; }
-.combo-toggle span:last-child { color: #8aa0b8; font-weight: 400; }
-.temp-toggle { width: 100%; border-top: 1px solid #f0f3f7; }
+.insight { margin: 0 0 8px; border: 1px solid var(--border-default, #e6edf5); border-radius: 10px; background: var(--surface-bg, #fff); color: var(--text-primary, #253044); }
+.insight-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; }
+.summary-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; min-width: 0; font-size: 13px; }
+.summary-stats strong { font-weight: 650; }
+.summary-stats span { color: var(--text-secondary, #66758b); }
+.combo-toggle { flex: 1; display: flex; justify-content: space-between; gap: 12px; border: 0; background: transparent; padding: 8px 12px; color: var(--text-primary, #1f3b66); font-size: 13px; cursor: pointer; }
+.combo-toggle span:last-child { color: var(--text-muted, #8aa0b8); font-weight: 400; }
+.temp-toggle { width: 100%; border-top: 1px solid var(--border-subtle, #f0f3f7); }
 .insight ul { max-height: 132px; margin: 0; padding: 0 12px 8px; overflow: auto; list-style: none; }
 .insight li { display: flex; align-items: center; gap: 6px; }
-.combo-check { display: flex; align-items: center; }
-.combo-batch { display: flex; align-items: center; gap: 8px; margin: 0 12px 8px; color: #607089; font-size: 13px; }
-.temp-entry { flex: none; }
-.insight li button { width: 100%; display: flex; justify-content: space-between; gap: 12px; border: 0; background: transparent; padding: 4px 0; color: #1f2a37; font-size: 13px; text-align: left; cursor: pointer; }
-.insight li button.is-on { color: #1677ff; }
-.insight em { color: #8aa0b8; font-style: normal; white-space: nowrap; }
-.insight-empty { margin: 0; padding: 0 12px 10px; color: #98a4b3; font-size: 12px; }
+.insight li button { width: 100%; display: flex; justify-content: space-between; gap: 12px; border: 0; background: transparent; padding: 4px 0; color: var(--text-primary, #1f2a37); font-size: 13px; text-align: left; cursor: pointer; }
+.insight li button.is-on { color: var(--app-accent, #1677ff); }
+.insight em { color: var(--text-muted, #8aa0b8); font-style: normal; white-space: nowrap; }
+.insight-empty { margin: 0; padding: 0 12px 10px; color: var(--text-muted, #98a4b3); font-size: 12px; }
+.combo-dialog-title strong { display: block; color: var(--el-text-color-primary, #253044); font-size: 16px; line-height: 1.4; }
+.combo-dialog-title p { margin: 4px 0 0; color: var(--el-text-color-secondary, #66758b); font-size: 13px; font-weight: 400; }
+.combo-manage { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.combo-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.combo-search { width: 280px; margin-left: auto; }
+.combo-table-wrap { flex: 1; min-height: 0; overflow: hidden; }
+.combo-table :deep(.el-table__header th) { background: var(--el-fill-color-light, #f7f8fa); color: var(--el-text-color-primary, #253044); }
+.combo-table :deep(.el-table__cell) { border-color: var(--el-border-color, #e4e8ef); }
+.combo-grade { margin-right: 6px; }
+.is-filed { color: var(--status-success, #137333); }
+.is-empty { color: var(--text-muted, #8b98a8); }
 .op-bar { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .view-switch { --el-segmented-item-selected-bg-color: var(--el-color-primary); --el-segmented-item-selected-color: #fff; }
 .work-main { min-width: 0; min-height: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden; padding: 12px 14px 10px; background: var(--canvas-bg, #f4f7fb); border-left: 1px solid var(--border-subtle, #eef2f6); }
@@ -2270,4 +2441,41 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .node-card.is-root span { color: #d5e2f5; }
 .context-menu { position: fixed; z-index: 40; background: #fff; border: 1px solid var(--el-border-color); border-radius: 8px; padding: 4px; display: flex; flex-direction: column; align-items: stretch; min-width: 132px; box-shadow: var(--el-box-shadow-light); }
 .context-menu :deep(.el-button) { justify-content: flex-start; margin: 0; }
+</style>
+
+<style>
+.el-overlay-dialog:has(.combo-manage-dialog) {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+.combo-manage-dialog.el-dialog {
+  width: min(82vw, 1360px) !important;
+  max-width: 1360px;
+  height: min(78vh, 820px);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+  background: var(--el-bg-color-overlay, #fff);
+  border: 1px solid var(--el-border-color, #e4e8ef);
+}
+.combo-manage-dialog .el-dialog__header {
+  flex: none;
+  margin-right: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--el-border-color-light, #e4e8ef);
+}
+.combo-manage-dialog .el-dialog__body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  color: var(--el-text-color-primary, #253044);
+}
+.combo-manage-dialog .el-dialog__footer {
+  flex: none;
+  border-top: 1px solid var(--el-border-color-light, #e4e8ef);
+}
 </style>

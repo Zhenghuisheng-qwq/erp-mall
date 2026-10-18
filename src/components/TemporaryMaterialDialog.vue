@@ -18,10 +18,8 @@
       <p v-if="namingMessage" class="warn">{{ namingMessage }}</p>
       <label>物料名称<el-input v-model="skuName" @input="nameTouched = true" /></label>
       <label>系统物料编码<span class="req">必填</span><el-input v-model="materialCode" placeholder="例如 MAT-900001 或业务自己的编码" /></label>
-      <p class="muted">这是系统里的物料编码，要全局唯一。供应商编码、管家婆编号、OA 编号是另外三项，可以重复。</p>
-      <label>供应商编码<el-input v-model="supplierCode" /></label>
-      <label>管家婆编号<el-input v-model="guanjiapoCode" /></label>
-      <label>OA SKU 编号<el-input v-model="oaSkuId" /></label>
+      <p class="muted">临时物料仍要手工指定全局唯一的系统编码。确认后到档案里只读，不能再改。</p>
+      <label>供应商编码<el-input v-model="supplierCode" clearable placeholder="可留空" /></label>
       <label>物料描述<el-input v-model="materialDescription" type="textarea" :rows="2" /></label>
       <p class="summary">{{ summary || '填写属性后这里会显示摘要。' }}</p>
       <p v-if="errorText" class="warn">{{ errorText }}</p>
@@ -50,8 +48,6 @@ const skuName = ref('')
 const nameTouched = ref(false)
 const materialCode = ref('')
 const supplierCode = ref('')
-const guanjiapoCode = ref('')
-const oaSkuId = ref('')
 const materialDescription = ref('')
 const errorText = ref('')
 const saving = ref(false)
@@ -79,8 +75,6 @@ watch(() => props.open, (open) => {
   nameTouched.value = false
   materialCode.value = ''
   supplierCode.value = ''
-  guanjiapoCode.value = ''
-  oaSkuId.value = ''
   materialDescription.value = ''
   errorText.value = ''
   requestId.value = uid('req')
@@ -112,8 +106,6 @@ function save() {
     materialCode: materialCode.value,
     skuName: skuName.value,
     supplierCode: supplierCode.value,
-    guanjiapoCode: guanjiapoCode.value,
-    oaSkuId: oaSkuId.value,
     materialDescription: materialDescription.value,
   })
   saving.value = false

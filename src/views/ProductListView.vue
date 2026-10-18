@@ -54,17 +54,21 @@
           <template #default="{ row }">
             <div style="padding: 0 12px 8px">
               <div class="row-actions" style="margin-bottom: 8px">
-                <el-button size="small" @click="router.push(`/products/${row.id}`)">{{ row.line === 'v3' ? '查看物料' : '编辑整款商品' }}</el-button>
+                <el-button size="small" @click="router.push(`/products/${row.id}`)">{{ row.line === 'v3' ? '管理物料' : '编辑整款商品' }}</el-button>
                 <el-button v-if="row.line !== 'v3'" size="small" @click="router.push(`/products/${row.id}?add=1`)">新增规格</el-button>
                 <el-button size="small" :disabled="selected[row.id]?.length === 0" @click="batchStatus(row.id, 'on_sale')">所选改在售</el-button>
                 <el-button size="small" :disabled="selected[row.id]?.length === 0" @click="batchStatus(row.id, 'off_sale')">所选改停售</el-button>
               </div>
               <el-table :data="store.skusOf(row.id)" size="small" @selection-change="onSelect(row.id, $event)">
                 <el-table-column type="selection" width="42" />
-                <el-table-column label="规格" min-width="220">
+                <el-table-column label="规格" min-width="280">
                   <template #default="{ row: sku }">
-                    <div>{{ sku.materialCode ? `${sku.materialCode} · ` : '' }}{{ sku.skuName || (row.productPlanId ? row.name : skuTitle(sku, boundParams(store.data, row.templateId, 'variant'))) }}</div>
-                    <div v-if="row.line === 'v3'" class="muted">{{ sku.planningId || '无规划编号' }} · 供应商 {{ sku.supplierCode || '未填' }} · 管家婆 {{ sku.guanjiapoCode || '未填' }}{{ sku.materialDescription ? ` · ${sku.materialDescription}` : '' }}</div>
+                    <template v-if="row.line === 'v3'">
+                      <div>{{ sku.skuName?.trim() || '未命名物料' }}</div>
+                      <div class="muted">{{ sku.materialCode?.trim() || '未分配物料编码' }} · {{ sku.planningId?.trim() || '无规划编号' }}</div>
+                      <div class="muted">{{ specSummary(row, sku) || '无规格摘要' }}</div>
+                    </template>
+                    <div v-else>{{ sku.materialCode ? `${sku.materialCode} · ` : '' }}{{ sku.skuName || (row.productPlanId ? row.name : skuTitle(sku, boundParams(store.data, row.templateId, 'variant'))) }}</div>
                   </template>
                 </el-table-column>
                 <el-table-column label="状态" width="120">
@@ -76,10 +80,10 @@
                     </el-select>
                   </template>
                 </el-table-column>
-                <el-table-column prop="oaSkuId" label="OA_SKUID" width="140" />
+                <el-table-column v-if="row.line !== 'v3'" prop="oaSkuId" label="OA_SKUID" width="140" />
                 <el-table-column label="操作" width="180">
                   <template #default="{ row: sku }">
-                    <el-button link type="primary" @click="router.push(`/products/${row.id}?sku=${sku.id}`)">编辑</el-button>
+                    <el-button link type="primary" @click="router.push(`/products/${row.id}?sku=${sku.id}`)">{{ row.line === 'v3' ? '物料档案' : '编辑' }}</el-button>
                     <el-button v-if="row.line !== 'v3'" link @click="copySku(row.id, sku.id)">复制</el-button>
                     <el-button link type="danger" @click="removeSku(sku.id)">删除</el-button>
                   </template>
@@ -92,6 +96,7 @@
           <template #default="{ row }">
             <template v-if="col.key === 'name'">
               <button class="linkish" @click="router.push(`/products/${row.id}`)">{{ row.name }}</button>
+              <span v-if="row.line === 'v3'" class="sku-hint">{{ materialSummary(row.id) }}</span>
               <span v-if="planSource(row)" class="sku-hint">来自规划：{{ planSource(row) }}</span>
             </template>
             <template v-else-if="col.key === 'category'">{{ categoryPath(store.data, row.categoryId) }}</template>
@@ -107,7 +112,7 @@
         <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
             <el-button v-if="row.line === 'v3'" link type="primary" @click="router.push(compatTarget(row))">{{ compatTitle(row) }}</el-button>
-            <el-button link type="primary" @click="router.push(`/products/${row.id}`)">编辑</el-button>
+            <el-button link type="primary" @click="router.push(`/products/${row.id}`)">{{ row.line === 'v3' ? '管理物料' : '编辑' }}</el-button>
             <el-button link @click="copyFamily(row.id)">复制</el-button>
             <el-button link type="danger" @click="removeFamily(row.id, row.name)">删除</el-button>
           </template>
@@ -139,8 +144,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PageHead from '../components/PageHead.vue'
-import { catalogRole, compatibilityFamilyBlock } from '../domain/compatibility'
+import { catalogRole, compatibilityFamilyBlock, roleOfType } from '../domain/compatibility'
 import { boundParams, categoryPath, projectAttrs, shelfOf, shelfText, skuTitle, templateById } from '../domain/logic'
+import { familyMaterialDigest } from '../domain/material'
 import type { ProductFamily, Sku } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
 
@@ -156,6 +162,12 @@ const familyIds = ref<string[]>([])
 const createdRange = ref<[string, string] | null>(null)
 const categories = computed(() => store.data.categories)
 const brands = computed(() => Array.from(new Set(store.data.families.map((item) => item.commonAttrs['品牌']).filter(Boolean))))
+function materialSummary(familyId: string) {
+  return familyMaterialDigest(store.skusOf(familyId))
+}
+function specSummary(family: ProductFamily, sku: Sku) {
+  return Object.entries(projectAttrs(family, sku)).map(([name, value]) => `${name} ${value}`).join(' · ')
+}
 function planSource(row: { productPlanId?: string }) {
   if (!row.productPlanId) return ''
   return store.data.productPlans.find((item) => item.id === row.productPlanId)?.name || '商品规划'
@@ -218,11 +230,15 @@ function saveView() {
   viewName.value = ''
   ElMessage.success('视图已保存，刷新后还在')
 }
+function familyRole(row: ProductFamily) {
+  if (row.productTypeId) return roleOfType(store.data, row.productTypeId)
+  return catalogRole(store.data, row.categoryId)
+}
 function compatTitle(row: ProductFamily) {
-  return catalogRole(store.data, row.categoryId) === 'accessory' ? '适用主机' : '适用配件'
+  return familyRole(row) === 'accessory' ? '适用主机' : '适用配件'
 }
 function compatTarget(row: ProductFamily) {
-  if (catalogRole(store.data, row.categoryId) !== 'accessory') return `/compatibility?family=${row.id}`
+  if (familyRole(row) !== 'accessory') return `/compatibility?family=${row.id}`
   const sku = store.skusOf(row.id)[0]
   return sku ? `/compatibility?sku=${sku.id}` : '/compatibility'
 }

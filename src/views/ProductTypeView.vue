@@ -38,7 +38,13 @@
     </div>
     <el-dialog v-model="open" :title="editing.id ? '编辑产品类型' : '新增产品类型'" width="460px">
       <el-form label-width="72px">
-        <el-form-item label="分类"><el-input :model-value="categoryId ? categoryPath(store.data, categoryId) : ''" disabled /></el-form-item>
+        <el-form-item label="分类">
+          <el-input v-if="!editing.id" :model-value="categoryId ? categoryPath(store.data, categoryId) : ''" disabled />
+          <el-select v-else v-model="targetCategoryId" filterable placeholder="选择末级分类" style="width: 100%">
+            <el-option v-for="item in leafCategories" :key="item.id" :label="item.label" :value="item.id" />
+          </el-select>
+        </el-form-item>
+        <p v-if="moveHint" class="move-hint">{{ moveHint }}</p>
         <el-form-item label="名称"><el-input v-model="editing.name" /></el-form-item>
         <el-form-item label="说明"><el-input v-model="editing.description" type="textarea" /></el-form-item>
         <el-form-item label="排序"><el-input-number v-model="editing.sort" :min="1" /></el-form-item>
@@ -55,6 +61,7 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, reactive, ref } from 'vue'
 import PageHead from '../components/PageHead.vue'
+import { productTypeCategoryMoveMessage } from '../domain/categoryTree'
 import { categoryPath } from '../domain/logic'
 import type { ProductType } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
@@ -63,9 +70,18 @@ const store = useCatalogStore()
 const categoryId = ref(store.data.categories.some((item) => item.id === 'c-phone') ? 'c-phone' : store.data.categories[0]?.id || '')
 const open = ref(false)
 const editing = reactive({ id: '', name: '', description: '', sort: 1, status: 'enabled' as ProductType['status'] })
+const targetCategoryId = ref('')
 
 const categoryTree = computed(() => walk(null))
 const rows = computed(() => (categoryId.value ? store.productTypesOf(categoryId.value) : []))
+const leafCategories = computed(() => store.data.categories
+  .filter((item) => item.enabled !== false && !store.data.categories.some((child) => child.parentId === item.id))
+  .map((item) => ({ id: item.id, label: categoryPath(store.data, item.id) }))
+  .sort((a, b) => a.label.localeCompare(b.label, 'zh')))
+const moveHint = computed(() => {
+  if (!editing.id || !targetCategoryId.value) return ''
+  return productTypeCategoryMoveMessage(store.data, editing.id, targetCategoryId.value, categoryPath(store.data, targetCategoryId.value))
+})
 
 function walk(parentId: string | null): { id: string; label: string; children: ReturnType<typeof walk> }[] {
   return store.data.categories
@@ -92,6 +108,7 @@ function openEdit(id: string) {
   const row = store.data.productTypes.find((item) => item.id === id)
   if (!row) return
   Object.assign(editing, { id: row.id, name: row.name, description: row.description, sort: row.sort, status: row.status })
+  targetCategoryId.value = row.categoryId
   open.value = true
 }
 
@@ -99,7 +116,7 @@ function save() {
   const message = store.saveProductType({
     id: editing.id,
     name: editing.name,
-    categoryId: categoryId.value,
+    categoryId: editing.id ? targetCategoryId.value : categoryId.value,
     description: editing.description,
     sort: editing.sort,
     status: editing.status,
@@ -134,5 +151,6 @@ async function onRemove(id: string) {
 </script>
 
 <style scoped>
-.path { margin: 0 0 12px; color: #606266; }
+.path { margin: 0 0 12px; color: var(--text-secondary); }
+.move-hint { margin: 0 0 12px; color: var(--status-danger); font-size: 13px; line-height: 1.5; }
 </style>

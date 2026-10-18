@@ -45,7 +45,7 @@
             <span v-if="row.icon" class="cat-emoji">{{ row.icon }}</span>
             <el-icon v-else-if="row.hasChildren" class="cat-icon"><FolderOpened v-if="row.expanded" /><Folder v-else /></el-icon>
             <el-icon v-else class="cat-icon"><Document /></el-icon>
-            <span class="cat-name" :title="row.name">
+            <span class="cat-name" :title="row.name" @click="onNameClick(row.id, $event)">
               <span v-for="(part, index) in nameParts(row.name)" :key="index" :class="{ 'cat-hit': part.hit }">{{ part.text }}</span>
             </span>
             <span v-if="!row.enabled" class="cat-off-tag">停用</span>
@@ -352,6 +352,11 @@ function onRowClick(id: string) {
   }
   pick(id)
 }
+function onNameClick(id: string, event: MouseEvent) {
+  if (!editing.value || dragged.value) return
+  event.stopPropagation()
+  openEdit(id)
+}
 function openCreate(parentId: string | null) {
   parentForCreate.value = parentId
   createName.value = ''
@@ -581,6 +586,7 @@ function onDragEnd() {
 .cat-icon { color: #5b8def; flex: none; }
 .cat-emoji { width: 16px; text-align: center; flex: none; }
 .cat-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.cat-row.is-editing .cat-name { cursor: pointer; }
 .cat-hit { background: #ffe58f; border-radius: 2px; }
 .cat-off-tag { flex: none; font-size: 12px; line-height: 18px; color: #8a94a6; background: #f2f4f7; border-radius: 4px; padding: 0 6px; }
 .cat-count { flex: none; color: #98a2b3; font-size: 12px; }

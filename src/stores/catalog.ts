@@ -3,6 +3,7 @@ import { computed, reactive, watch } from 'vue'
 import {
   blockChildOfTypedCategory,
   blockTypeOnNonLeaf,
+  productTypeCategoryMoveMessage,
   categoryRemovalBlock as blockCategoryRemoval,
   moveCategoryNode,
   planCategoryCopy,
@@ -11,13 +12,14 @@ import {
   updateCategoryNode,
   type DropPosition,
 } from '../domain/categoryTree'
+import { applyAccessoryCategoryFix, PHONE_CASE_CATEGORY_FIX } from '../domain/categoryFix'
 import { dictionaryRemovalBlock } from '../domain/dictionaryGuard'
-import { blankVariantAttrs, descendantIds, familySkus, projectAttrs, sameSpecSnapshot, specPublishProblems } from '../domain/logic'
+import { blankVariantAttrs, categoryPath, descendantIds, familySkus, projectAttrs, sameSpecSnapshot, specPublishProblems } from '../domain/logic'
 import { reconcilePlanningRecords } from '../domain/planning'
 import { compatibilityFamilyBlock, compatibilityModelBlock, compatibilitySkuBlock } from '../domain/compatibility'
 import { draftHostRulesDiffer, forgetDraftNodeRules, freezeDraftNodeHosts } from '../domain/nodeCompatibility'
 import { scrubSampleDictionary } from '../domain/compatibilitySamples'
-import { createTemporaryMaterial, createV3Material, setPlanningGrades, tombstoneMaterialReceipts, updateV3Material } from '../domain/material'
+import { createTemporaryMaterial, createV3Material, renameV3Product, setPlanningGrades, tombstoneMaterialReceipts, updateV3Material } from '../domain/material'
 import type { ProductGrade } from '../domain/types'
 import { arrangeSpecPositions } from '../domain/logic'
 import { createSeed, defaultColumns, emptyQuery, phoneCanvas, phoneSpecNodes } from '../domain/seed'
@@ -184,7 +186,12 @@ function loadData(): AppData {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return createSeed()
     const parsed = JSON.parse(raw) as StoredPayload
-    return normalizeStored(parsed) ?? createSeed()
+    const data = normalizeStored(parsed) ?? createSeed()
+    const fix = applyAccessoryCategoryFix(data, PHONE_CASE_CATEGORY_FIX)
+    if (fix.changed && typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data }))
+    }
+    return data
   } catch {
     return createSeed()
   }
@@ -361,7 +368,9 @@ export const useCatalogStore = defineStore('catalog', () => {
   function saveProductType(input: { id: string; name: string; categoryId: string; description: string; sort: number; status: ProductType['status'] }) {
     const name = input.name.trim()
     if (!name) return '请填写产品类型名称。'
-    if (!data.categories.some((item) => item.id === input.categoryId)) return '请先选择分类。'
+    const category = data.categories.find((item) => item.id === input.categoryId)
+    if (!category) return '目标分类不存在或已经删除。'
+    if (category.enabled === false) return '目标分类已停用，不能关联。'
     const leafBlock = blockTypeOnNonLeaf(data.categories, input.categoryId)
     if (leafBlock) return leafBlock
     const duplicated = data.productTypes.some((item) => item.categoryId === input.categoryId && item.name === name && item.id !== input.id)
@@ -371,6 +380,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (input.id) {
       const row = data.productTypes.find((item) => item.id === input.id)
       if (!row) return '产品类型不存在。'
+      const blocked = productTypeCategoryMoveMessage(data, input.id, input.categoryId, categoryPath(data, input.categoryId))
+      if (blocked) return blocked
       Object.assign(row, { name, categoryId: input.categoryId, description, sort, status: input.status })
       return ''
     }
@@ -657,6 +668,10 @@ export const useCatalogStore = defineStore('catalog', () => {
     return updateV3Material(data, input)
   }
 
+  function renameProduct(familyId: string, name: string) {
+    return renameV3Product(data, { familyId, name })
+  }
+
   function blankSku(familyId: string, templateId: string): Sku {
     const variants = data.templateParams.filter((item) => item.templateId === templateId && item.role === 'variant')
     const bound = variants.map((item) => ({ ...item, param: data.params.find((param) => param.id === item.paramId)! })).filter((item) => item.param)
@@ -709,6 +724,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     createTemporary,
     markPlanningGrades,
     updateMaterial,
+    renameProduct,
     removeGroup,
     saveView,
     applyView,

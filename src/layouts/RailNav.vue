@@ -149,12 +149,15 @@ function slotStyle(key: string) {
   if (!slot) return undefined
   return { gridColumn: String(slot.column), gridRow: String(slot.row) }
 }
-const popStyle = computed(() => ({
-  top: `${flyoutTop.value}px`,
-  left: `${popLeft.value}px`,
-  maxHeight: `calc(100vh - ${flyoutTop.value + 8}px)`,
-  maxWidth: `calc(100vw - ${popLeft.value + 12}px)`,
-}))
+const popStyle = computed(() => {
+  const viewportCap = `calc(100vw - ${popLeft.value + 12}px)`
+  return {
+    top: `${flyoutTop.value}px`,
+    left: `${popLeft.value}px`,
+    maxHeight: `calc(100vh - ${flyoutTop.value + 8}px)`,
+    maxWidth: flyoutLayout.value.mode === 'grid' ? `min(22rem, ${viewportCap})` : viewportCap,
+  }
+})
 
 function cancelClose() {
   window.clearTimeout(closeTimer)
@@ -310,7 +313,10 @@ onBeforeUnmount(() => {
 .rail-btn.is-current, .rail-btn.is-current:hover { background: var(--nav-current-bg); color: var(--nav-current-text); }
 .rail-btn:focus-visible { outline: 2px solid var(--app-accent); outline-offset: -3px; }
 .flyout { width: 260px; max-width: calc(100vw - 120px); background: var(--flyout-bg); color: var(--flyout-text); display: flex; flex-direction: column; min-height: 0; }
-.flyout.is-grid { width: min(520px, calc(100vw - 120px)); }
+.flyout.is-grid {
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 7.5rem));
+}
 .flyout.is-pop {
   position: fixed;
   z-index: 30;
@@ -323,6 +329,7 @@ onBeforeUnmount(() => {
 .flyout-head strong { font-size: 15px; font-weight: 700; color: var(--text-primary); }
 .flyout-link:focus-visible, .flyout-shortcut:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 1px; }
 .flyout-body { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 16px; }
+.flyout-body.is-grid { padding-right: 10px; padding-left: 10px; }
 .flyout-body::-webkit-scrollbar { width: 8px; }
 .flyout-body::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 4px; }
 .flyout-shortcut {
@@ -340,10 +347,25 @@ onBeforeUnmount(() => {
 .flyout-shortcut.is-current { background: var(--flyout-current-bg); color: var(--flyout-current-text); }
 .flyout-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  column-gap: 24px;
+  width: max-content;
+  max-width: 100%;
+  grid-template-columns: max-content max-content;
+  column-gap: clamp(0.75rem, 1vw, 1rem);
   align-items: start;
   position: relative;
+}
+.flyout-body.is-grid .flyout-section { min-width: min-content; }
+.flyout-body.is-grid .flyout-section h3,
+.flyout-body.is-grid .flyout-link { white-space: nowrap; }
+@media (max-width: 23rem) {
+  .flyout.is-grid { width: min(22rem, calc(100vw - 7.5rem)); }
+  .flyout-grid { width: 100%; grid-template-columns: minmax(0, 1fr); }
+  .flyout-grid::before { display: none; }
+  .flyout-body.is-grid .flyout-section {
+    grid-column: 1 / -1 !important;
+    grid-row: auto !important;
+    min-width: 0;
+  }
 }
 .flyout-grid::before {
   content: "";

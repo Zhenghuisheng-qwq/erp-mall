@@ -1,6 +1,6 @@
 <template>
   <div>
-    <PageHead :title="isNew ? '新增商品' : '编辑商品'" :desc="pageDesc">
+    <PageHead :title="pageTitle" :desc="pageDesc">
       <el-tag v-if="draft.origin === 'sample'" type="info">预设演示</el-tag>
     </PageHead>
 
@@ -239,12 +239,20 @@ const familyRouteId = computed(() => String(route.params.id || ''))
 const skuQuery = computed(() => String(route.query.sku || ''))
 const v3View = computed(() => !isNew.value && draft.line === 'v3')
 const v3Create = computed(() => isNew.value && !route.query.from && publishedModelsForCategory(store.data, draft.categoryId).length > 0)
+const pageTitle = computed(() => {
+  if (isNew.value) return '新增商品'
+  if (v3View.value) return '商品物料档案'
+  return '编辑商品'
+})
 const pageDesc = computed(() => {
-  if (v3View.value) return '这里维护已经建好的物料。规格来自建档时的模型，不用再选。'
+  if (v3View.value) return '这里维护这款商品下的物料。商品名称、分类和规格沿用建档时的记录，此页不修改商品主体。'
   if (v3Create.value) return '先确认分类和规格，再填写这一条物料。已经确定的规格不用重填。'
   return '分类只选一次。上面填这款商品的共同信息，下面直接加规格，不用再进别的页面。'
 })
 const draft = reactive<ProductFamily>(blankFamily())
+watch(pageTitle, (value) => {
+  route.meta.title = value
+}, { immediate: true })
 watch(v3Create, (value) => { if (value) saved.value = true })
 const draftSkus = ref<Sku[]>([])
 const valueOpen = ref(false)

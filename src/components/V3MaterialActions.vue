@@ -1,5 +1,6 @@
 <template>
-  <div class="v3-actions">
+  <div class="v3-actions" :class="{ 'is-bare': bare }">
+    <template v-if="!bare">
     <p v-if="retired">这条规格已经停用，不能再建档。</p>
     <p v-else-if="!planningId" class="muted">发布模型后，这里才能创建物料。</p>
     <template v-else-if="preview">
@@ -12,8 +13,9 @@
       <p v-if="lastCode" class="meta">刚创建 {{ lastCode }}。<button type="button" class="linkish" @click="listOpen = true">查看</button></p>
     </template>
     <p v-else class="warn">{{ previewMessage }}</p>
+    </template>
 
-    <el-dialog v-model="createOpen" class="v3-material-dialog" title="创建物料" width="480px" :close-on-click-modal="false" @closed="onCreateClosed">
+    <el-dialog v-model="createOpen" class="v3-material-dialog" title="创建物料" width="480px" append-to-body :close-on-click-modal="false" @closed="onCreateClosed">
       <div v-if="preview" @keydown.tab.stop>
         <p class="spec">{{ preview.label }}</p>
         <p class="meta">规划编号 {{ preview.planningId }} · 模型版本 {{ preview.versionName }}</p>
@@ -26,10 +28,8 @@
         <p v-if="namingMessage" class="warn">{{ namingMessage }}</p>
         <label class="name-label">物料名称<el-input v-model="nameDraft" /></label>
         <label class="name-label">物料描述<el-input v-model="descDraft" type="textarea" :rows="2" /></label>
-        <label class="name-label">供应商编码<el-input v-model="supplierDraft" /></label>
-        <label class="name-label">管家婆编号<el-input v-model="ledgerDraft" /></label>
-        <label class="name-label">OA SKU 编号<el-input v-model="oaDraft" /></label>
-        <p class="meta">规格已经选好，不用再填。系统物料编码确认后自动分配，和上面的外部编号不是一回事。</p>
+        <label class="name-label">供应商编码<el-input v-model="supplierDraft" clearable placeholder="可留空" /></label>
+        <p class="meta">规格已经选好，不用再填。系统物料编号确认后自动分配，不能手改。</p>
         <p v-if="errorText" class="warn">{{ errorText }}</p>
       </div>
       <template #footer>
@@ -39,7 +39,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="listOpen" class="v3-material-dialog" title="已有物料" width="560px">
+    <el-dialog v-model="listOpen" class="v3-material-dialog" title="已有物料" width="560px" append-to-body>
       <el-input v-model="keyword" placeholder="搜物料编码或规格" clearable />
       <p v-if="filtered.length === 0" class="muted">还没有物料。</p>
       <ul v-else class="materials">
@@ -58,7 +58,7 @@
 
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { familyChoicesFor, filingText, gradeText, resolveV3MaterialSpec } from '../domain/material'
 import { suggestMaterialName } from '../domain/naming'
@@ -72,6 +72,9 @@ const props = defineProps<{
   categoryId: string
   productTypeId: string
   retired?: boolean
+  bare?: boolean
+  openCreateTick?: number
+  openListTick?: number
 }>()
 
 const store = useCatalogStore()
@@ -89,8 +92,6 @@ const nameDraft = ref('')
 const namingMessage = ref('')
 const descDraft = ref('')
 const supplierDraft = ref('')
-const ledgerDraft = ref('')
-const oaDraft = ref('')
 const planRecord = computed(() => store.data.planningRecords.find((item) => item.planningId === props.planningId))
 const gradeLabel = computed(() => gradeText(planRecord.value?.grade))
 const filingLabel = computed(() => filingText(planRecord.value?.grade, count.value))
@@ -133,6 +134,7 @@ function suggestionName() {
   return suggestion?.name || ''
 }
 function openCreate() {
+  if (!props.planningId || props.retired) return
   requestId.value = uid('req')
   errorText.value = ''
   choices.value = []
@@ -140,10 +142,16 @@ function openCreate() {
   nameDraft.value = suggestionName()
   descDraft.value = ''
   supplierDraft.value = ''
-  ledgerDraft.value = ''
-  oaDraft.value = ''
   createOpen.value = true
 }
+watch(() => props.openCreateTick, (tick) => {
+  if (!tick) return
+  openCreate()
+}, { immediate: true })
+watch(() => props.openListTick, (tick) => {
+  if (!tick) return
+  listOpen.value = true
+}, { immediate: true })
 function onCreateClosed() {
   if (!saving.value) errorText.value = ''
 }
@@ -161,8 +169,6 @@ function confirm(keep: boolean) {
     skuName: nameDraft.value,
     materialDescription: descDraft.value,
     supplierCode: supplierDraft.value,
-    guanjiapoCode: ledgerDraft.value,
-    oaSkuId: oaDraft.value,
   })
   saving.value = false
   if (!result.ok) {
@@ -179,8 +185,6 @@ function confirm(keep: boolean) {
   requestId.value = uid('req')
   descDraft.value = ''
   supplierDraft.value = ''
-  ledgerDraft.value = ''
-  oaDraft.value = ''
   nameDraft.value = suggestionName()
 }
 function openMaterial(item: { familyId: string; id: string }) {
@@ -190,6 +194,7 @@ function openMaterial(item: { familyId: string; id: string }) {
 </script>
 
 <style scoped>
+.v3-actions.is-bare { display: contents; }
 .spec { margin: 0; color: #1f2a37; font-weight: 650; }
 .meta { margin: 6px 0; color: #607089; font-size: 13px; }
 .warn { margin: 8px 0 0; color: #c45656; }

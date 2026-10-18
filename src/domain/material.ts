@@ -140,6 +140,19 @@ export function materialsOfPlanning(data: AppData, planningId: string) {
   return data.skus.filter((item) => item.planningId === planningId)
 }
 
+/** 商品列表上的物料摘要。只统计这一款商品下的物料，规划编号去重，不读取模型的合法组合。 */
+export function familyMaterialDigest(skus: { materialCode?: string; planningId?: string }[]) {
+  const rows = Array.isArray(skus) ? skus : []
+  const plans = new Set(rows.map((item) => (item.planningId || '').trim()).filter(Boolean))
+  const parts = [`已建物料 ${rows.length} 条`]
+  if (rows.length === 1) {
+    const code = (rows[0]?.materialCode || '').trim()
+    if (code) parts.push(code)
+  }
+  parts.push(`已关联规划 ${plans.size} 条`)
+  return parts.join(' · ')
+}
+
 export function resolveV3MaterialSpec(data: AppData, input: { productModelId: string; modelVersionId: string; planningId: string }): { ok: true; spec: ResolvedMaterialSpec } | { ok: false; message: string } {
   const record = (data.planningRecords || []).find((item) => item.planningId === input.planningId)
   if (!record) return { ok: false, message: '找不到这个规格编号。' }
@@ -316,6 +329,21 @@ export function createV3Material(data: AppData, input: {
 export function materialCodeConflict(data: AppData, code: string, exceptSkuId = '') {
   const hit = data.skus.find((item) => item.materialCode === code && item.id !== exceptSkuId)
   return hit ? `物料编码 ${code} 已被其他物料使用。` : ''
+}
+
+const PRODUCT_NAME_LIMIT = 80
+
+/** 只改 V3 商品款名称。归并仍看模型、产品类型、分类和公共规格签名，不看这个名称。 */
+export function renameV3Product(data: AppData, input: { familyId: string; name: string; now?: string }): { ok: true } | { ok: false; message: string } {
+  const family = data.families.find((item) => item.id === input.familyId)
+  if (!family || family.line !== 'v3') return { ok: false, message: '找不到这款商品。' }
+  const name = input.name.trim()
+  if (!name) return { ok: false, message: '请填写商品名称。' }
+  if (name.length > PRODUCT_NAME_LIMIT) return { ok: false, message: `商品名称不能超过 ${PRODUCT_NAME_LIMIT} 个字。` }
+  if (name === family.name) return { ok: true }
+  family.name = name
+  family.updatedAt = input.now || new Date().toISOString()
+  return { ok: true }
 }
 
 export function updateV3Material(data: AppData, input: {

@@ -1,5 +1,6 @@
 import { generateSkuFromModel, inspectFamily } from './logic'
-import { createV3Material, materialCodeConflict, resolveV3MaterialSpec, updateV3Material } from './material'
+import { productTypeCategoryMoveMessage } from './categoryTree'
+import { createV3Material, materialCodeConflict, renameV3Product, resolveV3MaterialSpec, updateV3Material } from './material'
 import { reconcilePlanningRecords, tracePlanning } from './planning'
 import { createSeed } from './seed'
 import { normalizeStored } from '../stores/catalog'
@@ -94,5 +95,53 @@ export function runArchiveChecks(): CheckResult[] {
   const frozen = generateSkuFromModel({ commonAttrs: { 品牌: 'Apple' }, variantSelections: { 容量: ['128GB'], 颜色: ['黑色', '白色'] }, modelSnapshot: nodes() })
   const dup = inspectFamily(createSeed(), createSeed().families[0], [createSeed().skus[0], { ...createSeed().skus[0], id: 'dup' }])
   check('11', frozen.skus.length === 2 && dup.some((item) => item.kind === 'duplicate'), `V2 仍生成 ${frozen.skus.length} 条并继续判重`)
+
+  const named = dataOf()
+  publish(named, 'v1')
+  const planA = named.planningRecords[0]
+  const planB = named.planningRecords.find((item) => item.planningId !== planA?.planningId)
+  const made = planA ? create(named, planA.planningId, 'name-a') : { ok: false as const, message: 'missing' }
+  const family = made.ok ? named.families.find((item) => item.id === made.familyId) : undefined
+  const modelName = named.specCanvases[0]?.name
+  const skuBefore = made.ok ? named.skus.find((item) => item.id === made.skuId) : undefined
+  const codeBeforeRename = skuBefore?.materialCode
+  const planBeforeRename = skuBefore?.planningId
+  const renamedOk = family ? renameV3Product(named, { familyId: family.id, name: '  iPhone 17 系列保护壳  ' }).ok : false
+  const blankName = family ? renameV3Product(named, { familyId: family.id, name: '   ' }) : { ok: false as const, message: 'missing' }
+  const longName = family ? renameV3Product(named, { familyId: family.id, name: '名'.repeat(81) }) : { ok: false as const, message: 'missing' }
+  const againPlan = planB ? create(named, planB.planningId, 'name-b') : { ok: false as const, message: 'missing' }
+  const keptFamily = named.families.find((item) => item.id === family?.id)
+  const keptSku = named.skus.find((item) => item.id === skuBefore?.id)
+  const v2 = createSeed().families[0]
+  const v2Copy = dataOf()
+  v2Copy.families.push({ ...v2 })
+  const v2Rename = renameV3Product(v2Copy, { familyId: v2.id, name: '不应改到 V2' })
+  check('name', Boolean(renamedOk && !blankName.ok && !longName.ok && againPlan.ok && againPlan.familyId === family?.id && keptFamily?.name === 'iPhone 17 系列保护壳' && keptSku?.skuName === skuBefore?.skuName && keptSku?.materialCode === codeBeforeRename && keptSku?.planningId === planBeforeRename && named.specCanvases[0]?.name === modelName && !v2Rename.ok && v2Copy.families[0]?.name === v2.name), `商品名 ${keptFamily?.name || ''} 物料名 ${keptSku?.skuName || ''}`)
+
+  const guarded = dataOf()
+  guarded.categories = [
+    { id: 'c', name: '手机', parentId: 'host', sort: 1, enabled: true },
+    { id: 'host', name: '主机', parentId: null, sort: 1, enabled: true },
+    { id: 'case', name: '保护壳', parentId: 'acc', sort: 1, enabled: true },
+    { id: 'acc', name: '手机配件', parentId: null, sort: 2, enabled: true },
+    { id: 'off', name: '停用分类', parentId: null, sort: 3, enabled: false },
+    { id: 'parent', name: '非末级', parentId: null, sort: 4, enabled: true },
+    { id: 'child', name: '末级', parentId: 'parent', sort: 1, enabled: true },
+  ]
+  publish(guarded, 'v1')
+  const guardedPlan = guarded.planningRecords[0]
+  if (guardedPlan) create(guarded, guardedPlan.planningId, 'guard')
+  const blockedMove = productTypeCategoryMoveMessage(guarded, 'pt', 'case', '手机配件 / 保护壳')
+  const sameMove = productTypeCategoryMoveMessage(guarded, 'pt', 'c')
+  const missingMove = productTypeCategoryMoveMessage(guarded, 'pt', 'gone')
+  const disabledMove = productTypeCategoryMoveMessage(guarded, 'pt', 'off')
+  const parentMove = productTypeCategoryMoveMessage(guarded, 'pt', 'parent')
+  const versionBeforeMove = JSON.stringify(guarded.specModelVersions)
+  const planIdsBeforeMove = guarded.planningRecords.map((item) => item.planningId).join()
+  const clean = dataOf()
+  clean.categories = guarded.categories.map((item) => ({ ...item }))
+  clean.specCanvases = []
+  const freeMove = productTypeCategoryMoveMessage(clean, 'pt', 'case', '保护壳')
+  check('category', blockedMove.includes('不能改到') && blockedMove.includes('不会改写') && sameMove === '' && missingMove.includes('不存在') && disabledMove.includes('停用') && parentMove.includes('末级') && freeMove === '' && JSON.stringify(guarded.specModelVersions) === versionBeforeMove && guarded.planningRecords.map((item) => item.planningId).join() === planIdsBeforeMove, blockedMove)
   return results
 }
