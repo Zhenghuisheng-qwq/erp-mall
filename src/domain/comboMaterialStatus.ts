@@ -7,8 +7,10 @@ export interface ComboMaterialCard {
   familyId: string
   skuName: string
   materialCode: string
-  nameSource?: 'auto' | 'manual'
+  nameSource?: 'auto' | 'manual' | 'rule' | 'default'
   modelVersionId: string
+  /** 建档版本的版本名。对不上已发布版本时为空，不能补一个猜测的名字。 */
+  versionName: string
   anomaly: string
 }
 
@@ -33,10 +35,13 @@ export interface LegalComboMaterialRow {
   grade?: 'core' | 'general'
   /** 当前选定的已发布版本。 */
   modelVersionId: string
+  /** 建档版本就是当前查看版本的物料。 */
   materials: ComboMaterialCard[]
-  /** 本版本已经关联上的物料数。有规划编号但没有物料时是 0。 */
+  /** 同一 PLN 在其他已关联发布版本上的物料。不计入本版本建档。 */
+  historicalMaterials: ComboMaterialCard[]
+  /** 本版本已经关联上的物料数。有规划编号但没有物料时是 0。历史物料不计入。 */
   materialCount: number
-  /** 有关联物料时为真。仅有规划编号时为假。 */
+  /** 本版本有关联物料时为真。只有历史物料时为假。 */
   filed: boolean
   anomalies: string[]
 }
@@ -67,12 +72,15 @@ export function legalComboMaterialStatus(data: AppData, productModelId: string, 
     const anomalies: string[] = []
     if (linked.length > 1) anomalies.push('本版本有多条规划编号对上同一组合，没有自动合并。')
     const materials: ComboMaterialCard[] = []
+    const historical: ComboMaterialCard[] = []
     linked.forEach((record) => {
       const found = materialsOfRecord(data, record, version.id)
       materials.push(...found.cards)
+      historical.push(...found.historical)
       anomalies.push(...found.notes)
     })
     materials.sort((a, b) => (a.materialCode || a.skuId).localeCompare(b.materialCode || b.skuId, 'zh'))
+    historical.sort((a, b) => (a.materialCode || a.skuId).localeCompare(b.materialCode || b.skuId, 'zh'))
     const sole = linked.length === 1 ? linked[0] : undefined
     return {
       identityKey: combo.identityKey,
@@ -83,6 +91,7 @@ export function legalComboMaterialStatus(data: AppData, productModelId: string, 
       grade: sole?.grade,
       modelVersionId: version.id,
       materials,
+      historicalMaterials: historical,
       materialCount: materials.length,
       filed: materials.length > 0,
       anomalies,
@@ -97,24 +106,29 @@ export function legalComboMaterialStatus(data: AppData, productModelId: string, 
   }
 }
 
-function materialsOfRecord(data: AppData, record: PlanningRecord, versionId: string) {
+export function materialsOfRecord(data: AppData, record: PlanningRecord, versionId: string) {
   const notes: string[] = []
   const anchor = record.modelVersionIds.includes(record.originModelVersionId) ? record.originModelVersionId : (record.modelVersionIds[0] || '')
   const cards: ComboMaterialCard[] = []
+  const historical: ComboMaterialCard[] = []
   let missingVersion = 0
   let foreignVersion = 0
   data.skus.filter((item) => item.planningId === record.planningId).forEach((sku) => {
     const savedVersion = (sku.modelVersionId || '').trim()
     if (savedVersion === versionId) {
-      cards.push(cardOf(sku, ''))
+      cards.push(cardOf(data, sku, ''))
       return
     }
     if (!savedVersion) {
-      if (versionId === anchor) cards.push(cardOf(sku, '没有记下建档版本。'))
+      if (versionId === anchor) cards.push(cardOf(data, sku, '没有记下建档版本。'))
       else missingVersion += 1
       return
     }
-    if (!record.modelVersionIds.includes(savedVersion)) foreignVersion += 1
+    if (record.modelVersionIds.includes(savedVersion)) {
+      historical.push(cardOf(data, sku, ''))
+      return
+    }
+    foreignVersion += 1
   })
   if (missingVersion) notes.push(`另有 ${missingVersion} 条物料没有建档版本，只在来源版本里展示，没有改写。`)
   if (foreignVersion) notes.push(`有 ${foreignVersion} 条物料记下了本规划未关联的版本，没有并入，也没有改写。`)
@@ -123,10 +137,15 @@ function materialsOfRecord(data: AppData, record: PlanningRecord, versionId: str
     if (data.skus.some((item) => item.id === receipt.skuId)) return
     notes.push(`回执 ${receipt.materialCode || receipt.requestId} 指向的物料已不在，没有重建。`)
   })
-  return { cards, notes }
+  return { cards, historical, notes }
 }
 
-function cardOf(sku: Sku, anomaly: string): ComboMaterialCard {
+function versionNameOf(data: AppData, id: string) {
+  if (!id) return ''
+  return data.specModelVersions.find((item) => item.id === id)?.versionName || ''
+}
+
+function cardOf(data: AppData, sku: Sku, anomaly: string): ComboMaterialCard {
   const parts = [anomaly]
   if (!(sku.materialCode || '').trim()) parts.push('没有保存物料编号。')
   return {
@@ -136,6 +155,7 @@ function cardOf(sku: Sku, anomaly: string): ComboMaterialCard {
     materialCode: sku.materialCode || '',
     nameSource: sku.nameSource,
     modelVersionId: sku.modelVersionId || '',
+    versionName: versionNameOf(data, sku.modelVersionId || ''),
     anomaly: parts.filter(Boolean).join(''),
   }
 }

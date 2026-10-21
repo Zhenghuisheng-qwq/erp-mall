@@ -1,6 +1,6 @@
 import { resolveManualOrder } from './productListManual'
 import { categoryPath, projectAttrs, shelfOf, shelfText, statusText } from './logic'
-import { familyListText, isRealSku, productTypeName, realSkusOf, savedSkuCode, savedSkuName, skuListText } from './productList'
+import { familyBrandValues, familyListText, isRealSku, productTypeName, realSkusOf, savedSkuCode, savedSkuName, skuListText } from './productList'
 import type { AppData, ListQuery, ProductFamily, ProductListMode, ProductListModeQuery, ProductListSavedView, ProductListSortMode, ProductListViewFilter, Sku } from './types'
 
 export interface ProductListRecord {
@@ -180,7 +180,7 @@ function valuesOf(data: AppData, record: ProductListRecord, field: string, group
     return rows
   }
   if (field === 'categoryId') return [family.categoryId]
-  if (field === 'brand') return [family.commonAttrs['品牌'] || '']
+  if (field === 'brand') return familyBrandValues(data, family)
   if (field === 'productType') return [productTypeName(data, family)]
   if (field === 'shelf') return [shelfText(shelfOf(family))]
   if (field === 'status') {
@@ -230,7 +230,7 @@ function matchFilter(data: AppData, record: ProductListRecord, filter: ProductLi
 function keywordMatch(data: AppData, record: ProductListRecord, keyword: string) {
   const text = keyword.trim().toLowerCase()
   if (!text) return true
-  const source = record.sku ? `${record.family.name} ${categoryPath(data, record.family.categoryId)} ${record.family.commonAttrs['品牌'] || ''} ${skuListText(record.family, record.sku)}` : familyListText(data, record.family)
+  const source = record.sku ? `${record.family.name} ${categoryPath(data, record.family.categoryId)} ${familyBrandValues(data, record.family).join(' ')} ${skuListText(record.family, record.sku)}` : familyListText(data, record.family)
   return source.toLowerCase().includes(text)
 }
 
@@ -264,6 +264,10 @@ function sortRecords(data: AppData, rows: ProductListRecord[], field: string, di
 }
 
 function groupLabel(data: AppData, record: ProductListRecord, field: string) {
+  if (field === 'brand') {
+    const values = familyBrandValues(data, record.family)
+    return values.length ? values.join('、') : '未记录'
+  }
   const values = valuesOf(data, record, field, true) || []
   return values.map((item) => item.trim()).find(Boolean) || '未记录'
 }

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <PageHead title="适用关系" desc="给配件物料指定适用的主机型号。这一步不创建物料，也不改编码和规格。">
+    <PageHead title="适用关系" desc="已建物料适用关系。这里关联的是物料和主机，不是模型节点上的草稿配置。">
       <el-button @click="loadSamples">放入测试样例</el-button>
     </PageHead>
     <p v-if="sampleNote" class="panel muted">{{ sampleNote }}</p>
@@ -204,7 +204,8 @@ function toggleLink(id: string) {
   pickedLinks.value = pickedLinks.value.includes(id) ? pickedLinks.value.filter((item) => item !== id) : pickedLinks.value.concat(id)
 }
 function report(result: { created: { id: string }[]; skipped: number; failed: { message: string }[] }) {
-  resultText.value = `新增 ${result.created.length} 条，已存在 ${result.skipped} 条，失败 ${result.failed.length} 条。${result.failed[0]?.message || ''}`
+  if (result.created.length) resultText.value = `已关联 ${result.created.length} 条物料适用关系，可在主机及配件两侧查询。已存在 ${result.skipped} 条，失败 ${result.failed.length} 条。${result.failed[0]?.message || ''}`
+  else resultText.value = `已存在 ${result.skipped} 条物料适用关系，没有重复建立。失败 ${result.failed.length} 条。${result.failed[0]?.message || ''}`
   ElMessage.success(resultText.value)
 }
 function linkSkus() {

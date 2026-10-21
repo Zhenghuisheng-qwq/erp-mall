@@ -4,6 +4,7 @@
     <section class="main">
       <header class="topbar">
         <div class="topbar-left">
+          <div id="iyge-nav-fold"></div>
           <div class="crumb">{{ title }}</div>
         </div>
         <div class="row-actions">

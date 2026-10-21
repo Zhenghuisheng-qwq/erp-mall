@@ -34,6 +34,55 @@ export function categoryChain(categories: Category[], id: string) {
   return chain
 }
 
+/** 路径只用于辨认。层级来自 id / parentId，不从名称或斜杠反推。 */
+export function categoryPathLabel(categories: Category[], id: string) {
+  return categoryChain(categories, id).map((item) => item.name).join(' / ')
+}
+
+export function highlightParts(name: string, keyword: string) {
+  const needle = keyword.trim().toLowerCase()
+  if (!needle) return [{ text: name, hit: false }]
+  const lower = name.toLowerCase()
+  const parts: { text: string; hit: boolean }[] = []
+  let start = 0
+  let index = lower.indexOf(needle)
+  while (index >= 0) {
+    if (index > start) parts.push({ text: name.slice(start, index), hit: false })
+    parts.push({ text: name.slice(index, index + needle.length), hit: true })
+    start = index + needle.length
+    index = lower.indexOf(needle, start)
+  }
+  if (start < name.length) parts.push({ text: name.slice(start), hit: false })
+  if (!parts.length) parts.push({ text: name, hit: false })
+  return parts
+}
+
+/**
+ * 只用于展示。父级缺失、指向自己或成环时，把节点安放到可见根上。
+ * 不改分类记录上的 parentId。
+ */
+export function categoryDisplayParents(categories: { id: string; parentId: string | null }[]) {
+  const ids = new Set(categories.map((item) => item.id))
+  const parentOf = new Map<string, string | null>()
+  categories.forEach((item) => {
+    const parent = item.parentId && item.parentId !== item.id && ids.has(item.parentId) ? item.parentId : null
+    parentOf.set(item.id, parent)
+  })
+  categories.forEach((item) => {
+    const seen = new Set<string>()
+    let current: string | null = item.id
+    while (current) {
+      if (seen.has(current)) {
+        parentOf.set(current, null)
+        break
+      }
+      seen.add(current)
+      current = parentOf.get(current) || null
+    }
+  })
+  return parentOf
+}
+
 /** 产品类型列表的分类范围。只决定查哪些分类，不改类型归属。 */
 export type ProductTypeScope = 'current' | 'with-children'
 
@@ -78,18 +127,20 @@ export function productTypesInScope<T extends { id: string; categoryId: string; 
   return order.map((id) => grouped.get(id)).filter((item): item is { type: T; categoryIds: string[] } => Boolean(item))
 }
 
-/** 只列出已展开节点。搜索时自动带上命中节点的上级路径。 */
+/** 只列出已展开节点。搜索时自动带上命中节点的上级路径，并展开这条路径。 */
 export function visibleCategoryRows(
   categories: Category[],
   expandedIds: ReadonlySet<string>,
   keyword: string,
   closedIds: ReadonlySet<string> = new Set(),
 ): CategoryRow[] {
+  const displayParent = categoryDisplayParents(categories)
   const byParent = new Map<string | null, Category[]>()
   categories.forEach((item) => {
-    const list = byParent.get(item.parentId) || []
+    const parentId = displayParent.get(item.id) ?? null
+    const list = byParent.get(parentId) || []
     list.push(item)
-    byParent.set(item.parentId, list)
+    byParent.set(parentId, list)
   })
   byParent.forEach((list) => list.sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id)))
 
@@ -110,7 +161,7 @@ export function visibleCategoryRows(
     for (const item of byParent.get(parentId) || []) {
       if (kw && !visibleIds.has(item.id)) continue
       const kids = byParent.get(item.id) || []
-      const expanded = kids.length > 0 && !closedIds.has(item.id) && (forceOpen.has(item.id) || expandedIds.has(item.id))
+      const expanded = kids.length > 0 && (forceOpen.has(item.id) || (!closedIds.has(item.id) && expandedIds.has(item.id)))
       rows.push({
         id: item.id,
         name: item.name,

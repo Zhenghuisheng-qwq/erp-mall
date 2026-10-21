@@ -18,7 +18,7 @@
       </section>
     </template>
   </el-drawer>
-  <el-drawer v-model="formOpen" title="反馈问题" size="440px" :modal="false" modal-class="assist-mask" :close-on-click-modal="false">
+  <el-dialog v-model="formOpen" class="feedback-dialog" title="反馈问题" width="480px" align-center append-to-body :close-on-click-modal="false">
     <p class="assist-note">保存后只留在本机。导出反馈包后，可发送给开发人员。不会送到服务器。</p>
     <el-form label-position="top">
       <el-form-item label="反馈类型" required>
@@ -56,7 +56,7 @@
       <el-button @click="formOpen = false">取消</el-button>
       <el-button type="primary" :loading="saving" @click="save">保存到本机</el-button>
     </template>
-  </el-drawer>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">

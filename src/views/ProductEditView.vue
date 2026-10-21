@@ -10,9 +10,7 @@
       <h2>基本信息</h2>
       <el-form label-width="110px">
         <el-form-item label="商品分类" required>
-          <el-select :model-value="draft.categoryId" :disabled="locked" filterable default-first-option placeholder="选择分类" style="width: 320px" @change="onCategory">
-            <el-option v-for="item in flatCategories" :key="item.id" :label="item.label" :value="item.id" />
-          </el-select>
+          <CategoryTreeSelect :model-value="draft.categoryId" :categories="store.data.categories" :disabled="locked" :block-reason="categoryBlock" placeholder="选择分类" style="width: 320px" @update:model-value="onCategoryValue" />
           <span v-if="isNew && draft.categoryId && modelGate === 'none' && !v3Create" class="issue-error" style="margin-left: 8px">当前分类未配置商品模型，使用普通录入。</span>
           <span v-else-if="isNew && modelGate === 'unpublished'" class="issue-error" style="margin-left: 8px">当前模型未发布，不能用于新增商品。</span>
           <span v-else-if="isNew && modelGate === 'invalid'" class="issue-error" style="margin-left: 8px">商品模型配置异常，请联系管理员。</span>
@@ -216,6 +214,7 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import CategoryTreeSelect from '../components/CategoryTreeSelect.vue'
 import PageHead from '../components/PageHead.vue'
 import ProductModelSelector from '../components/ProductModelSelector.vue'
 import TemporaryMaterialDialog from '../components/TemporaryMaterialDialog.vue'
@@ -267,20 +266,6 @@ const showOptional = ref(false)
 const warnOpen = ref(false)
 const openedKey = ref('')
 
-const flatCategories = computed(() => {
-  const rows: { id: string; label: string; enabled: boolean }[] = []
-  const walk = (parent: string | null, prefix: string) => {
-    store.data.categories
-      .filter((item) => item.parentId === parent)
-      .sort((a, b) => a.sort - b.sort)
-      .forEach((item) => {
-        rows.push({ id: item.id, label: prefix + item.name + (item.enabled === false ? '（停用）' : ''), enabled: item.enabled !== false })
-        walk(item.id, prefix + '  ')
-      })
-  }
-  walk(null, '')
-  return rows.filter((item) => item.enabled || item.id === draft.categoryId)
-})
 const modelGate = computed(() => (draft.categoryId ? productModelGate(store.data, draft.templateId) : 'none'))
 const modelMode = computed(() => isNew.value && !route.query.from && modelGate.value === 'ready' && !v3Create.value)
 const modelNodes = computed(() => (draft.modelVersionId ? modelVersionById(store.data, draft.modelVersionId)?.nodesSnapshot || [] : []))
@@ -362,6 +347,16 @@ function cloneSku(source: Sku, familyId: string): Sku {
   const next: Sku = { ...source, id: uid('sku'), familyId, variantAttrs: { ...source.variantAttrs }, projectedAttrs: {} }
   delete next.materialCode
   return next
+}
+function categoryBlock(id: string) {
+  const category = store.data.categories.find((item) => item.id === id)
+  if (!category) return '分类已不存在。'
+  if (category.enabled === false) return '这个分类已停用，不能用于新增商品。'
+  return ''
+}
+function onCategoryValue(value: string | string[]) {
+  if (typeof value !== 'string' || !value) return
+  onCategory(value)
 }
 function onCategory(categoryId: string) {
   const category = store.data.categories.find((item) => item.id === categoryId)

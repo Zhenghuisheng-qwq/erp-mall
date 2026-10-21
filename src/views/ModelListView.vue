@@ -29,9 +29,7 @@
     <el-dialog v-model="createOpen" title="新建模型" width="480px">
       <el-form label-width="88px">
         <el-form-item label="分类">
-          <el-select v-model="draft.categoryId" placeholder="选择分类" style="width: 100%" @change="onCategory">
-            <el-option v-for="item in categoryOptions" :key="item.id" :label="item.label" :value="item.id" />
-          </el-select>
+          <CategoryTreeSelect :model-value="draft.categoryId" :categories="store.data.categories" placeholder="选择分类" style="width: 100%" @update:model-value="onCategoryValue" />
         </el-form-item>
         <el-form-item label="产品类型">
           <el-select v-model="draft.productTypeId" placeholder="选择产品类型" style="width: 100%">
@@ -52,6 +50,7 @@
 import { ElMessage } from 'element-plus'
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import CategoryTreeSelect from '../components/CategoryTreeSelect.vue'
 import PageHead from '../components/PageHead.vue'
 import { categoryPath } from '../domain/logic'
 import type { SpecModelStatus } from '../domain/types'
@@ -61,7 +60,6 @@ const store = useCatalogStore()
 const router = useRouter()
 const createOpen = ref(false)
 const draft = reactive({ categoryId: '', productTypeId: '', name: '' })
-const categoryOptions = computed(() => store.data.categories.slice().sort((a, b) => a.sort - b.sort).map((item) => ({ id: item.id, label: categoryPath(store.data, item.id) })))
 const typeOptions = computed(() => store.productTypesOf(draft.categoryId))
 const rows = computed(() => {
   const ids = new Set<string>([
@@ -126,6 +124,11 @@ function openCreate() {
   draft.productTypeId = store.productTypesOf(draft.categoryId)[0]?.id || ''
   draft.name = ''
   createOpen.value = true
+}
+function onCategoryValue(value: string | string[]) {
+  if (typeof value !== 'string') return
+  draft.categoryId = value
+  onCategory()
 }
 function onCategory() {
   draft.productTypeId = typeOptions.value[0]?.id || ''

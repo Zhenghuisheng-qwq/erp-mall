@@ -114,6 +114,20 @@ export function suggestMaterialName(data: AppData, input: { productModelId: stri
   return { name: rendered.name, status: 'rule', message: '', canAuto: true, nodeId: hit.nodeId, nodeLabel: rulePlace(data, nodes, hit.nodeId) }
 }
 
+/** 只把已经记下的来源说清楚。auto 是旧记录，不能改判成规则或默认。 */
+export function materialNameOriginLabel(source?: string) {
+  if (source === 'manual') return '手工修改'
+  if (source === 'rule') return '已发布规则生成'
+  if (source === 'default') return '默认名称生成'
+  if (source === 'auto') return '建档时自动带入'
+  return ''
+}
+
+export function filedNameSource(suggestion: NameSuggestion, requested: string): 'rule' | 'default' | 'manual' {
+  if (suggestion.canAuto === false || (requested && requested !== suggestion.name)) return 'manual'
+  return suggestion.status === 'rule' ? 'rule' : 'default'
+}
+
 function valuePlace(nodes: ProductSpecNode[], nodeId: string) {
   return nodes.find((item) => item.id === nodeId)?.valueId || '取值'
 }

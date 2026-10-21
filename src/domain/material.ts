@@ -1,5 +1,5 @@
 import { latestPublishedVersion, projectAttrs } from './logic'
-import { suggestMaterialName, suggestTemporaryName } from './naming'
+import { filedNameSource, suggestMaterialName, suggestTemporaryName } from './naming'
 import { legalPlanningCombinations } from './planning'
 import type { AppData, ManualAttr, MaterialCreateReceipt, PlanningRecord, PlanningStep, ProductFamily, ProductGrade, ProductSpecNode, Sku, SpecModelVersion } from './types'
 
@@ -318,7 +318,7 @@ export function createV3Material(data: AppData, input: {
   sku.guanjiapoCode = (input.guanjiapoCode || '').trim()
   sku.oaSkuId = (input.oaSkuId || '').trim() || sku.oaSkuId
   sku.materialDescription = (input.materialDescription || '').trim()
-  sku.nameSource = suggestion.canAuto !== false && (!requested || requested === suggestion.name) ? 'auto' : 'manual'
+  sku.nameSource = filedNameSource(suggestion, requested)
   if (suggestion.canAuto !== false && suggestion.name) sku.suggestedName = suggestion.name
   if (suggestion.nodeId) sku.namingNodeId = suggestion.nodeId
   sku.createdAt = now
@@ -593,7 +593,7 @@ export function createTemporaryMaterial(data: AppData, input: {
     supplierCode: (input.supplierCode || '').trim(),
     guanjiapoCode: (input.guanjiapoCode || '').trim(),
     materialDescription: (input.materialDescription || '').trim(),
-    nameSource: requested && requested !== suggestion.name ? 'manual' : 'auto',
+    nameSource: requested && requested !== suggestion.name ? 'manual' : suggestion.status === 'rule' ? 'rule' : 'default',
     createdAt: now,
     updatedAt: now,
     manualAttrs: manualAttrs.map((item) => ({ ...item })),

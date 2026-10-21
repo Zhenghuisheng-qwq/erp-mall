@@ -151,7 +151,7 @@ export function runComboMaterialStatusChecks(): CheckResult[] {
   const onV2 = rowOf(data, 'v2', '黑色')
   const whiteV2 = rowOf(data, 'v2', '白色')
   const snapshotV1 = JSON.stringify(data.specModelVersions.find((item) => item.id === 'v1')?.nodesSnapshot)
-  check('F', Boolean(third.ok && onV1?.materialCount === 2 && onV1.materials.every((item) => item.modelVersionId === 'v1') && onV2?.materialCount === 1 && onV2.materials[0]?.skuName === '二版物料' && onV2.materials[0]?.modelVersionId === 'v2' && whiteV2?.materialCount === 0 && data.specModelVersions.find((item) => item.id === 'v1')), `V1 ${onV1?.materialCount} V2 ${onV2?.materials.map((item) => item.skuName).join(',')}`)
+  check('F', Boolean(third.ok && onV1?.materialCount === 2 && onV1.historicalMaterials.length === 1 && onV1.historicalMaterials[0]?.skuName === '二版物料' && onV1.historicalMaterials[0]?.modelVersionId === 'v2' && onV1.materials.every((item) => item.modelVersionId === 'v1') && onV2?.materialCount === 1 && onV2.filed && onV2.materials[0]?.skuName === '二版物料' && onV2.materials[0]?.modelVersionId === 'v2' && onV2.historicalMaterials.length === 2 && onV2.historicalMaterials.every((item) => item.modelVersionId === 'v1' && item.versionName === 'V1') && whiteV2?.materialCount === 0 && !whiteV2.filed && whiteV2.historicalMaterials.length === 1 && data.specModelVersions.find((item) => item.id === 'v1')), `V1 ${onV1?.materialCount} 历史 ${onV1?.historicalMaterials.length} V2 ${onV2?.materials.map((item) => item.skuName).join(',')} 历史 ${onV2?.historicalMaterials.length} 白历史 ${whiteV2?.historicalMaterials.length}`)
 
   const blank = data.skus.find((item) => item.materialCode === 'MAT-DECOY')
   if (blank) blank.skuName = ''

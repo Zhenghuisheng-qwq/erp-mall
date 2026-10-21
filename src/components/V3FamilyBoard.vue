@@ -42,7 +42,7 @@
         <p v-if="active.manualAttrs?.some((item) => item.source === 'manual')" class="muted">手工填写的值只属于这条物料，不会改成词典取值，也不会写进商品模型。</p>
         <h3>物料</h3>
         <label>物料名称<span class="req">必填</span><el-input v-model="draft.skuName" /></label>
-        <p v-if="active.nameSource" class="muted">名称来源：{{ active.nameSource === 'manual' ? '手工修改' : '建档时按规则带入' }}。当前显示的是已保存名称。</p>
+        <p v-if="active.nameSource" class="muted">名称来源：{{ originLabel(active.nameSource) }}。当前显示的是已保存名称。</p>
         <p v-if="active.suggestedName" class="muted">建档时的建议名称：{{ active.suggestedName }}</p>
         <label>物料描述<el-input v-model="draft.materialDescription" type="textarea" :rows="3" /></label>
         <h3>系统编码</h3>
@@ -83,7 +83,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { catalogRole, hostLabel, linksOfSku, listHostModels, roleOfType } from '../domain/compatibility'
 import { categoryPath, modelVersionById, shelfOf, shelfText, specCanvasOf } from '../domain/logic'
-import { suggestMaterialName } from '../domain/naming'
+import { materialNameOriginLabel, suggestMaterialName } from '../domain/naming'
 import type { Sku } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
 
@@ -163,6 +163,9 @@ function specText(sku: Sku) {
 function versionName(id?: string) {
   if (!id) return '未记录版本'
   return modelVersionById(store.data, id)?.versionName || '未记录版本'
+}
+function originLabel(source?: string) {
+  return materialNameOriginLabel(source)
 }
 function regenerate() {
   if (!active.value || !family.value) return

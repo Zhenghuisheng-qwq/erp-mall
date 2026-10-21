@@ -48,6 +48,19 @@ html[data-theme='light'] {
   --el-fill-color-blank: #ffffff;
   --el-fill-color-light: #f7f8fa;
   --el-mask-color: rgba(25, 28, 35, 0.45);
+  --spec-attr-bg: color-mix(in srgb, #5d6eb8 16%, var(--surface-bg));
+  --spec-attr-bg-hover: color-mix(in srgb, #5d6eb8 24%, var(--surface-bg));
+  --spec-attr-border: color-mix(in srgb, #5d6eb8 58%, #c5cde0);
+  --spec-attr-border-hover: color-mix(in srgb, #5d6eb8 76%, #9aa6c8);
+  --spec-attr-text: var(--text-primary);
+  --spec-value-bg: var(--surface-bg);
+  --spec-value-bg-hover: color-mix(in srgb, #5d6eb8 7%, var(--surface-bg));
+  --spec-value-border: #c3ccd6;
+  --spec-value-border-hover: #8ea0b4;
+  --spec-value-text: var(--text-primary);
+  --spec-node-ring: #3d6fe0;
+  --spec-selected-attr-bg: color-mix(in srgb, #5d6eb8 30%, var(--surface-bg));
+  --spec-selected-value-bg: color-mix(in srgb, #3d6fe0 12%, var(--surface-bg));
 }
 
 html[data-theme='dark'] {
@@ -152,6 +165,19 @@ html[data-theme='dark'] {
   --el-mask-color-extra-light: rgba(12, 10, 12, 0.35);
   --el-box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
   --el-box-shadow-light: 0 0 12px rgba(0, 0, 0, 0.28);
+  --spec-attr-bg: rgba(154, 164, 242, 0.18);
+  --spec-attr-bg-hover: rgba(154, 164, 242, 0.28);
+  --spec-attr-border: #8d88c6;
+  --spec-attr-border-hover: #b7b3ea;
+  --spec-attr-text: var(--text-primary);
+  --spec-value-bg: #2a2629;
+  --spec-value-bg-hover: #343036;
+  --spec-value-border: #6a6170;
+  --spec-value-border-hover: #978d9a;
+  --spec-value-text: var(--text-primary);
+  --spec-node-ring: #c5c2f5;
+  --spec-selected-attr-bg: rgba(154, 164, 242, 0.36);
+  --spec-selected-value-bg: #3a343c;
 }
 
 html[data-theme='dark'] .vue-flow__background circle,
@@ -205,23 +231,28 @@ html[data-theme='dark'] .model-attr.is-head strong {
   color: #f1ecef;
 }
 html[data-theme='dark'] .model-attr,
-html[data-theme='dark'] .model-attr.is-head {
-  background: transparent;
-  border-color: transparent;
+html[data-theme='dark'] .model-attr.is-head,
+html[data-theme='dark'] .model-attr.is-nested {
+  background: var(--spec-attr-bg);
+  border: 1px solid var(--spec-attr-border);
+  border-radius: 6px;
   box-shadow: none;
 }
-html[data-theme='dark'] .model-attr.is-head {
-  background: rgba(154, 164, 242, 0.16);
-}
-html[data-theme='dark'] .model-attr.is-nested {
-  background: transparent;
-  border-color: transparent;
-  border-left-color: #9aa4f2;
+html[data-theme='dark'] .model-attr:hover:not(.is-on),
+html[data-theme='dark'] .model-attr.is-head:hover:not(.is-on),
+html[data-theme='dark'] .model-attr.is-nested:hover:not(.is-on) {
+  background: var(--spec-attr-bg-hover);
+  border-color: var(--spec-attr-border-hover);
 }
 html[data-theme='dark'] .model-value {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: transparent;
-  color: #f1ecef;
+  background: var(--spec-value-bg);
+  border: 1px solid var(--spec-value-border);
+  border-radius: 999px;
+  color: var(--spec-value-text);
+}
+html[data-theme='dark'] .model-value:hover:not(.is-on) {
+  background: var(--spec-value-bg-hover);
+  border-color: var(--spec-value-border-hover);
 }
 html[data-theme='dark'] .attr-meta,
 html[data-theme='dark'] .model-attr.is-unbound strong,
@@ -236,8 +267,18 @@ html[data-theme='dark'] .version-name,
 html[data-theme='dark'] .meta-row em {
   color: #817a80;
 }
-html[data-theme='dark'] .model-attr.is-on,
-html[data-theme='dark'] .model-value.is-on,
+html[data-theme='dark'] .model-attr.is-on {
+  background: var(--spec-selected-attr-bg);
+  border-color: var(--spec-node-ring);
+  color: var(--spec-attr-text);
+  box-shadow: inset 0 0 0 1px var(--spec-node-ring);
+}
+html[data-theme='dark'] .model-value.is-on {
+  background: var(--spec-selected-value-bg);
+  border-color: var(--spec-node-ring);
+  color: var(--spec-value-text);
+  box-shadow: inset 0 0 0 1px var(--spec-node-ring);
+}
 html[data-theme='dark'] .model-root.is-on,
 html[data-theme='dark'] .outline-row.is-on,
 html[data-theme='dark'] .outline-root.is-on {
@@ -246,7 +287,6 @@ html[data-theme='dark'] .outline-root.is-on {
   color: #f1ecef;
   box-shadow: inset 0 0 0 1px #a8a4ee;
 }
-html[data-theme='dark'] .model-value.is-on,
 html[data-theme='dark'] .outline-row.is-on .line,
 html[data-theme='dark'] .outline-root.is-on .root-line {
   color: #f1ecef;
@@ -293,7 +333,7 @@ html[data-theme='dark'] .guide h2 {
 }
 html[data-theme='dark'] .outline-row.is-value .line,
 html[data-theme='dark'] .outline.is-mubu .outline-row.is-value .line {
-  color: #b3abb0;
+  color: var(--spec-value-text);
 }
 html[data-theme='dark'] .outline.is-mubu .outline-row.is-editing,
 html[data-theme='dark'] .outline.is-mubu .outline-root.is-editing {

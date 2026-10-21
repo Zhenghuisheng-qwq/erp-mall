@@ -1,6 +1,37 @@
 <template>
   <div ref="wrapRef" class="rail-wrap" :data-mode="mode" @mouseenter="cancelClose" @mouseleave="scheduleClose" @focusout="onFocusOut" @keydown="onWrapKeydown">
-    <aside v-if="mode !== 'single'" ref="railRef" class="rail" :class="{ 'is-icons': mode === 'icons' }" aria-label="主导航">
+    <div class="nav-column" :class="{ 'is-single': mode === 'single', 'is-icons': mode === 'icons' }">
+    <aside v-if="mode === 'single'" class="sider" aria-label="主导航">
+      <div class="sider-brand" title="商品配置">
+        <span class="brand-mark">商</span>
+        <strong>商品配置</strong>
+      </div>
+      <div class="sider-scroll">
+        <el-menu
+          :key="menuStamp"
+          ref="menuRef"
+          :default-active="active"
+          :default-openeds="openeds"
+          :collapse-transition="false"
+          @open="onMenuOpen"
+          @close="onMenuClose"
+          @select="onMenuSelect"
+        >
+          <el-sub-menu v-for="group in groups" :key="group.key" :index="group.key">
+            <template #title>
+              <el-icon :size="18"><component :is="group.icon" /></el-icon>
+              <span>{{ group.title }}</span>
+            </template>
+            <el-menu-item v-for="item in group.items" :key="item.index" :index="item.index">{{ item.title }}</el-menu-item>
+            <el-sub-menu v-for="section in group.sections" :key="section.key" :index="section.key">
+              <template #title>{{ section.title }}</template>
+              <el-menu-item v-for="leaf in section.items" :key="leaf.index" :index="leaf.index">{{ leaf.title }}</el-menu-item>
+            </el-sub-menu>
+          </el-sub-menu>
+        </el-menu>
+      </div>
+    </aside>
+    <aside v-else ref="railRef" class="rail" :class="{ 'is-icons': mode === 'icons' }" aria-label="主导航">
       <div class="rail-brand" title="商品配置">
         <span class="brand-mark">商</span>
       </div>
@@ -25,11 +56,36 @@
           <span>{{ group.title }}</span>
         </button>
       </div>
-      <button type="button" class="rail-mode" :aria-label="modeButtonLabel" @click="cycleMode">{{ modeButtonText }}</button>
-      <button v-if="mode === 'dual' && !menuOpen" type="button" class="rail-mode" @click="menuOpen = true">展开菜单</button>
     </aside>
+    <nav class="nav-dock" aria-label="导航布局">
+      <button ref="layoutBtnRef" type="button" class="nav-tool" aria-haspopup="menu" :aria-expanded="layoutOpen" aria-label="切换布局" title="切换布局" @click="toggleLayout">
+        <span class="nav-tool-label">布局</span>
+        <span v-if="mode === 'icons'" class="nav-tool-mark" aria-hidden="true">≡</span>
+      </button>
+      <button v-if="mode === 'dual' && !menuOpen" type="button" class="nav-tool" @click="menuOpen = true">展开菜单</button>
+    </nav>
+    </div>
+    <Teleport defer to="#iyge-nav-fold">
+      <button type="button" class="nav-fold" data-nav-fold :aria-label="compactLabel" :title="compactLabel" @click="toggleFold">
+        <el-icon :size="18"><Expand v-if="mode === 'icons'" /><Fold v-else /></el-icon>
+      </button>
+    </Teleport>
+    <Teleport to="body">
+      <div v-if="layoutOpen" ref="layoutPopRef" class="layout-pop" role="menu" aria-label="导航布局" :style="layoutStyle">
+        <button
+          v-for="item in layoutChoices"
+          :key="item.id"
+          type="button"
+          class="layout-option"
+          role="menuitemradio"
+          :aria-checked="mode === item.id"
+          :class="{ 'is-current': mode === item.id }"
+          @click="chooseLayout(item.id)"
+        >{{ item.label }}</button>
+      </div>
+    </Teleport>
     <div
-      v-if="shownGroup"
+      v-if="mode !== 'single' && shownGroup"
       id="nav-flyout"
       ref="flyoutRef"
       class="flyout"
@@ -44,19 +100,7 @@
         <strong>{{ shownGroup.title }}</strong>
         <button type="button" class="nav-text-btn" @click="togglePin">{{ pinned ? '取消固定' : '固定' }}</button>
         <button v-if="mode === 'dual'" type="button" class="nav-text-btn" @click="menuOpen = false">收起</button>
-        <button v-if="mode === 'single'" type="button" class="nav-text-btn" @click="setMode('dual')">双栏</button>
-        <button v-if="mode === 'single'" type="button" class="nav-text-btn" @click="setMode('icons')">图标</button>
       </header>
-      <div v-if="mode === 'single'" class="center-switch">
-        <button
-          v-for="group in groups"
-          :key="group.key"
-          type="button"
-          class="center-btn"
-          :class="{ 'is-current': shownKey === group.key }"
-          @click="showCenter(group.key)"
-        >{{ group.title }}</button>
-      </div>
       <div class="flyout-body" :class="flyoutLayout.mode === 'grid' ? 'is-grid' : 'is-single'">
         <template v-if="flyoutLayout.mode === 'grid'">
           <a
@@ -122,6 +166,7 @@
 </template>
 
 <script setup lang="ts">
+import { Expand, Fold } from '@element-plus/icons-vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Component } from 'vue'
 import { useRouter } from 'vue-router'
@@ -137,16 +182,20 @@ const props = defineProps<{
 }>()
 
 type NavMode = 'dual' | 'single' | 'icons'
+type ExpandedMode = 'dual' | 'single'
 const NAV_KEY = 'iyge-nav-layout'
 
 function readNav() {
-  const fallback = { mode: 'dual' as NavMode, pinned: false, menuOpen: true }
+  const fallback = { mode: 'dual' as NavMode, pinned: false, menuOpen: true, openeds: null as string[] | null, expandedMode: 'dual' as ExpandedMode }
   try {
     const raw = localStorage.getItem(NAV_KEY)
     if (!raw) return fallback
-    const parsed = JSON.parse(raw) as { mode?: string; pinned?: boolean; menuOpen?: boolean }
+    const parsed = JSON.parse(raw) as { mode?: string; pinned?: boolean; menuOpen?: boolean; openeds?: unknown; expandedMode?: string }
     const mode: NavMode = parsed.mode === 'single' || parsed.mode === 'icons' ? parsed.mode : 'dual'
-    return { mode, pinned: Boolean(parsed.pinned), menuOpen: parsed.menuOpen !== false }
+    const openeds = Array.isArray(parsed.openeds) ? parsed.openeds.filter((item): item is string => typeof item === 'string') : null
+    const storedExpanded: ExpandedMode = parsed.expandedMode === 'single' ? 'single' : 'dual'
+    const expandedMode: ExpandedMode = mode === 'icons' ? storedExpanded : mode
+    return { mode, pinned: Boolean(parsed.pinned), menuOpen: parsed.menuOpen !== false, openeds, expandedMode }
   } catch {
     return fallback
   }
@@ -157,26 +206,64 @@ const router = useRouter()
 const wrapRef = ref<HTMLElement>()
 const railRef = ref<HTMLElement>()
 const flyoutRef = ref<HTMLElement>()
+const menuRef = ref<{ open: (index: string) => void }>()
+const layoutBtnRef = ref<HTMLButtonElement>()
+const layoutPopRef = ref<HTMLElement>()
 const mode = ref<NavMode>(saved.mode)
+const expandedMode = ref<ExpandedMode>(saved.expandedMode)
 const pinned = ref(saved.pinned)
 const menuOpen = ref(saved.menuOpen)
+const layoutOpen = ref(false)
+const layoutStyle = ref({ left: '0px', bottom: '0px' })
 const hoverKey = ref('')
 const heldKey = ref('')
-const browseKey = ref('')
 const flyoutTop = ref(8)
 const popLeft = ref(96)
 let closeTimer = 0
+let ignoreMenuEvents = false
+const layoutChoices: { id: NavMode; label: string }[] = [
+  { id: 'dual', label: '双栏' },
+  { id: 'single', label: '单栏' },
+  { id: 'icons', label: '仅图标' },
+]
 
+function visibleKeySet() {
+  return new Set(props.groups.flatMap((group) => [group.key, ...group.sections.map((section) => section.key)]))
+}
+function placeKeys() {
+  const keys: string[] = []
+  if (props.currentGroup) keys.push(props.currentGroup)
+  for (const group of props.groups) {
+    for (const section of group.sections) {
+      if (section.items.some((item) => item.index === props.active)) keys.push(section.key)
+    }
+  }
+  return keys
+}
+function seedOpeneds() {
+  const visible = visibleKeySet()
+  const base = saved.openeds ?? ['product']
+  const next = base.filter((key) => visible.has(key))
+  if (saved.openeds === null) {
+    for (const key of placeKeys()) if (visible.has(key) && !next.includes(key)) next.push(key)
+  }
+  for (const group of props.groups) {
+    if (group.sections.some((section) => next.includes(section.key)) && visible.has(group.key) && !next.includes(group.key)) next.push(group.key)
+  }
+  return next
+}
+
+const openeds = ref<string[]>(seedOpeneds())
 const popped = computed(() => mode.value === 'icons' || (mode.value === 'dual' && !menuOpen.value))
 const shownKey = computed(() => {
+  if (mode.value === 'single') return ''
   if (hoverKey.value) return hoverKey.value
   if (pinned.value && heldKey.value) return heldKey.value
-  if (mode.value === 'single') return browseKey.value || props.currentGroup
   if (mode.value === 'dual' && menuOpen.value) return props.currentGroup
   return ''
 })
-const modeButtonText = computed(() => (mode.value === 'icons' ? '双栏' : '单栏'))
-const modeButtonLabel = computed(() => (mode.value === 'icons' ? '恢复双栏' : '切换为单栏'))
+const compactLabel = computed(() => (mode.value === 'icons' ? '展开菜单' : '缩小菜单'))
+const menuStamp = computed(() => props.groups.map((group) => group.key).join('|'))
 const shownGroup = computed(() => props.groups.find((group) => group.key === shownKey.value) || null)
 const SLOT: Record<string, { column: number; row: number }> = {
   manage: { column: 1, row: 1 },
@@ -219,26 +306,63 @@ function scheduleClose() {
   }, 180)
 }
 function persist() {
-  localStorage.setItem(NAV_KEY, JSON.stringify({ mode: mode.value, pinned: pinned.value, menuOpen: menuOpen.value }))
+  localStorage.setItem(NAV_KEY, JSON.stringify({ mode: mode.value, pinned: pinned.value, menuOpen: menuOpen.value, openeds: openeds.value, expandedMode: expandedMode.value }))
 }
 function groupKeyOf(index: string) {
   return props.groups.find((group) => group.items.some((item) => item.index === index) || group.sections.some((section) => section.items.some((item) => item.index === index)))?.key || ''
 }
-function setMode(next: NavMode) {
+function setMode(next: NavMode, options?: { preserveDock?: boolean }) {
+  if (next === 'dual' || next === 'single') expandedMode.value = next
+  if (next !== 'single') ignoreMenuEvents = true
+  if (next === 'single') {
+    const visible = visibleKeySet()
+    const merged = openeds.value.filter((key) => visible.has(key))
+    for (const key of placeKeys()) if (visible.has(key) && !merged.includes(key)) merged.push(key)
+    openeds.value = merged
+  }
   mode.value = next
   hoverKey.value = ''
-  browseKey.value = ''
-  if (next === 'dual') menuOpen.value = true
-  if (next === 'single' && pinned.value) heldKey.value = heldKey.value || props.currentGroup
+  layoutOpen.value = false
+  if (next === 'dual' && !options?.preserveDock) menuOpen.value = true
   persist()
+  nextTick(() => {
+    ignoreMenuEvents = false
+  })
 }
-function cycleMode() {
-  setMode(mode.value === 'dual' ? 'single' : 'dual')
+function toggleFold() {
+  if (mode.value === 'icons') {
+    setMode(expandedMode.value, { preserveDock: true })
+    return
+  }
+  expandedMode.value = mode.value
+  setMode('icons', { preserveDock: true })
 }
-function showCenter(key: string) {
-  browseKey.value = key
-  hoverKey.value = ''
-  if (pinned.value) heldKey.value = key
+function placeLayout() {
+  const button = layoutBtnRef.value
+  if (!button) return
+  const rect = button.getBoundingClientRect()
+  const left = Math.min(rect.right + 6, window.innerWidth - 132)
+  layoutStyle.value = { left: `${Math.round(left)}px`, bottom: `${Math.round(window.innerHeight - rect.bottom)}px` }
+}
+function toggleLayout() {
+  layoutOpen.value = !layoutOpen.value
+  if (layoutOpen.value) nextTick(placeLayout)
+}
+function chooseLayout(next: NavMode) {
+  setMode(next)
+}
+function onMenuOpen(index: string) {
+  if (ignoreMenuEvents || mode.value !== 'single' || openeds.value.includes(index)) return
+  openeds.value = [...openeds.value, index]
+}
+function onMenuClose(index: string) {
+  if (ignoreMenuEvents || mode.value !== 'single') return
+  openeds.value = openeds.value.filter((key) => key !== index)
+}
+function onMenuSelect(index: string) {
+  if (!index.startsWith('/')) return
+  const target = router.resolve(index)
+  if (target.fullPath !== router.currentRoute.value.fullPath) void router.push(target)
 }
 function togglePin() {
   const key = shownKey.value || props.currentGroup
@@ -294,7 +418,6 @@ function closePanel() {
   pinned.value = false
   heldKey.value = ''
   hoverKey.value = ''
-  browseKey.value = ''
   persist()
 }
 function go(event: MouseEvent, index: string) {
@@ -303,7 +426,6 @@ function go(event: MouseEvent, index: string) {
   const target = router.resolve(index)
   if (target.fullPath !== router.currentRoute.value.fullPath) void router.push(target)
   hoverKey.value = ''
-  browseKey.value = ''
   if (pinned.value) {
     heldKey.value = groupKeyOf(index) || heldKey.value
     return
@@ -339,6 +461,10 @@ function onWrapKeydown(event: KeyboardEvent) {
   if (event.key !== 'Escape') return
   const target = event.target as HTMLElement | null
   if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) return
+  if (layoutOpen.value) {
+    layoutOpen.value = false
+    return
+  }
   closePanel()
 }
 function onFocusOut(event: FocusEvent) {
@@ -356,18 +482,29 @@ function isTypingTarget(target: EventTarget | null) {
   return Boolean(node.closest('.el-dialog, .el-message-box, .el-overlay, .el-popper, .context-menu'))
 }
 function onDocPointerDown(event: PointerEvent) {
-  if (!shownKey.value) return
   const target = event.target as Node | null
+  if (layoutOpen.value) {
+    const inPop = Boolean(target && layoutPopRef.value?.contains(target))
+    const inBtn = Boolean(target && layoutBtnRef.value?.contains(target))
+    if (!inPop && !inBtn) layoutOpen.value = false
+  }
+  if (!shownKey.value || mode.value === 'single') return
   if (target && wrapRef.value?.contains(target)) return
+  if (target instanceof Element && target.closest('#iyge-nav-fold')) return
   closePanel()
 }
 function onDocKeydown(event: KeyboardEvent) {
-  if (event.key !== 'Escape' || !shownKey.value) return
+  if (event.key !== 'Escape') return
+  if (layoutOpen.value) {
+    layoutOpen.value = false
+    return
+  }
+  if (!shownKey.value) return
   if (isTypingTarget(event.target)) return
   if (wrapRef.value?.contains(event.target as Node)) return
   closePanel()
 }
-watch([mode, pinned, menuOpen], persist)
+watch([mode, pinned, menuOpen, openeds, expandedMode], persist)
 watch(
   () => props.currentGroup,
   (group) => {
@@ -380,7 +517,28 @@ watch(
   () => {
     if (hoverKey.value && !props.groups.some((group) => group.key === hoverKey.value)) hoverKey.value = ''
     if (heldKey.value && !props.groups.some((group) => group.key === heldKey.value)) heldKey.value = ''
-    if (browseKey.value && !props.groups.some((group) => group.key === browseKey.value)) browseKey.value = ''
+    const visible = visibleKeySet()
+    const next = openeds.value.filter((key) => visible.has(key))
+    if (next.length !== openeds.value.length) openeds.value = next
+  },
+)
+watch(
+  () => props.active,
+  () => {
+    if (mode.value !== 'single') return
+    const visible = visibleKeySet()
+    const extra = placeKeys().filter((key) => visible.has(key) && !openeds.value.includes(key))
+    if (!extra.length) return
+    openeds.value = [...openeds.value, ...extra]
+    nextTick(() => {
+      for (const key of extra) {
+        try {
+          menuRef.value?.open(key)
+        } catch {
+          // 分组尚未挂载时不打断导航
+        }
+      }
+    })
   },
 )
 
@@ -397,14 +555,40 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .rail-wrap { display: flex; flex: none; height: 100%; min-height: 0; position: relative; z-index: 20; }
-.rail { width: 96px; flex: none; height: 100%; background: var(--nav-bg); color: var(--nav-text); display: flex; flex-direction: column; }
-.rail.is-icons { width: 56px; }
+.nav-column { width: 96px; flex: none; height: 100%; min-height: 0; background: var(--nav-bg); color: var(--nav-text); display: flex; flex-direction: column; }
+.nav-column.is-single { width: 228px; }
+.nav-column.is-icons { width: 56px; }
+.rail, .sider { width: 100%; flex: 1; min-height: 0; background: var(--nav-bg); color: var(--nav-text); display: flex; flex-direction: column; }
 .rail.is-icons .rail-btn { min-height: 48px; gap: 0; padding: 8px 0; }
 .rail.is-icons .rail-btn span { display: none; }
-.rail-mode, .nav-text-btn, .center-btn { border: 0; background: transparent; color: var(--nav-current-text); cursor: pointer; font-size: 12px; line-height: 1.2; }
-.rail-mode { margin: 4px 8px 10px; padding: 6px 0; border-radius: 6px; }
-.rail-mode:hover, .nav-text-btn:hover, .center-btn:hover { background: var(--nav-hover); }
-.rail.is-icons .rail-mode { margin: 4px; color: var(--nav-text); }
+.nav-column.is-icons .nav-tool-label { display: none; }
+.nav-column.is-icons .nav-tool-mark { display: inline; }
+.nav-tool-mark { display: none; font-size: 16px; line-height: 1; }
+.nav-fold { width: 40px; height: 40px; min-width: 32px; min-height: 32px; border: 0; border-radius: 4px; background: transparent; color: var(--text-primary); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; }
+.nav-fold:hover { background: var(--hover-bg); }
+.nav-fold:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 1px; }
+.nav-dock { flex: none; display: flex; flex-direction: column; gap: 4px; padding: 6px; }
+.nav-tool, .nav-text-btn { border: 0; background: transparent; color: var(--nav-text); cursor: pointer; font-size: 12px; line-height: 1.2; }
+.nav-tool { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 32px; padding: 6px 4px; border-radius: 6px; }
+.nav-tool:hover, .nav-text-btn:hover { background: var(--nav-hover); color: var(--text-primary); }
+.nav-tool:focus-visible { outline: 2px solid var(--app-accent); outline-offset: -2px; }
+.layout-pop { position: fixed; z-index: 80; min-width: 120px; padding: 4px; border-radius: 8px; background: var(--flyout-bg); color: var(--flyout-text); border: 1px solid var(--flyout-border); box-shadow: var(--shadow-pop); }
+.layout-option { display: block; width: 100%; text-align: left; border: 0; background: transparent; color: inherit; border-radius: 6px; padding: 8px 10px; cursor: pointer; font-size: 13px; }
+.layout-option:hover { background: var(--flyout-hover); }
+.layout-option.is-current { background: var(--flyout-current-bg); color: var(--flyout-current-text); }
+.layout-option:focus-visible { outline: 2px solid var(--app-accent); outline-offset: -2px; }
+.sider-brand { height: 56px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: var(--nav-bg-deep); overflow: hidden; }
+.sider-brand strong { font-size: 15px; font-weight: 650; color: var(--text-primary); white-space: nowrap; }
+.sider-scroll { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; }
+.sider-scroll::-webkit-scrollbar { width: 6px; }
+.sider-scroll::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+.sider :deep(.el-menu) { --el-menu-bg-color: var(--nav-bg); --el-menu-text-color: var(--nav-text); --el-menu-hover-bg-color: var(--nav-hover); --el-menu-hover-text-color: var(--text-primary); --el-menu-active-color: var(--nav-current-text); --el-menu-item-height: 42px; --el-menu-sub-item-height: 42px; --el-menu-item-font-size: 14px; border-right: 0; width: 100%; background: var(--nav-bg); }
+.sider :deep(.el-menu-item),
+.sider :deep(.el-sub-menu__title) { color: var(--nav-text); }
+.sider :deep(.el-menu--inline) { background: var(--nav-bg-deep); }
+.sider :deep(.el-sub-menu.is-active > .el-sub-menu__title) { color: var(--app-accent); }
+.sider :deep(.el-menu-item.is-active),
+.sider :deep(.el-menu-item.is-active:hover) { background: var(--nav-current-bg) !important; color: var(--nav-current-text) !important; }
 .rail-brand { height: 56px; flex: none; display: flex; align-items: center; justify-content: center; background: var(--nav-bg-deep); }
 .rail-scroll { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; padding: 6px 0 12px; }
 .rail-scroll::-webkit-scrollbar { width: 0; }
@@ -445,9 +629,6 @@ onBeforeUnmount(() => {
 .flyout.is-dock.is-grid { width: max-content; max-width: min(22rem, 42vw); }
 .flyout-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 14px 12px 8px; }
 .nav-text-btn { flex: none; padding: 4px 6px; border-radius: 6px; color: var(--app-accent); }
-.center-switch { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 12px 8px; }
-.center-btn { padding: 4px 8px; border-radius: 6px; color: var(--flyout-text); }
-.center-btn.is-current { background: var(--flyout-current-bg); color: var(--flyout-current-text); }
 .flyout-head strong { font-size: 15px; font-weight: 700; color: var(--text-primary); }
 .flyout-link:focus-visible, .flyout-shortcut:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 1px; }
 .flyout-body { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 16px; }

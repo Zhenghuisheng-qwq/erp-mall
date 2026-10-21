@@ -41,6 +41,34 @@ export function materialArchivesOf(data: AppData, familyId: string) {
   return data.skus.filter((item) => item.familyId === familyId && isMaterialArchive(data, item))
 }
 
+export function familyBrandValues(data: AppData, family: ProductFamily) {
+  const param = data.params.find((item) => item.id === 'p-brand')
+  const key = param?.name || ''
+  const saved = key ? (family.commonAttrs[key] || '').trim() : (family.commonAttrs['品牌'] || '').trim()
+  if (saved) return [saved]
+  if (family.line !== 'v3' || !param) return []
+  const found = new Set<string>()
+  materialArchivesOf(data, family.id).forEach((sku) => {
+    const record = (data.planningRecords || []).find((item) => item.planningId && item.planningId === sku.planningId && item.origin !== 'temporary')
+    const step = record?.steps.find((item) => item.attributeId === param.id && item.valueId.trim())
+    const versionId = (sku.modelVersionId || record?.originModelVersionId || '').trim()
+    const published = versionId ? data.specModelVersions.some((item) => item.id === versionId && item.status === 'published') : false
+    if (!published) return
+    if (step) {
+      found.add(step.valueId.trim())
+      return
+    }
+    const filed = key ? (sku.variantAttrs[key] || '').trim() : ''
+    if (filed) found.add(filed)
+  })
+  return [...found].sort((left, right) => left.localeCompare(right, 'zh'))
+}
+
+export function familyBrandText(data: AppData, family: ProductFamily) {
+  const values = familyBrandValues(data, family)
+  return values.length ? values.join('、') : '未记录'
+}
+
 export function productTypeName(data: AppData, family: ProductFamily) {
   if (!family.productTypeId) return '未记录'
   return data.productTypes.find((item) => item.id === family.productTypeId)?.name || '未记录'
@@ -96,13 +124,13 @@ export function slicePage<T>(rows: T[], page: number, pageSize: number) {
   return { page: safe, rows: rows.slice(start, start + size) }
 }
 
-function familyContextMatch(family: ProductFamily, query: ListQuery) {
+function familyContextMatch(data: AppData, family: ProductFamily, query: ListQuery) {
   if (query.categoryId && family.categoryId !== query.categoryId) return false
   if (query.shelf && shelfOf(family) !== query.shelf) return false
   const created = (family.createdAt || family.updatedAt).slice(0, 10)
   if (query.createdFrom && created < query.createdFrom) return false
   if (query.createdTo && created > query.createdTo) return false
-  if (query.brand && (family.commonAttrs['品牌'] || '') !== query.brand) return false
+  if (query.brand && !familyBrandValues(data, family).includes(query.brand)) return false
   if (query.templateId && family.templateId !== query.templateId) return false
   if (query.productGroupId && !(family.productGroupIds || []).includes(query.productGroupId)) return false
   return true
@@ -126,7 +154,8 @@ function materialSearchText(sku: Sku) {
 export function familyListText(data: AppData, family: ProductFamily) {
   const real = realSkusOf(data, family.id).map((sku) => skuListText(family, sku)).join(' ')
   const materials = materialArchivesOf(data, family.id).map((sku) => materialSearchText(sku)).join(' ')
-  return `${family.name} ${categoryPath(data, family.categoryId)} ${family.oaProductId} ${real} ${materials}`
+  const brand = familyBrandValues(data, family).join(' ')
+  return `${family.name} ${categoryPath(data, family.categoryId)} ${family.oaProductId} ${brand} ${real} ${materials}`
 }
 
 function attrMatch(query: ListQuery, family: ProductFamily, skus: Sku[]) {
@@ -146,7 +175,7 @@ function compareText(query: ListQuery, leftName: string, leftTime: string, right
 export function listFamilies(data: AppData, query: ListQuery) {
   const rows = data.families.filter((family) => {
     const skus = realSkusOf(data, family.id)
-    if (!familyContextMatch(family, query)) return false
+    if (!familyContextMatch(data, family, query)) return false
     if (!keywordHit(query, familyListText(data, family))) return false
     if (query.status && !skus.some((sku) => sku.status === query.status)) return false
     return attrMatch(query, family, skus)
@@ -159,11 +188,11 @@ export function listRealSkuRows(data: AppData, query: ListQuery): SkuListRow[] {
     if (!isRealSku(data, sku)) return []
     const family = data.families.find((item) => item.id === sku.familyId)
     if (!family) return []
-    if (!familyContextMatch(family, query)) return []
+    if (!familyContextMatch(data, family, query)) return []
     if (query.status && sku.status !== query.status) return []
     if (!attrMatch(query, family, [sku])) return []
     const spec = savedSkuSpec(family, sku)
-    const text = `${family.name} ${categoryPath(data, family.categoryId)} ${family.commonAttrs['品牌'] || ''} ${skuListText(family, sku)}`
+    const text = `${family.name} ${categoryPath(data, family.categoryId)} ${familyBrandValues(data, family).join(' ')} ${skuListText(family, sku)}`
     if (!keywordHit(query, text)) return []
     return [{
       id: sku.id,

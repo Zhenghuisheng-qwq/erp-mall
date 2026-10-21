@@ -79,9 +79,7 @@
       <el-form label-width="72px">
         <el-form-item label="分类">
           <el-input v-if="!editing.id" :model-value="categoryId ? categoryPath(store.data, categoryId) : ''" disabled />
-          <el-select v-else v-model="targetCategoryId" filterable placeholder="选择末级分类" style="width: 100%">
-            <el-option v-for="item in leafCategories" :key="item.id" :label="item.label" :value="item.id" />
-          </el-select>
+          <CategoryTreeSelect v-else :model-value="targetCategoryId" :categories="store.data.categories" :block-reason="typeMoveBlock" placeholder="选择末级分类" style="width: 100%" @update:model-value="onTargetCategory" />
         </el-form-item>
         <p v-if="moveHint" class="move-hint">{{ moveHint }}</p>
         <el-form-item label="名称"><el-input v-model="editing.name" /></el-form-item>
@@ -100,6 +98,7 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import CategoryTreeSelect from '../components/CategoryTreeSelect.vue'
 import PageHead from '../components/PageHead.vue'
 import { productTypeCategoryMoveMessage, productTypesInScope, type ProductTypeScope } from '../domain/categoryTree'
 import { categoryPath } from '../domain/logic'
@@ -133,10 +132,6 @@ const rows = computed(() => {
     }))
     .sort((a, b) => (a.categories[0]?.path || '').localeCompare(b.categories[0]?.path || '', 'zh') || a.sort - b.sort || a.name.localeCompare(b.name, 'zh') || a.id.localeCompare(b.id))
 })
-const leafCategories = computed(() => store.data.categories
-  .filter((item) => item.enabled !== false && !store.data.categories.some((child) => child.parentId === item.id))
-  .map((item) => ({ id: item.id, label: categoryPath(store.data, item.id) }))
-  .sort((a, b) => a.label.localeCompare(b.label, 'zh')))
 const moveHint = computed(() => {
   if (!editing.id || !targetCategoryId.value) return ''
   return productTypeCategoryMoveMessage(store.data, editing.id, targetCategoryId.value, categoryPath(store.data, targetCategoryId.value))
@@ -192,6 +187,16 @@ function modelsOf(typeId: string) {
   return models
 }
 
+function typeMoveBlock(id: string) {
+  const category = store.data.categories.find((item) => item.id === id)
+  if (!category) return '目标分类不存在或已经删除。'
+  if (category.enabled === false) return '目标分类已停用，不能关联。'
+  if (store.data.categories.some((item) => item.parentId === id)) return '只有末级分类可以关联产品类型。'
+  return ''
+}
+function onTargetCategory(value: string | string[]) {
+  if (typeof value === 'string') targetCategoryId.value = value
+}
 function onPick(node: { id: string }) {
   categoryId.value = node.id
 }

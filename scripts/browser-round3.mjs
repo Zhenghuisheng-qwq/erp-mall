@@ -20,8 +20,10 @@ async function click(page, locator, label) {
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
 try {
   await page.goto(`${base}/products/new`, { waitUntil: 'networkidle' })
-  await click(page, page.locator('.panel .el-select').first(), '打开分类')
-  await click(page, page.locator('.el-select-dropdown__item').filter({ hasText: /^\s*手机$/ }).first(), '选择手机')
+  await click(page, page.locator('[data-category-tree-select]').first(), '打开分类')
+  await page.locator('[data-category-tree-select-panel]').waitFor()
+  await click(page, page.locator('[data-category-tree-select-panel] [data-expand-id="c-host"]'), '展开主机')
+  await click(page, page.locator('[data-category-tree-select-panel] [data-category-id="c-phone"] .node'), '选择手机')
   await click(page, page.getByRole('button', { name: '生成可建档规格' }), '生成可建档规格')
   await click(page, page.getByRole('button', { name: /Apple/ }).filter({ hasText: '128G' }).filter({ hasText: '黑色' }).first(), '选择黑色 128G')
   await click(page, page.getByRole('button', { name: '创建物料' }), '创建物料')

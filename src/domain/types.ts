@@ -271,8 +271,13 @@ export interface Sku {
   guanjiapoCode?: string
   /** 物料描述。 */
   materialDescription?: string
-  /** auto 是建档时带入的名称。manual 表示人改过，不能被规则悄悄覆盖。 */
-  nameSource?: 'auto' | 'manual'
+  /**
+   * rule：建档时按指定已发布版本的命名规则生成。
+   * default：该版本没有可用规则，按默认顺序生成。
+   * manual：人改过，不能被规则悄悄覆盖。
+   * auto：更早的记录，当时没有分开规则和默认，不能事后改写成其中一种。
+   */
+  nameSource?: 'rule' | 'default' | 'manual' | 'auto'
   /** 建档时命中的命名规则节点。旧物料没有。同级规则冲突时不写。 */
   namingNodeId?: string
   /** 建档时算出的自动建议名称。旧物料没有。不能自动命名时不写。 */

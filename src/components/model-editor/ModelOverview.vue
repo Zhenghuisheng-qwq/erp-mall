@@ -1,6 +1,10 @@
 <template>
-  <div class="overview">
+  <div class="overview" :data-overview-view="mode">
     <div class="overview-bar">
+      <el-radio-group :model-value="mode" size="small" @change="setMode">
+        <el-radio-button value="graph">关系图</el-radio-button>
+        <el-radio-button value="list">清单</el-radio-button>
+      </el-radio-group>
       <el-input v-model="keyword" clearable placeholder="按模型名称查找" />
       <span>{{ modelTotal }} 个模型</span>
     </div>
@@ -8,10 +12,11 @@
     <div v-else-if="hits.length" class="hit-row">
       <button v-for="item in hits" :key="item.templateId + item.categoryId" type="button" :class="{ 'is-on': item.templateId === selectedModelId }" @click="focusModel(item.templateId, item.categoryId)">
         {{ item.name }}
-        <em>{{ item.typeName }}</em>
+        <em>{{ categoryPath(store.data, item.categoryId) }} / {{ item.typeName }}</em>
       </button>
     </div>
-    <p class="overview-note">{{ contextText }}</p>
+    <p v-if="mode === 'list'" class="overview-note">{{ contextText }}</p>
+    <div v-show="mode === 'list'" class="overview-pane">
     <div v-if="rows.length" ref="listRef" class="overview-list">
       <div
         v-for="row in rows"
@@ -31,6 +36,18 @@
       </div>
     </div>
     <el-empty v-else description="还没有可查看的分类和模型" />
+    </div>
+    <OverviewGraph
+      v-show="mode === 'graph'"
+      class="overview-pane"
+      :active="mode === 'graph'"
+      :root-id="rootId || ''"
+      :pin-tick="pinTick"
+      :pin-template-id="pinTemplateId"
+      :pin-category-id="pinCategoryId"
+      @open="openFromGraph"
+      @root="emit('root', $event)"
+    />
   </div>
 </template>
 
@@ -40,17 +57,27 @@ import { categoryChain } from '../../domain/categoryTree'
 import { categoryPath, modelVersionsOf } from '../../domain/logic'
 import type { ProductSpecNode } from '../../domain/types'
 import { useCatalogStore } from '../../stores/catalog'
+import OverviewGraph from './OverviewGraph.vue'
 
 const props = defineProps<{
   categoryId: string
   typeId: string
   keyword: string
   focusId: string
+  view?: string
+  rootId?: string
 }>()
 
 const emit = defineEmits<{
   open: [payload: { templateId: string; categoryId: string; typeId: string; keyword: string }]
+  view: [view: 'list' | 'graph']
+  root: [rootId: string]
 }>()
+
+const mode = ref<'list' | 'graph'>(props.view === 'list' ? 'list' : 'graph')
+const pinTick = ref(0)
+const pinTemplateId = ref('')
+const pinCategoryId = ref('')
 
 const store = useCatalogStore()
 const listRef = ref<HTMLElement>()
@@ -368,6 +395,16 @@ function openModel(row: OverviewRow) {
   })
 }
 
+function openFromGraph(payload: { templateId: string; categoryId: string; typeId: string }) {
+  emit('open', { ...payload, keyword: keyword.value.trim() })
+}
+
+function setMode(value: string | number | boolean) {
+  const next = value === 'graph' ? 'graph' : 'list'
+  mode.value = next
+  emit('view', next)
+}
+
 function focusModel(templateId: string, categoryId: string) {
   const type = store.data.productTypes.find((item) => item.categoryId === categoryId && modelsOf(item.id).some((model) => model.templateId === templateId))
     || store.data.productTypes.find((item) => modelsOf(item.id).some((model) => model.templateId === templateId))
@@ -375,6 +412,9 @@ function focusModel(templateId: string, categoryId: string) {
   selectedTypeId.value = type?.id || ''
   selectedModelId.value = templateId
   openCategories.value = [...new Set([...openCategories.value, ...chainIds(selectedCategoryId.value)])]
+  pinTemplateId.value = templateId
+  pinCategoryId.value = categoryId
+  pinTick.value += 1
   nextTick(() => listRef.value?.querySelector('[data-focus="1"]')?.scrollIntoView({ block: 'nearest' }))
 }
 
@@ -384,11 +424,15 @@ watch(() => props.focusId, (id) => {
 watch(() => props.keyword, (value) => {
   if (value) keyword.value = value
 })
+watch(() => props.view, (value) => {
+  mode.value = value === 'list' ? 'list' : 'graph'
+})
 </script>
 
 <style scoped>
 .overview { min-height: 0; height: 100%; display: flex; flex-direction: column; gap: 8px; }
-.overview-bar { display: flex; align-items: center; gap: 12px; }
+.overview-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.overview-pane { min-height: 0; flex: 1; display: flex; flex-direction: column; }
 .overview-bar .el-input { max-width: 320px; }
 .overview-bar span, .overview-note { color: var(--text-secondary, #66788a); font-size: 13px; }
 .overview-note { margin: 0; }
@@ -396,7 +440,7 @@ watch(() => props.keyword, (value) => {
 .hit-row button { border: 1px solid var(--border-default, #e4e8ef); background: var(--surface-bg, #fff); border-radius: 6px; padding: 4px 8px; cursor: pointer; }
 .hit-row button.is-on { border-color: var(--el-color-primary); color: var(--el-color-primary); }
 .hit-row em { margin-left: 6px; color: var(--text-secondary, #8b98a8); font-style: normal; }
-.overview-list { min-height: 0; overflow: auto; background: var(--surface-bg, #fff); border: 1px solid var(--border-default, #e4e8ef); border-radius: 8px; padding: 8px 0; }
+.overview-list { min-height: 0; flex: 1; overflow: auto; background: var(--surface-bg, #fff); border: 1px solid var(--border-default, #e4e8ef); border-radius: 8px; padding: 8px 0; }
 .overview-row { display: flex; align-items: center; gap: 4px; min-height: 32px; }
 .overview-row.is-on { background: var(--el-color-primary-light-9, #f0f7ff); }
 .twist { width: 16px; border: 0; background: transparent; color: #98a2b3; cursor: pointer; }
@@ -405,7 +449,7 @@ watch(() => props.keyword, (value) => {
 .overview-label em { flex: none; color: var(--text-secondary, #8b98a8); font-style: normal; font-size: 12px; }
 .overview-row.is-category strong { font-weight: 650; }
 .overview-row.is-type strong { font-weight: 600; }
-.overview-row.is-attribute strong { font-weight: 650; }
-.overview-row.is-value .overview-label strong { font-weight: 500; padding: 0 10px; border-radius: 999px; background: var(--surface-muted, #eef2f6); }
+.overview-row.is-attribute .overview-label strong { flex: none; max-width: 100%; padding: 1px 8px; border: 1px solid var(--spec-attr-border, #9aa6d4); border-radius: 6px; background: var(--spec-attr-bg, color-mix(in srgb, #5d6eb8 16%, #fff)); font-weight: 600; }
+.overview-row.is-value .overview-label strong { flex: none; max-width: 100%; padding: 1px 10px; border: 1px solid var(--spec-value-border, #c3ccd6); border-radius: 999px; background: var(--spec-value-bg, #fff); font-weight: 400; }
 .overview-row.is-empty .overview-label { color: var(--text-secondary, #8b98a8); cursor: default; }
 </style>

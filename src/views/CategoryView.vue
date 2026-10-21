@@ -41,7 +41,7 @@
             @dragend="onDragEnd"
           >
             <button type="button" class="cat-expand" draggable="false" :title="row.hasChildren ? (row.expanded ? '收起' : '展开') : ''" @pointerdown.stop.prevent="onExpandDown(row.id, $event)" @click.stop="onExpandClick(row.id, $event)">
-              <span v-if="row.hasChildren">{{ row.expanded ? '▼' : '▶' }}</span>
+              <span v-if="row.hasChildren">{{ row.expanded ? '▼' : '▸' }}</span>
             </button>
             <span v-if="row.icon" class="cat-emoji">{{ row.icon }}</span>
             <el-icon v-else-if="row.hasChildren" class="cat-icon"><FolderOpened v-if="row.expanded" /><Folder v-else /></el-icon>
@@ -98,7 +98,7 @@
             :title="moveTargetBlocked(row.id)"
           >
             <button type="button" class="cat-expand" :title="row.hasChildren ? (row.expanded ? '收起' : '展开') : ''" @click.stop="toggleMove(row.id)">
-              <span v-if="row.hasChildren">{{ row.expanded ? '▼' : '▶' }}</span>
+              <span v-if="row.hasChildren">{{ row.expanded ? '▼' : '▸' }}</span>
             </button>
             <button type="button" class="move-name" @click="pickMoveTarget(row.id)">{{ row.name }}</button>
           </div>

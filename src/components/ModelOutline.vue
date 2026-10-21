@@ -13,14 +13,14 @@
     >
       <span class="twist"></span>
       <span class="line-wrap">
-        <input class="root-line" :data-line="rootId" :value="rootTitle" :readonly="viewing" @focus="markEditing(rootId, $event)" @input="onEditingInput" @keydown="onRootKey" @blur="commitRoot" />
+        <input class="root-line" :data-line="rootId" :value="rootTitle" readonly title="模型名称在创建时确定" @focus="markEditing(rootId, $event)" @keydown="onRootKey" />
       </span>
     </div>
     <div
       v-for="row in rows"
       :key="row.node.id"
       class="outline-row"
-      :class="{ 'is-on': activeId === row.node.id, 'is-editing': editingId === row.node.id, 'is-head': row.depth === 0 && row.node.nodeType === 'ATTRIBUTE', 'is-value': row.node.nodeType === 'VALUE', 'drop-before': drop.id === row.node.id && drop.place === 'before', 'drop-after': drop.id === row.node.id && drop.place === 'after', 'drop-in': drop.id === row.node.id && drop.place === 'inside' }"
+      :class="{ 'is-on': activeId === row.node.id, 'is-editing': editingId === row.node.id, 'is-head': row.depth === 0 && row.node.nodeType === 'ATTRIBUTE', 'is-attribute': row.node.nodeType === 'ATTRIBUTE', 'is-value': row.node.nodeType === 'VALUE', 'drop-before': drop.id === row.node.id && drop.place === 'before', 'drop-after': drop.id === row.node.id && drop.place === 'after', 'drop-in': drop.id === row.node.id && drop.place === 'inside' }"
       :style="{ paddingLeft: (mubu ? 4 : 12) + row.depth * (mubu ? 36 : 28) + 'px' }"
       @dragover.prevent="onDragOver(row.node.id, $event, false)"
       @drop.prevent="onDrop(row.node.id, false)"
@@ -61,12 +61,13 @@
           type="button"
           class="line"
           :class="{ 'is-unbound': isUnbound(row.node) }"
+          :title="label(row.node)"
           :data-line="row.node.id"
           @focus="markEditing(row.node.id, $event)"
           @click.stop="openPick(row.node)"
           @keydown="onLineKey(row.node, $event)"
         >{{ label(row.node) }}<em v-if="ruleText(row.node)" class="rule-mark" :class="{ 'is-inherit': ruleText(row.node) === '继承' }">{{ ruleText(row.node) }}</em></button>
-        <input v-else class="line" :class="{ 'is-unbound': isUnbound(row.node) }" :data-line="row.node.id" :value="label(row.node)" readonly @focus="markEditing(row.node.id, $event)" />
+        <input v-else class="line" :class="{ 'is-unbound': isUnbound(row.node) }" :title="label(row.node)" :data-line="row.node.id" :value="label(row.node)" readonly @focus="markEditing(row.node.id, $event)" />
         <em v-if="viewing && ruleText(row.node)" class="rule-mark" :class="{ 'is-inherit': ruleText(row.node) === '继承' }">{{ ruleText(row.node) }}</em>
         <span v-if="row.node.nodeType === 'ATTRIBUTE' && attributeHint(row.node).bound" class="bind-note" :title="`绑定：${label(row.node)} · 属性词典`">属性来源：属性词典</span>
         <button v-else-if="row.node.nodeType === 'ATTRIBUTE' && !viewing" type="button" class="bind-btn" @mousedown.stop @click.stop="emit('bind', row.node.id)">选择属性</button>
@@ -112,7 +113,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   select: [id: string]
-  renameRoot: [name: string]
   rename: [payload: { id: string; name: string }]
   add: [payload: { id: string; kind: 'sibling' | 'child-value' | 'child-attribute' }]
   remove: [id: string]
@@ -254,9 +254,6 @@ function markEditing(id: string, event: FocusEvent) {
   editingText.value = (event.target as HTMLInputElement).value.trim()
   emit('select', id)
 }
-function onEditingInput(event: Event) {
-  editingText.value = (event.target as HTMLInputElement).value.trim()
-}
 function clearEditing(event: FocusEvent) {
   const next = event.relatedTarget as Node | null
   if (next && rootEl.value?.contains(next)) return
@@ -279,25 +276,14 @@ function commitLine(node: ProductSpecNode, event: Event) {
     input.value = props.label(node)
   })
 }
-function commitRoot(event: Event) {
-  const input = event.target as HTMLInputElement
-  const next = input.value.trim()
-  if (next && next !== props.rootTitle) emit('renameRoot', next)
-  nextTick(() => {
-    input.value = props.rootTitle
-  })
-}
 function onRootKey(event: KeyboardEvent) {
   if (props.viewing || event.isComposing) return
   if (event.key === 'Enter') {
     event.preventDefault()
-    commitRoot(event)
-    emit('add', { id: props.rootId, kind: 'sibling' })
     return
   }
   if (event.key !== 'Tab' || event.shiftKey) return
   event.preventDefault()
-  commitRoot(event)
   emit('add', { id: props.rootId, kind: 'child-attribute' })
 }
 function onLineKey(node: ProductSpecNode, event: KeyboardEvent) {
@@ -376,8 +362,9 @@ function onDrop(targetId: string, root: boolean) {
 .outline.is-mubu .ops, .outline.is-mubu .grip { display: none; }
 .outline.is-mubu .line { font-size: 15px; }
 .outline.is-mubu .root-line { font-size: 18px; font-weight: 700; }
-.outline.is-mubu .outline-row.is-head .line { font-weight: 500; color: #303133; }
-.outline.is-mubu .outline-row.is-value .line { font-size: 14px; color: #909399; font-weight: 400; }
+.outline.is-mubu .outline-row.is-head .line,
+.outline.is-mubu .outline-row.is-attribute .line { font-weight: 600; color: var(--spec-attr-text, #303133); }
+.outline.is-mubu .outline-row.is-value .line { font-size: 14px; color: var(--spec-value-text, #253044); font-weight: 400; }
 .outline.is-mubu .outline-row, .outline.is-mubu .outline-root { min-height: 32px; }
 .editing-now { margin: 0 0 8px; color: #8aa0b8; font-size: 12px; }
 .outline-empty { margin: 4px 0 12px 26px; }
@@ -404,15 +391,57 @@ function onDrop(targetId: string, root: boolean) {
 .root-line { font-size: 18px; font-weight: 650; }
 button.line { width: 100%; text-align: left; cursor: pointer; }
 .line { font-size: 14px; color: #303133; font-weight: 500; }
-.outline-row.is-head .line { color: #303133; font-weight: 600; }
-.outline-row.is-value .line { font-size: 13px; color: #a8abb2; font-weight: 400; }
-.outline-row.is-on .line, .outline-root.is-on .root-line { color: #303133; }
-.outline.is-mubu .line, .outline.is-mubu .root-line { width: 100%; padding: 2px 0; }
+.outline-row.is-head .line { color: var(--spec-attr-text, #303133); font-weight: 600; }
+.outline-row.is-attribute .line,
+.outline.is-mubu .outline-row.is-attribute .line {
+  flex: 0 1 auto;
+  width: max-content;
+  max-width: 100%;
+  margin: 3px 0;
+  padding: 2px 8px;
+  border: 1px solid var(--spec-attr-border, #9aa6d4);
+  border-radius: 6px;
+  background: var(--spec-attr-bg, color-mix(in srgb, #5d6eb8 16%, #fff));
+  color: var(--spec-attr-text, #253044);
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.outline-row.is-attribute:hover:not(.is-on) .line { background: var(--spec-attr-bg-hover, #eef1fb); border-color: var(--spec-attr-border-hover, #7f8bc4); }
+.outline-row.is-value .line,
+.outline.is-mubu .outline-row.is-value .line {
+  flex: 0 1 auto;
+  width: max-content;
+  max-width: 100%;
+  margin: 3px 0;
+  padding: 2px 10px;
+  border: 1px solid var(--spec-value-border, #c3ccd6);
+  border-radius: 999px;
+  background: var(--spec-value-bg, #fff);
+  color: var(--spec-value-text, #253044);
+  font-size: 13px;
+  font-weight: 400;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.outline.is-mubu .outline-row.is-value .line { font-size: 14px; }
+.outline-row.is-value:hover:not(.is-on) .line { background: var(--spec-value-bg-hover, #f7f9fc); border-color: var(--spec-value-border-hover, #8ea0b4); }
+.outline-row.is-attribute.is-on .line { background: var(--spec-selected-attr-bg, #e4e9fb); border-color: var(--spec-node-ring, #3d6fe0); box-shadow: inset 0 0 0 1px var(--spec-node-ring, #3d6fe0); }
+.outline-row.is-value.is-on .line { background: var(--spec-selected-value-bg, #f3f6ff); border-color: var(--spec-node-ring, #3d6fe0); color: var(--spec-value-text, #253044); box-shadow: inset 0 0 0 1px var(--spec-node-ring, #3d6fe0); }
+.outline-row.is-attribute .line.is-unbound { color: var(--text-muted, #909399); font-weight: 500; }
+.outline-row.is-on .line, .outline-root.is-on .root-line { color: var(--text-primary, #303133); }
+.outline.is-mubu .root-line { width: 100%; padding: 2px 0; }
 .outline.is-mubu .bind-btn { padding-left: 0; }
 .twist { width: 18px; height: 18px; border: 0; background: transparent; color: #8aa0b8; cursor: pointer; padding: 0; }
 .grip { color: #d5dde8; cursor: grab; user-select: none; letter-spacing: -2px; font-size: 12px; }
 .ops { display: none; flex: none; margin-right: 4px; }
-.outline-row:hover .ops { display: inline-flex; }
+.outline-row:hover .ops,
+.outline-row.is-on .ops,
+.outline-row:focus-within .ops { display: inline-flex; }
 .outline.is-mubu .ops,
-.outline.is-mubu .outline-row:hover .ops { display: none; }
+.outline.is-mubu .outline-row:hover .ops,
+.outline.is-mubu .outline-row.is-on .ops,
+.outline.is-mubu .outline-row:focus-within .ops { display: none; }
 </style>

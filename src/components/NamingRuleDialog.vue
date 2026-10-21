@@ -47,7 +47,9 @@
       <el-option v-for="item in comboOptions" :key="item.identityKey" :label="item.label" :value="item.identityKey" />
     </el-select>
     <p v-if="combos.length > comboOptions.length" class="muted">只列出前 {{ comboOptions.length }} 条合法组合。</p>
-    <p class="preview">{{ previewText }}</p>
+    <p class="preview">草稿预览：{{ previewText }}</p>
+    <p class="muted">这是正在编辑的草稿，不会改已发布快照，也不会直接用于已发布版本的建档。</p>
+    <p v-if="publishedFilingText" class="muted">{{ publishedFilingText }}</p>
     <p v-if="previewReason" class="muted">{{ previewReason }}</p>
     <p v-for="item in previewGaps" :key="item.key + item.reason" class="warn">{{ item.reason }}</p>
     <template #footer>
@@ -61,7 +63,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { legalPlanningCombinations } from '../domain/planning'
-import { nearestNamingRule, PRODUCT_TYPE, renderNamingRule } from '../domain/naming'
+import { nearestNamingRule, PRODUCT_TYPE, renderNamingRule, suggestMaterialName } from '../domain/naming'
 import type { NamingPart } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
 
@@ -135,6 +137,31 @@ const previewReason = computed(() => {
   return `规则来自祖先「${place}」。原因：当前路径上没有更近的自有规则，不使用兄弟分支的规则。`
 })
 const previewGaps = computed(() => [...(previewBody.value?.missing || []), ...(previewBody.value?.ambiguous || [])])
+const latestPublished = computed(() => store.data.specModelVersions
+  .filter((item) => item.templateId === props.templateId && item.status === 'published')
+  .slice()
+  .sort((left, right) => left.version - right.version)
+  .at(-1))
+const publishedFilingText = computed(() => {
+  const version = latestPublished.value
+  const combo = activeCombo.value
+  if (!version) return '还没有已发布版本。发布之后，建档才读取快照里的命名规则。'
+  if (!combo) return ''
+  const publishedCombos = legalPlanningCombinations(store.data, props.templateId, version.nodesSnapshot)
+  const match = publishedCombos.find((item) => item.identityKey === combo.identityKey)
+  if (!match) return `已发布 ${version.versionName} 里还没有这条规格。`
+  const suggestion = suggestMaterialName(store.data, {
+    productModelId: props.templateId,
+    modelVersionId: version.id,
+    productTypeName: productTypeName(),
+    steps: match.steps.map((step) => ({ valueNodeId: step.valueNodeId, attributeId: step.attributeId, valueId: step.valueId })),
+  })
+  const basis = suggestion.status === 'rule' ? '已发布规则生成' : suggestion.status === 'default' ? '默认名称生成' : '需要手工填写'
+  const name = suggestion.name || '没有自动名称'
+  const aligned = suggestion.status === 'rule' && previewBody.value?.name === suggestion.name
+  const draftNote = aligned ? '草稿预览和这一版一致。' : '当前草稿规则尚未进入已发布快照。'
+  return `基于已发布 ${version.versionName}：${name}。来源是${basis}。${draftNote}`
+})
 
 watch(() => props.open, (open) => {
   if (!open) return

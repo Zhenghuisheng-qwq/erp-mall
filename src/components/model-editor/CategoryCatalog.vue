@@ -4,30 +4,36 @@
       <strong v-show="!folded">商品分类</strong>
       <button type="button" @click="emit('update:folded', !folded)">{{ folded ? '展开' : '收起' }}</button>
     </div>
-    <div v-show="!folded" class="cat-list">
-      <button
+    <div v-show="!folded" class="cat-list" @keydown="onTreeKey">
+      <el-input :model-value="keyword" class="cat-search" placeholder="搜索分类" clearable @update:model-value="emit('update:keyword', String($event ?? ''))" />
+      <div
         v-for="row in rows"
         :key="row.id"
-        type="button"
         class="cat-item"
         :class="{ 'is-on': row.id === leafId, 'is-path': pathSet.has(row.id) && row.id !== leafId, 'is-root': row.depth === 0, 'is-child': row.depth > 0 }"
-        :style="{ paddingLeft: `${12 + row.depth * 16}px` }"
-        @click="row.hasChildren ? emit('toggle', row.id) : emit('select', row.id)"
+        :style="{ paddingLeft: `${8 + row.depth * 16}px` }"
       >
-        <i v-if="row.hasChildren" class="twist">{{ row.expanded ? '▾' : '▸' }}</i>
+        <button v-if="row.hasChildren" type="button" class="twist" :data-expand-id="row.id" :aria-label="row.expanded ? '收起' : '展开'" @click.stop="emit('toggle', row.id)">{{ row.expanded ? '▼' : '▸' }}</button>
         <span v-else class="twist"></span>
-        <span class="cat-copy">
-          <span class="cat-name" :title="row.name">{{ row.name }}</span>
+        <button type="button" class="cat-hit" :data-category-id="row.id" @click="emit('select', row.id)">
+          <span class="cat-name" :title="row.name">
+            <template v-for="(part, index) in highlightParts(row.name, keyword)" :key="index">
+              <mark v-if="part.hit">{{ part.text }}</mark>
+              <template v-else>{{ part.text }}</template>
+            </template>
+          </span>
           <span v-if="!row.hasChildren && stats[row.id]?.models" class="cat-meta">{{ stats[row.id].models }}个模型</span>
-        </span>
-      </button>
+        </button>
+        <span v-if="row.id === leafId" class="mark">✓</span>
+      </div>
+      <p v-if="keyword.trim() && rows.length === 0" class="muted">没有匹配的分类。</p>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { CategoryRow } from '../../domain/categoryTree'
+import { highlightParts, type CategoryRow } from '../../domain/categoryTree'
 
 const props = defineProps<{
   rows: CategoryRow[]
@@ -35,13 +41,47 @@ const props = defineProps<{
   pathIds: string[]
   folded: boolean
   stats: Record<string, { types: number; models: number }>
+  keyword?: string
 }>()
 
 const emit = defineEmits<{
   toggle: [id: string]
   select: [id: string]
   'update:folded': [value: boolean]
+  'update:keyword': [value: string]
 }>()
+
+const keyword = computed(() => props.keyword || '')
+
+function onTreeKey(event: KeyboardEvent) {
+  const target = event.target as HTMLElement | null
+  if (!target || event.isComposing) return
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+    if (event.key !== 'ArrowDown') return
+    event.preventDefault()
+    target.closest('.cat-list')?.querySelector<HTMLElement>('[data-category-id]')?.focus()
+    return
+  }
+  const current = target.closest<HTMLElement>('[data-category-id]')
+  if (!current) return
+  const buttons = [...(current.closest('.cat-list')?.querySelectorAll<HTMLElement>('[data-category-id]') || [])]
+  const index = buttons.indexOf(current)
+  const row = props.rows.find((item) => item.id === current.dataset.categoryId)
+  if (event.key === 'ArrowDown' && buttons[index + 1]) {
+    event.preventDefault()
+    buttons[index + 1].focus()
+  } else if (event.key === 'ArrowUp' && buttons[index - 1]) {
+    event.preventDefault()
+    buttons[index - 1].focus()
+  } else if (event.key === 'ArrowRight' && row?.hasChildren && !row.expanded) {
+    event.preventDefault()
+    emit('toggle', row.id)
+  } else if (event.key === 'ArrowLeft' && row) {
+    event.preventDefault()
+    if (row.hasChildren && row.expanded) emit('toggle', row.id)
+    else if (row.parentId) buttons.find((item) => item.dataset.categoryId === row.parentId)?.focus()
+  }
+}
 
 const pathSet = computed(() => new Set(props.pathIds))
 </script>
@@ -53,13 +93,18 @@ const pathSet = computed(() => new Set(props.pathIds))
 .cat-head strong { font-size: 12px; font-weight: 500; }
 .cat-head button { border: 0; background: none; color: #c0c4cc; cursor: pointer; padding: 0; font-size: 12px; }
 .cat-list { overflow: auto; padding: 0 8px 16px; }
-.cat-item { width: 100%; min-height: 32px; display: flex; gap: 4px; align-items: center; border: 0; background: transparent; text-align: left; border-radius: 4px; padding-top: 4px; padding-bottom: 4px; cursor: pointer; color: #606266; }
+.cat-search { margin-bottom: 8px; }
+.cat-item { width: 100%; min-height: 32px; display: flex; gap: 4px; align-items: center; border: 0; background: transparent; text-align: left; border-radius: 4px; padding-top: 2px; padding-bottom: 2px; color: #606266; }
+.cat-hit { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; padding: 4px 0; }
+.mark { flex: none; color: #409eff; font-size: 12px; font-weight: 700; }
+.cat-name mark { background: color-mix(in srgb, #409eff 28%, transparent); color: inherit; padding: 0; }
+.muted { margin: 8px 4px; color: #909399; font-size: 12px; }
 .cat-item.is-root .cat-name { color: #303133; font-size: 14px; font-weight: 600; }
 .cat-item.is-child .cat-name { color: #606266; font-size: 13px; font-weight: 400; }
 .cat-item.is-path .cat-name { color: #303133; }
 .cat-item.is-on { background: #f7f8fa; box-shadow: inset 2px 0 0 #409eff; }
 .cat-item.is-on .cat-name { color: #303133; font-weight: 650; }
-.twist { flex: none; width: 12px; color: #c0c4cc; font-style: normal; font-size: 11px; line-height: 1; text-align: center; }
+.twist { flex: none; width: 16px; padding: 0; border: 0; background: transparent; color: #c0c4cc; font-style: normal; font-size: 11px; line-height: 1; text-align: center; cursor: pointer; }
 .cat-copy { min-width: 0; flex: 1; display: flex; align-items: baseline; gap: 6px; }
 .cat-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 20px; }
 .cat-meta { flex: none; color: #c0c4cc; font-size: 11px; line-height: 16px; font-weight: 400; }

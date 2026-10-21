@@ -13,7 +13,9 @@
         :path-ids="categoryPathIds"
         :folded="treeFold"
         :stats="categoryStats"
-        @update:folded="treeFold = $event"
+        :keyword="categoryKeyword"
+        @update:keyword="categoryKeyword = $event"
+        @update:folded="setTreeFold"
         @toggle="toggleCategory"
         @select="selectCategory"
       />
@@ -24,7 +26,7 @@
         :template-id="templateId"
         :viewing="viewing"
         :folded="railFold"
-        @update:folded="railFold = $event"
+        @update:folded="setRailFold"
         @open="openModel"
         @focus-type="focusType"
         @create="createModelFor"
@@ -37,7 +39,11 @@
           :type-id="overviewTypeId"
           :keyword="overviewKeyword"
           :focus-id="overviewFocusId"
+          :view="overviewView"
+          :root-id="overviewRootId"
           @open="openFromOverview"
+          @view="setOverviewView"
+          @root="setOverviewRoot"
         />
         <template v-else>
         <header v-if="templateId" class="studio-head">
@@ -50,12 +56,13 @@
               <span>{{ leafPath || categoryText }}</span>
               <span class="meta-type">{{ productTypeText }}</span>
             </p>
+            <p v-if="!viewing && publishImpact" class="meta-row">{{ publishImpact }}</p>
           </div>
           <div class="studio-actions">
             <el-button v-if="fromOverview" @click="backToOverview">返回总览</el-button>
             <el-button v-if="viewing" type="primary" @click="enterEdit">进入编辑</el-button>
             <el-button v-if="!viewing" @click="saveModel">保存模型</el-button>
-            <el-button v-if="!viewing" type="primary" @click="publish">发布模型</el-button>
+            <el-button v-if="!viewing" :disabled="publishing" type="primary" @click="publish">发布模型</el-button>
           </div>
         </header>
         <div v-if="templateId" class="head-tools">
@@ -65,13 +72,17 @@
                 <el-button v-if="!viewing" @click="tidy">自动布局</el-button>
                 <el-button v-if="!viewing" @click="useManualLayout">手工摆放</el-button>
                 <el-button @click="fitAll">适应全部</el-button>
-                <el-button @click="zoomReset">100%</el-button>
-                <el-button @click="zoomBy(1)">放大</el-button>
-                <el-button @click="zoomBy(-1)">缩小</el-button>
-                <el-button @click="toggleMap">{{ mapOpen ? '隐藏小地图' : '小地图' }}</el-button>
-                <el-button @click="setExpanded(true)">全部展开</el-button>
-                <el-button @click="setExpanded(false)">全部收起</el-button>
               </el-button-group>
+              <el-dropdown trigger="click" @command="onZoomCommand">
+                <el-button data-zoom-label>{{ zoomLabel }}</el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="reset">回到 100%</el-dropdown-item>
+                    <el-dropdown-item command="map">{{ mapOpen ? '隐藏小地图' : '显示小地图' }}</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+              <el-button data-expand-toggle @click="toggleAllBranches">{{ anyCollapsed ? '全部展开' : '全部收起' }}</el-button>
               <el-popover placement="bottom-end" :width="360" trigger="click">
                 <template #reference>
                   <el-button>结构检查</el-button>
@@ -115,8 +126,7 @@
               <el-button size="small" @click="runMenu('add-child')">添加子属性</el-button>
               <el-button size="small" @click="runMenu('add-value')">添加属性值</el-button>
               <el-button size="small" @click="runMenu('naming')">命名规则</el-button>
-              <el-button size="small" @click="runMenu('hosts')">配置适用主机</el-button>
-              <el-button size="small" @click="runMenu('rename')">编辑</el-button>
+              <el-button size="small" @click="runMenu('hosts')">节点适用配置</el-button>
               <el-button size="small" type="danger" plain @click="runMenu('delete')">删除</el-button>
             </template>
             <template v-else>
@@ -125,8 +135,7 @@
                 <span class="ops-disabled"><el-button size="small" disabled>添加属性值</el-button></span>
               </el-tooltip>
               <el-button size="small" @click="runMenu('naming')">命名规则</el-button>
-              <el-button size="small" @click="runMenu('hosts')">配置适用主机</el-button>
-              <el-button size="small" @click="runMenu('rename')">编辑</el-button>
+              <el-button size="small" @click="runMenu('hosts')">节点适用配置</el-button>
               <el-button size="small" type="danger" plain @click="runMenu('delete')">删除</el-button>
             </template>
           </template>
@@ -148,10 +157,12 @@
         <section v-if="templateId" class="insight">
           <div class="insight-summary">
             <div class="summary-stats">
-              <strong>合法组合 {{ comboRows.length }} 条</strong>
+              <strong v-if="publishedComboVersions.length">已发布组合 {{ comboRows.length }} 条</strong>
+              <strong v-else>尚未发布</strong>
               <span>已选 {{ checkedIds.length }} 条</span>
               <span>{{ comboNumbered }} 条已有规划编号<span v-if="comboRows.length > comboNumbered"> · 其余发布后自动编号</span></span>
-              <span>{{ comboFiled ? `已建物料 ${comboFiled} 条组合` : '尚无已建物料' }}</span>
+              <span>{{ comboSummaryText }}</span>
+              <span v-if="draftPreviewLine">{{ draftPreviewLine }}</span>
             </div>
             <el-button v-if="!viewing" type="primary" @click="comboManageOpen = true">管理合法组合</el-button>
             <span v-else>查看模式只浏览结构和版本，不会改模型、发布快照或物料。</span>
@@ -175,10 +186,18 @@
           <template #header>
             <div class="combo-dialog-title">
               <strong>合法组合管理</strong>
-              <p>共 {{ comboRows.length }} 条，已选 {{ checkedIds.length }} 条，{{ schemeTitle }}<template v-if="comboStatus.versionName"> · {{ comboStatus.versionName }}</template></p>
+              <p v-if="showDraftList">草稿预览 {{ draftPreview.problems.length ? '暂时无法生成' : draftPreview.rows.length + ' 条 · 尚未发布' }}。已发布组合 {{ comboRows.length }} 条。</p>
+              <p v-else>共 {{ comboRows.length }} 条，已选 {{ checkedIds.length }} 条，{{ schemeTitle }}<template v-if="comboStatus.versionName"> · {{ comboStatus.versionName }}</template></p>
             </div>
           </template>
           <div class="combo-manage">
+            <div v-if="showDraftList" class="draft-preview">
+              <strong>草稿预览 · 尚未发布</strong>
+              <p v-if="draftPreview.problems.length">{{ draftPreview.problems[0] }}</p>
+              <ul v-else>
+                <li v-for="item in draftPreview.rows" :key="item.identityKey">{{ item.label }} · {{ item.planningId || '待发布' }}</li>
+              </ul>
+            </div>
             <div class="combo-toolbar">
               <el-button size="small" @click="selectAllCombos">全选</el-button>
               <el-button size="small" :disabled="!checkedIds.length" @click="clearComboSelection">取消全选</el-button>
@@ -208,14 +227,24 @@
                   <template #default="{ row }">
                     <div class="combo-expand">
                       <p>完整规格路径：{{ row.label }}</p>
-                      <p v-if="!row.materials.length" class="muted">这条组合还没有物料。</p>
-                      <ul v-else>
+                      <p v-if="!row.materials.length && !row.historicalMaterials.length" class="muted">这条组合还没有物料。</p>
+                      <p v-else-if="!row.materials.length" class="muted">本版本还没有新建物料。</p>
+                      <ul v-if="row.materials.length">
                         <li v-for="item in row.materials" :key="item.skuId">
                           <strong>{{ item.skuName.trim() || '未填写物料名称' }}</strong>
                           <span>{{ item.materialCode.trim() || '未分配物料编号' }}</span>
-                          <em v-if="item.nameSource === 'manual'">手工修改</em>
-                          <em v-else-if="item.nameSource === 'auto'">规则带入</em>
+                          <em v-if="originLabel(item.nameSource)">{{ originLabel(item.nameSource) }}</em>
                           <em v-if="item.anomaly">{{ item.anomaly }}</em>
+                          <el-button link type="primary" @click="openMaterialDetail(item)">查看</el-button>
+                        </li>
+                      </ul>
+                      <p v-if="row.historicalMaterials.length" class="muted">历史版本已建，编号和名称保持原样。</p>
+                      <ul v-if="row.historicalMaterials.length">
+                        <li v-for="item in row.historicalMaterials" :key="item.skuId">
+                          <strong>{{ item.skuName.trim() || '未填写物料名称' }}</strong>
+                          <span>{{ item.materialCode.trim() || '未分配物料编号' }}</span>
+                          <em>来源 {{ item.versionName || '未记录版本' }}</em>
+                          <em v-if="originLabel(item.nameSource)">{{ originLabel(item.nameSource) }}</em>
                           <el-button link type="primary" @click="openMaterialDetail(item)">查看</el-button>
                         </li>
                       </ul>
@@ -238,7 +267,7 @@
                     <el-tag v-if="row.retired" size="small" type="info">已停用</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="物料状态" width="148">
+                <el-table-column label="物料状态" width="240">
                   <template #default="{ row }">
                     <span :class="row.filed ? 'is-filed' : 'is-empty'">{{ row.materialStatus }}</span>
                     <el-tag v-if="row.hasAnomaly" size="small" type="warning">需核对</el-tag>
@@ -288,13 +317,16 @@
           :nodes-draggable="!viewing"
           :default-viewport="{ x: canvas.panX, y: canvas.panY, zoom: canvas.zoom || 0.88 }"
           :default-edge-options="{ type: 'tree' }"
-          :min-zoom="0.2"
+          :min-zoom="0.6"
           :max-zoom="1.6"
+          :zoom-on-scroll="true"
+          :prevent-scrolling="true"
           @nodes-initialized="onNodesReady"
           @node-click="onNodeClick"
           @node-double-click="onNodeDoubleClick"
           @node-context-menu="onNodeMenu"
           @node-drag-stop="onNodeDragStop"
+          @move="onViewportMove"
           @move-end="onMoveEnd"
           @pane-click="closeFloating"
         >
@@ -304,9 +336,8 @@
             <path :d="treeBusPath(source, data?.childIds || [])" class="tree-bus" :class="{ 'is-hot': data?.hot !== false, 'is-dim': data?.hot === false }" />
           </template>
           <template #node-model="{ data }">
-            <div class="model-root" :class="{ 'is-on': data.selected, 'is-path': data.onPath, 'is-quiet': data.quiet }" :style="{ width: data.boxWidth + 'px' }" title="双击修改名称">
-              <input v-if="editingId === data.id" class="inline-edit root-edit" :value="data.label" @keydown.enter.prevent="commitRootName" @keydown.esc.stop="cancelRootEdit" @blur="commitRootName" @mousedown.stop @pointerdown.stop @click.stop @dblclick.stop />
-              <strong v-else>{{ data.label }}</strong>
+            <div class="model-root" :class="{ 'is-on': data.selected, 'is-path': data.onPath, 'is-quiet': data.quiet }" :style="{ width: data.boxWidth + 'px' }" title="模型名称在创建时确定">
+              <strong>{{ data.label }}</strong>
               <Handle type="source" :position="Position.Right" />
             </div>
           </template>
@@ -365,7 +396,6 @@
         :attribute-hint="attributeHint"
         :options-for="outlineOptions"
         @select="pickNode"
-        @rename-root="applyRootName"
         @rename="renameOutline"
         @choose="applyOutlineChoice"
         @create="applyOutlineCreate"
@@ -398,7 +428,6 @@
         :attribute-hint="attributeHint"
         :options-for="outlineOptions"
         @select="pickNode"
-        @rename-root="applyRootName"
         @rename="renameOutline"
         @choose="applyOutlineChoice"
         @create="applyOutlineCreate"
@@ -427,17 +456,15 @@
         <el-button text @click="runMenu('add-child')">添加子属性</el-button>
         <el-button text @click="runMenu('add-value')">添加属性值</el-button>
         <el-button text @click="runMenu('sibling')">添加同级属性</el-button>
-        <el-button text @click="runMenu('rename')">编辑名称</el-button>
         <el-button text @click="runMenu('naming')">命名规则</el-button>
-        <el-button text @click="runMenu('hosts')">配置适用主机</el-button>
+        <el-button text @click="runMenu('hosts')">节点适用配置</el-button>
         <el-button text type="danger" @click="runMenu('delete')">删除节点</el-button>
       </template>
       <template v-else>
         <el-button text @click="runMenu('sibling')">添加同级属性值</el-button>
         <el-button text @click="runMenu('add-child')">添加条件属性</el-button>
-        <el-button text @click="runMenu('rename')">编辑名称</el-button>
         <el-button text @click="runMenu('naming')">命名规则</el-button>
-        <el-button text @click="runMenu('hosts')">配置适用主机</el-button>
+        <el-button text @click="runMenu('hosts')">节点适用配置</el-button>
         <el-button text type="danger" @click="runMenu('delete')">删除节点</el-button>
       </template>
     </div>
@@ -453,12 +480,12 @@
       </section>
     </el-drawer>
     <NamingRuleDialog :open="namingOpen" :readonly="viewing" :node-id="selected" :template-id="templateId" @close="namingOpen = false" @saved="markWorkingDraft" />
-    <el-dialog v-model="attributeOpen" :title="attributeTitle" width="420px" @closed="resetAttrComposer">
-      <el-select v-if="attributeBindId" v-model="attributePick" filterable placeholder="搜索已有属性" style="width: 100%" :filter-method="rememberAttrQuery">
+    <el-dialog v-model="attributeOpen" :title="attributeTitle" width="420px" :close-on-press-escape="!dictDropOpen" @closed="resetAttrComposer">
+      <el-select v-if="attributeBindId" ref="attrBindSelect" v-model="attributePick" filterable placement="top-start" popper-class="dict-select-popper" placeholder="搜索已有属性" style="width: 100%" :filter-method="rememberAttrQuery" @visible-change="dictDropOpen = $event">
         <el-option v-for="item in filteredAttributeChoices" :key="item.id" :label="item.name" :value="item.id" />
         <template #empty><p class="dict-empty">没有匹配「{{ attrQuery.trim() || '当前关键字' }}」</p></template>
       </el-select>
-      <el-select v-else v-model="attributeIds" multiple filterable collapse-tags collapse-tags-tooltip placeholder="搜索已有属性，可多选" style="width: 100%" :filter-method="rememberAttrQuery">
+      <el-select v-else ref="attrMultiSelect" v-model="attributeIds" multiple filterable collapse-tags collapse-tags-tooltip placement="top-start" popper-class="dict-select-popper" placeholder="搜索已有属性，可多选" style="width: 100%" :filter-method="rememberAttrQuery" @visible-change="dictDropOpen = $event">
         <el-option v-for="item in filteredAttributeChoices" :key="item.id" :label="item.name" :value="item.id" />
         <template #empty><p class="dict-empty">没有匹配「{{ attrQuery.trim() || '当前关键字' }}」</p></template>
       </el-select>
@@ -485,13 +512,13 @@
         <el-button type="primary" @click="addAttribute">确定</el-button>
       </template>
     </el-dialog>
-    <el-dialog v-model="valueOpen" title="选择属性值" width="420px" @closed="resetValueComposer">
+    <el-dialog v-model="valueOpen" title="选择属性值" width="420px" :close-on-press-escape="!dictDropOpen" @closed="resetValueComposer">
       <p v-if="valueParentName" class="dict-empty">只搜索「{{ valueParentName }}」自己的取值，不会搜到其他属性。</p>
-      <el-select v-if="valueBindNodeId" v-model="valueBindPick" filterable placeholder="搜索已有取值" style="width: 100%" :filter-method="rememberValueQuery">
+      <el-select v-if="valueBindNodeId" ref="valueBindSelect" v-model="valueBindPick" filterable placement="top-start" popper-class="dict-select-popper" placeholder="搜索已有取值" style="width: 100%" :filter-method="rememberValueQuery" @visible-change="dictDropOpen = $event">
         <el-option v-for="item in filteredRebindValues" :key="item" :label="item" :value="item" />
         <template #empty><p class="dict-empty">「{{ valueParentName }}」下没有匹配「{{ valueQuery.trim() || '当前关键字' }}」</p></template>
       </el-select>
-      <el-select v-else v-model="valuePicks" multiple filterable collapse-tags collapse-tags-tooltip placeholder="搜索已有取值，可多选" style="width: 100%" :filter-method="rememberValueQuery">
+      <el-select v-else ref="valueMultiSelect" v-model="valuePicks" multiple filterable collapse-tags collapse-tags-tooltip placement="top-start" popper-class="dict-select-popper" placeholder="搜索已有取值，可多选" style="width: 100%" :filter-method="rememberValueQuery" @visible-change="dictDropOpen = $event">
         <el-option v-for="item in filteredValueChoices" :key="item" :label="item" :value="item" />
         <template #empty><p class="dict-empty">「{{ valueParentName }}」下没有匹配「{{ valueQuery.trim() || '当前关键字' }}」</p></template>
       </el-select>
@@ -521,8 +548,9 @@
         <el-button type="primary" @click="confirmNodeDraft">确认</el-button>
       </template>
     </el-dialog>
-    <el-dialog v-model="hostOpen" title="配置适用主机" width="480px">
-      <p class="dict-empty">来源：当前草稿节点。下级物料是否沿用这份配置还需要确认，所以这里只保存在这个节点上，不会写进已有物料，也不会改已发布版本。</p>
+    <el-dialog v-model="hostOpen" title="节点适用配置" width="480px">
+      <p class="dict-empty">这是模型节点上的草稿配置。保存后只留在当前草稿，发布时冻结到新版本。不会自动建立现有物料的适用关系，也不会改已发布版本。</p>
+      <p class="dict-empty">要给已经建档的物料建立正式关系，请到<el-button link type="primary" @click="openCompatibility">适用关系</el-button>。继承、冲突和排除还没有确认，这里不会自动套用到物料。</p>
       <p v-if="draftHostRows.length === 0" class="dict-empty">这个节点还没有适用主机。</p>
       <p v-for="item in draftHostRows" :key="item.identityKey" class="dict-empty">
         {{ item.label }}
@@ -536,7 +564,7 @@
       </label>
       <template #footer>
         <el-button @click="hostOpen = false">关闭</el-button>
-        <el-button type="primary" :disabled="hostPicks.length === 0" @click="saveDraftHosts">添加 {{ hostPicks.length }} 款主机</el-button>
+        <el-button type="primary" :disabled="hostPicks.length === 0" @click="saveDraftHosts">保存到草稿</el-button>
       </template>
     </el-dialog>
     <el-dialog v-model="copyOpen" title="复制模型" width="440px">
@@ -572,12 +600,14 @@ import ModelOverview from '../components/model-editor/ModelOverview.vue'
 import TypeModelRail from '../components/model-editor/TypeModelRail.vue'
 import { categoryChain, visibleCategoryRows } from '../domain/categoryTree'
 import { hostLabel, listHostModels } from '../domain/compatibility'
-import { nearestNamingRule } from '../domain/naming'
+import { materialNameOriginLabel, nearestNamingRule } from '../domain/naming'
 import { arrangeSpecPositions, categoryPath, latestPublishedVersion, layoutSpecTree, modelVersionsOf, sameSpecSnapshot, specNodeSize, specTreeAdvance, SPEC_LINK_GAP, SPEC_TREE_GAP, SPEC_TREE_ORIGIN_X, SPEC_TREE_ORIGIN_Y, SPEC_VALUE_TO_VALUE } from '../domain/logic'
+import { defaultOverviewCategoryId, overviewRootId as graphRootId } from '../domain/overviewGraph'
 import { attributeRenameDecision, createDictionaryParam, createDictionaryValue } from '../domain/dictionaryGuard'
 import { addDraftNodeHosts, readDraftNodeHosts, removeDraftNodeHost } from '../domain/nodeCompatibility'
 import { outlineChoices, rebindSpecNode } from '../domain/outlineEdit'
 import { legalComboMaterialStatus } from '../domain/comboMaterialStatus'
+import { previewDraftCombinations, publishImpactText } from '../domain/draftComboPreview'
 import NamingRuleDialog from '../components/NamingRuleDialog.vue'
 import TemporaryMaterialDialog from '../components/TemporaryMaterialDialog.vue'
 import { gradeText } from '../domain/material'
@@ -591,7 +621,7 @@ import '@vue-flow/minimap/dist/style.css'
 const store = useCatalogStore()
 const route = useRoute()
 const router = useRouter()
-const { fitView, findNode, getViewport, onNodesChange, setViewport, zoomIn, zoomOut } = useVueFlow({ id: 'model-designer' })
+const { fitView, findNode, getViewport, onNodesChange, setViewport } = useVueFlow({ id: 'model-designer' })
 const flowRevision = ref(0)
 onNodesChange(() => {
   flowRevision.value += 1
@@ -604,8 +634,24 @@ watch(
     else if (route.query.panel === 'overview') templateId.value = ''
   },
 )
-const treeFold = ref(false)
-const railFold = ref(false)
+function storedFold(key: string) {
+  const saved = localStorage.getItem(key)
+  if (saved === '0') return false
+  if (saved === '1') return true
+  return true
+}
+const treeFold = ref(storedFold('iyge-spec-cat-fold'))
+const railFold = ref(storedFold('iyge-spec-rail-fold'))
+function setTreeFold(value: boolean) {
+  treeFold.value = value
+  localStorage.setItem('iyge-spec-cat-fold', value ? '1' : '0')
+}
+function setRailFold(value: boolean) {
+  railFold.value = value
+  localStorage.setItem('iyge-spec-rail-fold', value ? '1' : '0')
+}
+const zoomRatio = ref(1)
+const zoomLabel = computed(() => `${Math.round(zoomRatio.value * 100)}%`)
 const viewing = computed(() => route.query.mode === 'view')
 const surface = computed(() => (route.query.panel === 'overview' ? 'overview' : 'design'))
 const fromOverview = computed(() => route.query.from === 'overview')
@@ -613,13 +659,23 @@ const overviewCategoryId = computed(() => (typeof route.query.category === 'stri
 const overviewTypeId = computed(() => (typeof route.query.type === 'string' ? route.query.type : ''))
 const overviewKeyword = computed(() => (typeof route.query.q === 'string' ? route.query.q : ''))
 const overviewFocusId = computed(() => (typeof route.query.focus === 'string' ? route.query.focus : ''))
+const overviewView = computed(() => {
+  if (route.query.view === 'list' || route.query.view === 'graph') return route.query.view
+  const saved = sessionValue(OVERVIEW_VIEW_KEY)
+  if (saved === 'list' || saved === 'graph') return saved
+  return 'graph'
+})
+const overviewRootId = computed(() => (typeof route.query.root === 'string' ? route.query.root : ''))
+const OVERVIEW_VIEW_KEY = 'iyge-overview-view'
+const OVERVIEW_ROOT_KEY = 'iyge-overview-root'
 const viewClosed = ref<string[]>([])
 const leafId = ref('')
 const activeTypeId = ref('')
+const categoryKeyword = ref('')
 const closedIds = ref(new Set<string>())
 const categoryRows = computed(() => {
   const parents = new Set(store.data.categories.map((item) => item.parentId).filter((id): id is string => Boolean(id)))
-  return visibleCategoryRows(store.data.categories, parents, '', closedIds.value)
+  return visibleCategoryRows(store.data.categories, parents, categoryKeyword.value, closedIds.value)
 })
 const categoryPathIds = computed(() => (leafId.value ? categoryChain(store.data.categories, leafId.value).map((item) => item.id) : []))
 const leafTypes = computed(() => store.data.productTypes.filter((item) => item.categoryId === leafId.value).slice().sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, 'zh')))
@@ -716,6 +772,52 @@ const nodeDraft = ref({ type: 'ATTRIBUTE' as 'ATTRIBUTE' | 'VALUE', name: '' })
 const editingId = ref('')
 const menu = ref({ open: false, x: 0, y: 0 })
 const attributeOpen = ref(false)
+const dictDropOpen = ref(false)
+type DictSelectExpose = { blur: () => void; expanded: boolean }
+const attrBindSelect = ref<DictSelectExpose | null>(null)
+const attrMultiSelect = ref<DictSelectExpose | null>(null)
+const valueBindSelect = ref<DictSelectExpose | null>(null)
+const valueMultiSelect = ref<DictSelectExpose | null>(null)
+function dictSelects() {
+  return [attrBindSelect.value, attrMultiSelect.value, valueBindSelect.value, valueMultiSelect.value]
+}
+function selectExpanded(item: DictSelectExpose | null) {
+  if (!item) return false
+  const flag = item.expanded as unknown
+  if (flag && typeof flag === 'object' && 'value' in flag) return Boolean((flag as { value: boolean }).value)
+  return Boolean(flag)
+}
+function closeDictDropdown() {
+  const active = document.activeElement
+  if (active instanceof HTMLElement && active.closest('.dict-select-popper, .el-select-dropdown')) active.blur()
+  for (const node of document.querySelectorAll('.el-dialog .el-select input')) {
+    if (!(node instanceof HTMLInputElement) || !node.value) continue
+    node.value = ''
+    node.dispatchEvent(new Event('input', { bubbles: true }))
+  }
+  dictDropOpen.value = false
+  for (const item of dictSelects()) {
+    if (!item) continue
+    item.expanded = false
+    item.blur()
+  }
+  nextTick(() => {
+    dictDropOpen.value = false
+    for (const item of dictSelects()) if (item?.expanded) item.expanded = false
+  })
+}
+function onDictEsc(event: KeyboardEvent) {
+  if (event.key !== 'Escape' || event.isComposing) return
+  if (!attributeOpen.value && !valueOpen.value) return
+  event.preventDefault()
+  event.stopImmediatePropagation()
+  if (dictSelects().some((item) => selectExpanded(item))) {
+    closeDictDropdown()
+    return
+  }
+  if (valueOpen.value) valueOpen.value = false
+  else attributeOpen.value = false
+}
 const copyOpen = ref(false)
 const hostOpen = ref(false)
 const hostKeyword = ref('')
@@ -744,7 +846,6 @@ const creatingValue = ref(false)
 const newDictValue = ref('')
 const copyName = ref('')
 const rootId = 'model-root'
-let skipRootCommit = false
 const attachParent = ref<string | null>(null)
 type FlowOption = { value: string; label: string }
 type FlowNodeData = { id: string; label: string; role?: string; head?: boolean; selected: boolean; onPath: boolean; quiet: boolean; expanded: boolean; childCount: number; editValue: string; options: FlowOption[]; bound: boolean; source: string; valueText: string; boxWidth: number }
@@ -786,15 +887,47 @@ const comboRows = computed(() => comboStatus.value.rows.map((row) => ({
   gradeLabel: gradeText(row.grade),
   materialCount: row.materialCount,
   filed: row.filed,
-  materialCodes: row.materials.map((item) => item.materialCode.trim() || '未分配物料编号').join('、'),
-  materialNames: row.materials.map((item) => item.skuName.trim() || '未填写物料名称').join('、'),
-  materialStatus: row.materialCount ? `已创建 ${row.materialCount} 条` : '未创建',
+  materialCodes: [row.materials, row.historicalMaterials].flatMap((list) => list.map((item) => item.materialCode.trim() || '未分配物料编号')).join('、'),
+  materialNames: [row.materials, row.historicalMaterials].flatMap((list) => list.map((item) => item.skuName.trim() || '未填写物料名称')).join('、'),
+  materialStatus: comboMaterialStatusText(row),
   materials: row.materials,
+  historicalMaterials: row.historicalMaterials,
   anomalies: row.anomalies,
   hasAnomaly: row.anomalies.length > 0 || row.materials.some((item) => item.anomaly),
 })))
 const comboNumbered = computed(() => comboRows.value.filter((item) => item.planningId).length)
 const comboFiled = computed(() => comboRows.value.filter((item) => item.materialCount > 0).length)
+const comboHistorical = computed(() => comboRows.value.filter((item) => item.historicalMaterials.length > 0).length)
+const comboSummaryText = computed(() => {
+  if (comboFiled.value) return `已建物料 ${comboFiled.value} 条组合`
+  if (comboHistorical.value) return `本版本尚无已建物料 · 另有 ${comboHistorical.value} 条组合在历史版本已建档`
+  return '尚无已建物料'
+})
+const draftPreview = computed(() => previewDraftCombinations(store.data, templateId.value, nodes.value))
+const publishImpact = computed(() => publishImpactText(draftPreview.value))
+const showDraftList = computed(() => draftPreview.value.problems.length > 0 || canvas.value.status !== 'published' || draftPreview.value.rows.length !== comboRows.value.length)
+const draftPreviewLine = computed(() => {
+  const preview = draftPreview.value
+  if (preview.problems.length) return `草稿预览暂时无法生成：${preview.problems[0]}`
+  if (!showDraftList.value) return ''
+  return `草稿预览 ${preview.rows.length} 条 · 尚未发布`
+})
+function openCompatibility() {
+  hostOpen.value = false
+  router.push('/compatibility')
+}
+function originLabel(source?: string) {
+  return materialNameOriginLabel(source)
+}
+function comboMaterialStatusText(row: { materialCount: number; historicalMaterials: { versionName: string }[] }) {
+  const history = row.historicalMaterials.length
+  const names = [...new Set(row.historicalMaterials.map((item) => item.versionName).filter(Boolean))]
+  const source = names.length ? names.join('、') : '未记录版本'
+  if (row.materialCount && history) return `本版本已建 ${row.materialCount} 条 · 历史已建 ${history} 条 · 来源 ${source}`
+  if (row.materialCount) return `已创建 ${row.materialCount} 条`
+  if (history) return `本版本未建 · 历史已建 ${history} 条 · 来源 ${source}`
+  return '未创建'
+}
 const visibleComboRows = computed(() => {
   const text = comboKeyword.value.trim().toLowerCase()
   return comboRows.value.filter((row) => {
@@ -884,7 +1017,7 @@ const shortcutGroups = computed(() => {
       title: '画布',
       items: [
         { name: '缩放和平移', keys: '鼠标', enabled: true, when: '滚轮缩放，按住空白拖动画布。没有单独的键盘缩放键' },
-        { name: '适应全部 / 100%', keys: '工具栏', enabled: true, when: '用画布工具上的按钮，不是快捷键' },
+        { name: '适应全部 / 回到 100%', keys: '工具栏', enabled: true, when: '缩放比例显示在工具条上。滚轮按鼠标位置缩放，没有单独的放大缩小按钮' },
       ],
     },
   ]
@@ -1218,7 +1351,7 @@ function saveDraftHosts() {
   if (result.failed.length && !result.added.length) ElMessage.warning(result.failed[0].message)
   else {
     hostOpen.value = false
-    ElMessage.success(`已添加 ${result.added.length} 款，跳过 ${result.skipped} 款。已有物料没有改。`)
+    ElMessage.success(`已保存到模型草稿${result.skipped ? `，跳过 ${result.skipped} 款重复项` : ''}。此操作不会自动建立现有物料的适用关系。`)
   }
 }
 function dropDraftHost(identityKey: string) {
@@ -1454,7 +1587,21 @@ function frameCanvas() {
   })
 }
 function fitAll() {
-  fitView({ padding: 0.12, minZoom: 0.72, maxZoom: 1, duration: 180 }).catch(() => undefined)
+  const bounds = contentBounds()
+  const size = canvasSize()
+  if (!bounds || !size || size.width < 80 || size.height < 80) {
+    fitView({ padding: 0.12, minZoom: 0.85, maxZoom: 1, duration: 180 }).catch(() => undefined)
+    return
+  }
+  const pad = 48
+  const fitZoom = Math.min((size.width - pad * 2) / bounds.width, (size.height - pad * 2) / bounds.height)
+  const zoom = Math.min(1, Math.max(0.85, Number.isFinite(fitZoom) ? fitZoom : 1))
+  const fitsW = bounds.width * zoom + pad * 2 <= size.width
+  const fitsH = bounds.height * zoom + pad * 2 <= size.height
+  const focus = selected.value && selected.value !== rootId ? measuredBox(selected.value) : null
+  const x = !fitsW && focus ? size.width / 2 - (focus.x + focus.width / 2) * zoom : fitsW ? (size.width - bounds.width * zoom) / 2 - bounds.minX * zoom : pad - bounds.minX * zoom
+  const y = !fitsH && focus ? size.height / 2 - (focus.y + focus.height / 2) * zoom : fitsH ? (size.height - bounds.height * zoom) / 2 - bounds.minY * zoom : pad - bounds.minY * zoom
+  setViewport({ x, y, zoom }, { duration: 180 }).catch(() => undefined)
 }
 function zoomReset() {
   const size = canvasSize()
@@ -1469,9 +1616,12 @@ function zoomReset() {
     zoom,
   }, { duration: 160 }).catch(() => undefined)
 }
-function zoomBy(direction: 1 | -1) {
-  const action = direction > 0 ? zoomIn : zoomOut
-  action({ duration: 120 }).catch(() => undefined)
+function onZoomCommand(command: string) {
+  if (command === 'reset') zoomReset()
+  if (command === 'map') toggleMap()
+}
+function toggleAllBranches() {
+  setExpanded(anyCollapsed.value)
 }
 function revealNode(id: string) {
   if (editorMode.value !== 'canvas' || !id) return
@@ -1512,12 +1662,7 @@ function beginEdit(id: string) {
   if (viewing.value) return
   if (id === rootId) {
     selected.value = id
-    editingId.value = id
-    nextTick(() => {
-      const input = document.querySelector<HTMLInputElement>('.root-edit')
-      input?.focus()
-      input?.select()
-    })
+    editingId.value = ''
     return
   }
   const node = nodes.value.find((item) => item.id === id)
@@ -1535,31 +1680,6 @@ function beginEdit(id: string) {
   selected.value = id
   editingId.value = id
   nextTick(() => document.querySelector<HTMLSelectElement>('.inline-edit')?.focus())
-}
-function cancelRootEdit() {
-  skipRootCommit = true
-  editingId.value = ''
-}
-function applyRootName(name: string) {
-  const text = name.trim()
-  if (!text) {
-    ElMessage.warning('请填写模型名称')
-    return
-  }
-  const row = store.data.templates.find((item) => item.id === templateId.value)
-  if (row) row.name = text
-  const canvasRow = ensureCanvas()
-  canvasRow.name = text
-  canvasRow.updatedAt = new Date().toISOString()
-}
-function commitRootName(event: Event) {
-  if (skipRootCommit) {
-    skipRootCommit = false
-    return
-  }
-  if (event.type === 'blur' && editingId.value !== rootId) return
-  editingId.value = ''
-  applyRootName((event.target as HTMLInputElement).value)
 }
 function cueOutline(id: string) {
   selected.value = id
@@ -1960,6 +2080,7 @@ function runMenu(action: 'add-attribute' | 'add-child' | 'add-value' | 'sibling'
     return
   }
   if (action === 'rename') {
+    if (id === rootId) return
     if (editorMode.value === 'canvas') beginEdit(id)
     else cueOutline(id)
     return
@@ -2045,7 +2166,11 @@ function reparent(node: ProductSpecNode, targetId: string) {
   if (node.nodeType === 'VALUE') node.attributeId = target.attributeId
   return ''
 }
+function onViewportMove(event: { flowTransform: { x: number; y: number; zoom: number } }) {
+  zoomRatio.value = event.flowTransform.zoom
+}
 function onMoveEnd(event: { flowTransform: { x: number; y: number; zoom: number } }) {
+  zoomRatio.value = event.flowTransform.zoom
   if (viewing.value) return
   const row = ensureCanvas()
   row.panX = event.flowTransform.x
@@ -2065,6 +2190,10 @@ function useManualLayout() {
   row.layoutLocked = true
   ElMessage.success('已改为手工摆放。新增节点不会挪动现有位置，需要分区时再点自动布局。')
 }
+const anyCollapsed = computed(() => {
+  const branches = nodes.value.filter((item) => nodes.value.some((child) => child.parentId === item.id))
+  return branches.some((item) => !nodeOpen(item))
+})
 function setExpanded(expanded: boolean) {
   if (viewing.value) {
     viewClosed.value = expanded ? [] : nodes.value.filter((item) => childCount(item.id)).map((item) => item.id)
@@ -2089,6 +2218,38 @@ function toggleExpand(id: string) {
 function queryText(value: unknown) {
   return typeof value === 'string' ? value : ''
 }
+function sessionValue(key: string) {
+  try { return sessionStorage.getItem(key) || '' } catch { return '' }
+}
+function carriedOverview() {
+  const root = queryText(route.query.root) || sessionValue(OVERVIEW_ROOT_KEY)
+  const carried: Record<string, string> = { view: overviewView.value }
+  if (root) carried.root = root
+  return carried
+}
+function setOverviewView(view: 'list' | 'graph') {
+  const query: Record<string, string | string[] | undefined> = { ...route.query, view }
+  if (view === 'graph' && !queryText(query.root)) query.root = graphRootId(store.data, overviewCategoryId.value) || defaultOverviewCategoryId(store.data)
+  try {
+    sessionStorage.setItem(OVERVIEW_VIEW_KEY, view)
+    if (queryText(query.root)) sessionStorage.setItem(OVERVIEW_ROOT_KEY, queryText(query.root))
+  } catch { /* 偏好写不进去时仍切换当前画面 */ }
+  router.replace({ path: '/specs', query })
+}
+function setOverviewRoot(rootId: string) {
+  if (!rootId) return
+  try { sessionStorage.setItem(OVERVIEW_ROOT_KEY, rootId) } catch { /* 偏好写不进去时仍保留当前起点 */ }
+  if (queryText(route.query.root) === rootId) return
+  router.replace({ path: '/specs', query: { ...route.query, panel: 'overview', root: rootId } })
+}
+function restoreOverviewMemory() {
+  if (route.query.panel !== 'overview') return
+  if (route.query.view === 'graph' || route.query.view === 'list') return
+  const saved = sessionValue(OVERVIEW_VIEW_KEY)
+  const view = saved === 'list' ? 'list' : 'graph'
+  const root = queryText(route.query.root) || sessionValue(OVERVIEW_ROOT_KEY) || graphRootId(store.data, overviewCategoryId.value) || defaultOverviewCategoryId(store.data)
+  router.replace({ path: '/specs', query: { ...route.query, view, root } })
+}
 function setSurface(next: string | number | boolean) {
   if (next === 'overview') {
     router.push({
@@ -2099,6 +2260,7 @@ function setSurface(next: string | number | boolean) {
         type: activeTypeId.value || overviewTypeId.value,
         focus: templateId.value || overviewFocusId.value,
         q: overviewKeyword.value,
+        ...carriedOverview(),
       },
     })
     return
@@ -2107,7 +2269,7 @@ function setSurface(next: string | number | boolean) {
   router.push({
     path: '/specs',
     query: focus
-      ? { template: focus, mode: 'view', from: 'overview', category: overviewCategoryId.value, type: overviewTypeId.value, q: overviewKeyword.value }
+      ? { template: focus, mode: 'view', from: 'overview', category: overviewCategoryId.value, type: overviewTypeId.value, q: overviewKeyword.value, ...carriedOverview() }
       : {},
   })
 }
@@ -2121,6 +2283,7 @@ function openFromOverview(payload: { templateId: string; categoryId: string; typ
       category: payload.categoryId,
       type: payload.typeId,
       q: payload.keyword,
+      ...carriedOverview(),
     },
   })
 }
@@ -2133,6 +2296,7 @@ function backToOverview() {
       type: queryText(route.query.type) || activeTypeId.value,
       q: queryText(route.query.q),
       focus: templateId.value,
+      ...carriedOverview(),
     },
   })
 }
@@ -2154,12 +2318,20 @@ function saveModel() {
     return
   }
   row.updatedAt = new Date().toISOString()
-  ElMessage.success('已保存为草稿。新商品仍使用最近一次发布的版本。')
+  const published = store.data.specModelVersions.some((item) => item.templateId === templateId.value && item.status === 'published')
+  ElMessage.success(published ? '已保存草稿，尚未发布。新商品仍使用最近一次发布的版本。' : '已保存草稿，尚未发布。')
 }
+const publishing = ref(false)
 function publish() {
-  const result = store.publishSpecModel(templateId.value)
-  if (result.ok) ElMessage.success(result.message)
-  else ElMessage.warning(result.message)
+  if (publishing.value) return
+  publishing.value = true
+  try {
+    const result = store.publishSpecModel(templateId.value)
+    if (result.ok) ElMessage.success(result.message)
+    else ElMessage.warning(result.message)
+  } finally {
+    publishing.value = false
+  }
 }
 function markWorkingDraft() {
   const row = ensureCanvas()
@@ -2412,7 +2584,6 @@ function addValues() {
   pushUndo()
   parent.expanded = true
   let sort = nextSort(parent.id)
-  let lastId = ''
   fresh.forEach((valueId) => {
     const id = uid('sn')
     store.data.productSpecNodes.push({
@@ -2427,12 +2598,11 @@ function addValues() {
       positionY: 0,
     })
     sort += 1
-    lastId = id
   })
   reflowTree()
-  selected.value = lastId
+  selected.value = parent.id
   valueOpen.value = false
-  revealNode(lastId)
+  revealNode(parent.id)
 }
 function descendantIds(id: string): string[] {
   const children = nodes.value.filter((item) => item.parentId === id)
@@ -2645,11 +2815,11 @@ function isTypingTarget(target: EventTarget | null) {
   if (!node?.closest) return false
   const tag = node.tagName
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || node.isContentEditable) return true
-  return Boolean(node.closest('.el-dialog, .el-message-box, .el-popper, .el-select, .context-menu, #nav-flyout'))
+  return Boolean(node.closest('.el-dialog, .el-message-box, .el-popper, .el-select, .context-menu, #nav-flyout, .category-tree-select, .category-tree-select-panel'))
 }
 function onKey(event: KeyboardEvent) {
   if (viewing.value || event.isComposing) return
-  if (isTypingTarget(event.target) || document.getElementById('nav-flyout') || shortcutBlocked()) return
+  if (isTypingTarget(event.target) || shortcutBlocked()) return
   const target = event.target as HTMLElement | null
   if (!target?.closest?.('.board')) return
   const key = event.key.toLowerCase()
@@ -2705,8 +2875,15 @@ function onKey(event: KeyboardEvent) {
     remove()
   }
 }
-onMounted(() => window.addEventListener('keydown', onKey))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+onMounted(() => {
+  window.addEventListener('keydown', onKey)
+  document.addEventListener('keydown', onDictEsc, true)
+  restoreOverviewMemory()
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKey)
+  document.removeEventListener('keydown', onDictEsc, true)
+})
 </script>
 
 <style scoped>
@@ -2721,7 +2898,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .workbench.is-cat-fold { grid-template-columns: 44px 228px minmax(0, 1fr); }
 .workbench.is-rail-fold { grid-template-columns: 212px 44px minmax(0, 1fr); }
 .workbench.is-cat-fold.is-rail-fold { grid-template-columns: 44px 44px minmax(0, 1fr); }
-.studio-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+.workbench.is-overview.is-cat-fold,
+.workbench.is-overview.is-rail-fold,
+.workbench.is-overview.is-cat-fold.is-rail-fold { grid-template-columns: minmax(0, 1fr); }
+.draft-preview { margin-bottom: 12px; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 8px; }
+.draft-preview ul { margin: 6px 0 0; padding-left: 18px; }
+.draft-preview li { margin: 2px 0; }
 .studio-actions { display: flex; flex: none; gap: 8px; }
 .version-name { color: #909399; font-size: 13px; font-weight: 500; }
 .meta-row { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 6px 0 0; color: #303133; font-size: 12px; line-height: 1.5; }
@@ -2832,20 +3014,22 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .model-root, .model-attr, .model-value { position: relative; box-sizing: border-box; text-align: left; }
 .model-root { height: 48px; display: flex; align-items: center; background: var(--accent, #2c4068); color: #fff; border: 0; border-radius: 12px; padding: 0 18px; font-size: 18px; font-weight: 650; }
 .model-root strong { overflow: hidden; color: inherit; font-size: 18px; font-weight: 650; white-space: nowrap; text-overflow: ellipsis; }
-.model-attr { height: 42px; display: flex; align-items: center; background: transparent; border: 0; border-radius: 10px; padding: 0 12px; }
-.model-attr strong { display: block; overflow: hidden; color: var(--node-text, var(--text-primary, #253044)); font-size: 16px; font-weight: 650; line-height: 24px; white-space: nowrap; text-overflow: ellipsis; }
-.model-attr.is-unbound strong { color: #909399; font-weight: 500; }
+.model-attr { height: 42px; display: flex; align-items: center; gap: 4px; background: var(--spec-attr-bg, color-mix(in srgb, #5d6eb8 16%, #fff)); border: 1px solid var(--spec-attr-border, #9aa6d4); border-radius: 6px; padding: 0 12px; cursor: pointer; }
+.model-attr strong { flex: 1; min-width: 0; display: block; overflow: hidden; color: var(--spec-attr-text, var(--node-text, var(--text-primary, #253044))); font-size: 15px; font-weight: 600; line-height: 22px; white-space: nowrap; text-overflow: ellipsis; }
+.model-attr.is-unbound strong { color: var(--text-muted, #909399); font-weight: 500; }
+.model-attr:hover:not(.is-on) { background: var(--spec-attr-bg-hover, color-mix(in srgb, #5d6eb8 24%, #fff)); border-color: var(--spec-attr-border-hover, #7f8bc4); }
 .attr-meta { margin: 0; overflow: hidden; color: #b0bcc8; font-size: 10px; line-height: 14px; white-space: nowrap; text-overflow: ellipsis; }
 .pick-attr { display: inline-block; margin-top: 2px; border: 0; background: none; padding: 0; color: #409eff; font-size: 12px; line-height: 1.4; cursor: pointer; }
 .dict-create { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
 .dict-create .el-input { flex: 1; }
 .dict-empty { margin: 0 0 8px; color: #909399; font-size: 13px; line-height: 1.45; }
-.model-attr.is-head { background: color-mix(in srgb, var(--accent, #409eff) 14%, var(--surface-bg, #fff)); }
-.model-attr.is-head strong { font-size: 16px; }
-.model-attr.is-nested { background: transparent; border-left: 3px solid var(--accent, #8ea0b8); border-radius: 0 10px 10px 0; padding-left: 10px; }
+.model-attr.is-head,
+.model-attr.is-nested { background: var(--spec-attr-bg, color-mix(in srgb, #5d6eb8 16%, #fff)); border: 1px solid var(--spec-attr-border, #9aa6d4); border-radius: 6px; padding: 0 12px; }
+.model-attr.is-head strong,
 .model-attr.is-nested strong { font-size: 15px; font-weight: 600; }
-.model-value { height: 34px; display: flex; align-items: center; background: var(--surface-muted, #eef2f6); border: 0; border-radius: 999px; padding: 0 14px; color: var(--text-primary, #253044); font-size: 15px; font-weight: 500; line-height: 34px; }
-.model-value span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.model-value { height: 34px; display: flex; align-items: center; gap: 4px; background: var(--spec-value-bg, #fff); border: 1px solid var(--spec-value-border, #c3ccd6); border-radius: 999px; padding: 0 14px; color: var(--spec-value-text, var(--text-primary, #253044)); font-size: 15px; font-weight: 400; line-height: 34px; cursor: pointer; }
+.model-value:hover:not(.is-on) { background: var(--spec-value-bg-hover, #f7f9fc); border-color: var(--spec-value-border-hover, #8ea0b4); }
+.model-value span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .rule-mark { flex: none; margin-left: 4px; color: #8a5a00; font-style: normal; font-size: 10px; line-height: 1; }
 .rule-mark.is-inherit { color: #607089; }
 .structure-empty { position: absolute; z-index: 4; top: 52px; left: 50%; transform: translateX(-50%); padding: 12px 14px; border: 1px solid #e6edf5; border-radius: 8px; background: rgba(255, 255, 255, 0.96); }
@@ -2853,9 +3037,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .structure-start { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; color: #909399; font-size: 12px; }
 .path-preview { position: absolute; left: 12px; top: 12px; z-index: 5; max-width: 460px; padding: 6px 10px; color: #7d8da1; background: rgba(255, 255, 255, 0.88); border-radius: 999px; font-size: 12px; pointer-events: none; }
 .path-preview i { margin: 0 6px; color: #c5d0de; font-style: normal; }
-.model-attr.is-on, .model-value.is-on { background: var(--selected-bg, #e7eefc); box-shadow: inset 0 0 0 2px var(--accent, #409eff); }
+.model-attr.is-on { background: var(--spec-selected-attr-bg, color-mix(in srgb, #5d6eb8 30%, #fff)); border-color: var(--spec-node-ring, #3d6fe0); box-shadow: inset 0 0 0 1px var(--spec-node-ring, #3d6fe0); }
+.model-value.is-on { background: var(--spec-selected-value-bg, #f3f6ff); border-color: var(--spec-node-ring, #3d6fe0); color: var(--spec-value-text, var(--text-primary, #253044)); box-shadow: inset 0 0 0 1px var(--spec-node-ring, #3d6fe0); }
 .model-root.is-on { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #8ea0b8) 55%, transparent); }
-.model-value.is-on { color: var(--text-primary, #1f3b66); }
 .model-attr.is-path strong { font-weight: 700; }
 .model-root.is-quiet, .model-attr.is-quiet, .model-value.is-quiet { opacity: 0.72; }
 .fold { position: absolute; right: -7px; top: 50%; width: 16px; height: 16px; margin-top: -8px; border: 1px solid #d5deea; border-radius: 50%; background: #fff; color: #7d8da1; cursor: pointer; font-size: 10px; line-height: 14px; padding: 0; }
@@ -2912,4 +3096,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   flex: none;
   border-top: 1px solid var(--el-border-color-light, #e4e8ef);
 }
+</style>
+<style>
+.dict-select-popper .el-select-dropdown__wrap { max-height: 180px; }
 </style>

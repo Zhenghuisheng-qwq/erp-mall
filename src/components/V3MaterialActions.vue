@@ -42,17 +42,28 @@
 
     <el-dialog v-model="listOpen" class="v3-material-dialog" title="已有物料" width="560px" append-to-body>
       <el-input v-model="keyword" placeholder="搜物料编码或规格" clearable />
-      <p v-if="filtered.length === 0" class="muted">还没有物料。</p>
-      <ul v-else class="materials">
+      <p v-if="filtered.length === 0 && !(matchVersion && historicalCards.length)" class="muted">还没有物料。</p>
+      <ul v-if="filtered.length" class="materials">
         <li v-for="item in filtered" :key="item.id">
           <div>
             <strong>{{ item.materialCode?.trim() || '未分配物料编号' }}</strong>
             <span>{{ item.skuName?.trim() || '未填写物料名称' }} · {{ item.status === 'on_sale' ? '在售' : item.status === 'off_sale' ? '停售' : '草稿' }}</span>
-            <em v-if="item.nameSource === 'manual'">手工修改</em>
-            <em v-else-if="item.nameSource === 'auto'">规则带入</em>
+            <em v-if="originLabel(item.nameSource)">{{ originLabel(item.nameSource) }}</em>
             <em v-if="item.materialDescription">{{ item.materialDescription }}</em>
           </div>
           <button type="button" class="linkish" @click="openMaterial(item)">打开</button>
+        </li>
+      </ul>
+      <p v-if="matchVersion && historicalCards.length" class="muted">历史版本已建 {{ historicalCards.length }} 条。编号、名称和建档版本保持原样，不算本版本新建。</p>
+      <ul v-if="matchVersion && historicalCards.length" class="materials">
+        <li v-for="item in historicalCards" :key="item.skuId">
+          <div>
+            <strong>{{ item.materialCode.trim() || '未分配物料编号' }}</strong>
+            <span>{{ item.skuName.trim() || '未填写物料名称' }}</span>
+            <em>来源 {{ item.versionName || '未记录版本' }}</em>
+            <em v-if="originLabel(item.nameSource)">{{ originLabel(item.nameSource) }}</em>
+          </div>
+          <button type="button" class="linkish" @click="openHistorical(item)">打开</button>
         </li>
       </ul>
     </el-dialog>
@@ -64,7 +75,8 @@ import { ElMessage } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { familyChoicesFor, filingText, gradeText, resolveV3MaterialSpec } from '../domain/material'
-import { suggestMaterialName } from '../domain/naming'
+import { materialsOfRecord } from '../domain/comboMaterialStatus'
+import { materialNameOriginLabel, suggestMaterialName } from '../domain/naming'
 import type { MaterialChoice } from '../domain/material'
 import { uid, useCatalogStore } from '../stores/catalog'
 
@@ -130,10 +142,20 @@ const filtered = computed(() => {
   if (!text) return materials.value
   return materials.value.filter((item) => `${item.materialCode || ''} ${item.skuName || ''} ${item.materialDescription || ''} ${item.supplierCode || ''}`.includes(text))
 })
+const historicalCards = computed(() => {
+  const record = store.data.planningRecords.find((item) => item.planningId === props.planningId)
+  if (!record) return []
+  return materialsOfRecord(store.data, record, props.modelVersionId).historical
+})
 
+function originLabel(source?: string) {
+  return materialNameOriginLabel(source)
+}
 function suggestionName() {
   const record = store.data.planningRecords.find((item) => item.planningId === props.planningId)
   const typeName = store.data.productTypes.find((item) => item.id === props.productTypeId)?.name || ''
+  const version = store.data.specModelVersions.find((item) => item.id === props.modelVersionId)
+  const versionName = version?.versionName || '已发布版本'
   const suggestion = record ? suggestMaterialName(store.data, {
     productModelId: props.productModelId,
     modelVersionId: props.modelVersionId,
@@ -141,7 +163,9 @@ function suggestionName() {
     steps: record.steps.map((step) => ({ valueNodeId: step.valueNodeId, attributeId: step.attributeId, valueId: step.valueId })),
   }) : null
   namingMessage.value = suggestion?.canAuto === false ? suggestion.message : ''
-  namingSource.value = suggestion?.canAuto !== false && suggestion?.nodeLabel ? `建议名称来自已发布版本里的节点「${suggestion.nodeLabel}」。` : ''
+  if (!suggestion || suggestion.canAuto === false) namingSource.value = suggestion?.message || ''
+  else if (suggestion.status === 'rule') namingSource.value = `基于已发布 ${versionName}。名称由这一版的命名规则生成。`
+  else namingSource.value = `基于已发布 ${versionName}。这一版没有命名规则，当前是默认名称。草稿中的规则尚未进入已发布快照。`
   return suggestion?.canAuto === false ? '' : (suggestion?.name || '')
 }
 function openCreate() {
@@ -201,6 +225,10 @@ function confirm(keep: boolean) {
 function openMaterial(item: { familyId: string; id: string }) {
   listOpen.value = false
   router.push(`/products/${item.familyId}?sku=${item.id}`)
+}
+function openHistorical(item: { familyId: string; skuId: string }) {
+  listOpen.value = false
+  router.push(`/products/${item.familyId}?sku=${item.skuId}`)
 }
 </script>
 

@@ -25,14 +25,13 @@
             </template>
           </el-dropdown>
         </el-tooltip>
-        <el-button @click="openCreate">新建视图</el-button>
-        <el-button @click="openSettings">视图设置</el-button>
-        <el-popover v-model:visible="columnOpen" trigger="click" placement="bottom-start" :width="320">
+        <el-popover v-model:visible="columnOpen" trigger="click" placement="bottom-end" :width="360">
           <template #reference>
-            <el-button>列设置</el-button>
+            <el-button>视图工具</el-button>
           </template>
-          <div class="column-panel">
-            <p class="muted">只调整当前视图的{{ listMode === 'spu' ? ' SPU ' : ' SKU ' }}列。勾选立即生效。</p>
+          <div class="view-tools">
+            <p class="muted">列、分组、排序和视图都保存在当前视图里。</p>
+            <p class="tool-label">列</p>
             <el-input v-model="columnQuery" placeholder="搜索字段" clearable />
             <ul class="column-list">
               <li
@@ -50,37 +49,7 @@
             </ul>
             <p v-if="filteredColumns.length === 0" class="muted">没有匹配的字段。</p>
             <el-button link type="primary" @click="resetColumns">恢复当前模式的默认列</el-button>
-          </div>
-        </el-popover>
-        <el-radio-group :model-value="listMode" size="small" @change="setListMode">
-          <el-radio-button value="spu">SPU 视图</el-radio-button>
-          <el-radio-button value="sku">SKU 视图</el-radio-button>
-        </el-radio-group>
-        <span class="muted" data-result-count>{{ listMode === 'spu' ? `商品 ${presentation.total} 款` : `SKU ${presentation.total} 条` }}</span>
-      </div>
-      <div class="filters">
-        <el-input :model-value="activeQuery.keyword" placeholder="名称、分类、属性、SKU、OA 编号" clearable style="width: 260px" data-filter="keyword" @update:model-value="onKeyword" />
-        <el-popover v-if="showCategoryPopover" v-model:visible="categoryOpen" trigger="click" placement="bottom-start" :width="280">
-          <template #reference>
-            <el-button data-category-trigger>{{ categoryButtonText }}</el-button>
-          </template>
-          <CategoryFilterTree placement="popover" :categories="store.data.categories" :selected-ids="selectedCategoryIds" @toggle="toggleCategory" @clear="clearCategory" @dock="dockCategory" @hide="hideCategory" @float="floatCategory" />
-        </el-popover>
-        <el-button v-else-if="categoryLayout === 'hidden' || narrowScreen" data-category-trigger @click="floatCategory">展开分类树</el-button>
-        <span v-if="categoryLayout !== 'popover' && categorySummary" class="category-chip" data-category-chip>
-          {{ categorySummary }}
-          <button type="button" @click="clearCategory">清除</button>
-        </span>
-        <template v-for="field in exposedFields" :key="field.field">
-          <el-select v-if="field.field !== 'category' && field.kind !== 'date'" :model-value="chosen(field.field)" multiple collapse-tags clearable :placeholder="field.label" style="width: 160px" :data-exposed="field.field" @change="(value: string[]) => setExposedValue(field.field, value)">
-            <el-option v-for="item in fieldOptions(field.field)" :key="item" :label="item" :value="item" />
-          </el-select>
-          <el-date-picker v-else :model-value="dateRange(field.field)" type="daterange" value-format="YYYY-MM-DD" start-placeholder="创建开始" end-placeholder="创建结束" style="width: 240px" :data-exposed="field.field" @update:model-value="(value: [string, string] | null) => setDate(value)" />
-        </template>
-        <el-button data-filter-count @click="filterOpen = true">筛选<span v-if="filterCount"> {{ filterCount }}</span></el-button>
-        <el-popover trigger="click" placement="bottom-start" :width="280">
-          <template #reference><el-button>分组</el-button></template>
-          <div class="column-panel">
+            <p class="tool-label">分组</p>
             <el-select :model-value="activeQuery.grouping?.field || ''" clearable placeholder="分组字段" @change="onGroupField">
               <el-option v-for="item in groupOptions" :key="item.field" :label="item.label" :value="item.field" />
             </el-select>
@@ -89,11 +58,7 @@
               <el-radio-button value="desc">降序</el-radio-button>
             </el-radio-group>
             <el-button link type="primary" @click="clearGroup">清除分组</el-button>
-          </div>
-        </el-popover>
-        <el-popover trigger="click" placement="bottom-start" :width="300">
-          <template #reference><el-button>排序{{ sortLabel }}</el-button></template>
-          <div class="column-panel">
+            <p class="tool-label">排序</p>
             <el-radio-group :model-value="sortMode" @change="onSortMode">
               <el-radio-button value="default">默认顺序</el-radio-button>
               <el-radio-button value="field">按字段排序</el-radio-button>
@@ -107,12 +72,49 @@
               <el-radio-button value="desc">降序</el-radio-button>
             </el-radio-group>
             <el-button link type="primary" @click="clearSort">清除排序</el-button>
+            <div class="tool-links">
+              <el-button @click="openCreate">新建视图</el-button>
+              <el-button @click="openSettings">视图设置</el-button>
+              <el-button @click="saveFilter">保存当前筛选</el-button>
+              <el-button @click="router.push('/import')">导入导出</el-button>
+            </div>
           </div>
         </el-popover>
-        <el-button @click="saveFilter">保存当前筛选</el-button>
-        <el-button @click="router.push('/import')">导入导出</el-button>
+        <span v-if="groupStatusLabel" class="tool-state" data-group-state>分组：{{ groupStatusLabel }}</span>
+        <span v-if="sortStatusLabel" class="tool-state" data-sort-state>排序：{{ sortStatusLabel }}</span>
+        <el-radio-group :model-value="listMode" size="small" @change="setListMode">
+          <el-radio-button value="spu">商品</el-radio-button>
+          <el-radio-button value="sku">规格</el-radio-button>
+        </el-radio-group>
+        <span class="muted" data-result-count>{{ listMode === 'spu' ? `商品 ${presentation.total} 款` : `SKU ${presentation.total} 条` }}</span>
       </div>
-      <div v-if="listMode === 'spu'" class="row-actions" style="margin-bottom: 10px">
+      <div class="filters">
+        <el-input :model-value="activeQuery.keyword" placeholder="名称、分类、属性、SKU、OA 编号" clearable style="width: 260px" data-filter="keyword" @update:model-value="onKeyword" />
+        <el-popover v-if="showCategoryPopover" v-model:visible="categoryOpen" trigger="click" placement="bottom-start" :width="280">
+          <template #reference>
+            <el-button data-category-trigger>{{ categoryButtonText }}</el-button>
+          </template>
+          <CategoryFilterTree placement="popover" :categories="store.data.categories" :selected-ids="selectedCategoryIds" @toggle="toggleCategory" @clear="clearCategory" @dock="dockCategory" @hide="hideCategory" @float="floatCategory" />
+        </el-popover>
+        <el-button v-else-if="categoryLayout === 'hidden' || narrowScreen" data-category-trigger @click="floatCategory">展开分类树</el-button>
+        <span v-if="(categoryLayout === 'hidden' || narrowScreen) && categoryChipText" class="category-chip" data-category-chip>
+          分类：{{ categoryChipText }}
+          <button type="button" aria-label="清除分类" @click="clearCategory">×</button>
+        </span>
+        <span v-else-if="categoryLayout === 'sidebar' && categorySummary" class="category-chip" data-category-chip>
+          {{ categorySummary }}
+          <button type="button" @click="clearCategory">清除</button>
+        </span>
+        <template v-for="field in exposedFields" :key="field.field">
+          <el-select v-if="field.field !== 'category' && field.kind !== 'date'" :model-value="chosen(field.field)" multiple collapse-tags clearable :placeholder="field.label" style="width: 160px" :data-exposed="field.field" @change="(value: string[]) => setExposedValue(field.field, value)">
+            <el-option v-for="item in fieldOptions(field.field)" :key="item" :label="item" :value="item" />
+          </el-select>
+          <el-date-picker v-else :model-value="dateRange(field.field)" type="daterange" value-format="YYYY-MM-DD" start-placeholder="创建开始" end-placeholder="创建结束" style="width: 240px" :data-exposed="field.field" @update:model-value="(value: [string, string] | null) => setDate(value)" />
+        </template>
+        <el-button data-filter-count @click="filterOpen = true">筛选<span v-if="filterCount"> {{ filterCount }}</span></el-button>
+      </div>
+      <div v-if="listMode === 'spu' && familyIds.length" class="row-actions batch-actions" style="margin-bottom: 10px">
+        <span data-selected-count>已选 {{ familyIds.length }} 条</span>
         <el-button :disabled="familyIds.length === 0" @click="setShelfMany('online')">批量发布</el-button>
         <el-button :disabled="familyIds.length === 0" @click="setShelfMany('offline')">批量下架</el-button>
         <el-button :disabled="familyIds.length === 0" type="danger" @click="removeMany">批量删除</el-button>
@@ -123,7 +125,7 @@
       </div>
       <p v-if="presentation.manualBlocked" class="warn">手工排序已保存。当前还有分组，请先清除分组，再按手工顺序查看。分组不会被自动改掉。</p>
       <div v-if="manualOn && pickedIds.length" class="row-actions" style="margin-bottom: 8px">
-        <span>已选 {{ pickedIds.length }} 条</span>
+        <span data-stage-pick>待放入暂存 {{ pickedIds.length }} 条</span>
         <el-button size="small" type="primary" @click="addStage">加入排序暂存区</el-button>
       </div>
       <div v-if="manualOn && stageIds.length" class="stage-bar">
@@ -190,7 +192,7 @@
             </template>
             <template v-else-if="col.key === 'category'">{{ categoryPath(store.data, row.categoryId) }}</template>
             <template v-else-if="col.key === 'template'">{{ templateById(store.data, row.templateId)?.name }}</template>
-            <template v-else-if="col.key === 'brand'">{{ row.commonAttrs['品牌'] || '-' }}</template>
+            <template v-else-if="col.key === 'brand'">{{ brandText(row) }}</template>
             <template v-else-if="col.key === 'skuCount'"><span :data-sku-count="realCount(row.id)">{{ skuCountText(realCount(row.id)) }}</span></template>
             <template v-else-if="col.key === 'sale'">{{ saleCount(row.id) }}</template>
             <template v-else-if="col.key === 'origin'">{{ row.origin === 'sample' ? '预设演示' : '本次新增' }}</template>
@@ -288,6 +290,8 @@
         </el-select>
         <el-date-picker v-if="kindOf(filter.field) === 'date' && filter.operator === 'between'" :model-value="conditionRange(filter)" type="daterange" value-format="YYYY-MM-DD" style="width: 240px" @update:model-value="(value: [string, string] | null) => setConditionRange(filter.id, value)" />
         <el-date-picker v-else-if="kindOf(filter.field) === 'date'" :model-value="textValue(filter)" type="date" value-format="YYYY-MM-DD" @update:model-value="(value: string) => setConditionText(filter.id, value || '')" />
+        <CategoryTreeSelect v-else-if="filter.field === 'category' && filter.operator === 'in'" multiple :model-value="categoryConditionIds(filter)" :categories="store.data.categories" placeholder="选择分类" style="width: 220px" @update:model-value="(value) => setConditionList(filter.id, Array.isArray(value) ? value : [])" />
+        <CategoryTreeSelect v-else-if="filter.field === 'category'" :model-value="categoryConditionId(filter)" :categories="store.data.categories" placeholder="选择分类" style="width: 220px" @update:model-value="(value) => setConditionText(filter.id, typeof value === 'string' ? value : '')" />
         <el-select v-else-if="filter.operator === 'in'" :model-value="listValue(filter)" multiple collapse-tags style="width: 220px" @change="(value: string[]) => setConditionList(filter.id, value)">
           <el-option v-for="item in fieldOptions(filter.field)" :key="item" :label="item" :value="item" />
         </el-select>
@@ -309,11 +313,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CategoryFilterTree from '../components/CategoryFilterTree.vue'
+import CategoryTreeSelect from '../components/CategoryTreeSelect.vue'
 import PageHead from '../components/PageHead.vue'
+import { familyBrandText, familyBrandValues, isRealSku, linkedModelName, materialArchivesOf, productTypeName, realSkusOf, savedSkuCode, savedSkuName, savedSkuSpec, skuCountText } from '../domain/productList'
 import { catalogRole, compatibilityFamilyBlock, roleOfType } from '../domain/compatibility'
 import { categoryPath, shelfOf, shelfText, statusText, templateById } from '../domain/logic'
 import { familyMaterialDigest } from '../domain/material'
-import { isRealSku, linkedModelName, materialArchivesOf, productTypeName, realSkusOf, savedSkuCode, savedSkuName, savedSkuSpec, skuCountText } from '../domain/productList'
 import { activeFilterCount, fieldSelection, groupFields, knownFilterFields, presentProductList, resolveCategoryFilter, sortFields, sortModeOf } from '../domain/productListQuery'
 import { DEFAULT_PRODUCT_LIST_VIEW_ID, activeProductListView, copyProductListView, createProductListView, currentModeQuery, deleteProductListView, insertViewManual, moveViewManual, orderedColumns, renameProductListView, reorderProductListColumn, resetProductListColumns, selectProductListView, setProductListColumnVisible, setProductListViewMode, setViewCategoryLayout, setViewExposed, setViewFieldValues, setViewGrouping, setViewKeyword, setViewSortMode, setViewSorting, visibleColumns } from '../domain/productListViews'
 import type { ProductFamily, ProductListFilterOperator, ProductListMode, ProductListViewFilter, Sku } from '../domain/types'
@@ -343,7 +348,7 @@ const dragKey = ref('')
 const selected = reactive<Record<string, string[]>>({})
 const familyIds = ref<string[]>([])
 const defaultViewId = DEFAULT_PRODUCT_LIST_VIEW_ID
-const brands = computed(() => Array.from(new Set(store.data.families.map((item) => item.commonAttrs['品牌']).filter(Boolean))))
+const brands = computed(() => Array.from(new Set(store.data.families.flatMap((item) => familyBrandValues(store.data, item)))).sort((left, right) => left.localeCompare(right, 'zh')))
 const displayViews = computed(() => store.data.productListViews || [])
 const activeView = computed(() => activeProductListView(store.data))
 const listMode = computed(() => activeView.value.mode)
@@ -386,7 +391,18 @@ const groupOptions = computed(() => groupFields(store.data, listMode.value))
 const sortOptions = computed(() => sortFields(listMode.value))
 const sortMode = computed(() => sortModeOf(activeQuery.value))
 const manualOn = computed(() => sortMode.value === 'manual' && !activeQuery.value.grouping)
-const sortLabel = computed(() => (sortMode.value === 'manual' ? '：手工排序' : sortMode.value === 'field' ? '：按字段' : ''))
+const groupStatusLabel = computed(() => {
+  const field = activeQuery.value.grouping?.field
+  if (!field) return ''
+  return groupOptions.value.find((item) => item.field === field)?.label || field
+})
+const sortStatusLabel = computed(() => {
+  if (sortMode.value === 'manual') return '手工排序'
+  if (sortMode.value !== 'field') return ''
+  const field = activeQuery.value.sorting?.field
+  const label = sortOptions.value.find((item) => item.field === field)?.label
+  return label ? `按${label}` : '按字段'
+})
 const categoryLayout = computed(() => activeView.value.categoryFilterLayout === 'sidebar' || activeView.value.categoryFilterLayout === 'hidden' ? activeView.value.categoryFilterLayout : 'popover')
 const showSidebar = computed(() => categoryLayout.value === 'sidebar' && !narrowScreen.value)
 const showCategoryPopover = computed(() => categoryLayout.value === 'popover' && !narrowScreen.value)
@@ -395,6 +411,11 @@ const selectedCategoryIds = computed(() => categoryState.value.ids)
 const categorySummary = computed(() => {
   const names = selectedCategoryIds.value.map((id) => categoryPath(store.data, id)).filter(Boolean)
   const missing = categoryState.value.missing.length ? [`分类已不存在 ${categoryState.value.missing.length} 个`] : []
+  return [...names, ...missing].join('、')
+})
+const categoryChipText = computed(() => {
+  const names = selectedCategoryIds.value.map((id) => store.data.categories.find((item) => item.id === id)?.name || '').filter(Boolean)
+  const missing = categoryState.value.missing.length ? ['分类已不存在'] : []
   return [...names, ...missing].join('、')
 })
 const categoryButtonText = computed(() => (categorySummary.value ? `商品分类：${categorySummary.value}` : '商品分类：全部分类'))
@@ -406,6 +427,9 @@ function realSkus(familyId: string) {
 }
 function realCount(familyId: string) {
   return realSkus(familyId).length
+}
+function brandText(family: ProductFamily) {
+  return familyBrandText(store.data, family)
 }
 function saleCount(familyId: string) {
   return realSkus(familyId).filter((item) => item.status === 'on_sale').length
@@ -529,6 +553,15 @@ function changeFilterOperator(id: string, operator: string) {
   filter.operator = operator as ProductListFilterOperator
   filter.value = operator === 'between' ? { from: '', to: '' } : operator === 'in' ? [] : ''
   touchFilters()
+}
+function categoryConditionId(filter: ProductListViewFilter) {
+  if (typeof filter.value !== 'string' || !filter.value) return ''
+  return resolveCategoryFilter(store.data, [filter.value]).ids[0] || filter.value
+}
+function categoryConditionIds(filter: ProductListViewFilter) {
+  const values = Array.isArray(filter.value) ? filter.value : []
+  const resolved = resolveCategoryFilter(store.data, values)
+  return [...resolved.ids, ...resolved.missing]
 }
 function textValue(filter: ProductListViewFilter) {
   if (typeof filter.value !== 'string') return ''
@@ -819,6 +852,12 @@ watch(
 .category-chip { display: inline-flex; align-items: center; gap: 6px; }
 .category-chip button { border: 0; background: transparent; color: var(--el-color-primary); cursor: pointer; }
 .list-switch { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.filters { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.view-tools { display: flex; flex-direction: column; gap: 8px; max-height: 70vh; overflow: auto; }
+.tool-label { margin: 4px 0 0; color: #607089; font-size: 12px; }
+.tool-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.tool-state { color: #1f3b66; font-size: 13px; }
+.batch-actions { padding-top: 4px; border-top: 1px solid #e5e7eb; }
 .view-current { display: inline-block; max-width: 140px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; white-space: nowrap; }
 .view-mode { margin-left: 6px; }
 .column-panel { display: flex; flex-direction: column; gap: 8px; }
