@@ -2968,14 +2968,17 @@ onBeforeUnmount(() => {
 .combo-grade { margin-right: 6px; }
 .is-filed { color: var(--status-success, #137333); }
 .is-empty { color: var(--text-muted, #8b98a8); }
+.combo-table :deep(.el-table__body tr.is-filed-row) {
+  --el-table-tr-bg-color: var(--combo-filed-bg, #b7ebc8);
+  --el-table-row-hover-bg-color: var(--combo-filed-bg-hover, #9fe3b6);
+  background-color: var(--combo-filed-bg, #b7ebc8);
+}
 .combo-table :deep(.el-table__body tr.is-filed-row > td.el-table__cell) {
-  background-color: #e5f4ea !important;
-  background-color: color-mix(in srgb, var(--status-success, #137333) 18%, var(--el-bg-color, #fff)) !important;
+  background-color: var(--combo-filed-bg, #b7ebc8) !important;
 }
 .combo-table :deep(.el-table__body tr.is-filed-row:hover > td.el-table__cell),
 .combo-table :deep(.el-table__body tr.is-filed-row.hover-row > td.el-table__cell) {
-  background-color: #d7efe0 !important;
-  background-color: color-mix(in srgb, var(--status-success, #137333) 28%, var(--el-bg-color, #fff)) !important;
+  background-color: var(--combo-filed-bg-hover, #9fe3b6) !important;
 }
 .op-bar { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .view-switch { --el-segmented-item-selected-bg-color: var(--el-color-primary); --el-segmented-item-selected-color: #fff; }

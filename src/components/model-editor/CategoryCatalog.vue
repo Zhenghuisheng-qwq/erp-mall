@@ -15,7 +15,7 @@
       >
         <button v-if="row.hasChildren" type="button" class="twist" :data-expand-id="row.id" :aria-label="row.expanded ? '收起' : '展开'" @click.stop="emit('toggle', row.id)">{{ row.expanded ? '▼' : '▸' }}</button>
         <span v-else class="twist"></span>
-        <button type="button" class="cat-hit" :data-category-id="row.id" @click="emit('select', row.id)">
+        <button type="button" class="cat-label" :data-category-id="row.id" @click="emit('select', row.id)">
           <span class="cat-name" :title="row.name">
             <template v-for="(part, index) in highlightParts(row.name, keyword)" :key="index">
               <mark v-if="part.hit">{{ part.text }}</mark>
@@ -94,16 +94,17 @@ const pathSet = computed(() => new Set(props.pathIds))
 .cat-head button { border: 0; background: none; color: #c0c4cc; cursor: pointer; padding: 0; font-size: 12px; }
 .cat-list { overflow: auto; padding: 0 8px 16px; }
 .cat-search { margin-bottom: 8px; }
-.cat-item { width: 100%; min-height: 32px; display: flex; gap: 4px; align-items: center; border: 0; background: transparent; text-align: left; border-radius: 4px; padding-top: 2px; padding-bottom: 2px; color: #606266; }
-.cat-hit { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; padding: 4px 0; }
-.mark { flex: none; color: #409eff; font-size: 12px; font-weight: 700; }
-.cat-name mark { background: color-mix(in srgb, #409eff 28%, transparent); color: inherit; padding: 0; }
-.muted { margin: 8px 4px; color: #909399; font-size: 12px; }
-.cat-item.is-root .cat-name { color: #303133; font-size: 14px; font-weight: 600; }
-.cat-item.is-child .cat-name { color: #606266; font-size: 13px; font-weight: 400; }
-.cat-item.is-path .cat-name { color: #303133; }
-.cat-item.is-on { background: #f7f8fa; box-shadow: inset 2px 0 0 #409eff; }
-.cat-item.is-on .cat-name { color: #303133; font-weight: 650; }
+.cat-item { width: 100%; min-height: 32px; display: flex; gap: 4px; align-items: center; border: 0; background: transparent; text-align: left; border-radius: 4px; padding-top: 2px; padding-bottom: 2px; color: var(--text-secondary, #606266); }
+.cat-item:hover:not(.is-on) { background: var(--hover-bg, #f4f7fb); }
+.cat-label { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; padding: 4px 0; }
+.cat-label:focus-visible { outline: 1px solid var(--app-accent, #409eff); outline-offset: 2px; border-radius: 4px; }
+.mark { flex: none; color: var(--app-accent, #409eff); font-size: 12px; font-weight: 700; }
+.cat-name mark { background: color-mix(in srgb, var(--status-warning, #ad7a12) 42%, transparent); color: inherit; padding: 0 1px; border-radius: 2px; }
+.muted { margin: 8px 4px; color: var(--text-muted, #909399); font-size: 12px; }
+.cat-item.is-root .cat-name { color: var(--text-primary, #303133); font-size: 14px; font-weight: 600; }
+.cat-item.is-child .cat-name { color: var(--text-secondary, #606266); font-size: 13px; font-weight: 400; }
+.cat-item.is-on { background: var(--app-selected-bg, #ebf0ff); box-shadow: inset 2px 0 0 var(--app-accent, #409eff); }
+.cat-item.is-on .cat-name { color: var(--text-primary, #303133); }
 .twist { flex: none; width: 16px; padding: 0; border: 0; background: transparent; color: #c0c4cc; font-style: normal; font-size: 11px; line-height: 1; text-align: center; cursor: pointer; }
 .cat-copy { min-width: 0; flex: 1; display: flex; align-items: baseline; gap: 6px; }
 .cat-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 20px; }
