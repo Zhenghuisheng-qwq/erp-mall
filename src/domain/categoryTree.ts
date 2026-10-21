@@ -34,6 +34,50 @@ export function categoryChain(categories: Category[], id: string) {
   return chain
 }
 
+/** 产品类型列表的分类范围。只决定查哪些分类，不改类型归属。 */
+export type ProductTypeScope = 'current' | 'with-children'
+
+export function categoryScopeIds(
+  categories: { id: string; parentId: string | null }[],
+  categoryId: string,
+  scope: ProductTypeScope,
+) {
+  if (!categoryId || !categories.some((item) => item.id === categoryId)) return []
+  if (scope === 'current') return [categoryId]
+  return [categoryId, ...descendantIds(categories, categoryId)]
+}
+
+/**
+ * 按分类范围取出产品类型。
+ * 同一类型 ID 只保留一行，并收齐范围内真实挂上的分类。
+ * 同名不同类型不合并。
+ */
+export function productTypesInScope<T extends { id: string; categoryId: string; sort: number; name: string }>(
+  types: readonly T[],
+  categories: { id: string; parentId: string | null }[],
+  categoryId: string,
+  scope: ProductTypeScope,
+) {
+  const allowed = new Set(categoryScopeIds(categories, categoryId, scope))
+  if (!allowed.size) return []
+  const order: string[] = []
+  const grouped = new Map<string, { type: T; categoryIds: string[] }>()
+  const matched = types
+    .filter((item) => item.categoryId && allowed.has(item.categoryId))
+    .slice()
+    .sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, 'zh') || a.id.localeCompare(b.id))
+  matched.forEach((item) => {
+    const found = grouped.get(item.id)
+    if (!found) {
+      grouped.set(item.id, { type: item, categoryIds: [item.categoryId] })
+      order.push(item.id)
+      return
+    }
+    if (!found.categoryIds.includes(item.categoryId)) found.categoryIds.push(item.categoryId)
+  })
+  return order.map((id) => grouped.get(id)).filter((item): item is { type: T; categoryIds: string[] } => Boolean(item))
+}
+
 /** 只列出已展开节点。搜索时自动带上命中节点的上级路径。 */
 export function visibleCategoryRows(
   categories: Category[],

@@ -1,6 +1,12 @@
 <template>
   <div class="designer">
-    <div class="workbench" :class="{ 'is-cat-fold': treeFold, 'is-rail-fold': railFold }">
+    <div class="studio-switch">
+      <el-radio-group :model-value="surface" size="small" @change="setSurface">
+        <el-radio-button value="overview">全局总览</el-radio-button>
+        <el-radio-button value="design">单模型设计</el-radio-button>
+      </el-radio-group>
+    </div>
+    <div class="workbench" :class="{ 'is-cat-fold': treeFold, 'is-rail-fold': railFold, 'is-overview': surface === 'overview' }">
       <CategoryCatalog
         :rows="categoryRows"
         :leaf-id="leafId"
@@ -25,21 +31,31 @@
         @copy="openCopyCurrent"
       />
       <div class="work-main">
+        <ModelOverview
+          v-if="surface === 'overview'"
+          :category-id="overviewCategoryId"
+          :type-id="overviewTypeId"
+          :keyword="overviewKeyword"
+          :focus-id="overviewFocusId"
+          @open="openFromOverview"
+        />
+        <template v-else>
         <header v-if="templateId" class="studio-head">
           <div class="studio-copy">
             <div class="title-row">
               <h2>{{ schemeTitle }}</h2>
-              <span class="version-name">{{ canvas.versionName || 'V1' }}</span>
-              <el-tag size="small" :type="statusTagType">{{ canvasStatusText }}</el-tag>
+              <el-tag size="small" :type="versionBadge.type">{{ versionBadge.text }}</el-tag>
             </div>
             <p class="meta-row">
               <span>{{ leafPath || categoryText }}</span>
               <span class="meta-type">{{ productTypeText }}</span>
             </p>
           </div>
-          <div v-if="!viewing" class="studio-actions">
-            <el-button @click="saveModel">保存模型</el-button>
-            <el-button type="primary" @click="publish">发布模型</el-button>
+          <div class="studio-actions">
+            <el-button v-if="fromOverview" @click="backToOverview">返回总览</el-button>
+            <el-button v-if="viewing" type="primary" @click="enterEdit">进入编辑</el-button>
+            <el-button v-if="!viewing" @click="saveModel">保存模型</el-button>
+            <el-button v-if="!viewing" type="primary" @click="publish">发布模型</el-button>
           </div>
         </header>
         <div v-if="templateId" class="head-tools">
@@ -72,8 +88,8 @@
                   <el-button>发布记录</el-button>
                 </template>
                 <div class="version-pop">
-                  <h3>当前版本：{{ canvas.versionName || 'V1' }}</h3>
-                  <p>{{ canvasStatusText }}。修改已发布模型会变成下一版草稿，新商品仍用最近一次发布快照。</p>
+                  <h3>当前版本：{{ versionBadge.text }}</h3>
+                  <p>{{ versionBadge.note }}</p>
                   <h3>发布记录</h3>
                   <p v-if="records.length === 0" class="muted">还没有发布版本。</p>
                   <p v-for="item in records" :key="item.id">{{ item.versionName }} · {{ item.time }} · {{ item.products }} 个商品</p>
@@ -114,7 +130,8 @@
               <el-button size="small" type="danger" plain @click="runMenu('delete')">删除</el-button>
             </template>
           </template>
-          <span v-else class="ops-idle">{{ viewing ? '查看模式下不能改结构' : '选中节点后，可以添加属性、属性值或条件属性' }}</span>
+          <span v-else class="ops-idle">{{ viewing ? '查看模式下不能改结构和命名规则' : '选中节点后，可以添加属性、属性值或条件属性' }}</span>
+          <el-button v-if="viewing && selected && selected !== rootId" size="small" @click="namingOpen = true">查看命名规则</el-button>
         </div>
         <EmptyModelGuide
           v-else-if="showEmptyGuide"
@@ -136,7 +153,8 @@
               <span>{{ comboNumbered }} 条已有规划编号<span v-if="comboRows.length > comboNumbered"> · 其余发布后自动编号</span></span>
               <span>{{ comboFiled ? `已建物料 ${comboFiled} 条组合` : '尚无已建物料' }}</span>
             </div>
-            <el-button type="primary" @click="comboManageOpen = true">管理合法组合</el-button>
+            <el-button v-if="!viewing" type="primary" @click="comboManageOpen = true">管理合法组合</el-button>
+            <span v-else>查看模式只浏览结构和版本，不会改模型、发布快照或物料。</span>
           </div>
           <TemporaryMaterialDialog :open="temporaryOpen" :category-id="canvasContext.categoryId" :product-type-id="canvasContext.productTypeId" :product-model-id="templateId" :model-version-id="latestPublishedVersion(store.data, templateId)?.id" @close="temporaryOpen = false" @open="openTemporary" />
           <button v-if="temporaryMaterials.length" type="button" class="combo-toggle temp-toggle" @click="temporaryListOpen = !temporaryListOpen">
@@ -157,7 +175,7 @@
           <template #header>
             <div class="combo-dialog-title">
               <strong>合法组合管理</strong>
-              <p>共 {{ comboRows.length }} 条，已选 {{ checkedIds.length }} 条，{{ schemeTitle }}</p>
+              <p>共 {{ comboRows.length }} 条，已选 {{ checkedIds.length }} 条，{{ schemeTitle }}<template v-if="comboStatus.versionName"> · {{ comboStatus.versionName }}</template></p>
             </div>
           </template>
           <div class="combo-manage">
@@ -170,17 +188,47 @@
               <el-button size="small" :disabled="!checkedIds.length" @click="batchCreateMaterials">批量创建物料</el-button>
               <el-button v-if="canvasContext.productTypeId" size="small" @click="temporaryOpen = true">创建临时物料</el-button>
               <el-checkbox v-model="comboUnfiledOnly">仅看未建物料</el-checkbox>
-              <el-input v-model="comboKeyword" class="combo-search" clearable placeholder="搜索组合描述、规划编号或物料编号" />
+              <el-select v-model="comboVersionId" class="combo-version" size="small" placeholder="发布版本" :disabled="!publishedComboVersions.length">
+                <el-option v-for="item in publishedComboVersions" :key="item.id" :label="item.versionName" :value="item.id" />
+              </el-select>
+              <el-input v-model="comboKeyword" class="combo-search" clearable placeholder="搜索规格路径、规划编号、物料名称或编号" />
             </div>
-            <p v-if="!comboRows.length" class="insight-empty">发布模型后，这里会列出可以建档的合法组合。</p>
+            <p v-if="comboStatus.unmatched.length" class="combo-anomaly">有 {{ comboStatus.unmatched.length }} 条物料对不上本版本的合法组合，没有自动归类。</p>
+            <ul v-if="comboStatus.unmatched.length" class="combo-unmatched">
+              <li v-for="item in comboStatus.unmatched" :key="item.skuId">
+                <strong>{{ item.skuName.trim() || '未填写物料名称' }}</strong>
+                <span>{{ item.materialCode.trim() || '未分配物料编号' }}</span>
+                <em>{{ item.planningId }} · {{ item.note }}</em>
+              </li>
+            </ul>
+            <p v-if="!comboRows.length" class="insight-empty">{{ comboStatus.message || '发布模型后，这里会列出可以建档的合法组合。' }}</p>
             <div v-else class="combo-table-wrap">
-              <el-table class="combo-table" :data="visibleComboRows" row-key="key" height="100%" border>
+              <el-table class="combo-table" :data="visibleComboRows" row-key="key" height="100%" border :row-class-name="comboRowClass">
+                <el-table-column type="expand" width="48">
+                  <template #default="{ row }">
+                    <div class="combo-expand">
+                      <p>完整规格路径：{{ row.label }}</p>
+                      <p v-if="!row.materials.length" class="muted">这条组合还没有物料。</p>
+                      <ul v-else>
+                        <li v-for="item in row.materials" :key="item.skuId">
+                          <strong>{{ item.skuName.trim() || '未填写物料名称' }}</strong>
+                          <span>{{ item.materialCode.trim() || '未分配物料编号' }}</span>
+                          <em v-if="item.nameSource === 'manual'">手工修改</em>
+                          <em v-else-if="item.nameSource === 'auto'">规则带入</em>
+                          <em v-if="item.anomaly">{{ item.anomaly }}</em>
+                          <el-button link type="primary" @click="openMaterialDetail(item)">查看</el-button>
+                        </li>
+                      </ul>
+                      <p v-for="(note, index) in row.anomalies" :key="index" class="combo-anomaly">{{ note }}</p>
+                    </div>
+                  </template>
+                </el-table-column>
                 <el-table-column width="52" align="center">
                   <template #default="{ row }">
                     <el-checkbox :model-value="!!row.planningId && checkedIds.includes(row.planningId)" :disabled="!row.planningId" :title="row.planningId ? '勾选这条组合' : '发布后才能勾选'" @change="row.planningId && toggleCheck(row.planningId)" />
                   </template>
                 </el-table-column>
-                <el-table-column prop="label" label="组合描述" min-width="280" show-overflow-tooltip />
+                <el-table-column prop="label" label="完整规格路径" min-width="240" show-overflow-tooltip />
                 <el-table-column label="规划编号" width="140">
                   <template #default="{ row }">{{ row.recordId || '发布后自动编号' }}</template>
                 </el-table-column>
@@ -190,8 +238,14 @@
                     <el-tag v-if="row.retired" size="small" type="info">已停用</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="物料状态" width="128">
-                  <template #default="{ row }"><span :class="row.materialCount ? 'is-filed' : 'is-empty'">{{ row.materialStatus }}</span></template>
+                <el-table-column label="物料状态" width="148">
+                  <template #default="{ row }">
+                    <span :class="row.filed ? 'is-filed' : 'is-empty'">{{ row.materialStatus }}</span>
+                    <el-tag v-if="row.hasAnomaly" size="small" type="warning">需核对</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="物料名称" min-width="180" show-overflow-tooltip>
+                  <template #default="{ row }">{{ row.materialNames || '—' }}</template>
                 </el-table-column>
                 <el-table-column label="物料编号" min-width="160" show-overflow-tooltip>
                   <template #default="{ row }">{{ row.materialCodes || '—' }}</template>
@@ -216,6 +270,7 @@
             :category-id="canvasContext.categoryId"
             :product-type-id="canvasContext.productTypeId"
             :retired="actionCombo.retired"
+            match-version
             :open-create-tick="materialLaunch.mode === 'create' ? materialLaunch.token : 0"
             :open-list-tick="materialLaunch.mode === 'list' ? materialLaunch.token : 0"
           />
@@ -263,6 +318,7 @@
               </select>
               <template v-else>
                 <strong>{{ data.label }}</strong>
+                <i v-if="data.ruleKind" class="rule-mark" :class="{ 'is-inherit': data.ruleKind === 'inherited' }" :title="data.ruleTitle">{{ data.ruleKind === 'own' ? '自有' : '继承' }}</i>
                 <button v-if="!data.bound && !viewing" type="button" class="pick-attr" @mousedown.stop @pointerdown.stop @click.stop="openBindAttribute(data.id)" @dblclick.stop>选择属性</button>
               </template>
               <button v-if="data.childCount" type="button" class="fold" @click.stop="toggleExpand(data.id)" @dblclick.stop>{{ data.expanded ? '−' : data.childCount }}</button>
@@ -276,6 +332,7 @@
                 <option v-for="item in data.options" :key="item.value" :value="item.value">{{ item.label }}</option>
               </select>
               <span v-else>{{ data.label }}</span>
+              <i v-if="data.ruleKind" class="rule-mark" :class="{ 'is-inherit': data.ruleKind === 'inherited' }" :title="data.ruleTitle">{{ data.ruleKind === 'own' ? '自有' : '继承' }}</i>
               <button v-if="data.childCount" type="button" class="fold" @click.stop="toggleExpand(data.id)" @dblclick.stop>{{ data.expanded ? '−' : data.childCount }}</button>
               <Handle type="source" :position="Position.Right" />
             </div>
@@ -300,15 +357,18 @@
         :root-id="rootId"
         :active-id="selected"
         :viewing="viewing"
+        :folded-ids="viewClosed"
         :focus-tick="outlineCue.tick"
         :focus-id="outlineCue.id"
         :label="nodeTitle"
+        :rule-mark="ruleMark"
         :attribute-hint="attributeHint"
         :options-for="outlineOptions"
         @select="pickNode"
         @rename-root="applyRootName"
         @rename="renameOutline"
         @choose="applyOutlineChoice"
+        @create="applyOutlineCreate"
         @add="addOutline"
         @remove="removeOutline"
         @promote="promoteOutline"
@@ -330,15 +390,18 @@
         :root-id="rootId"
         :active-id="selected"
         :viewing="viewing"
+        :folded-ids="viewClosed"
         :focus-tick="outlineCue.tick"
         :focus-id="outlineCue.id"
         :label="nodeTitle"
+        :rule-mark="ruleMark"
         :attribute-hint="attributeHint"
         :options-for="outlineOptions"
         @select="pickNode"
         @rename-root="applyRootName"
         @rename="renameOutline"
         @choose="applyOutlineChoice"
+        @create="applyOutlineCreate"
         @add="addOutline"
         @remove="removeOutline"
         @promote="promoteOutline"
@@ -353,6 +416,7 @@
         @bind="openBindAttribute"
       />
         </div>
+        </template>
       </div>
     </div>
     <div v-if="menu.open && !viewing" class="context-menu" :style="{ left: menu.x + 'px', top: menu.y + 'px' }" @pointerdown.stop @click.stop>
@@ -388,19 +452,32 @@
         </p>
       </section>
     </el-drawer>
-    <NamingRuleDialog :open="namingOpen" :node-id="selected" :template-id="templateId" @close="namingOpen = false" @saved="markWorkingDraft" />
+    <NamingRuleDialog :open="namingOpen" :readonly="viewing" :node-id="selected" :template-id="templateId" @close="namingOpen = false" @saved="markWorkingDraft" />
     <el-dialog v-model="attributeOpen" :title="attributeTitle" width="420px" @closed="resetAttrComposer">
-      <el-select v-if="attributeBindId" v-model="attributePick" filterable placeholder="选择属性词典中的属性" style="width: 100%">
-        <el-option v-for="item in attributeChoices" :key="item.id" :label="item.name" :value="item.id" />
+      <el-select v-if="attributeBindId" v-model="attributePick" filterable placeholder="搜索已有属性" style="width: 100%" :filter-method="rememberAttrQuery">
+        <el-option v-for="item in filteredAttributeChoices" :key="item.id" :label="item.name" :value="item.id" />
+        <template #empty><p class="dict-empty">没有匹配「{{ attrQuery.trim() || '当前关键字' }}」</p></template>
       </el-select>
-      <el-select v-else v-model="attributeIds" multiple filterable collapse-tags collapse-tags-tooltip placeholder="选择属性词典中的属性，可多选" style="width: 100%">
-        <el-option v-for="item in attributeChoices" :key="item.id" :label="item.name" :value="item.id" />
+      <el-select v-else v-model="attributeIds" multiple filterable collapse-tags collapse-tags-tooltip placeholder="搜索已有属性，可多选" style="width: 100%" :filter-method="rememberAttrQuery">
+        <el-option v-for="item in filteredAttributeChoices" :key="item.id" :label="item.name" :value="item.id" />
+        <template #empty><p class="dict-empty">没有匹配「{{ attrQuery.trim() || '当前关键字' }}」</p></template>
       </el-select>
+      <p v-if="attrQuery.trim() && !exactAttribute" class="dict-empty">没有找到「{{ attrQuery.trim() }}」。</p>
       <div class="dict-create">
-        <el-button v-if="!creatingAttr" link type="primary" @click="creatingAttr = true">创建属性</el-button>
-        <template v-else>
+        <el-button v-if="attrQuery.trim() && !exactAttribute" link type="primary" @click="beginCreateAttribute(attrQuery)">新增属性：{{ attrQuery.trim() }}</el-button>
+        <el-button v-else-if="!creatingAttr" link type="primary" @click="creatingAttr = true">新增属性</el-button>
+        <template v-if="creatingAttr">
           <el-input v-model="newAttrName" placeholder="新属性名称" @keydown.enter.prevent="createDictionaryAttribute" />
-          <el-button type="primary" @click="createDictionaryAttribute">创建并绑定</el-button>
+          <el-button type="primary" :loading="dictBusy" @click="createDictionaryAttribute">保存到词典并引用</el-button>
+        </template>
+      </div>
+      <div v-if="boundParam" class="dict-global">
+        <p>上面的选择只更换当前节点的引用，不会改「{{ boundParam.name }}」这个全局词典。</p>
+        <el-button link type="primary" @click="openGlobalRename">编辑全局词典名称</el-button>
+        <template v-if="globalRenameOpen">
+          <p class="dict-empty">{{ globalRenameHint }}</p>
+          <el-input v-model="globalName" :disabled="!globalRenameAllowed" placeholder="新的全局名称" />
+          <el-button type="primary" :disabled="!globalRenameAllowed" @click="saveGlobalName">保存全局名称</el-button>
         </template>
       </div>
       <template #footer>
@@ -408,15 +485,28 @@
         <el-button type="primary" @click="addAttribute">确定</el-button>
       </template>
     </el-dialog>
-    <el-dialog v-model="valueOpen" title="选择属性值" width="420px">
-      <p v-if="valueParentName" class="dict-empty">从「{{ valueParentName }}」的属性值里选择</p>
-      <p v-if="valueChoices.length === 0" class="dict-empty">这个属性在词典里还没有可添加的属性值。</p>
-      <el-select v-else v-model="valuePicks" multiple filterable collapse-tags collapse-tags-tooltip placeholder="选择属性值，可多选" style="width: 100%">
-        <el-option v-for="item in valueChoices" :key="item" :label="item" :value="item" />
+    <el-dialog v-model="valueOpen" title="选择属性值" width="420px" @closed="resetValueComposer">
+      <p v-if="valueParentName" class="dict-empty">只搜索「{{ valueParentName }}」自己的取值，不会搜到其他属性。</p>
+      <el-select v-if="valueBindNodeId" v-model="valueBindPick" filterable placeholder="搜索已有取值" style="width: 100%" :filter-method="rememberValueQuery">
+        <el-option v-for="item in filteredRebindValues" :key="item" :label="item" :value="item" />
+        <template #empty><p class="dict-empty">「{{ valueParentName }}」下没有匹配「{{ valueQuery.trim() || '当前关键字' }}」</p></template>
       </el-select>
+      <el-select v-else v-model="valuePicks" multiple filterable collapse-tags collapse-tags-tooltip placeholder="搜索已有取值，可多选" style="width: 100%" :filter-method="rememberValueQuery">
+        <el-option v-for="item in filteredValueChoices" :key="item" :label="item" :value="item" />
+        <template #empty><p class="dict-empty">「{{ valueParentName }}」下没有匹配「{{ valueQuery.trim() || '当前关键字' }}」</p></template>
+      </el-select>
+      <p v-if="valueQuery.trim() && !exactValue" class="dict-empty">没有找到「{{ valueQuery.trim() }}」。</p>
+      <div class="dict-create">
+        <el-button v-if="valueQuery.trim() && !exactValue" link type="primary" @click="beginCreateValue(valueQuery)">新增属性值：{{ valueQuery.trim() }}</el-button>
+        <template v-if="creatingValue">
+          <el-input v-model="newDictValue" placeholder="新属性值" @keydown.enter.prevent="createDictionaryValueForNode" />
+          <el-button type="primary" :loading="dictBusy" @click="createDictionaryValueForNode">保存到词典并引用</el-button>
+        </template>
+      </div>
       <template #footer>
         <el-button @click="valueOpen = false">取消</el-button>
-        <el-button type="primary" :disabled="valueChoices.length === 0" @click="addValues">确定</el-button>
+        <el-button v-if="valueBindNodeId" type="primary" :disabled="!valueBindPick" @click="rebindPickedValue">引用所选</el-button>
+        <el-button v-else type="primary" :disabled="!valuePicks.length" @click="addValues">确定</el-button>
       </template>
     </el-dialog>
     <el-dialog v-model="nodeDraftOpen" title="新增节点" width="420px">
@@ -478,13 +568,16 @@ import ModelOutline from '../components/ModelOutline.vue'
 import CategoryCatalog from '../components/model-editor/CategoryCatalog.vue'
 import { cloneProductModel } from '../components/model-editor/cloneModel'
 import EmptyModelGuide from '../components/model-editor/EmptyModelGuide.vue'
+import ModelOverview from '../components/model-editor/ModelOverview.vue'
 import TypeModelRail from '../components/model-editor/TypeModelRail.vue'
 import { categoryChain, visibleCategoryRows } from '../domain/categoryTree'
 import { hostLabel, listHostModels } from '../domain/compatibility'
-import { arrangeSpecPositions, categoryPath, latestPublishedVersion, layoutSpecTree, sameSpecSnapshot, specNodeSize, specTreeAdvance, SPEC_LINK_GAP, SPEC_TREE_GAP, SPEC_TREE_ORIGIN_X, SPEC_TREE_ORIGIN_Y, SPEC_VALUE_TO_VALUE } from '../domain/logic'
+import { nearestNamingRule } from '../domain/naming'
+import { arrangeSpecPositions, categoryPath, latestPublishedVersion, layoutSpecTree, modelVersionsOf, sameSpecSnapshot, specNodeSize, specTreeAdvance, SPEC_LINK_GAP, SPEC_TREE_GAP, SPEC_TREE_ORIGIN_X, SPEC_TREE_ORIGIN_Y, SPEC_VALUE_TO_VALUE } from '../domain/logic'
+import { attributeRenameDecision, createDictionaryParam, createDictionaryValue } from '../domain/dictionaryGuard'
 import { addDraftNodeHosts, readDraftNodeHosts, removeDraftNodeHost } from '../domain/nodeCompatibility'
 import { outlineChoices, rebindSpecNode } from '../domain/outlineEdit'
-import { legalPlanningCombinations } from '../domain/planning'
+import { legalComboMaterialStatus } from '../domain/comboMaterialStatus'
 import NamingRuleDialog from '../components/NamingRuleDialog.vue'
 import TemporaryMaterialDialog from '../components/TemporaryMaterialDialog.vue'
 import { gradeText } from '../domain/material'
@@ -508,11 +601,19 @@ watch(
   () => route.query.template,
   (value) => {
     if (typeof value === 'string' && value) templateId.value = value
+    else if (route.query.panel === 'overview') templateId.value = ''
   },
 )
 const treeFold = ref(false)
 const railFold = ref(false)
 const viewing = computed(() => route.query.mode === 'view')
+const surface = computed(() => (route.query.panel === 'overview' ? 'overview' : 'design'))
+const fromOverview = computed(() => route.query.from === 'overview')
+const overviewCategoryId = computed(() => (typeof route.query.category === 'string' ? route.query.category : ''))
+const overviewTypeId = computed(() => (typeof route.query.type === 'string' ? route.query.type : ''))
+const overviewKeyword = computed(() => (typeof route.query.q === 'string' ? route.query.q : ''))
+const overviewFocusId = computed(() => (typeof route.query.focus === 'string' ? route.query.focus : ''))
+const viewClosed = ref<string[]>([])
 const leafId = ref('')
 const activeTypeId = ref('')
 const closedIds = ref(new Set<string>())
@@ -629,9 +730,18 @@ const attributePick = ref('')
 const attributeTitle = ref('选择属性')
 const creatingAttr = ref(false)
 const newAttrName = ref('')
+const attrQuery = ref('')
+const dictBusy = ref(false)
+const globalRenameOpen = ref(false)
+const globalName = ref('')
 const valueOpen = ref(false)
 const valueParentId = ref('')
+const valueBindNodeId = ref('')
+const valueBindPick = ref('')
 const valuePicks = ref<string[]>([])
+const valueQuery = ref('')
+const creatingValue = ref(false)
+const newDictValue = ref('')
 const copyName = ref('')
 const rootId = 'model-root'
 let skipRootCommit = false
@@ -647,6 +757,15 @@ const checkedIds = ref<string[]>([])
 const comboManageOpen = ref(false)
 const comboKeyword = ref('')
 const comboUnfiledOnly = ref(false)
+const comboVersionId = ref('')
+const publishedComboVersions = computed(() => modelVersionsOf(store.data, templateId.value).filter((item) => item.status === 'published'))
+watch(
+  () => `${templateId.value}#${publishedComboVersions.value.map((item) => item.id).join('|')}`,
+  () => {
+    comboVersionId.value = publishedComboVersions.value[publishedComboVersions.value.length - 1]?.id || ''
+  },
+  { immediate: true },
+)
 const materialLaunch = ref<{ token: number; key: string; mode: '' | 'create' | 'list' }>({ token: 0, key: '', mode: '' })
 const temporaryOpen = ref(false)
 const temporaryListOpen = ref(false)
@@ -655,32 +774,25 @@ const temporaryMaterials = computed(() => {
   const ids = new Set((store.data.planningRecords || []).filter((item) => item.origin === 'temporary' && item.productModelId === templateId.value).map((item) => item.planningId))
   return store.data.skus.filter((item) => item.planningId && ids.has(item.planningId))
 })
-const comboRows = computed(() => {
-  if (!templateId.value) return []
-  const known = store.data.planningRecords || []
-  const versionId = latestPublishedVersion(store.data, templateId.value)?.id || ''
-  return legalPlanningCombinations(store.data, templateId.value, nodes.value).map((row) => {
-    const matched = known.find((item) => item.productModelId === templateId.value && item.identityKey === row.identityKey && item.origin !== 'temporary')
-    const active = matched?.status === 'active'
-    const recordId = matched?.planningId || ''
-    const planningId = active ? recordId : ''
-    const skus = recordId ? store.data.skus.filter((item) => item.planningId === recordId) : []
-    const materialCodes = skus.map((item) => item.materialCode).filter(Boolean).join('、')
-    return {
-      key: row.identityKey,
-      label: row.label,
-      planningId,
-      recordId,
-      modelVersionId: active && matched ? matched.modelVersionId : versionId,
-      retired: matched?.status === 'retired',
-      grade: matched?.grade,
-      gradeLabel: gradeText(matched?.grade),
-      materialCount: skus.length,
-      materialCodes,
-      materialStatus: skus.length ? `已创建 ${skus.length} 条` : '未创建',
-    }
-  })
-})
+const comboStatus = computed(() => legalComboMaterialStatus(store.data, templateId.value, comboVersionId.value))
+const comboRows = computed(() => comboStatus.value.rows.map((row) => ({
+  key: row.identityKey,
+  label: row.label,
+  planningId: row.actionPlanningId,
+  recordId: row.planningLabel,
+  modelVersionId: row.modelVersionId,
+  retired: row.retired,
+  grade: row.grade,
+  gradeLabel: gradeText(row.grade),
+  materialCount: row.materialCount,
+  filed: row.filed,
+  materialCodes: row.materials.map((item) => item.materialCode.trim() || '未分配物料编号').join('、'),
+  materialNames: row.materials.map((item) => item.skuName.trim() || '未填写物料名称').join('、'),
+  materialStatus: row.materialCount ? `已创建 ${row.materialCount} 条` : '未创建',
+  materials: row.materials,
+  anomalies: row.anomalies,
+  hasAnomaly: row.anomalies.length > 0 || row.materials.some((item) => item.anomaly),
+})))
 const comboNumbered = computed(() => comboRows.value.filter((item) => item.planningId).length)
 const comboFiled = computed(() => comboRows.value.filter((item) => item.materialCount > 0).length)
 const visibleComboRows = computed(() => {
@@ -688,7 +800,7 @@ const visibleComboRows = computed(() => {
   return comboRows.value.filter((row) => {
     if (comboUnfiledOnly.value && row.materialCount > 0) return false
     if (!text) return true
-    return `${row.label} ${row.recordId} ${row.materialCodes}`.toLowerCase().includes(text)
+    return `${row.label} ${row.recordId} ${row.materialCodes} ${row.materialNames}`.toLowerCase().includes(text)
   })
 })
 const actionCombo = computed(() => comboRows.value.find((item) => item.key === materialLaunch.value.key))
@@ -778,8 +890,14 @@ const shortcutGroups = computed(() => {
   ]
 })
 const canvas = computed(() => store.data.specCanvases.find((item) => item.templateId === templateId.value) || { templateId: templateId.value, zoom: 1, panX: 0, panY: 0, status: 'draft' as const, version: 1, versionName: 'V1' })
-const canvasStatusText = computed(() => (canvas.value.status === 'published' ? '已发布' : canvas.value.status === 'offline' ? '已下线' : '草稿'))
-const statusTagType = computed(() => (canvas.value.status === 'published' ? 'success' : canvas.value.status === 'offline' ? 'warning' : 'info'))
+const versionBadge = computed(() => {
+  const published = modelVersionsOf(store.data, templateId.value).filter((item) => item.status === 'published')
+  const latest = published[published.length - 1]
+  if (canvas.value.status === 'published' && latest) return { text: `已发布 ${latest.versionName}`, type: 'success' as const, note: '当前内容与最近发布快照一致。查看不会改写这份快照。' }
+  if (canvas.value.status === 'offline') return { text: latest ? `已下线 · 快照 ${latest.versionName}` : '已下线', type: 'warning' as const, note: '历史发布快照仍保留。查看不会把它换成草稿。' }
+  if (latest) return { text: `草稿 · 快照 ${latest.versionName}`, type: 'info' as const, note: `最近发布快照是 ${latest.versionName}。当前画布是草稿，查看不会覆盖快照。` }
+  return { text: '草稿', type: 'info' as const, note: '还没有发布快照。' }
+})
 const records = computed(() =>
   store.data.specModelVersions
     .filter((item) => item.templateId === templateId.value)
@@ -792,6 +910,26 @@ const records = computed(() =>
     })),
 )
 const attributeChoices = computed(() => store.data.params.slice().sort((a, b) => a.name.localeCompare(b.name, 'zh')))
+const filteredAttributeChoices = computed(() => {
+  const query = attrQuery.value.trim().toLowerCase()
+  if (!query) return attributeChoices.value
+  return attributeChoices.value.filter((item) => item.name.toLowerCase().includes(query))
+})
+const exactAttribute = computed(() => attributeChoices.value.some((item) => item.name === attrQuery.value.trim()))
+const boundParam = computed(() => {
+  const node = nodes.value.find((item) => item.id === attributeBindId.value && item.nodeType === 'ATTRIBUTE')
+  return store.data.params.find((item) => item.id === node?.attributeId)
+})
+const globalRenameHint = computed(() => {
+  if (!boundParam.value) return ''
+  const probe = globalName.value.trim() && globalName.value.trim() !== boundParam.value.name ? globalName.value : `${boundParam.value.name}新名`
+  return attributeRenameDecision(store.data, boundParam.value.id, probe).message
+})
+const globalRenameAllowed = computed(() => {
+  if (!boundParam.value) return false
+  const probe = globalName.value.trim() && globalName.value.trim() !== boundParam.value.name ? globalName.value : `${boundParam.value.name}新名`
+  return attributeRenameDecision(store.data, boundParam.value.id, probe).ok
+})
 const valueChoices = computed(() => {
   const parent = nodes.value.find((item) => item.id === valueParentId.value && item.nodeType === 'ATTRIBUTE')
   const defined = store.data.params.find((item) => item.id === parent?.attributeId)?.values || []
@@ -801,6 +939,21 @@ const valueChoices = computed(() => {
 const valueParentName = computed(() => {
   const parent = nodes.value.find((item) => item.id === valueParentId.value)
   return parent ? nodeTitle(parent) : ''
+})
+const parentParamValues = computed(() => {
+  const parent = nodes.value.find((item) => item.id === valueParentId.value && item.nodeType === 'ATTRIBUTE')
+  return store.data.params.find((item) => item.id === parent?.attributeId)?.values || []
+})
+const exactValue = computed(() => parentParamValues.value.includes(valueQuery.value.trim()))
+const filteredValueChoices = computed(() => {
+  const query = valueQuery.value.trim().toLowerCase()
+  return valueChoices.value.filter((item) => !query || item.toLowerCase().includes(query))
+})
+const filteredRebindValues = computed(() => {
+  const node = nodes.value.find((item) => item.id === valueBindNodeId.value)
+  const used = new Set(nodes.value.filter((item) => item.parentId === valueParentId.value && item.id !== node?.id && item.nodeType === 'VALUE').map((item) => item.valueId))
+  const query = valueQuery.value.trim().toLowerCase()
+  return parentParamValues.value.filter((item) => (item === node?.valueId || !used.has(item)) && (!query || item.toLowerCase().includes(query)))
 })
 const schemeTitle = computed(() => store.data.specCanvases.find((item) => item.templateId === templateId.value)?.name?.trim() || store.data.templates.find((item) => item.id === templateId.value)?.name?.trim() || '商品模型')
 const currentProductType = computed(() => {
@@ -853,8 +1006,12 @@ const structureNotes = computed(() => {
 watch(templateId, () => {
   if (!templateId.value) return
   selected.value = ''
-  ensureCanvas()
-  ensureTreeLayout()
+  if (viewing.value || route.query.mode === 'view') {
+    viewClosed.value = store.data.productSpecNodes.filter((item) => item.templateId === templateId.value && item.expanded === false).map((item) => item.id)
+  } else {
+    ensureCanvas()
+    ensureTreeLayout()
+  }
   frameCanvas()
   const canvasRow = store.data.specCanvases.find((item) => item.templateId === templateId.value)
   const owner = store.data.productTypes.find((item) => item.id === canvasRow?.productTypeId)
@@ -863,13 +1020,17 @@ watch(templateId, () => {
     activeTypeId.value = owner.id
   }
 }, { immediate: true })
+watch(viewing, (isView) => {
+  if (!isView || !templateId.value) return
+  viewClosed.value = store.data.productSpecNodes.filter((item) => item.templateId === templateId.value && item.expanded === false).map((item) => item.id)
+})
 watch(editorMode, (mode) => {
   menu.value.open = false
-  if (mode === 'canvas') reflowTree()
+  if (mode === 'canvas' && !viewing.value) reflowTree()
   if ((mode === 'outline' || mode === 'document') && selected.value) revealAncestors(selected.value)
 })
 watch(
-  () => [templateId.value, selected.value, editingId.value, viewMode.value, store.data.productSpecNodes.map((item) => `${item.id}:${item.parentId}:${item.positionX}:${item.positionY}:${item.attributeId}:${item.valueId}:${item.role}:${item.expanded}`).join('|'), store.data.params.map((item) => `${item.id}:${item.name}`).join('|')].join('#'),
+  () => [templateId.value, selected.value, editingId.value, viewMode.value, viewing.value ? 'view' : 'edit', viewClosed.value.join(','), store.data.productSpecNodes.map((item) => `${item.id}:${item.parentId}:${item.positionX}:${item.positionY}:${item.attributeId}:${item.valueId}:${item.role}:${item.expanded}:${(item.namingRule || []).map((part) => part.kind + (part.key || '') + (part.text || '')).join(',')}`).join('|'), store.data.params.map((item) => `${item.id}:${item.name}`).join('|')].join('#'),
   paint,
   { immediate: true },
 )
@@ -989,6 +1150,45 @@ const hostChoices = computed(() => {
     already: owned.has(`${item.host.productModelId}\u001f${item.host.identityKey}\u001f${item.host.scope}\u001f${item.host.planningId || ''}`),
   }))
 })
+function applyOutlineCreate(payload: { id: string; name: string }) {
+  if (viewing.value) return
+  const node = nodes.value.find((item) => item.id === payload.id)
+  if (!node) return
+  if (node.nodeType === 'ATTRIBUTE') {
+    attributeBindId.value = node.id
+    attributePick.value = node.attributeId
+    attributeTitle.value = '新增属性'
+    beginCreateAttribute(payload.name)
+    attributeOpen.value = true
+    return
+  }
+  valueBindNodeId.value = node.id
+  valueParentId.value = node.parentId || ''
+  valueBindPick.value = node.valueId
+  beginCreateValue(payload.name)
+  valueOpen.value = true
+}
+function rememberAttrQuery(query: string) {
+  attrQuery.value = query
+}
+function rememberValueQuery(query: string) {
+  valueQuery.value = query
+}
+function beginCreateAttribute(name: string) {
+  creatingAttr.value = true
+  newAttrName.value = name.trim()
+}
+function beginCreateValue(name: string) {
+  creatingValue.value = true
+  newDictValue.value = name.trim()
+}
+function resetValueComposer() {
+  valueQuery.value = ''
+  creatingValue.value = false
+  newDictValue.value = ''
+  valueBindNodeId.value = ''
+  valueBindPick.value = ''
+}
 function applyOutlineChoice(payload: { id: string; token: string }) {
   const node = nodes.value.find((item) => item.id === payload.id)
   if (!node) return
@@ -1026,6 +1226,11 @@ function dropDraftHost(identityKey: string) {
   if (!row) return
   removeDraftNodeHost(store.data, templateId.value, selected.value, row.host)
 }
+function ruleMark(node: ProductSpecNode) {
+  if (node.namingRule?.length) return '自有' as const
+  if (!node.parentId) return '' as const
+  return nearestNamingRule(nodes.value, node.parentId) ? '继承' as const : '' as const
+}
 function nodeTitle(node: ProductSpecNode) {
   if (node.nodeType === 'VALUE') return node.valueId || '未命名取值'
   return attributeHint(node).bound ? store.data.params.find((item) => item.id === node.attributeId)?.name || '未绑定属性' : '未绑定属性'
@@ -1033,10 +1238,10 @@ function nodeTitle(node: ProductSpecNode) {
 function valueOptions(node: ProductSpecNode): FlowOption[] {
   const values = store.data.params.find((item) => item.id === node.attributeId)?.values || []
   const used = new Set(nodes.value.filter((item) => item.parentId === node.parentId && item.id !== node.id && item.nodeType === 'VALUE').map((item) => item.valueId))
-  return values.filter((item) => item === node.valueId || !used.has(item)).map((item) => ({ value: item, label: item }))
+  return [...values.filter((item) => item === node.valueId || !used.has(item)).map((item) => ({ value: item, label: item })), { value: '__create__', label: '新增属性值…' }]
 }
 function attributeOptions(): FlowOption[] {
-  return attributeChoices.value.map((item) => ({ value: item.id, label: item.name }))
+  return [...attributeChoices.value.map((item) => ({ value: item.id, label: item.name })), { value: '__create__', label: '新增属性…' }]
 }
 function childCount(id: string) {
   return descendantIds(id).length
@@ -1046,6 +1251,10 @@ function matchesView(node: ProductSpecNode) {
   if (viewMode.value === 'value') return node.nodeType === 'VALUE'
   return true
 }
+function nodeOpen(node: ProductSpecNode) {
+  if (viewing.value) return !viewClosed.value.includes(node.id)
+  return node.expanded !== false
+}
 function isShown(node: ProductSpecNode) {
   if (!matchesView(node)) return false
   let parentId = node.parentId
@@ -1054,7 +1263,7 @@ function isShown(node: ProductSpecNode) {
     guard.add(parentId)
     const parent = nodes.value.find((item) => item.id === parentId)
     if (!parent) return true
-    if (parent.expanded === false) return false
+    if (!nodeOpen(parent)) return false
     parentId = parent.parentId
   }
   return true
@@ -1101,15 +1310,15 @@ function paint() {
     })
     if (selected.value !== rootId) near.add(selected.value)
   }
-  const projected = viewMode.value === 'all'
-    ? null
-    : layoutSpecTree(visible.map((node) => ({
+  const projected = viewing.value || viewMode.value !== 'all'
+    ? layoutSpecTree(visible.map((node) => ({
       id: node.id,
       parentId: visibleAnchor(node) === rootId ? null : visibleAnchor(node),
       sort: node.sort,
       nodeType: node.nodeType,
       label: nodeTitle(node),
     })), layoutOriginX())
+    : null
   const posOf = (node: ProductSpecNode) => projected?.get(node.id) || { x: node.positionX ?? 248, y: node.positionY ?? 36 }
   const anchored = visible.filter((node) => visibleAnchor(node) === rootId)
   const basis = anchored.length ? anchored : visible
@@ -1131,13 +1340,15 @@ function paint() {
           selected: node.id === selected.value,
           onPath: highlight.has(node.id),
           quiet: focused && !highlight.has(node.id) && !near.has(node.id),
-          expanded: node.expanded !== false,
+          expanded: nodeOpen(node),
           childCount: viewChildCount(node.id),
           editValue: node.nodeType === 'ATTRIBUTE' ? node.attributeId : node.valueId,
           options: node.nodeType === 'ATTRIBUTE' ? attributeOptions() : valueOptions(node),
           bound: hint.bound,
           source: hint.source,
           valueText: hint.values,
+          ruleKind: ruleMark(node) === '自有' ? 'own' : ruleMark(node) === '继承' ? 'inherited' : '',
+          ruleTitle: ruleMark(node) === '自有' ? '这个节点有自己的命名规则' : '这个节点使用最近祖先的命名规则',
           boxWidth: specNodeSize(node.nodeType, nodeTitle(node)).width,
         },
       }
@@ -1408,13 +1619,13 @@ function attachParam(paramId: string) {
   return store.data.templateParams.find((item) => item.templateId === templateId.value && item.paramId === paramId)
 }
 function ensureParam(name: string) {
-  let param = store.data.params.find((item) => item.name === name)
-  if (!param) {
-    param = { id: uid('p'), name, values: [], valueGroups: [], participateInStructure: true }
-    store.data.params.push(param)
+  const result = createDictionaryParam(store.data, name, () => uid('p'))
+  if (!result.ok || !result.id) {
+    ElMessage.warning(result.message)
+    return undefined
   }
-  attachParam(param.id)
-  return param
+  attachParam(result.id)
+  return store.data.params.find((item) => item.id === result.id)
 }
 function linkAttribute(node: ProductSpecNode, paramId: string) {
   const bound = attachParam(paramId)
@@ -1439,6 +1650,11 @@ async function renameOutline(payload: { id: string; name: string }) {
     const usedElsewhere = store.data.productSpecNodes.some((item) => item.id !== node.id && item.attributeId === current?.id && !(item.parentId === node.id && item.nodeType === 'VALUE'))
       || store.data.templateParams.some((item) => item.paramId === current?.id && item.templateId !== templateId.value)
     if (current && !usedElsewhere) {
+      const decision = attributeRenameDecision(store.data, current.id, text)
+      if (!decision.ok) {
+        ElMessage.warning(decision.message)
+        return
+      }
       pushUndo()
       current.name = text
       return
@@ -1448,8 +1664,10 @@ async function renameOutline(payload: { id: string; name: string }) {
     } catch {
       return
     }
+    const created = ensureParam(text)
+    if (!created) return
     pushUndo()
-    linkAttribute(node, ensureParam(text).id)
+    linkAttribute(node, created.id)
     return
   }
   const allowed = store.data.params.find((item) => item.id === node.attributeId)?.values || []
@@ -1591,10 +1809,11 @@ async function confirmNodeDraft() {
       return
     }
   }
+  let valueText = name
   if (nodeDraft.value.type === 'VALUE') {
-    const allowed = store.data.params.find((item) => item.id === nodes.value.find((row) => row.id === parentId)?.attributeId)?.values || []
-    if (!allowed.includes(name)) {
-      ElMessage.warning('请从该属性的属性值里选择')
+    const ownerId = nodes.value.find((row) => row.id === parentId)?.attributeId || ''
+    if (!ownerId) {
+      ElMessage.warning('请先为上一级选择属性')
       return
     }
     const duplicated = nodes.value.some((item) => item.parentId === parentId && item.nodeType === 'VALUE' && item.valueId === name)
@@ -1602,12 +1821,20 @@ async function confirmNodeDraft() {
       ElMessage.warning('同一个属性下已有这个取值')
       return
     }
+    const created = createDictionaryValue(store.data, ownerId, name)
+    if (!created.ok || !created.value) {
+      ElMessage.warning(created.message)
+      return
+    }
+    valueText = created.value
+    if (created.created) ElMessage.success(`${created.message} 模型不会因此发布。`)
   }
-  pushUndo()
-  const id = uid('sn')
   const attributeId = nodeDraft.value.type === 'VALUE'
     ? nodes.value.find((item) => item.id === parentId)?.attributeId || ''
-    : ensureParam(name).id
+    : ensureParam(name)?.id || ''
+  if (!attributeId) return
+  pushUndo()
+  const id = uid('sn')
   const bound = store.data.templateParams.find((item) => item.templateId === templateId.value && item.paramId === attributeId)
   store.data.productSpecNodes.push({
     id,
@@ -1615,7 +1842,7 @@ async function confirmNodeDraft() {
     parentId,
     nodeType: nodeDraft.value.type,
     attributeId,
-    valueId: nodeDraft.value.type === 'VALUE' ? name : '',
+    valueId: nodeDraft.value.type === 'VALUE' ? valueText : '',
     role: nodeDraft.value.type === 'ATTRIBUTE' ? (bound?.role === 'common' ? 'COMMON' : 'VARIANT') : undefined,
     sort: nextSort(parentId),
     positionX: 0,
@@ -1666,6 +1893,24 @@ function commitInline(id: string, kind: 'attribute' | 'value', event: Event) {
   const value = (event.target as HTMLSelectElement).value
   const node = store.data.productSpecNodes.find((item) => item.id === id)
   if (!node || !value) return
+  if (value === '__create__') {
+    editingId.value = ''
+    if (kind === 'attribute' && node.nodeType === 'ATTRIBUTE') {
+      openBindAttribute(id)
+      creatingAttr.value = true
+      return
+    }
+    if (kind === 'value' && node.nodeType === 'VALUE') {
+      valueBindNodeId.value = id
+      valueParentId.value = node.parentId || ''
+      valueBindPick.value = node.valueId
+      valueQuery.value = ''
+      creatingValue.value = true
+      newDictValue.value = ''
+      valueOpen.value = true
+    }
+    return
+  }
   if (kind === 'attribute' && node.nodeType === 'ATTRIBUTE') {
     if (node.attributeId !== value) {
       pushUndo()
@@ -1674,7 +1919,9 @@ function commitInline(id: string, kind: 'attribute' | 'value', event: Event) {
   }
   if (kind === 'value' && node.nodeType === 'VALUE' && node.valueId !== value) {
     pushUndo()
-    node.valueId = value
+    const result = rebindSpecNode(store.data, node.id, { valueId: value })
+    if (!result.ok || !result.changed) undoStack.value.pop()
+    if (!result.ok) ElMessage.warning(result.message)
   }
   editingId.value = ''
   reflowTree()
@@ -1735,7 +1982,7 @@ function illegalStructure() {
   })
 }
 function onNodeDragStop(event: { node: { id: string; position: { x: number; y: number } } }) {
-  if (event.node.id === rootId) return
+  if (viewing.value || event.node.id === rootId) return
   const row = store.data.productSpecNodes.find((item) => item.id === event.node.id)
   if (!row) return
   const hit = hitNode(event.node.position.x + 36, event.node.position.y + 16, row.id)
@@ -1799,6 +2046,7 @@ function reparent(node: ProductSpecNode, targetId: string) {
   return ''
 }
 function onMoveEnd(event: { flowTransform: { x: number; y: number; zoom: number } }) {
+  if (viewing.value) return
   const row = ensureCanvas()
   row.panX = event.flowTransform.x
   row.panY = event.flowTransform.y
@@ -1818,16 +2066,80 @@ function useManualLayout() {
   ElMessage.success('已改为手工摆放。新增节点不会挪动现有位置，需要分区时再点自动布局。')
 }
 function setExpanded(expanded: boolean) {
+  if (viewing.value) {
+    viewClosed.value = expanded ? [] : nodes.value.filter((item) => childCount(item.id)).map((item) => item.id)
+    return
+  }
   nodes.value.forEach((item) => {
     if (childCount(item.id)) item.expanded = expanded
   })
   reflowTree()
 }
 function toggleExpand(id: string) {
+  if (!childCount(id)) return
+  if (viewing.value) {
+    viewClosed.value = viewClosed.value.includes(id) ? viewClosed.value.filter((item) => item !== id) : [...viewClosed.value, id]
+    return
+  }
   const row = store.data.productSpecNodes.find((item) => item.id === id)
-  if (!row || !childCount(id)) return
+  if (!row) return
   row.expanded = row.expanded === false
   reflowTree()
+}
+function queryText(value: unknown) {
+  return typeof value === 'string' ? value : ''
+}
+function setSurface(next: string | number | boolean) {
+  if (next === 'overview') {
+    router.push({
+      path: '/specs',
+      query: {
+        panel: 'overview',
+        category: leafId.value || overviewCategoryId.value,
+        type: activeTypeId.value || overviewTypeId.value,
+        focus: templateId.value || overviewFocusId.value,
+        q: overviewKeyword.value,
+      },
+    })
+    return
+  }
+  const focus = overviewFocusId.value || templateId.value
+  router.push({
+    path: '/specs',
+    query: focus
+      ? { template: focus, mode: 'view', from: 'overview', category: overviewCategoryId.value, type: overviewTypeId.value, q: overviewKeyword.value }
+      : {},
+  })
+}
+function openFromOverview(payload: { templateId: string; categoryId: string; typeId: string; keyword: string }) {
+  router.push({
+    path: '/specs',
+    query: {
+      template: payload.templateId,
+      mode: 'view',
+      from: 'overview',
+      category: payload.categoryId,
+      type: payload.typeId,
+      q: payload.keyword,
+    },
+  })
+}
+function backToOverview() {
+  router.push({
+    path: '/specs',
+    query: {
+      panel: 'overview',
+      category: queryText(route.query.category) || leafId.value,
+      type: queryText(route.query.type) || activeTypeId.value,
+      q: queryText(route.query.q),
+      focus: templateId.value,
+    },
+  })
+}
+function enterEdit() {
+  const next = { ...route.query }
+  delete next.mode
+  router.replace({ path: '/specs', query: next })
 }
 function saveModel() {
   const problems = illegalStructure()
@@ -1883,6 +2195,33 @@ function openAttributeAt(parentId: string | null) {
 function resetAttrComposer() {
   creatingAttr.value = false
   newAttrName.value = ''
+  attrQuery.value = ''
+  globalRenameOpen.value = false
+  globalName.value = ''
+}
+function openGlobalRename() {
+  globalName.value = boundParam.value?.name || ''
+  globalRenameOpen.value = true
+}
+async function saveGlobalName() {
+  if (viewing.value || dictBusy.value || !boundParam.value) return
+  const decision = attributeRenameDecision(store.data, boundParam.value.id, globalName.value)
+  if (!decision.ok) {
+    ElMessage.warning(decision.message)
+    return
+  }
+  if (decision.needsConfirm) {
+    try {
+      await ElMessageBox.confirm(decision.message, '编辑全局词典')
+    } catch {
+      return
+    }
+  }
+  dictBusy.value = true
+  boundParam.value.name = globalName.value.trim()
+  dictBusy.value = false
+  globalRenameOpen.value = false
+  ElMessage.success('已修改全局属性名称。节点引用和已发布快照没有改写。')
 }
 function openValuePicker(attributeNodeId: string) {
   if (viewing.value) return
@@ -1897,7 +2236,11 @@ function openValuePicker(attributeNodeId: string) {
     return
   }
   valueParentId.value = node.id
+  valueBindNodeId.value = ''
   valuePicks.value = []
+  valueQuery.value = ''
+  creatingValue.value = false
+  newDictValue.value = ''
   selected.value = node.id
   valueOpen.value = true
 }
@@ -1949,30 +2292,86 @@ function insertAttributeNodes(paramIds: string[]) {
   revealNode(lastId)
 }
 function createDictionaryAttribute() {
-  const name = newAttrName.value.trim()
-  if (!name) {
-    ElMessage.warning('请填写属性名称')
+  if (viewing.value || dictBusy.value) return
+  dictBusy.value = true
+  const result = createDictionaryParam(store.data, newAttrName.value, () => uid('p'))
+  if (!result.ok || !result.id) {
+    dictBusy.value = false
+    ElMessage.warning(result.message)
     return
   }
-  const existed = store.data.params.some((item) => item.name === name)
-  pushUndo()
-  const param = ensureParam(name)
+  attachParam(result.id)
   if (attributeBindId.value) {
     const node = nodes.value.find((item) => item.id === attributeBindId.value && item.nodeType === 'ATTRIBUTE')
     if (!node) {
-      undoStack.value.pop()
+      dictBusy.value = false
       ElMessage.warning('请选择属性节点')
       return
     }
-    linkAttribute(node, param.id)
+    pushUndo()
+    const rebound = rebindSpecNode(store.data, node.id, { attributeId: result.id })
+    if (!rebound.ok) {
+      undoStack.value.pop()
+      dictBusy.value = false
+      ElMessage.warning(rebound.message)
+      return
+    }
+    linkAttribute(node, result.id)
     attributeOpen.value = false
     attributeBindId.value = ''
   } else {
-    insertAttributeNodes([param.id])
+    pushUndo()
+    insertAttributeNodes([result.id])
   }
   creatingAttr.value = false
   newAttrName.value = ''
-  ElMessage.success(existed ? '已绑定到当前模型' : '已创建并绑定到当前模型')
+  dictBusy.value = false
+  ElMessage.success(`${result.message} 当前节点已引用。模型不会因此发布。`)
+}
+function createDictionaryValueForNode() {
+  if (viewing.value || dictBusy.value) return
+  const parent = nodes.value.find((item) => item.id === valueParentId.value && item.nodeType === 'ATTRIBUTE')
+  if (!parent?.attributeId) {
+    ElMessage.warning('请先为上一级选择属性')
+    return
+  }
+  dictBusy.value = true
+  const result = createDictionaryValue(store.data, parent.attributeId, newDictValue.value || valueQuery.value)
+  if (!result.ok || !result.value) {
+    dictBusy.value = false
+    ElMessage.warning(result.message)
+    return
+  }
+  if (valueBindNodeId.value) {
+    pushUndo()
+    const rebound = rebindSpecNode(store.data, valueBindNodeId.value, { valueId: result.value })
+    if (!rebound.ok) {
+      undoStack.value.pop()
+      dictBusy.value = false
+      ElMessage.warning(rebound.message)
+      return
+    }
+  } else if (!nodes.value.some((item) => item.parentId === parent.id && item.nodeType === 'VALUE' && item.valueId === result.value)) {
+    valuePicks.value = [result.value]
+    addValues()
+  }
+  creatingValue.value = false
+  newDictValue.value = ''
+  valueOpen.value = false
+  dictBusy.value = false
+  ElMessage.success(`${result.message} 当前节点已引用。模型不会因此发布。`)
+}
+function rebindPickedValue() {
+  if (viewing.value || !valueBindNodeId.value || !valueBindPick.value) return
+  pushUndo()
+  const result = rebindSpecNode(store.data, valueBindNodeId.value, { valueId: valueBindPick.value })
+  if (!result.ok) {
+    undoStack.value.pop()
+    ElMessage.warning(result.message)
+    return
+  }
+  valueOpen.value = false
+  if (result.changed) ElMessage.success('已更换当前节点的取值引用，原词典没有修改。')
 }
 function addAttribute() {
   if (attributeBindId.value) {
@@ -2132,6 +2531,13 @@ function focusBoard(event: PointerEvent) {
   if (target?.closest('input, textarea, select, button, a')) return
   board.focus()
 }
+function comboRowClass({ row }: { row: { filed: boolean } }) {
+  return row.filed ? 'is-filed-row' : ''
+}
+function openMaterialDetail(item: { familyId: string; skuId: string }) {
+  if (!item.familyId) return
+  router.push(`/products/${item.familyId}?sku=${item.skuId}`)
+}
 function toggleCheck(id: string) {
   if (!id) return
   checkedIds.value = checkedIds.value.includes(id) ? checkedIds.value.filter((item) => item !== id) : [...checkedIds.value, id]
@@ -2182,7 +2588,7 @@ function batchCreateMaterials() {
   let skipped = 0
   const failed: string[] = []
   rows.forEach((row) => {
-    if (row.materialCount > 0) {
+    if (store.data.skus.some((item) => item.planningId === row.planningId)) {
       skipped += 1
       return
     }
@@ -2305,6 +2711,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
 <style scoped>
 .designer { display: flex; flex-direction: column; height: calc(100vh - 132px); min-height: 520px; color: var(--text-primary, #253044); }
+.studio-switch { margin-bottom: 8px; }
+.dict-global { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border-default, #e4e8ef); }
+.dict-global p { margin: 0 0 8px; }
+.workbench.is-overview { grid-template-columns: minmax(0, 1fr); }
+.workbench.is-overview :deep(.cat),
+.workbench.is-overview :deep(.rail) { display: none; }
 .workbench { display: grid; grid-template-columns: 212px 228px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 0; flex: 1; min-height: 0; background: var(--surface-bg, #fff); border: 1px solid var(--border-default, #e4e8ef); border-radius: 8px; overflow: hidden; }
 .workbench.is-cat-fold { grid-template-columns: 44px 228px minmax(0, 1fr); }
 .workbench.is-rail-fold { grid-template-columns: 212px 44px minmax(0, 1fr); }
@@ -2356,13 +2768,33 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .combo-dialog-title p { margin: 4px 0 0; color: var(--el-text-color-secondary, #66758b); font-size: 13px; font-weight: 400; }
 .combo-manage { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .combo-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
-.combo-search { width: 280px; margin-left: auto; }
+.combo-version { width: 112px; }
+.combo-search { width: 320px; margin-left: auto; }
+.combo-expand { padding: 4px 12px 8px 36px; }
+.combo-expand p { margin: 0 0 6px; color: var(--text-secondary, #66758b); font-size: 13px; }
+.combo-expand ul { margin: 0; padding: 0; list-style: none; }
+.combo-expand li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 6px 0; border-top: 1px solid var(--border-subtle, #eef2f6); }
+.combo-expand strong { color: var(--text-primary, #253044); }
+.combo-expand span, .combo-expand em { color: var(--text-secondary, #66758b); font-style: normal; font-size: 13px; }
+.combo-anomaly { margin: 0 0 8px; color: var(--el-color-warning, #b88230); font-size: 12px; }
+.combo-unmatched { margin: 0 0 8px; padding: 0; list-style: none; }
+.combo-unmatched li { display: flex; flex-wrap: wrap; gap: 8px 12px; padding: 4px 0; font-size: 13px; }
+.combo-unmatched em { color: var(--text-muted, #8b98a8); font-style: normal; }
 .combo-table-wrap { flex: 1; min-height: 0; overflow: hidden; }
 .combo-table :deep(.el-table__header th) { background: var(--el-fill-color-light, #f7f8fa); color: var(--el-text-color-primary, #253044); }
 .combo-table :deep(.el-table__cell) { border-color: var(--el-border-color, #e4e8ef); }
 .combo-grade { margin-right: 6px; }
 .is-filed { color: var(--status-success, #137333); }
 .is-empty { color: var(--text-muted, #8b98a8); }
+.combo-table :deep(.el-table__body tr.is-filed-row > td.el-table__cell) {
+  background-color: #e5f4ea !important;
+  background-color: color-mix(in srgb, var(--status-success, #137333) 18%, var(--el-bg-color, #fff)) !important;
+}
+.combo-table :deep(.el-table__body tr.is-filed-row:hover > td.el-table__cell),
+.combo-table :deep(.el-table__body tr.is-filed-row.hover-row > td.el-table__cell) {
+  background-color: #d7efe0 !important;
+  background-color: color-mix(in srgb, var(--status-success, #137333) 28%, var(--el-bg-color, #fff)) !important;
+}
 .op-bar { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .view-switch { --el-segmented-item-selected-bg-color: var(--el-color-primary); --el-segmented-item-selected-color: #fff; }
 .work-main { min-width: 0; min-height: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden; padding: 12px 14px 10px; background: var(--canvas-bg, #f4f7fb); border-left: 1px solid var(--border-subtle, #eef2f6); }
@@ -2414,6 +2846,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .model-attr.is-nested strong { font-size: 15px; font-weight: 600; }
 .model-value { height: 34px; display: flex; align-items: center; background: var(--surface-muted, #eef2f6); border: 0; border-radius: 999px; padding: 0 14px; color: var(--text-primary, #253044); font-size: 15px; font-weight: 500; line-height: 34px; }
 .model-value span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.rule-mark { flex: none; margin-left: 4px; color: #8a5a00; font-style: normal; font-size: 10px; line-height: 1; }
+.rule-mark.is-inherit { color: #607089; }
 .structure-empty { position: absolute; z-index: 4; top: 52px; left: 50%; transform: translateX(-50%); padding: 12px 14px; border: 1px solid #e6edf5; border-radius: 8px; background: rgba(255, 255, 255, 0.96); }
 .structure-empty p { margin: 0; color: #606266; font-size: 13px; }
 .structure-start { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; color: #909399; font-size: 12px; }

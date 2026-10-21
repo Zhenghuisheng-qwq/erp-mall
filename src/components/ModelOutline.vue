@@ -26,7 +26,7 @@
       @drop.prevent="onDrop(row.node.id, false)"
       @contextmenu.prevent="openMenu(row.node.id, $event)"
     >
-      <button v-if="row.hasChildren" type="button" class="twist" @click.stop="emit('toggle', row.node.id)">{{ row.node.expanded === false ? '▸' : '▾' }}</button>
+      <button v-if="row.hasChildren" type="button" class="twist" @click.stop="emit('toggle', row.node.id)">{{ isOpen(row.node) ? '▾' : '▸' }}</button>
       <span v-else class="twist"></span>
       <span v-if="!viewing" class="grip" draggable="true" @dragstart.stop="onDragStart(row.node.id, $event)" @dragend="drop = { id: '', place: '' }">⋮⋮</span>
       <span class="line-wrap">
@@ -37,7 +37,8 @@
           filterable
           default-first-option
           automatic-dropdown
-          placeholder="从词典选择"
+          :filter-method="rememberQuery"
+          placeholder="搜索词典，没有时可新增"
           style="flex: 1; min-width: 160px"
           :data-line="row.node.id"
           @change="onPick(row.node, $event)"
@@ -49,7 +50,11 @@
           @mousedown.stop
           @click.stop
         >
-          <el-option v-for="item in optionsFor(row.node)" :key="item.value" :label="item.label" :value="item.value" />
+          <el-option v-for="item in shownOptions(row.node)" :key="item.value" :label="item.label" :value="item.value" />
+          <el-option v-if="createOffer(row.node)" :key="createOffer(row.node)?.value" :label="createOffer(row.node)?.label" :value="createOffer(row.node)?.value || ''" />
+          <template #empty>
+            <p class="pick-empty">{{ pickQuery.trim() ? `没有匹配「${pickQuery.trim()}」` : '词典里还没有可选项，输入名称后可以新增' }}</p>
+          </template>
         </el-select>
         <button
           v-else-if="!viewing && canPick(row.node)"
@@ -60,8 +65,9 @@
           @focus="markEditing(row.node.id, $event)"
           @click.stop="openPick(row.node)"
           @keydown="onLineKey(row.node, $event)"
-        >{{ label(row.node) }}</button>
+        >{{ label(row.node) }}<em v-if="ruleText(row.node)" class="rule-mark" :class="{ 'is-inherit': ruleText(row.node) === '继承' }">{{ ruleText(row.node) }}</em></button>
         <input v-else class="line" :class="{ 'is-unbound': isUnbound(row.node) }" :data-line="row.node.id" :value="label(row.node)" readonly @focus="markEditing(row.node.id, $event)" />
+        <em v-if="viewing && ruleText(row.node)" class="rule-mark" :class="{ 'is-inherit': ruleText(row.node) === '继承' }">{{ ruleText(row.node) }}</em>
         <span v-if="row.node.nodeType === 'ATTRIBUTE' && attributeHint(row.node).bound" class="bind-note" :title="`绑定：${label(row.node)} · 属性词典`">属性来源：属性词典</span>
         <button v-else-if="row.node.nodeType === 'ATTRIBUTE' && !viewing" type="button" class="bind-btn" @mousedown.stop @click.stop="emit('bind', row.node.id)">选择属性</button>
       </span>
@@ -94,10 +100,12 @@ const props = defineProps<{
   rootId: string
   activeId: string
   viewing: boolean
+  foldedIds?: string[]
   mubu?: boolean
   focusTick: number
   focusId: string
   label: (node: ProductSpecNode) => string
+  ruleMark?: (node: ProductSpecNode) => '' | '自有' | '继承'
   attributeHint: (node: ProductSpecNode) => { bound: boolean; source: string; values: string }
   optionsFor: (node: ProductSpecNode) => { value: string; label: string }[]
 }>()
@@ -119,6 +127,7 @@ const emit = defineEmits<{
   menu: [payload: { id: string; x: number; y: number }]
   bind: [id: string]
   choose: [payload: { id: string; token: string }]
+  create: [payload: { id: string; name: string }]
 }>()
 
 const rootEl = ref<HTMLElement | null>(null)
@@ -127,6 +136,7 @@ const draggingId = ref('')
 const editingId = ref('')
 const editingText = ref('')
 const pickingId = ref('')
+const pickQuery = ref('')
 let pickOpened = false
 let lastCommit = ''
 let skipCommit = false
@@ -140,7 +150,7 @@ const rows = computed(() => {
       .forEach((node) => {
         const hasChildren = props.nodes.some((item) => item.parentId === node.id)
         list.push({ node, depth, hasChildren })
-        if (hasChildren && node.expanded !== false) walk(node.id, depth + 1)
+        if (hasChildren && isOpen(node)) walk(node.id, depth + 1)
       })
   }
   walk(null, 0)
@@ -167,6 +177,13 @@ watch(
 watch(() => props.activeId, () => nextTick(scrollActive))
 onMounted(() => nextTick(scrollActive))
 
+function isOpen(node: ProductSpecNode) {
+  if (props.viewing) return !(props.foldedIds || []).includes(node.id)
+  return node.expanded !== false
+}
+function ruleText(node: ProductSpecNode) {
+  return props.ruleMark?.(node) || ''
+}
 function isUnbound(node: ProductSpecNode) {
   return node.nodeType === 'ATTRIBUTE' && !props.attributeHint(node).bound
 }
@@ -176,11 +193,24 @@ function canPick(node: ProductSpecNode) {
 function boundToken(node: ProductSpecNode) {
   return node.nodeType === 'ATTRIBUTE' ? node.attributeId : node.valueId
 }
+function rememberQuery(query: string) {
+  pickQuery.value = query
+}
+function shownOptions(node: ProductSpecNode) {
+  const query = pickQuery.value.trim().toLowerCase()
+  const options = props.optionsFor(node)
+  if (!query) return options
+  return options.filter((item) => item.label.toLowerCase().includes(query) || item.value.toLowerCase().includes(query))
+}
+function createOffer(node: ProductSpecNode) {
+  const query = pickQuery.value.trim()
+  if (!query) return null
+  const options = props.optionsFor(node)
+  if (options.some((item) => item.label === query || item.value === query)) return null
+  return { value: `__create__:${query}`, label: node.nodeType === 'ATTRIBUTE' ? `新增属性：${query}` : `新增属性值：${query}` }
+}
 function openPick(node: ProductSpecNode) {
-  if (!props.optionsFor(node).length) {
-    emit('choose', { id: node.id, token: '' })
-    return
-  }
+  pickQuery.value = ''
   pickingId.value = node.id
   pickOpened = false
   emit('select', node.id)
@@ -188,8 +218,14 @@ function openPick(node: ProductSpecNode) {
 }
 function onPick(node: ProductSpecNode, token: string | number | boolean) {
   const next = String(token)
+  const name = pickQuery.value.trim()
   pickingId.value = ''
   pickOpened = false
+  pickQuery.value = ''
+  if (next.startsWith('__create__:')) {
+    emit('create', { id: node.id, name: next.slice('__create__:'.length) || name })
+    return
+  }
   if (next && next !== boundToken(node)) emit('choose', { id: node.id, token: next })
 }
 function onPickVisible(open: boolean) {
@@ -355,6 +391,9 @@ function onDrop(targetId: string, root: boolean) {
 .line-wrap { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
 .bind-note { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 2px 10px; color: #909399; font-size: 12px; line-height: 1.4; }
 .bind-btn { flex: none; border: 0; background: none; padding: 0; color: #409eff; font-size: 12px; line-height: 1.4; cursor: pointer; }
+.pick-empty { margin: 0; padding: 8px 12px; color: #909399; font-size: 13px; }
+.rule-mark { margin-left: 6px; color: #8a5a00; font-style: normal; font-size: 11px; }
+.rule-mark.is-inherit { color: #607089; }
 .line.is-unbound { color: #909399; font-weight: 500; }
 .outline.is-mubu .line-wrap { flex-direction: column; align-items: flex-start; gap: 0; }
 .outline.is-mubu .outline-row, .outline.is-mubu .outline-root { align-items: flex-start; }

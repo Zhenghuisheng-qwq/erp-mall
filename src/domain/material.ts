@@ -26,7 +26,7 @@ export interface MaterialChoice {
 }
 
 export type MaterialCreateResult =
-  | { ok: true; created: boolean; familyId: string; skuId: string; materialCode: string; planningId: string; label: string; name: string; namingStatus: 'rule' | 'default' | 'conflict'; namingMessage: string }
+  | { ok: true; created: boolean; familyId: string; skuId: string; materialCode: string; planningId: string; label: string; name: string; namingStatus: 'rule' | 'default' | 'conflict' | 'incomplete'; namingMessage: string }
   | { ok: false; message: string; choices?: MaterialChoice[]; reason?: 'material-deleted' }
 
 export const MATERIAL_DELETED_MESSAGE = '该请求对应的物料已经删除。如需重新建档，请发起新的创建请求。'
@@ -262,7 +262,9 @@ export function createV3Material(data: AppData, input: {
     steps: (data.planningRecords.find((item) => item.planningId === spec.planningId)?.steps || []).map((step) => ({ valueNodeId: step.valueNodeId, attributeId: step.attributeId, valueId: step.valueId })),
   })
   const requested = (input.skuName || '').trim()
+  if (suggestion.canAuto === false && !requested) return { ok: false, message: suggestion.message || '请填写物料名称。' }
   const chosenName = requested || suggestion.name
+  if (!chosenName) return { ok: false, message: '请填写物料名称。' }
   const choices = familyChoicesFor(data, { productModelId: input.productModelId, productTypeId: input.productTypeId, categoryId: input.categoryId, commonSignature: spec.commonSignature })
   let family = choices.find((item) => item.id === input.familyId)
   if (!family && choices.length > 1) {
@@ -316,7 +318,9 @@ export function createV3Material(data: AppData, input: {
   sku.guanjiapoCode = (input.guanjiapoCode || '').trim()
   sku.oaSkuId = (input.oaSkuId || '').trim() || sku.oaSkuId
   sku.materialDescription = (input.materialDescription || '').trim()
-  sku.nameSource = requested && requested !== suggestion.name ? 'manual' : 'auto'
+  sku.nameSource = suggestion.canAuto !== false && (!requested || requested === suggestion.name) ? 'auto' : 'manual'
+  if (suggestion.canAuto !== false && suggestion.name) sku.suggestedName = suggestion.name
+  if (suggestion.nodeId) sku.namingNodeId = suggestion.nodeId
   sku.createdAt = now
   sku.updatedAt = now
   data.skus.push(sku)

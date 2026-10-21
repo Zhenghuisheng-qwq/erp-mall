@@ -9,10 +9,13 @@ export type UserRole = 'operator' | 'admin'
 export type IssueLevel = 'error' | 'warn'
 export type IssueKind = 'required' | 'duplicate' | 'illegal' | 'uncovered'
 export type FeedbackStatus = 'open' | 'doing' | 'done'
+export type FeedbackKind = 'bug' | 'experience' | 'feature'
 export type Origin = 'sample' | 'created'
 export type ShelfStatus = 'draft' | 'online' | 'offline'
 /** 后续商品编辑按这条线分流。缺省视为 v2，本轮不回填旧商品。 */
 export type ProductLine = 'v2' | 'v3'
+/** 商品列表的查看方式。只存在页面偏好里，不参与商品身份。 */
+export type ProductListMode = 'spu' | 'sku'
 export type PlanningStatus = 'active' | 'retired'
 /** 正式规划的业务档次。缺省表示还没标记，不是第四种商品。 */
 export type ProductGrade = 'core' | 'general'
@@ -270,6 +273,10 @@ export interface Sku {
   materialDescription?: string
   /** auto 是建档时带入的名称。manual 表示人改过，不能被规则悄悄覆盖。 */
   nameSource?: 'auto' | 'manual'
+  /** 建档时命中的命名规则节点。旧物料没有。同级规则冲突时不写。 */
+  namingNodeId?: string
+  /** 建档时算出的自动建议名称。旧物料没有。不能自动命名时不写。 */
+  suggestedName?: string
   createdAt?: string
   updatedAt?: string
   /** 临时物料的实际属性值。不代表模型里的取值节点。 */
@@ -347,6 +354,13 @@ export interface AppUser {
   enabled: boolean
 }
 
+export interface FeedbackAttachmentRef {
+  id: string
+  name: string
+  type: string
+  size: number
+}
+
 export interface FeedbackItem {
   id: string
   title: string
@@ -354,6 +368,14 @@ export interface FeedbackItem {
   status: FeedbackStatus
   page: string
   createdAt: string
+  /** 缺省表示 1F 之前的历史反馈，不能靠标题猜测类型。 */
+  kind?: FeedbackKind
+  route?: string
+  featureId?: string
+  featureName?: string
+  attachmentRefs?: FeedbackAttachmentRef[]
+  /** 导出过反馈包的时间。只说明本机导出过，不代表开发人员已收到。 */
+  exportedAt?: string
 }
 
 export interface ColumnPref {
@@ -385,6 +407,68 @@ export interface ListView {
   name: string
   query: ListQuery
   columns: ColumnPref[]
+  /** 4C 起的筛选快照。旧预设没有时，仍按 query 恢复。 */
+  keyword?: string
+  viewFilters?: ProductListViewFilter[]
+}
+
+/** 商品列表里的一列。身份是 key，顺序看 order。 */
+export interface ProductListColumnConfig {
+  key: string
+  visible: boolean
+  order: number
+}
+
+export type ProductListFilterOperator = 'contains' | 'notContains' | 'eq' | 'neq' | 'in' | 'before' | 'after' | 'between'
+
+/** 一条视图筛选。多个字段之间是并且，同一条里的多选值是或者。 */
+export interface ProductListViewFilter {
+  id: string
+  field: string
+  operator: ProductListFilterOperator
+  value: string | string[] | { from?: string; to?: string }
+}
+
+export interface ProductListFieldOrder {
+  field: string
+  direction: 'asc' | 'desc'
+}
+
+export type ProductListSortMode = 'default' | 'field' | 'manual'
+
+/** 某个 SPU 或 SKU 模式下的查询配置。 */
+export interface ProductListModeQuery {
+  keyword: string
+  filters: ProductListViewFilter[]
+  exposed: string[]
+  grouping: ProductListFieldOrder | null
+  sorting: ProductListFieldOrder | null
+  /** 缺省时：有字段排序按字段，否则按默认顺序。 */
+  sortMode?: ProductListSortMode
+}
+
+/** 手工展示顺序。只存稳定 id，不复制商品。 */
+export interface ProductListManualOrder {
+  spuIds: string[]
+  skuIds: string[]
+}
+
+export type CategoryFilterLayout = 'popover' | 'sidebar' | 'hidden'
+
+/** 商品列表的展示视图。只保存查看方式、列和查询配置，不复制商品。 */
+export interface ProductListSavedView {
+  id: string
+  name: string
+  mode: ProductListMode
+  spuColumns: ProductListColumnConfig[]
+  skuColumns: ProductListColumnConfig[]
+  spuQuery?: ProductListModeQuery
+  skuQuery?: ProductListModeQuery
+  manualOrder?: ProductListManualOrder
+  /** 分类树放在顶部、左侧，或先隐藏。旧视图缺省为顶部悬浮。 */
+  categoryFilterLayout?: CategoryFilterLayout
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Profile {
@@ -425,6 +509,15 @@ export interface AppData {
   listViews: ListView[]
   activeViewId: string
   listQuery: ListQuery
+  /**
+   * 旧版列表模式。迁移后只镜像当前视图的 mode，不再单独决定展示。
+   * 旧数据没有视图时，用它生成默认视图。
+   */
+  productListMode?: ProductListMode
+  /** 商品列表展示视图。旧数据没有时只补一个默认视图。 */
+  productListViews?: ProductListSavedView[]
+  /** 当前展示视图。已有选择时，打开页面不会改掉。 */
+  activeProductListViewId?: string
 }
 
 export interface FieldIssue {

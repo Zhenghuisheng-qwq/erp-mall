@@ -41,6 +41,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHead from '../components/PageHead.vue'
 import { inspectFamily } from '../domain/logic'
+import { setViewKeyword } from '../domain/productListViews'
 import { useCatalogStore } from '../stores/catalog'
 
 const store = useCatalogStore()
@@ -65,8 +66,7 @@ const problems = computed(() => {
   return rows.slice(0, 6)
 })
 function goSearch() {
-  store.data.listQuery.keyword = keyword.value
-  store.data.listQuery.page = 1
+  setViewKeyword(store.data, keyword.value)
   router.push('/products')
 }
 </script>

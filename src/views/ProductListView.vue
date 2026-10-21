@@ -1,74 +1,163 @@
 <template>
   <div>
-    <PageHead title="商品列表" desc="一款商品下面挂多条规格。筛选和列设置会留在本机。">
-      <el-button @click="columnOpen = true">列和视图</el-button>
+    <PageHead title="商品列表" desc="默认按商品主体查看。需要逐条规格时，切换到 SKU 视图。">
       <el-button type="primary" @click="router.push('/products/new')">新增商品</el-button>
     </PageHead>
-    <div class="panel">
+    <div class="panel" :class="{ 'is-category-side': showSidebar }" :data-category-layout="categoryLayout">
+      <aside v-if="showSidebar" class="category-side" data-category-side>
+        <CategoryFilterTree placement="sidebar" :categories="store.data.categories" :selected-ids="selectedCategoryIds" @toggle="toggleCategory" @clear="clearCategory" @float="floatCategory" @hide="hideCategory" @dock="dockCategory" />
+      </aside>
+      <div class="list-main">
+      <div class="list-switch" :data-mode="listMode" :data-view-id="activeView.id">
+        <el-tooltip :content="activeView.name" placement="bottom">
+          <el-dropdown trigger="click" @command="switchDisplayView">
+            <el-button>
+              <span class="view-current">{{ activeView.name }}</span>
+              <span class="muted view-mode">{{ listMode === 'spu' ? 'SPU' : 'SKU' }}</span>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item v-for="view in displayViews" :key="view.id" :command="view.id">
+                  <span :data-saved-view="view.id">{{ view.name }}</span>
+                  <span class="muted">{{ view.mode === 'spu' ? 'SPU' : 'SKU' }}</span>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </el-tooltip>
+        <el-button @click="openCreate">新建视图</el-button>
+        <el-button @click="openSettings">视图设置</el-button>
+        <el-popover v-model:visible="columnOpen" trigger="click" placement="bottom-start" :width="320">
+          <template #reference>
+            <el-button>列设置</el-button>
+          </template>
+          <div class="column-panel">
+            <p class="muted">只调整当前视图的{{ listMode === 'spu' ? ' SPU ' : ' SKU ' }}列。勾选立即生效。</p>
+            <el-input v-model="columnQuery" placeholder="搜索字段" clearable />
+            <ul class="column-list">
+              <li
+                v-for="col in filteredColumns"
+                :key="col.key"
+                :data-column-key="col.key"
+                :draggable="columnQuery.trim() ? 'false' : 'true'"
+                @dragstart="onDragStart(col.key)"
+                @dragover.prevent
+                @drop="onDrop(col.key)"
+              >
+                <span class="drag-handle" :title="columnQuery.trim() ? '清除搜索后再调整顺序' : '拖动调整顺序'">⋮⋮</span>
+                <el-checkbox :model-value="col.visible" :disabled="col.required" @change="(value: boolean | string | number) => toggleColumn(col.key, Boolean(value))">{{ col.label }}</el-checkbox>
+              </li>
+            </ul>
+            <p v-if="filteredColumns.length === 0" class="muted">没有匹配的字段。</p>
+            <el-button link type="primary" @click="resetColumns">恢复当前模式的默认列</el-button>
+          </div>
+        </el-popover>
+        <el-radio-group :model-value="listMode" size="small" @change="setListMode">
+          <el-radio-button value="spu">SPU 视图</el-radio-button>
+          <el-radio-button value="sku">SKU 视图</el-radio-button>
+        </el-radio-group>
+        <span class="muted" data-result-count>{{ listMode === 'spu' ? `商品 ${presentation.total} 款` : `SKU ${presentation.total} 条` }}</span>
+      </div>
       <div class="filters">
-        <el-input v-model="query.keyword" placeholder="名称、分类、属性、SKU、OA 编号" clearable style="width: 260px" @change="query.page = 1" />
-        <el-select v-model="query.categoryId" clearable placeholder="商品分类" style="width: 140px" @change="query.page = 1">
-          <el-option v-for="item in categories" :key="item.id" :label="item.name" :value="item.id" />
-        </el-select>
-        <el-select v-model="query.brand" clearable placeholder="品牌" style="width: 120px" @change="query.page = 1">
-          <el-option v-for="item in brands" :key="item" :label="item" :value="item" />
-        </el-select>
-        <el-select v-model="query.shelf" clearable placeholder="商品状态" style="width: 120px" @change="query.page = 1">
-          <el-option label="草稿" value="draft" />
-          <el-option label="已发布" value="online" />
-          <el-option label="已下架" value="offline" />
-        </el-select>
-        <el-date-picker v-model="createdRange" type="daterange" value-format="YYYY-MM-DD" start-placeholder="创建开始" end-placeholder="创建结束" style="width: 240px" @change="onCreated" />
-        <el-select v-model="query.status" clearable placeholder="规格状态" style="width: 120px" @change="query.page = 1">
-          <el-option label="在售" value="on_sale" />
-          <el-option label="停售" value="off_sale" />
-          <el-option label="草稿" value="draft" />
-        </el-select>
-        <el-select v-model="query.productGroupId" clearable placeholder="商品组" style="width: 140px" @change="query.page = 1">
-          <el-option v-for="item in store.data.productGroups" :key="item.id" :label="item.name" :value="item.id" />
-        </el-select>
-        <el-select v-model="attrKey" clearable placeholder="参数筛选" style="width: 120px">
-          <el-option v-for="item in store.data.params" :key="item.id" :label="item.name" :value="item.name" />
-        </el-select>
-        <el-select v-if="attrKey" v-model="query.attrFilters[attrKey]" clearable placeholder="取值" style="width: 140px" @change="query.page = 1">
-          <el-option v-for="item in attrValues" :key="item" :label="item" :value="item" />
-        </el-select>
-        <el-button @click="saveView">保存当前筛选</el-button>
+        <el-input :model-value="activeQuery.keyword" placeholder="名称、分类、属性、SKU、OA 编号" clearable style="width: 260px" data-filter="keyword" @update:model-value="onKeyword" />
+        <el-popover v-if="showCategoryPopover" v-model:visible="categoryOpen" trigger="click" placement="bottom-start" :width="280">
+          <template #reference>
+            <el-button data-category-trigger>{{ categoryButtonText }}</el-button>
+          </template>
+          <CategoryFilterTree placement="popover" :categories="store.data.categories" :selected-ids="selectedCategoryIds" @toggle="toggleCategory" @clear="clearCategory" @dock="dockCategory" @hide="hideCategory" @float="floatCategory" />
+        </el-popover>
+        <el-button v-else-if="categoryLayout === 'hidden' || narrowScreen" data-category-trigger @click="floatCategory">展开分类树</el-button>
+        <span v-if="categoryLayout !== 'popover' && categorySummary" class="category-chip" data-category-chip>
+          {{ categorySummary }}
+          <button type="button" @click="clearCategory">清除</button>
+        </span>
+        <template v-for="field in exposedFields" :key="field.field">
+          <el-select v-if="field.field !== 'category' && field.kind !== 'date'" :model-value="chosen(field.field)" multiple collapse-tags clearable :placeholder="field.label" style="width: 160px" :data-exposed="field.field" @change="(value: string[]) => setExposedValue(field.field, value)">
+            <el-option v-for="item in fieldOptions(field.field)" :key="item" :label="item" :value="item" />
+          </el-select>
+          <el-date-picker v-else :model-value="dateRange(field.field)" type="daterange" value-format="YYYY-MM-DD" start-placeholder="创建开始" end-placeholder="创建结束" style="width: 240px" :data-exposed="field.field" @update:model-value="(value: [string, string] | null) => setDate(value)" />
+        </template>
+        <el-button data-filter-count @click="filterOpen = true">筛选<span v-if="filterCount"> {{ filterCount }}</span></el-button>
+        <el-popover trigger="click" placement="bottom-start" :width="280">
+          <template #reference><el-button>分组</el-button></template>
+          <div class="column-panel">
+            <el-select :model-value="activeQuery.grouping?.field || ''" clearable placeholder="分组字段" @change="onGroupField">
+              <el-option v-for="item in groupOptions" :key="item.field" :label="item.label" :value="item.field" />
+            </el-select>
+            <el-radio-group :model-value="activeQuery.grouping?.direction || 'asc'" @change="onGroupDirection">
+              <el-radio-button value="asc">升序</el-radio-button>
+              <el-radio-button value="desc">降序</el-radio-button>
+            </el-radio-group>
+            <el-button link type="primary" @click="clearGroup">清除分组</el-button>
+          </div>
+        </el-popover>
+        <el-popover trigger="click" placement="bottom-start" :width="300">
+          <template #reference><el-button>排序{{ sortLabel }}</el-button></template>
+          <div class="column-panel">
+            <el-radio-group :model-value="sortMode" @change="onSortMode">
+              <el-radio-button value="default">默认顺序</el-radio-button>
+              <el-radio-button value="field">按字段排序</el-radio-button>
+              <el-radio-button value="manual">手工排序</el-radio-button>
+            </el-radio-group>
+            <el-select :model-value="activeQuery.sorting?.field || ''" clearable placeholder="排序字段" @change="onSortField">
+              <el-option v-for="item in sortOptions" :key="item.field" :label="item.label" :value="item.field" />
+            </el-select>
+            <el-radio-group :model-value="activeQuery.sorting?.direction || 'asc'" @change="onSortDirection">
+              <el-radio-button value="asc">升序</el-radio-button>
+              <el-radio-button value="desc">降序</el-radio-button>
+            </el-radio-group>
+            <el-button link type="primary" @click="clearSort">清除排序</el-button>
+          </div>
+        </el-popover>
+        <el-button @click="saveFilter">保存当前筛选</el-button>
         <el-button @click="router.push('/import')">导入导出</el-button>
       </div>
-      <div class="row-actions" style="margin-bottom: 10px">
+      <div v-if="listMode === 'spu'" class="row-actions" style="margin-bottom: 10px">
         <el-button :disabled="familyIds.length === 0" @click="setShelfMany('online')">批量发布</el-button>
         <el-button :disabled="familyIds.length === 0" @click="setShelfMany('offline')">批量下架</el-button>
         <el-button :disabled="familyIds.length === 0" type="danger" @click="removeMany">批量删除</el-button>
       </div>
-      <div class="row-actions" style="margin-bottom: 10px">
-        <span class="muted">视图</span>
+      <div v-if="store.data.listViews.length > 1" class="row-actions" style="margin-bottom: 10px">
+        <span class="muted">已存筛选</span>
         <el-tag v-for="view in store.data.listViews" :key="view.id" :type="store.data.activeViewId === view.id ? 'primary' : 'info'" style="cursor: pointer" @click="store.applyView(view.id)" @close="store.removeView(view.id)" :closable="view.id !== 'view-all'">{{ view.name }}</el-tag>
       </div>
-      <el-table :data="pageRows" row-key="id" @sort-change="onSort" @expand-change="onExpand" @selection-change="onFamilySelect">
-        <el-table-column type="selection" width="42" />
-        <el-table-column label="商品状态" width="100">
-          <template #default="{ row }">{{ shelfText(shelfOf(row)) }}</template>
+      <p v-if="presentation.manualBlocked" class="warn">手工排序已保存。当前还有分组，请先清除分组，再按手工顺序查看。分组不会被自动改掉。</p>
+      <div v-if="manualOn && pickedIds.length" class="row-actions" style="margin-bottom: 8px">
+        <span>已选 {{ pickedIds.length }} 条</span>
+        <el-button size="small" type="primary" @click="addStage">加入排序暂存区</el-button>
+      </div>
+      <div v-if="manualOn && stageIds.length" class="stage-bar">
+        <span>排序暂存区（{{ stageIds.length }}）</span>
+        <el-button size="small" @click="stageOpen = true">展开暂存</el-button>
+        <el-button size="small" @click="stageIds = []">清空暂存</el-button>
+      </div>
+      <template v-for="group in shownGroups" :key="group.key">
+      <button v-if="group.label" type="button" class="group-head" :data-group-key="group.label" @click="toggleGroup(group.label)">{{ collapsed[group.label] ? '展开' : '收起' }} {{ group.label }}（{{ group.total }}）</button>
+      <el-table v-if="listMode === 'spu'" v-show="!group.label || !collapsed[group.label]" class="spu-table" :data="group.families" row-key="id" @selection-change="onFamilySelect">
+        <template #empty><span data-empty="spu">{{ spuEmpty }}</span></template>
+        <el-table-column v-if="manualOn" width="46">
+          <template #default="{ row }"><span class="drag-handle" draggable="true" :data-drag-id="row.id" @dragstart="onRowDrag(row.id)" @dragover.prevent @drop="onRowDrop(row.id)">☰</span></template>
         </el-table-column>
+        <el-table-column v-if="manualOn" width="42">
+          <template #default="{ row }"><el-checkbox :data-pick-id="row.id" :model-value="pickedIds.includes(row.id)" @change="(value: boolean | string | number) => togglePick(row.id, Boolean(value))" /></template>
+        </el-table-column>
+        <el-table-column type="selection" width="42" />
         <el-table-column type="expand">
           <template #default="{ row }">
-            <div style="padding: 0 12px 8px">
+            <div class="sku-expand" :data-family-id="row.id">
               <div class="row-actions" style="margin-bottom: 8px">
                 <el-button size="small" @click="router.push(`/products/${row.id}`)">{{ row.line === 'v3' ? '管理物料' : '编辑整款商品' }}</el-button>
                 <el-button v-if="row.line !== 'v3'" size="small" @click="router.push(`/products/${row.id}?add=1`)">新增规格</el-button>
-                <el-button size="small" :disabled="selected[row.id]?.length === 0" @click="batchStatus(row.id, 'on_sale')">所选改在售</el-button>
-                <el-button size="small" :disabled="selected[row.id]?.length === 0" @click="batchStatus(row.id, 'off_sale')">所选改停售</el-button>
+                <el-button v-if="realCount(row.id) > 0" size="small" :disabled="selected[row.id]?.length === 0" @click="batchStatus(row.id, 'on_sale')">所选改在售</el-button>
+                <el-button v-if="realCount(row.id) > 0" size="small" :disabled="selected[row.id]?.length === 0" @click="batchStatus(row.id, 'off_sale')">所选改停售</el-button>
               </div>
-              <el-table :data="store.skusOf(row.id)" size="small" @selection-change="onSelect(row.id, $event)">
+              <p v-if="realCount(row.id) === 0" class="muted">这款商品还没有真实 SKU。{{ row.line === 'v3' ? '物料档案不计入 SKU。' : '' }}</p>
+              <el-table v-else :data="realSkus(row.id)" size="small" @selection-change="onSelect(row.id, $event)">
                 <el-table-column type="selection" width="42" />
                 <el-table-column label="规格" min-width="280">
                   <template #default="{ row: sku }">
-                    <template v-if="row.line === 'v3'">
-                      <div>{{ sku.skuName?.trim() || '未命名物料' }}</div>
-                      <div class="muted">{{ sku.materialCode?.trim() || '未分配物料编码' }} · {{ sku.planningId?.trim() || '无规划编号' }}</div>
-                      <div class="muted">{{ specSummary(row, sku) || '无规格摘要' }}</div>
-                    </template>
-                    <div v-else>{{ sku.materialCode ? `${sku.materialCode} · ` : '' }}{{ sku.skuName || (row.productPlanId ? row.name : skuTitle(sku, boundParams(store.data, row.templateId, 'variant'))) }}</div>
+                    <div :data-sku-id="sku.id">{{ savedSkuName(sku) }}</div>
+                    <div class="muted">{{ savedSkuCode(sku) }} · {{ savedSkuSpec(row, sku) }}</div>
                   </template>
                 </el-table-column>
                 <el-table-column label="状态" width="120">
@@ -83,7 +172,7 @@
                 <el-table-column v-if="row.line !== 'v3'" prop="oaSkuId" label="OA_SKUID" width="140" />
                 <el-table-column label="操作" width="180">
                   <template #default="{ row: sku }">
-                    <el-button link type="primary" @click="router.push(`/products/${row.id}?sku=${sku.id}`)">{{ row.line === 'v3' ? '物料档案' : '编辑' }}</el-button>
+                    <el-button link type="primary" @click="router.push(`/products/${row.id}?sku=${sku.id}`)">编辑</el-button>
                     <el-button v-if="row.line !== 'v3'" link @click="copySku(row.id, sku.id)">复制</el-button>
                     <el-button link type="danger" @click="removeSku(sku.id)">删除</el-button>
                   </template>
@@ -92,21 +181,24 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column v-for="col in visibleColumns" :key="col.key" :prop="col.key" :label="col.label" :fixed="col.fixed ? 'left' : false" min-width="120" sortable="custom">
+        <el-table-column v-for="col in tableColumns" :key="col.key" :prop="col.key" :label="col.label" min-width="120">
           <template #default="{ row }">
             <template v-if="col.key === 'name'">
-              <button class="linkish" @click="router.push(`/products/${row.id}`)">{{ row.name }}</button>
+              <button class="linkish" :data-family-id="row.id" @click="router.push(`/products/${row.id}`)">{{ row.name }}</button>
               <span v-if="row.line === 'v3'" class="sku-hint">{{ materialSummary(row.id) }}</span>
               <span v-if="planSource(row)" class="sku-hint">来自规划：{{ planSource(row) }}</span>
             </template>
             <template v-else-if="col.key === 'category'">{{ categoryPath(store.data, row.categoryId) }}</template>
             <template v-else-if="col.key === 'template'">{{ templateById(store.data, row.templateId)?.name }}</template>
             <template v-else-if="col.key === 'brand'">{{ row.commonAttrs['品牌'] || '-' }}</template>
-            <template v-else-if="col.key === 'skuCount'">{{ store.skusOf(row.id).length }}</template>
-            <template v-else-if="col.key === 'sale'">{{ store.skusOf(row.id).filter((item) => item.status === 'on_sale').length }}</template>
+            <template v-else-if="col.key === 'skuCount'"><span :data-sku-count="realCount(row.id)">{{ skuCountText(realCount(row.id)) }}</span></template>
+            <template v-else-if="col.key === 'sale'">{{ saleCount(row.id) }}</template>
             <template v-else-if="col.key === 'origin'">{{ row.origin === 'sample' ? '预设演示' : '本次新增' }}</template>
             <template v-else-if="col.key === 'updatedAt'">{{ row.updatedAt.slice(0, 16).replace('T', ' ') }}</template>
-            <template v-else>{{ row.oaProductId || '-' }}</template>
+            <template v-else-if="col.key === 'productType'">{{ productTypeName(store.data, row) }}</template>
+            <template v-else-if="col.key === 'model'">{{ linkedModelName(store.data, row) }}</template>
+            <template v-else-if="col.key === 'shelf'">{{ shelfText(shelfOf(row)) }}</template>
+            <template v-else-if="col.key === 'oaProductId'">{{ row.oaProductId || '-' }}</template>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="300" fixed="right">
@@ -115,120 +207,512 @@
             <el-button link type="primary" @click="router.push(`/products/${row.id}`)">{{ row.line === 'v3' ? '管理物料' : '编辑' }}</el-button>
             <el-button link @click="copyFamily(row.id)">复制</el-button>
             <el-button link type="danger" @click="removeFamily(row.id, row.name)">删除</el-button>
+            <el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'before')">插到前面</el-button>
+            <el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'after')">插到后面</el-button>
           </template>
         </el-table-column>
       </el-table>
+      <el-table v-else v-show="!group.label || !collapsed[group.label]" class="sku-table" :data="group.skus" row-key="id">
+        <template #empty><span data-empty="sku">{{ skuEmpty }}</span></template>
+        <el-table-column v-if="manualOn" width="46">
+          <template #default="{ row }"><span class="drag-handle" draggable="true" :data-drag-id="row.id" @dragstart="onRowDrag(row.id)" @dragover.prevent @drop="onRowDrop(row.id)">☰</span></template>
+        </el-table-column>
+        <el-table-column v-if="manualOn" width="42">
+          <template #default="{ row }"><el-checkbox :data-pick-id="row.id" :model-value="pickedIds.includes(row.id)" @change="(value: boolean | string | number) => togglePick(row.id, Boolean(value))" /></template>
+        </el-table-column>
+        <el-table-column v-for="col in tableColumns" :key="col.key" :prop="col.key" :label="col.label" min-width="140">
+          <template #default="{ row }">
+            <template v-if="col.key === 'code'"><span :data-sku-id="row.id">{{ row.code }}</span></template>
+            <template v-else-if="col.key === 'name'">{{ row.name }}</template>
+            <template v-else-if="col.key === 'spec'"><span :data-sku-spec="row.id">{{ row.spec }}</span></template>
+            <template v-else-if="col.key === 'family'">
+              <button class="linkish" @click="router.push(`/products/${row.familyId}`)">{{ row.familyName }}</button>
+            </template>
+            <template v-else-if="col.key === 'category'">{{ row.category }}</template>
+            <template v-else-if="col.key === 'typeName'">{{ row.typeName }}</template>
+            <template v-else-if="col.key === 'status'">{{ statusText(row.status) }}</template>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="220" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="router.push(`/products/${row.familyId}?sku=${row.id}`)">商品详情</el-button>
+            <el-button v-if="row.materialCount > 0" link @click="router.push(`/products/${row.familyId}`)">物料 {{ row.materialCount }} 条</el-button>
+            <el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'before')">插到前面</el-button>
+            <el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'after')">插到后面</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      </template>
       <div style="display: flex; justify-content: flex-end; margin-top: 12px">
-        <el-pagination :current-page="query.page" :page-size="query.pageSize" :total="filtered.length" layout="total, prev, pager, next" @current-change="(page: number) => (query.page = page)" />
+        <el-pagination :current-page="query.page" :page-size="query.pageSize" :total="activeTotal" layout="total, prev, pager, next" @current-change="(page: number) => (query.page = page)" />
+      </div>
       </div>
     </div>
 
-    <el-drawer v-model="columnOpen" title="列和视图" size="420px">
-      <p class="muted">勾选显示，拖动顺序只在本组里用上移下移完成。</p>
-      <div v-for="(col, index) in store.data.columns" :key="col.key" class="row-actions" style="margin: 8px 0">
-        <el-checkbox v-model="col.visible" :disabled="col.fixed">{{ col.label }}</el-checkbox>
-        <el-button size="small" :disabled="index === 0" @click="moveCol(index, -1)">上移</el-button>
-        <el-button size="small" :disabled="index === store.data.columns.length - 1" @click="moveCol(index, 1)">下移</el-button>
+    <el-dialog v-model="createOpen" title="新建视图" width="420px">
+      <el-input v-model="draftName" placeholder="视图名称" @keyup.enter="confirmCreate" />
+      <p v-if="nameError" class="warn">{{ nameError }}</p>
+      <template #footer>
+        <el-button @click="createOpen = false">取消</el-button>
+        <el-button type="primary" @click="confirmCreate">创建</el-button>
+      </template>
+    </el-dialog>
+    <el-dialog v-model="settingsOpen" title="视图设置" width="420px">
+      <p class="muted">当前视图 {{ activeView.name }}。改名不会更换视图编号。</p>
+      <el-input v-model="renameDraft" placeholder="视图名称" />
+      <p v-if="renameError" class="warn">{{ renameError }}</p>
+      <div class="row-actions" style="margin-top: 12px">
+        <el-button type="primary" @click="confirmRename">保存名称</el-button>
+        <el-button @click="confirmCopy">复制</el-button>
+        <el-button type="danger" :disabled="activeView.id === defaultViewId" @click="confirmDelete">删除</el-button>
       </div>
-      <el-button @click="store.data.columns = store.defaultColumns()">恢复默认列</el-button>
-      <div class="row-actions" style="margin-top: 16px">
-        <el-input v-model="viewName" placeholder="视图名称" />
-        <el-button type="primary" @click="saveView">保存视图</el-button>
-      </div>
+      <p v-if="activeView.id === defaultViewId" class="muted">默认视图不能删除，可以调整它的列。</p>
+    </el-dialog>
+    <el-drawer v-model="stageOpen" title="排序暂存区" size="360px">
+      <p class="muted">共 {{ stageIds.length }} 条。插入目标并确认后，才会改展示顺序。</p>
+      <ul class="column-list">
+        <li v-for="id in stageIds" :key="id">
+          <span>{{ stageLabel(id) }}</span>
+          <el-button link type="danger" @click="stageIds = stageIds.filter((item) => item !== id)">移除</el-button>
+        </li>
+      </ul>
+      <el-button @click="stageIds = []">清空暂存</el-button>
     </el-drawer>
+    <el-dialog v-model="filterOpen" title="筛选" width="720px">
+      <div v-for="filter in activeQuery.filters" :key="filter.id" class="filter-row" :data-condition="filter.field">
+        <el-select :model-value="filter.field" style="width: 140px" @change="(value: string) => changeFilterField(filter.id, value)">
+          <el-option v-for="item in filterFields" :key="item.field" :label="item.label" :value="item.field" />
+        </el-select>
+        <el-select :model-value="filter.operator" style="width: 120px" @change="(value: string) => changeFilterOperator(filter.id, value)">
+          <el-option v-for="item in operatorsFor(filter.field)" :key="item.value" :label="item.label" :value="item.value" />
+        </el-select>
+        <el-date-picker v-if="kindOf(filter.field) === 'date' && filter.operator === 'between'" :model-value="conditionRange(filter)" type="daterange" value-format="YYYY-MM-DD" style="width: 240px" @update:model-value="(value: [string, string] | null) => setConditionRange(filter.id, value)" />
+        <el-date-picker v-else-if="kindOf(filter.field) === 'date'" :model-value="textValue(filter)" type="date" value-format="YYYY-MM-DD" @update:model-value="(value: string) => setConditionText(filter.id, value || '')" />
+        <el-select v-else-if="filter.operator === 'in'" :model-value="listValue(filter)" multiple collapse-tags style="width: 220px" @change="(value: string[]) => setConditionList(filter.id, value)">
+          <el-option v-for="item in fieldOptions(filter.field)" :key="item" :label="item" :value="item" />
+        </el-select>
+        <el-select v-else-if="kindOf(filter.field) !== 'text'" :model-value="textValue(filter)" clearable filterable style="width: 220px" @change="(value: string) => setConditionText(filter.id, value || '')">
+          <el-option v-for="item in fieldOptions(filter.field)" :key="item" :label="item" :value="item" />
+        </el-select>
+        <el-input v-else :model-value="textValue(filter)" style="width: 220px" @update:model-value="(value: string) => setConditionText(filter.id, value)" />
+        <el-button link type="danger" @click="removeCondition(filter.id)">删除</el-button>
+      </div>
+      <el-button @click="addCondition">添加条件</el-button>
+      <p class="muted">外露后显示在列表顶部。取消外露不会删掉已经生效的条件。</p>
+      <el-checkbox v-for="field in filterFields" :key="field.field" :data-expose-field="field.field" :model-value="activeQuery.exposed.includes(field.field)" @change="(value: boolean | string | number) => setViewExposed(store.data, field.field, Boolean(value))">{{ field.label }}</el-checkbox>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import CategoryFilterTree from '../components/CategoryFilterTree.vue'
 import PageHead from '../components/PageHead.vue'
 import { catalogRole, compatibilityFamilyBlock, roleOfType } from '../domain/compatibility'
-import { boundParams, categoryPath, projectAttrs, shelfOf, shelfText, skuTitle, templateById } from '../domain/logic'
+import { categoryPath, shelfOf, shelfText, statusText, templateById } from '../domain/logic'
 import { familyMaterialDigest } from '../domain/material'
-import type { ProductFamily, Sku } from '../domain/types'
-import { useCatalogStore } from '../stores/catalog'
+import { isRealSku, linkedModelName, materialArchivesOf, productTypeName, realSkusOf, savedSkuCode, savedSkuName, savedSkuSpec, skuCountText } from '../domain/productList'
+import { activeFilterCount, fieldSelection, groupFields, knownFilterFields, presentProductList, resolveCategoryFilter, sortFields, sortModeOf } from '../domain/productListQuery'
+import { DEFAULT_PRODUCT_LIST_VIEW_ID, activeProductListView, copyProductListView, createProductListView, currentModeQuery, deleteProductListView, insertViewManual, moveViewManual, orderedColumns, renameProductListView, reorderProductListColumn, resetProductListColumns, selectProductListView, setProductListColumnVisible, setProductListViewMode, setViewCategoryLayout, setViewExposed, setViewFieldValues, setViewGrouping, setViewKeyword, setViewSortMode, setViewSorting, visibleColumns } from '../domain/productListViews'
+import type { ProductFamily, ProductListFilterOperator, ProductListMode, ProductListViewFilter, Sku } from '../domain/types'
+import { uid, useCatalogStore } from '../stores/catalog'
 
 const store = useCatalogStore()
 const router = useRouter()
 const route = useRoute()
 const query = store.data.listQuery
 const columnOpen = ref(false)
-const viewName = ref('')
-const attrKey = ref('')
+const columnQuery = ref('')
+const createOpen = ref(false)
+const settingsOpen = ref(false)
+const filterOpen = ref(false)
+const categoryOpen = ref(false)
+const narrowScreen = ref(false)
+const stageOpen = ref(false)
+const collapsed = reactive<Record<string, boolean>>({})
+const pickedIds = ref<string[]>([])
+const stageIds = ref<string[]>([])
+const dragId = ref('')
+const draftName = ref('')
+const renameDraft = ref('')
+const nameError = ref('')
+const renameError = ref('')
+const dragKey = ref('')
 const selected = reactive<Record<string, string[]>>({})
 const familyIds = ref<string[]>([])
-const createdRange = ref<[string, string] | null>(null)
-const categories = computed(() => store.data.categories)
+const defaultViewId = DEFAULT_PRODUCT_LIST_VIEW_ID
 const brands = computed(() => Array.from(new Set(store.data.families.map((item) => item.commonAttrs['品牌']).filter(Boolean))))
-function materialSummary(familyId: string) {
-  return familyMaterialDigest(store.skusOf(familyId))
+const displayViews = computed(() => store.data.productListViews || [])
+const activeView = computed(() => activeProductListView(store.data))
+const listMode = computed(() => activeView.value.mode)
+const tableColumns = computed(() => visibleColumns(activeView.value, listMode.value))
+const modeColumns = computed(() => orderedColumns(activeView.value, listMode.value))
+const filteredColumns = computed(() => {
+  const text = columnQuery.value.trim().toLowerCase()
+  if (!text) return modeColumns.value
+  return modeColumns.value.filter((item) => item.label.toLowerCase().includes(text) || item.key.toLowerCase().includes(text))
+})
+const activeQuery = computed(() => currentModeQuery(activeView.value))
+const presentation = computed(() => presentProductList(store.data, activeView.value, query.page, query.pageSize))
+const shownGroups = computed(() => presentation.value.groups.map((group) => ({
+  key: group.key,
+  label: group.label,
+  total: group.total,
+  families: group.rows.map((row) => row.family),
+  skus: group.rows.flatMap((row) => row.sku ? [{
+    id: row.id,
+    familyId: row.family.id,
+    code: savedSkuCode(row.sku),
+    name: savedSkuName(row.sku),
+    spec: savedSkuSpec(row.family, row.sku),
+    familyName: row.family.name,
+    category: categoryPath(store.data, row.family.categoryId),
+    typeName: productTypeName(store.data, row.family),
+    modelName: linkedModelName(store.data, row.family),
+    status: row.sku.status,
+    materialCount: materialArchivesOf(store.data, row.family.id).length,
+  }] : []),
+})))
+const activeTotal = computed(() => presentation.value.total)
+const filterCount = computed(() => activeFilterCount(activeView.value))
+const filterFields = computed(() => knownFilterFields(store.data, listMode.value))
+const exposedFields = computed(() => activeQuery.value.exposed.flatMap((field) => {
+  const found = filterFields.value.find((item) => item.field === field)
+  return found ? [found] : []
+}))
+const groupOptions = computed(() => groupFields(store.data, listMode.value))
+const sortOptions = computed(() => sortFields(listMode.value))
+const sortMode = computed(() => sortModeOf(activeQuery.value))
+const manualOn = computed(() => sortMode.value === 'manual' && !activeQuery.value.grouping)
+const sortLabel = computed(() => (sortMode.value === 'manual' ? '：手工排序' : sortMode.value === 'field' ? '：按字段' : ''))
+const categoryLayout = computed(() => activeView.value.categoryFilterLayout === 'sidebar' || activeView.value.categoryFilterLayout === 'hidden' ? activeView.value.categoryFilterLayout : 'popover')
+const showSidebar = computed(() => categoryLayout.value === 'sidebar' && !narrowScreen.value)
+const showCategoryPopover = computed(() => categoryLayout.value === 'popover' && !narrowScreen.value)
+const categoryState = computed(() => resolveCategoryFilter(store.data, chosen('category')))
+const selectedCategoryIds = computed(() => categoryState.value.ids)
+const categorySummary = computed(() => {
+  const names = selectedCategoryIds.value.map((id) => categoryPath(store.data, id)).filter(Boolean)
+  const missing = categoryState.value.missing.length ? [`分类已不存在 ${categoryState.value.missing.length} 个`] : []
+  return [...names, ...missing].join('、')
+})
+const categoryButtonText = computed(() => (categorySummary.value ? `商品分类：${categorySummary.value}` : '商品分类：全部分类'))
+const spuEmpty = computed(() => (store.data.families.length === 0 ? '当前没有商品。' : filterCount.value ? '没有符合条件的商品。' : '当前没有商品。'))
+const skuEmpty = computed(() => (store.data.skus.some((item) => isRealSku(store.data, item)) ? (filterCount.value ? '没有符合条件的真实 SKU。' : '当前没有真实 SKU。') : '当前没有真实 SKU。已有商品、规划组合和物料不会显示成 SKU。'))
+
+function realSkus(familyId: string) {
+  return realSkusOf(store.data, familyId)
 }
-function specSummary(family: ProductFamily, sku: Sku) {
-  return Object.entries(projectAttrs(family, sku)).map(([name, value]) => `${name} ${value}`).join(' · ')
+function realCount(familyId: string) {
+  return realSkus(familyId).length
+}
+function saleCount(familyId: string) {
+  return realSkus(familyId).filter((item) => item.status === 'on_sale').length
+}
+function materialSummary(familyId: string) {
+  return familyMaterialDigest(materialArchivesOf(store.data, familyId))
 }
 function planSource(row: { productPlanId?: string }) {
   if (!row.productPlanId) return ''
   return store.data.productPlans.find((item) => item.id === row.productPlanId)?.name || '商品规划'
 }
-const attrValues = computed(() => store.data.params.find((item) => item.name === attrKey.value)?.values ?? [])
-const visibleColumns = computed(() => store.data.columns.filter((item) => item.visible))
-
-const filtered = computed(() => {
-  const q = query
-  let rows = store.data.families.filter((family) => {
-    const skus = store.skusOf(family.id)
-    const text = `${family.name} ${categoryPath(store.data, family.categoryId)} ${family.oaProductId} ${skus.map((sku) => `${sku.id} ${sku.oaSkuId} ${sku.skuName || ''} ${sku.materialCode || ''} ${sku.supplierCode || ''} ${sku.guanjiapoCode || ''} ${sku.planningId || ''} ${Object.entries(projectAttrs(family, sku)).map(([name, value]) => name + value).join(' ')}`).join(' ')}`
-    if (q.keyword && !text.toLowerCase().includes(q.keyword.toLowerCase())) return false
-    if (q.categoryId && family.categoryId !== q.categoryId) return false
-    if (q.shelf && shelfOf(family) !== q.shelf) return false
-    const created = (family.createdAt || family.updatedAt).slice(0, 10)
-    if (q.createdFrom && created < q.createdFrom) return false
-    if (q.createdTo && created > q.createdTo) return false
-    if (q.brand && family.commonAttrs['品牌'] !== q.brand) return false
-    if (q.templateId && family.templateId !== q.templateId) return false
-    if (q.productGroupId && !family.productGroupIds.includes(q.productGroupId)) return false
-    if (q.status && !skus.some((sku) => sku.status === q.status)) return false
-    const attrsOk = Object.entries(q.attrFilters).every(([name, value]) => {
-      if (!value) return true
-      return skus.some((sku) => projectAttrs(family, sku)[name] === value)
-    })
-    return attrsOk
+function warn(result: { ok: true } | { ok: false; message: string }) {
+  if (!result.ok) ElMessage.warning(result.message)
+  return result.ok
+}
+async function confirmStage() {
+  if (!stageIds.value.length) return true
+  try {
+    await ElMessageBox.confirm('还有未提交的排序暂存。继续后会清空暂存，已经保存的手工顺序不受影响。', '清空暂存')
+    stageIds.value = []
+    pickedIds.value = []
+    return true
+  } catch {
+    return false
+  }
+}
+async function switchDisplayView(id: string) {
+  if (id === activeView.value.id) return
+  if (!(await confirmStage())) return
+  if (!warn(selectProductListView(store.data, id))) return
+  query.page = 1
+}
+async function setListMode(next: string | number | boolean) {
+  if (next !== 'spu' && next !== 'sku') return
+  const mode = next as ProductListMode
+  if (activeView.value.mode === mode) return
+  if (!(await confirmStage())) return
+  if (!warn(setProductListViewMode(store.data, activeView.value.id, mode))) return
+  query.page = 1
+}
+function onKeyword(value: string) {
+  setViewKeyword(store.data, value)
+}
+function chosen(field: string) {
+  return fieldSelection(activeQuery.value, field)
+}
+function setExposedValue(field: string, values: string[]) {
+  setViewFieldValues(store.data, field, values)
+}
+function toggleCategory(id: string) {
+  const next = selectedCategoryIds.value.includes(id) ? selectedCategoryIds.value.filter((item) => item !== id) : [...selectedCategoryIds.value, id]
+  setViewFieldValues(store.data, 'category', next)
+}
+function clearCategory() {
+  setViewFieldValues(store.data, 'category', [])
+}
+function dockCategory() {
+  setViewCategoryLayout(store.data, 'sidebar')
+  categoryOpen.value = false
+}
+function floatCategory() {
+  setViewCategoryLayout(store.data, 'popover')
+  categoryOpen.value = true
+}
+function hideCategory() {
+  setViewCategoryLayout(store.data, 'hidden')
+  categoryOpen.value = false
+}
+function syncNarrow() {
+  narrowScreen.value = window.innerWidth < 960
+}
+function kindOf(field: string) {
+  return filterFields.value.find((item) => item.field === field)?.kind || 'text'
+}
+function fieldOptions(field: string) {
+  if (field === 'category') return store.data.categories.map((item) => categoryPath(store.data, item.id)).filter(Boolean)
+  if (field === 'brand') return brands.value
+  if (field === 'shelf') return ['草稿', '已发布', '已下架']
+  if (field === 'status') return ['在售', '停售', '草稿']
+  if (field === 'productType') return [...store.data.productTypes.map((item) => item.name), '未记录']
+  if (field === 'template') return store.data.templates.map((item) => item.name)
+  if (field === 'group') return store.data.productGroups.map((item) => item.name)
+  if (field.startsWith('attr:')) return store.data.params.find((item) => item.id === field.slice(5))?.values || []
+  return []
+}
+function operatorsFor(field: string) {
+  const kind = kindOf(field)
+  if (kind === 'date') return [{ value: 'before', label: '早于' }, { value: 'after', label: '晚于' }, { value: 'between', label: '日期范围' }]
+  if (kind === 'text') return [{ value: 'contains', label: '包含' }, { value: 'notContains', label: '不包含' }, { value: 'eq', label: '等于' }, { value: 'neq', label: '不等于' }]
+  return [{ value: 'eq', label: '等于' }, { value: 'neq', label: '不等于' }, { value: 'in', label: '属于任一' }]
+}
+function liveQuery() {
+  const view = activeView.value
+  const next = currentModeQuery(view)
+  if (view.mode === 'sku') view.skuQuery = next
+  else view.spuQuery = next
+  return next
+}
+function touchFilters() {
+  activeView.value.updatedAt = new Date().toISOString()
+  query.page = 1
+}
+function addCondition() {
+  const field = filterFields.value[0]
+  if (!field) return
+  const operator = operatorsFor(field.field)[0].value as ProductListFilterOperator
+  liveQuery().filters.push({ id: `f-${Date.now()}`, field: field.field, operator, value: operator === 'between' ? { from: '', to: '' } : operator === 'in' ? [] : '' })
+  touchFilters()
+}
+function changeFilterField(id: string, field: string) {
+  const filter = liveQuery().filters.find((item) => item.id === id)
+  if (!filter) return
+  filter.field = field
+  filter.operator = operatorsFor(field)[0].value as ProductListFilterOperator
+  filter.value = filter.operator === 'between' ? { from: '', to: '' } : filter.operator === 'in' ? [] : ''
+  touchFilters()
+}
+function changeFilterOperator(id: string, operator: string) {
+  const filter = liveQuery().filters.find((item) => item.id === id)
+  if (!filter) return
+  filter.operator = operator as ProductListFilterOperator
+  filter.value = operator === 'between' ? { from: '', to: '' } : operator === 'in' ? [] : ''
+  touchFilters()
+}
+function textValue(filter: ProductListViewFilter) {
+  if (typeof filter.value !== 'string') return ''
+  if (filter.field === 'category') return categoryPath(store.data, filter.value) || filter.value
+  return filter.value
+}
+function listValue(filter: ProductListViewFilter) {
+  return Array.isArray(filter.value) ? filter.value : []
+}
+function conditionRange(filter: ProductListViewFilter): [string, string] | null {
+  if (!filter.value || typeof filter.value !== 'object' || Array.isArray(filter.value)) return null
+  if (!filter.value.from && !filter.value.to) return null
+  return [filter.value.from || '', filter.value.to || '']
+}
+function setConditionText(id: string, value: string) {
+  const filter = liveQuery().filters.find((item) => item.id === id)
+  if (!filter) return
+  filter.value = value
+  touchFilters()
+}
+function setConditionList(id: string, value: string[]) {
+  const filter = liveQuery().filters.find((item) => item.id === id)
+  if (!filter) return
+  filter.value = value
+  touchFilters()
+}
+function setConditionRange(id: string, value: [string, string] | null) {
+  const filter = liveQuery().filters.find((item) => item.id === id)
+  if (!filter) return
+  filter.value = { from: value?.[0] || '', to: value?.[1] || '' }
+  touchFilters()
+}
+function removeCondition(id: string) {
+  const queryState = liveQuery()
+  queryState.filters = queryState.filters.filter((item) => item.id !== id)
+  touchFilters()
+}
+function dateRange(field: string): [string, string] | null {
+  const filter = activeQuery.value.filters.find((item) => item.field === field && item.operator === 'between')
+  return filter ? conditionRange(filter) : null
+}
+function setDate(value: [string, string] | null) {
+  const queryState = liveQuery()
+  const rest = queryState.filters.filter((item) => item.field !== 'created')
+  queryState.filters = value ? [...rest, { id: 'f-created', field: 'created', operator: 'between', value: { from: value[0], to: value[1] } }] : rest
+  touchFilters()
+}
+function toggleGroup(label: string) {
+  collapsed[label] = !collapsed[label]
+}
+function onGroupField(field: string) {
+  const direction = activeQuery.value.grouping?.direction || 'asc'
+  setViewGrouping(store.data, field ? { field, direction } : null)
+}
+function onGroupDirection(direction: string | number | boolean) {
+  const field = activeQuery.value.grouping?.field
+  if (!field || (direction !== 'asc' && direction !== 'desc')) return
+  setViewGrouping(store.data, { field, direction })
+}
+function clearGroup() {
+  setViewGrouping(store.data, null)
+}
+function onSortField(field: string) {
+  const direction = activeQuery.value.sorting?.direction || 'asc'
+  setViewSorting(store.data, field ? { field, direction } : null)
+}
+function onSortDirection(direction: string | number | boolean) {
+  const field = activeQuery.value.sorting?.field
+  if (!field || (direction !== 'asc' && direction !== 'desc')) return
+  setViewSorting(store.data, { field, direction })
+}
+function clearSort() {
+  setViewSorting(store.data, null)
+}
+function onSortMode(mode: string | number | boolean) {
+  if (mode !== 'default' && mode !== 'field' && mode !== 'manual') return
+  const result = setViewSortMode(store.data, mode)
+  if (!result.ok) ElMessage.warning(result.message)
+}
+function onRowDrag(id: string) {
+  dragId.value = id
+}
+function onRowDrop(id: string) {
+  if (!dragId.value) return
+  const result = moveViewManual(store.data, dragId.value, id, 'before')
+  dragId.value = ''
+  if (!result.ok) ElMessage.warning(result.message)
+}
+function togglePick(id: string, checked: boolean) {
+  pickedIds.value = checked ? [...pickedIds.value, id] : pickedIds.value.filter((item) => item !== id)
+}
+function addStage() {
+  const next = [...stageIds.value]
+  pickedIds.value.forEach((id) => {
+    if (!next.includes(id)) next.push(id)
   })
-  rows = rows.slice().sort((a, b) => compareFamily(a, b))
-  return rows
-})
-const pageRows = computed(() => filtered.value.slice((query.page - 1) * query.pageSize, query.page * query.pageSize))
-
-function compareFamily(a: ProductFamily, b: ProductFamily) {
-  const order = query.sortOrder === 'ascending' ? 1 : -1
-  const prop = query.sortProp
-  const left = prop === 'name' ? a.name : a.updatedAt
-  const right = prop === 'name' ? b.name : b.updatedAt
-  return left > right ? order : left < right ? -order : 0
+  stageIds.value = next
+  pickedIds.value = []
+  ElMessage.success(`排序暂存区现有 ${next.length} 条`)
 }
-function onSort(payload: { prop: string; order: 'ascending' | 'descending' | null }) {
-  query.sortProp = payload.prop || 'updatedAt'
-  query.sortOrder = payload.order
+function stageLabel(id: string) {
+  if (listMode.value === 'sku') {
+    const sku = store.data.skus.find((item) => item.id === id)
+    return sku ? savedSkuName(sku) : id
+  }
+  return store.data.families.find((item) => item.id === id)?.name || id
 }
-function onExpand() {
-  return undefined
+async function askInsert(id: string, name: string, place: 'before' | 'after') {
+  const where = place === 'before' ? '之前' : '之后'
+  try {
+    await ElMessageBox.confirm(`把暂存的 ${stageIds.value.length} 条插入「${name}」${where}？`, '确认插入')
+  } catch {
+    return
+  }
+  const result = insertViewManual(store.data, stageIds.value, id, place)
+  if (!result.ok) {
+    ElMessage.warning(result.message)
+    return
+  }
+  stageIds.value = []
+  const hidden = activeFilterCount(activeView.value) > 0 ? '当前筛选下可能看不到全部记录。' : ''
+  ElMessage.success(`展示顺序已更新。${hidden}`)
 }
-function moveCol(index: number, direction: -1 | 1) {
-  const list = store.data.columns
-  const target = index + direction
-  const current = list[index]
-  const next = list[target]
-  if (!current || !next) return
-  list[index] = next
-  list[target] = current
+function toggleColumn(key: string, visible: boolean) {
+  warn(setProductListColumnVisible(store.data, activeView.value.id, listMode.value, key, visible))
 }
-function saveView() {
-  const name = viewName.value.trim() || `视图${store.data.listViews.length}`
-  store.saveView(name)
-  viewName.value = ''
-  ElMessage.success('视图已保存，刷新后还在')
+function onDragStart(key: string) {
+  dragKey.value = key
+}
+function onDrop(key: string) {
+  if (!dragKey.value || columnQuery.value.trim()) return
+  warn(reorderProductListColumn(store.data, activeView.value.id, listMode.value, dragKey.value, key))
+  dragKey.value = ''
+}
+function resetColumns() {
+  if (!warn(resetProductListColumns(store.data, activeView.value.id, listMode.value, store.defaultColumns()))) return
+  ElMessage.success('已恢复当前模式的默认列')
+}
+function openCreate() {
+  draftName.value = ''
+  nameError.value = ''
+  createOpen.value = true
+}
+function confirmCreate() {
+  const result = createProductListView(store.data, draftName.value, activeView.value.id, () => uid('view'))
+  if (!result.ok) {
+    nameError.value = result.message
+    return
+  }
+  createOpen.value = false
+  query.page = 1
+  ElMessage.success('视图已创建')
+}
+function openSettings() {
+  renameDraft.value = activeView.value.name
+  renameError.value = ''
+  settingsOpen.value = true
+}
+function confirmRename() {
+  const result = renameProductListView(store.data, activeView.value.id, renameDraft.value)
+  if (!result.ok) {
+    renameError.value = result.message
+    return
+  }
+  ElMessage.success('名称已保存')
+}
+function confirmCopy() {
+  const result = copyProductListView(store.data, activeView.value.id, () => uid('view'))
+  if (!warn(result)) return
+  settingsOpen.value = false
+  query.page = 1
+  ElMessage.success('已复制为独立视图')
+}
+async function confirmDelete() {
+  await ElMessageBox.confirm(`删除视图「${activeView.value.name}」？商品不会被删除。`, '删除视图')
+  const result = deleteProductListView(store.data, activeView.value.id)
+  if (!warn(result)) return
+  settingsOpen.value = false
+  query.page = 1
+  ElMessage.success('视图已删除')
+}
+function saveFilter() {
+  store.saveView(`筛选${store.data.listViews.length}`)
+  ElMessage.success('筛选已保存，刷新后还在')
 }
 function familyRole(row: ProductFamily) {
   if (row.productTypeId) return roleOfType(store.data, row.productTypeId)
@@ -239,8 +723,8 @@ function compatTitle(row: ProductFamily) {
 }
 function compatTarget(row: ProductFamily) {
   if (familyRole(row) !== 'accessory') return `/compatibility?family=${row.id}`
-  const sku = store.skusOf(row.id)[0]
-  return sku ? `/compatibility?sku=${sku.id}` : '/compatibility'
+  const material = materialArchivesOf(store.data, row.id)[0]
+  return material ? `/compatibility?sku=${material.id}` : '/compatibility'
 }
 function copyFamily(id: string) {
   const family = store.data.families.find((item) => item.id === id)
@@ -266,11 +750,6 @@ async function removeFamily(id: string, name: string) {
 }
 function onFamilySelect(rows: ProductFamily[]) {
   familyIds.value = rows.map((item) => item.id)
-}
-function onCreated(value: [string, string] | null) {
-  query.createdFrom = value?.[0] || ''
-  query.createdTo = value?.[1] || ''
-  query.page = 1
 }
 function setShelfMany(status: 'online' | 'offline') {
   familyIds.value.forEach((id) => {
@@ -316,9 +795,15 @@ function batchStatus(familyId: string, status: Sku['status']) {
   ElMessage.success('状态已更新')
 }
 
+watch(presentation, () => {
+  if (query.page !== presentation.value.page) query.page = presentation.value.page
+}, { immediate: true })
 onMounted(() => {
   if (route.query.panel === 'columns') columnOpen.value = true
+  syncNarrow()
+  window.addEventListener('resize', syncNarrow)
 })
+onBeforeUnmount(() => window.removeEventListener('resize', syncNarrow))
 watch(
   () => route.query.panel,
   (panel) => {
@@ -326,3 +811,23 @@ watch(
   },
 )
 </script>
+
+<style scoped>
+.panel.is-category-side { display: flex; align-items: flex-start; gap: 12px; }
+.category-side { width: 240px; flex: none; max-height: 70vh; overflow: auto; }
+.list-main { flex: 1; min-width: 0; }
+.category-chip { display: inline-flex; align-items: center; gap: 6px; }
+.category-chip button { border: 0; background: transparent; color: var(--el-color-primary); cursor: pointer; }
+.list-switch { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.view-current { display: inline-block; max-width: 140px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; white-space: nowrap; }
+.view-mode { margin-left: 6px; }
+.column-panel { display: flex; flex-direction: column; gap: 8px; }
+.column-list { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow: auto; }
+.column-list li { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.drag-handle { cursor: grab; color: var(--text-secondary, #607089); user-select: none; }
+.stage-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.sku-expand { padding: 0 12px 8px; }
+.group-head { display: block; width: 100%; margin: 8px 0 4px; padding: 8px 10px; border: 0; border-radius: 6px; background: var(--surface-muted, #f4f7fb); color: inherit; text-align: left; cursor: pointer; }
+.filter-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.warn { color: var(--el-color-danger); font-size: 13px; }
+</style>

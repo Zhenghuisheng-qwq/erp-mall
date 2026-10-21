@@ -37,6 +37,7 @@
         :category-id="categoryId"
         :product-type-id="currentModel.productTypeId"
         :retired="selectedRetired"
+        match-version
       />
       <TemporaryMaterialDialog :open="temporaryOpen" :category-id="categoryId" :product-type-id="currentModel?.productTypeId || ''" :product-model-id="currentModel?.productModelId" :model-version-id="currentModel?.versionId" @close="temporaryOpen = false" @open="openMade" />
     </template>
@@ -46,7 +47,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { filingText, gradeText, materialOfferings, publishedModelsForCategory } from '../domain/material'
+import { legalComboMaterialStatus } from '../domain/comboMaterialStatus'
+import { filingText, gradeText, publishedModelsForCategory } from '../domain/material'
 import { useCatalogStore } from '../stores/catalog'
 import TemporaryMaterialDialog from './TemporaryMaterialDialog.vue'
 import V3MaterialActions from './V3MaterialActions.vue'
@@ -58,7 +60,6 @@ const productTypeId = ref('')
 const productModelId = ref('')
 const planningId = ref('')
 const temporaryOpen = ref(false)
-const prepared = new Set<string>()
 
 const models = computed(() => publishedModelsForCategory(store.data, props.categoryId))
 const typeOptions = computed(() => {
@@ -72,7 +73,18 @@ const typeOptions = computed(() => {
 const currentType = computed(() => typeOptions.value.find((item) => item.id === productTypeId.value))
 const modelOptions = computed(() => models.value.filter((item) => item.productTypeId === productTypeId.value))
 const currentModel = computed(() => modelOptions.value.find((item) => item.productModelId === productModelId.value))
-const rows = computed(() => (currentModel.value ? materialOfferings(store.data, currentModel.value.productModelId).rows : []))
+const rows = computed(() => {
+  const model = currentModel.value
+  if (!model) return []
+  return legalComboMaterialStatus(store.data, model.productModelId, model.versionId).rows.map((row) => ({
+    identityKey: row.identityKey,
+    label: row.label,
+    planningId: row.actionPlanningId,
+    retired: row.retired,
+    grade: row.grade,
+    materialCount: row.materialCount,
+  }))
+})
 const selectedRetired = computed(() => rows.value.find((item) => item.planningId === planningId.value)?.retired || false)
 
 watch(models, align, { immediate: true })
@@ -98,14 +110,6 @@ function onModel(id: string) {
   productModelId.value = id
   planningId.value = ''
 }
-watch(currentModel, (model) => {
-  if (!model || prepared.has(model.productModelId)) return
-  const offering = materialOfferings(store.data, model.productModelId)
-  const missing = offering.version && offering.rows.length > 0 && offering.rows.every((item) => !item.planningId)
-  if (!missing) return
-  prepared.add(model.productModelId)
-  store.publishSpecModel(model.productModelId)
-}, { immediate: true })
 function openMade(familyId: string, skuId: string) {
   temporaryOpen.value = false
   router.push(`/products/${familyId}?sku=${skuId}`)

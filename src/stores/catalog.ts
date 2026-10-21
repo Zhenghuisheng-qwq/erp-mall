@@ -22,6 +22,7 @@ import { scrubSampleDictionary } from '../domain/compatibilitySamples'
 import { createTemporaryMaterial, createV3Material, renameV3Product, setPlanningGrades, tombstoneMaterialReceipts, updateV3Material } from '../domain/material'
 import type { ProductGrade } from '../domain/types'
 import { arrangeSpecPositions } from '../domain/logic'
+import { activeProductListView, applyPresetToActiveView, currentModeQuery, ensureProductListViews } from '../domain/productListViews'
 import { createSeed, defaultColumns, emptyQuery, phoneCanvas, phoneSpecNodes } from '../domain/seed'
 import { DATA_VERSION, STORAGE_KEY, type AppData, type Category, type ColumnPref, type FeedbackItem, type ListQuery, type ListView, type ParamDef, type ProductFamily, type ProductGroup, type ProductType, type Sku, type SpecRule, type UserRole } from '../domain/types'
 
@@ -175,6 +176,7 @@ export function normalizeStored(parsed: StoredPayload): AppData | null {
     if (next.createdFrom === undefined || next.shelf === undefined) mark.changed = true
     data.listQuery = next
   }
+  if (ensureProductListViews(data)) mark.changed = true
   if (mark.changed && typeof localStorage !== 'undefined') {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data }))
   }
@@ -562,12 +564,17 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function saveView(name: string) {
+    const current = currentModeQuery(activeProductListView(data))
     const view: ListView = {
       id: uid('view'),
       name,
       query: JSON.parse(JSON.stringify(data.listQuery)) as ListQuery,
       columns: JSON.parse(JSON.stringify(data.columns)) as ColumnPref[],
+      keyword: current.keyword,
+      viewFilters: JSON.parse(JSON.stringify(current.filters)) as ListView['viewFilters'],
     }
+    view.query.keyword = current.keyword
+    view.query.page = 1
     data.listViews.push(view)
     data.activeViewId = view.id
   }
@@ -577,7 +584,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (!view) return
     data.activeViewId = id
     data.listQuery = JSON.parse(JSON.stringify(view.query)) as ListQuery
-    data.columns = JSON.parse(JSON.stringify(view.columns)) as ColumnPref[]
+    applyPresetToActiveView(data, view)
   }
 
   function removeView(id: string) {

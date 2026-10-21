@@ -1,20 +1,21 @@
 <template>
   <div>
-    <PageHead title="商品分类中心" desc="默认只查看和展开分类。需要调整层级或顺序时，再打开编辑模式。">
-      <el-button type="primary" @click="openCreate(null)">新增根分类</el-button>
-    </PageHead>
-    <div class="cat-layout">
+    <PageHead title="商品分类中心" desc="默认只查看和展开分类。需要调整层级或顺序时，再打开编辑模式。" />
+    <div class="cat-layout" :class="{ 'is-moving': moveOpen }">
       <section class="panel cat-tree-panel">
         <div class="cat-toolbar">
-          <el-input v-model="keyword" placeholder="搜索并定位分类" clearable />
-          <el-button @click="expandAll">展开全部</el-button>
-          <el-button @click="collapseAll">收起全部</el-button>
-          <el-radio-group v-model="treeMode">
-            <el-radio-button value="view">查看模式</el-radio-button>
-            <el-radio-button value="edit">编辑模式</el-radio-button>
-          </el-radio-group>
+          <div class="cat-toolbar-ops">
+            <el-radio-group v-model="treeMode">
+              <el-radio-button value="view">查看模式</el-radio-button>
+              <el-radio-button value="edit">编辑模式</el-radio-button>
+            </el-radio-group>
+            <el-button @click="expandAll">展开全部</el-button>
+            <el-button @click="collapseAll">收起全部</el-button>
+            <el-button v-if="editing" type="primary" @click="openCreate(null)">新增根分类</el-button>
+          </div>
+          <el-input v-model="keyword" class="cat-search" placeholder="搜索并定位分类" clearable />
         </div>
-        <p v-if="editing" class="muted">当前为编辑模式，可拖动调整分类结构。</p>
+        <p class="muted">{{ editing ? '编辑模式：可拖动调整层级和顺序，双击名称直接改名。' : '查看模式：单击展开或收起，不能修改分类。' }}</p>
         <div v-if="rows.length" ref="treeScroll" class="cat-scroll">
           <div
             v-for="row in rows"
@@ -32,8 +33,8 @@
               'is-drop-ban': dropState?.id === row.id && dropState.blocked,
             }"
             :style="{ paddingLeft: `${8 + row.depth * 18}px` }"
-            :draggable="editing"
-            @click="onRowClick(row.id)"
+            :draggable="editing && renameId !== row.id"
+            @click="onRowClick(row.id, $event)"
             @dragstart="onDragStart(row, $event)"
             @dragover="onDragOver(row, $event)"
             @drop="onDrop(row)"
@@ -45,7 +46,22 @@
             <span v-if="row.icon" class="cat-emoji">{{ row.icon }}</span>
             <el-icon v-else-if="row.hasChildren" class="cat-icon"><FolderOpened v-if="row.expanded" /><Folder v-else /></el-icon>
             <el-icon v-else class="cat-icon"><Document /></el-icon>
-            <span class="cat-name" :title="row.name" @click="onNameClick(row.id, $event)">
+            <input
+              v-if="renameId === row.id"
+              :ref="bindRenameInput"
+              v-model="renameValue"
+              class="cat-rename"
+              draggable="false"
+              @pointerdown.stop
+              @mousedown.stop
+              @click.stop
+              @dblclick.stop
+              @dragstart.stop.prevent
+              @keydown.enter.prevent="commitRename"
+              @keydown.esc.prevent="cancelRename"
+              @blur="commitRename"
+            />
+            <span v-else class="cat-name" :title="row.name" @click="onNameClick(row.id, $event)" @dblclick.stop.prevent="onNameDblClick(row.id)">
               <span v-for="(part, index) in nameParts(row.name)" :key="index" :class="{ 'cat-hit': part.hit }">{{ part.text }}</span>
             </span>
             <span v-if="!row.enabled" class="cat-off-tag">停用</span>
@@ -60,6 +76,37 @@
           </div>
         </div>
         <el-empty v-else :description="keyword.trim() ? '没有匹配的分类' : '还没有分类'" />
+      </section>
+
+      <section v-if="moveOpen" class="panel cat-move-panel">
+        <h2>移动分类</h2>
+        <p class="move-line"><span>正在移动</span>{{ moveSourcePath }}</p>
+        <p class="move-line"><span>目标父级</span>{{ moveTargetLabel }}</p>
+        <button type="button" class="move-root" :class="{ 'is-on': !moveParent }" @click="pickMoveTarget(null)">作为根分类</button>
+        <div class="cat-scroll cat-move-scroll">
+          <div
+            v-for="row in moveRows"
+            :key="row.id"
+            class="cat-row"
+            :class="{
+              'is-source': row.id === moveId,
+              'is-target': row.id === moveParent,
+              'is-ban': Boolean(moveTargetBlocked(row.id)),
+              'is-off': !row.enabled,
+            }"
+            :style="{ paddingLeft: `${8 + row.depth * 18}px` }"
+            :title="moveTargetBlocked(row.id)"
+          >
+            <button type="button" class="cat-expand" :title="row.hasChildren ? (row.expanded ? '收起' : '展开') : ''" @click.stop="toggleMove(row.id)">
+              <span v-if="row.hasChildren">{{ row.expanded ? '▼' : '▶' }}</span>
+            </button>
+            <button type="button" class="move-name" @click="pickMoveTarget(row.id)">{{ row.name }}</button>
+          </div>
+        </div>
+        <div class="row-actions">
+          <el-button @click="closeMove">取消</el-button>
+          <el-button type="primary" @click="confirmMove">确定移动</el-button>
+        </div>
       </section>
 
       <section v-if="current" class="panel cat-detail">
@@ -89,9 +136,10 @@
             <button v-if="store.isAdmin" type="button" class="linkish" @click="openScheme">跳转属性方案</button>
           </div>
         </div>
-        <div class="row-actions">
+        <div v-if="editing" class="row-actions">
           <el-button @click="openCreate(current.id)">新增子分类</el-button>
           <el-button @click="openEdit(current.id)">编辑</el-button>
+          <el-button @click="openMove(current.id)">移动</el-button>
           <el-button type="danger" @click="remove(current.id)">删除</el-button>
         </div>
       </section>
@@ -116,12 +164,7 @@
         <el-form-item label="名称">
           <el-input v-model="draft.name" @keyup.enter="saveEdit" />
         </el-form-item>
-        <el-form-item label="父分类">
-          <el-select v-model="draft.parentId" style="width: 100%">
-            <el-option label="作为根分类" value="" />
-            <el-option v-for="item in editParentOptions" :key="item.id" :label="item.label" :value="item.id" />
-          </el-select>
-        </el-form-item>
+        <p class="muted">调整上级请用「移动」，在旁边的分类树里选择。</p>
         <el-form-item label="状态">
           <el-switch v-model="draft.enabled" active-text="启用" inactive-text="停用" />
         </el-form-item>
@@ -137,17 +180,6 @@
         <el-button type="primary" @click="saveEdit">保存</el-button>
       </template>
     </el-dialog>
-    <el-dialog v-model="moveOpen" title="移动分类" width="460px">
-      <p style="margin-bottom: 8px">把「{{ moveName }}」移动到：</p>
-      <el-select v-model="moveParent" style="width: 100%">
-        <el-option label="作为根分类" value="" />
-        <el-option v-for="item in moveOptions" :key="item.id" :label="item.label" :value="item.id" />
-      </el-select>
-      <template #footer>
-        <el-button @click="moveOpen = false">取消</el-button>
-        <el-button type="primary" @click="confirmMove">确定移动</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -159,6 +191,7 @@ import { useRouter } from 'vue-router'
 import PageHead from '../components/PageHead.vue'
 import { blockChildOfTypedCategory, branchIds, categoryChain, relocateBlockMessage, subtreeCounts, visibleCategoryRows, type CategoryRow, type DropPosition } from '../domain/categoryTree'
 import { descendantIds, shelfOf, templateById } from '../domain/logic'
+import { applyPresetToActiveView } from '../domain/productListViews'
 import { useCatalogStore } from '../stores/catalog'
 
 const store = useCatalogStore()
@@ -184,7 +217,14 @@ const parentForCreate = ref<string | null>(null)
 const editId = ref('')
 const moveId = ref('')
 const moveParent = ref('')
-const draft = reactive({ name: '', enabled: true, parentId: '', templateId: '' })
+const moveExpanded = ref(new Set<string>())
+const moveClosed = ref(new Set<string>())
+const renameId = ref('')
+const renameValue = ref('')
+const renameInput = ref<HTMLInputElement | null>(null)
+let renameClosing = false
+let renameFocused = false
+const draft = reactive({ name: '', enabled: true, templateId: '' })
 
 const current = computed(() => store.data.categories.find((item) => item.id === selected.value))
 const rows = computed(() => visibleCategoryRows(store.data.categories, expanded.value, keyword.value, pinnedClosed.value))
@@ -205,9 +245,9 @@ const schemeUsers = computed(() => {
 })
 const bindableSchemes = computed(() => store.data.templates.filter((item) => item.structureOrder.length > 0))
 const createParentLabel = computed(() => (parentForCreate.value ? categoryChain(store.data.categories, parentForCreate.value).map((item) => item.name).join(' / ') : ''))
-const editParentOptions = computed(() => (editId.value ? parentOptionsFor(editId.value) : []))
-const moveName = computed(() => store.data.categories.find((item) => item.id === moveId.value)?.name || '')
-const moveOptions = computed(() => (moveId.value ? parentOptionsFor(moveId.value) : []))
+const moveRows = computed(() => visibleCategoryRows(store.data.categories, moveExpanded.value, '', moveClosed.value))
+const moveSourcePath = computed(() => (moveId.value ? categoryChain(store.data.categories, moveId.value).map((item) => item.name).join(' / ') : ''))
+const moveTargetLabel = computed(() => (moveParent.value ? categoryChain(store.data.categories, moveParent.value).map((item) => item.name).join(' / ') : '根分类'))
 const ownedFamilies = computed(() => store.data.families.filter((item) => item.categoryId === current.value?.id))
 const productCount = computed(() => ownedFamilies.value.length)
 const skuCount = computed(() => {
@@ -220,6 +260,10 @@ watch(treeMode, (mode) => {
     dragId.value = ''
     dropState.value = null
     dragged.value = false
+    cancelRename()
+    closeMove()
+    createOpen.value = false
+    editOpen.value = false
   }
 })
 
@@ -251,23 +295,6 @@ function firstMatchId(value: string) {
 }
 function badgeOf(id: string) {
   return productBadges.value.get(id) || 0
-}
-function parentOptionsFor(id: string) {
-  const blocked = new Set([id, ...descendantIds(store.data.categories, id)])
-  const options: { id: string; label: string }[] = []
-  const walk = (parentId: string | null) => {
-    store.data.categories
-      .filter((item) => item.parentId === parentId)
-      .sort((a, b) => a.sort - b.sort)
-      .forEach((item) => {
-        if (blocked.has(item.id)) return
-        const label = categoryChain(store.data.categories, item.id).map((node) => node.name).join(' / ')
-        options.push({ id: item.id, label: item.enabled === false ? `${label}（停用）` : label })
-        walk(item.id)
-      })
-  }
-  walk(null)
-  return options
 }
 function nameParts(name: string) {
   const needle = keyword.value.trim()
@@ -342,8 +369,10 @@ function collapseAll() {
   expanded.value = new Set()
   pinnedClosed.value = keyword.value.trim() ? new Set(branchIds(store.data.categories)) : new Set()
 }
-function onRowClick(id: string) {
+function onRowClick(id: string, event: MouseEvent) {
   if (dragged.value) return
+  const target = event.target as HTMLElement | null
+  if (target?.closest('input, button')) return
   if (!editing.value) {
     selected.value = id
     const row = rows.value.find((item) => item.id === id)
@@ -353,16 +382,76 @@ function onRowClick(id: string) {
   pick(id)
 }
 function onNameClick(id: string, event: MouseEvent) {
-  if (!editing.value || dragged.value) return
+  if (!editing.value || dragged.value || renameId.value) return
   event.stopPropagation()
-  openEdit(id)
+  pick(id)
+}
+function onNameDblClick(id: string) {
+  if (!editing.value || dragged.value) return
+  startRename(id)
+}
+function bindRenameInput(el: unknown) {
+  renameInput.value = el instanceof HTMLInputElement ? el : null
+  if (!renameInput.value || renameFocused) return
+  renameFocused = true
+  renameInput.value.focus()
+  renameInput.value.select()
+}
+function startRename(id: string) {
+  const item = store.data.categories.find((row) => row.id === id)
+  if (!item || !editing.value) return
+  renameClosing = false
+  renameFocused = false
+  renameId.value = id
+  renameValue.value = item.name
+  selected.value = id
+}
+function cancelRename() {
+  renameClosing = true
+  renameId.value = ''
+  renameValue.value = ''
+}
+function commitRename() {
+  if (renameClosing || !renameId.value) return
+  const id = renameId.value
+  const item = store.data.categories.find((row) => row.id === id)
+  if (!item) {
+    cancelRename()
+    return
+  }
+  if (renameValue.value.trim() === item.name) {
+    cancelRename()
+    return
+  }
+  const siblings = store.data.categories
+    .filter((row) => (row.parentId || null) === (item.parentId || null))
+    .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
+  const index = Math.max(0, siblings.findIndex((row) => row.id === id))
+  const message = store.updateCategory(id, {
+    name: renameValue.value,
+    enabled: item.enabled !== false,
+    sort: index + 1,
+    parentId: item.parentId,
+    icon: item.icon,
+  })
+  if (message) {
+    ElMessage.warning(message)
+    nextTick(() => renameInput.value?.focus())
+    return
+  }
+  renameClosing = true
+  renameId.value = ''
+  renameValue.value = ''
+  ElMessage.success('已保存')
 }
 function openCreate(parentId: string | null) {
+  if (!editing.value) return
   parentForCreate.value = parentId
   createName.value = ''
   createOpen.value = true
 }
 function create() {
+  if (!editing.value) return
   const name = createName.value.trim()
   if (!name) {
     ElMessage.warning('请填写分类名称')
@@ -381,25 +470,25 @@ function create() {
   ElMessage.success('已新增分类')
 }
 function openEdit(id: string) {
+  if (!editing.value) return
   const item = store.data.categories.find((row) => row.id === id)
   if (!item) return
   pick(id)
   editId.value = id
   draft.name = item.name
-  draft.parentId = item.parentId || ''
   draft.enabled = item.enabled !== false
   draft.templateId = store.data.mappings.find((row) => row.categoryId === id)?.templateId || ''
   editOpen.value = true
 }
 function saveEdit() {
+  if (!editing.value) return
   const item = store.data.categories.find((row) => row.id === editId.value)
   if (!item) return
-  const parentChanged = (draft.parentId || null) !== (item.parentId || null)
   const message = store.updateCategory(item.id, {
     name: draft.name,
     enabled: draft.enabled,
-    sort: parentChanged ? 9999 : item.sort,
-    parentId: draft.parentId || null,
+    sort: item.sort,
+    parentId: item.parentId,
     icon: item.icon,
   })
   if (message) {
@@ -414,29 +503,71 @@ function saveEdit() {
   editOpen.value = false
   ElMessage.success('已保存')
 }
+function moveTargetBlocked(id: string | null) {
+  if (!id) return ''
+  if (id === moveId.value) return '不能移动到自己下面'
+  if (descendantIds(store.data.categories, moveId.value).includes(id)) return '不能移动到自己的子分类下面'
+  return blockChildOfTypedCategory(id, new Set(store.data.productTypes.map((item) => item.categoryId)))
+}
 function openMove(id: string) {
+  if (!editing.value) return
   const item = store.data.categories.find((row) => row.id === id)
   if (!item) return
   moveId.value = id
   moveParent.value = item.parentId || ''
+  moveExpanded.value = new Set(ancestorIds(id))
+  moveClosed.value = new Set()
   moveOpen.value = true
 }
+function closeMove() {
+  moveOpen.value = false
+}
+function toggleMove(id: string) {
+  const row = moveRows.value.find((item) => item.id === id)
+  if (!row?.hasChildren) return
+  const nextExpanded = new Set(moveExpanded.value)
+  const nextClosed = new Set(moveClosed.value)
+  if (row.expanded) {
+    nextExpanded.delete(id)
+    nextClosed.add(id)
+  } else {
+    nextExpanded.add(id)
+    nextClosed.delete(id)
+  }
+  moveExpanded.value = nextExpanded
+  moveClosed.value = nextClosed
+}
+function pickMoveTarget(id: string | null) {
+  const message = id ? moveTargetBlocked(id) : ''
+  if (message) {
+    ElMessage.warning(message)
+    return
+  }
+  moveParent.value = id || ''
+}
 function confirmMove() {
+  if (!editing.value) return
   const item = store.data.categories.find((row) => row.id === moveId.value)
   if (!item) return
+  const blocked = moveTargetBlocked(moveParent.value || null)
+  if (blocked) {
+    ElMessage.warning(blocked)
+    return
+  }
   if ((item.parentId || '') === (moveParent.value || '')) {
-    moveOpen.value = false
+    closeMove()
     return
   }
   const message = store.moveCategory(item.id, moveParent.value || null)
   if (message) ElMessage.warning(message)
   else {
     reveal(item.id)
-    moveOpen.value = false
+    closeMove()
     ElMessage.success('已移动分类')
   }
 }
 async function copyNode(id: string) {
+  if (!editing.value) return
   const item = store.data.categories.find((row) => row.id === id)
   if (!item) return
   try {
@@ -458,21 +589,13 @@ function openProduct(id: string) {
 }
 function openProducts() {
   if (!current.value) return
-  const query = store.data.listQuery
-  query.keyword = ''
-  query.categoryId = current.value.id
-  query.brand = ''
-  query.status = ''
-  query.templateId = ''
-  query.productGroupId = ''
-  query.attrFilters = {}
-  query.createdFrom = ''
-  query.createdTo = ''
-  query.shelf = ''
-  query.page = 1
+  applyPresetToActiveView(store.data, {
+    query: { ...store.data.listQuery, keyword: '', categoryId: current.value.id, brand: '', status: '', templateId: '', productGroupId: '', attrFilters: {}, createdFrom: '', createdTo: '', shelf: '', page: 1 },
+  })
   router.push('/products')
 }
 async function remove(id: string) {
+  if (!editing.value) return
   const block = store.categoryRemovalBlock(id)
   if (block) {
     const owned = store.data.families.filter((item) => item.categoryId === id)
@@ -519,7 +642,7 @@ function onDragStart(row: CategoryRow, event: DragEvent) {
     return
   }
   const target = event.target as HTMLElement | null
-  if (target?.closest('button')) {
+  if (target?.closest('button, input')) {
     event.preventDefault()
     return
   }
@@ -566,11 +689,24 @@ function onDragEnd() {
 
 <style scoped>
 .cat-layout { display: grid; grid-template-columns: calc(40% - 7px) calc(60% - 7px); gap: 14px; align-items: start; }
+.cat-layout.is-moving { grid-template-columns: minmax(280px, 1.15fr) minmax(260px, 0.9fr) minmax(280px, 1fr); }
 .cat-tree-panel { min-height: 640px; }
+.cat-move-panel { min-height: 640px; }
+.cat-move-panel h2 { font-size: 18px; }
+.move-line { display: flex; gap: 12px; margin: 8px 0; font-size: 14px; line-height: 22px; }
+.move-line span { width: 64px; flex: none; color: #66788a; }
+.move-root, .move-name { border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.move-root { display: block; margin: 8px 0; padding: 6px 8px; border-radius: 6px; }
+.move-root.is-on, .cat-row.is-target { background: #e8f3ff; }
+.cat-row.is-source .move-name { font-weight: 650; }
+.cat-row.is-ban .move-name { color: #98a2b3; cursor: not-allowed; }
+.move-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-move-scroll { max-height: calc(100vh - 360px); }
 .cat-detail { padding-bottom: 16px; }
 .cat-detail h2 { font-size: 20px; }
-.cat-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-.cat-toolbar .el-input { flex: 1 1 160px; }
+.cat-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.cat-toolbar-ops { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cat-search { width: 220px; flex: none; }
 .cat-scroll { margin-top: 10px; max-height: calc(100vh - 230px); overflow: auto; border: 1px solid #e6edf5; border-radius: 8px; background: #fbfcfe; position: relative; }
 .cat-row { position: relative; display: flex; align-items: center; gap: 6px; min-height: 36px; padding-right: 8px; border-bottom: 1px solid #f0f3f8; cursor: default; }
 .cat-row.is-editing { cursor: grab; }
@@ -586,6 +722,7 @@ function onDragEnd() {
 .cat-icon { color: #5b8def; flex: none; }
 .cat-emoji { width: 16px; text-align: center; flex: none; }
 .cat-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.cat-rename { flex: 1; min-width: 0; height: 26px; border: 1px solid #409eff; border-radius: 4px; padding: 0 6px; font-size: 14px; background: #fff; }
 .cat-row.is-editing .cat-name { cursor: pointer; }
 .cat-hit { background: #ffe58f; border-radius: 2px; }
 .cat-off-tag { flex: none; font-size: 12px; line-height: 18px; color: #8a94a6; background: #f2f4f7; border-radius: 4px; padding: 0 6px; }
@@ -604,6 +741,7 @@ function onDragEnd() {
 .card-links { display: flex; gap: 12px; margin-top: 4px; }
 .cat-detail .row-actions { margin-top: 14px; }
 @media (max-width: 1100px) {
-  .cat-layout { grid-template-columns: 1fr; }
+  .cat-layout, .cat-layout.is-moving { grid-template-columns: 1fr; }
+  .cat-search { width: 100%; }
 }
 </style>

@@ -42,6 +42,8 @@
         <p v-if="active.manualAttrs?.some((item) => item.source === 'manual')" class="muted">手工填写的值只属于这条物料，不会改成词典取值，也不会写进商品模型。</p>
         <h3>物料</h3>
         <label>物料名称<span class="req">必填</span><el-input v-model="draft.skuName" /></label>
+        <p v-if="active.nameSource" class="muted">名称来源：{{ active.nameSource === 'manual' ? '手工修改' : '建档时按规则带入' }}。当前显示的是已保存名称。</p>
+        <p v-if="active.suggestedName" class="muted">建档时的建议名称：{{ active.suggestedName }}</p>
         <label>物料描述<el-input v-model="draft.materialDescription" type="textarea" :rows="3" /></label>
         <h3>系统编码</h3>
         <label>系统物料编号
@@ -80,7 +82,7 @@ import { ElMessage } from 'element-plus'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { catalogRole, hostLabel, linksOfSku, listHostModels, roleOfType } from '../domain/compatibility'
-import { categoryPath, latestPublishedVersion, modelVersionById, shelfOf, shelfText, specCanvasOf } from '../domain/logic'
+import { categoryPath, modelVersionById, shelfOf, shelfText, specCanvasOf } from '../domain/logic'
 import { suggestMaterialName } from '../domain/naming'
 import type { Sku } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
@@ -165,24 +167,24 @@ function versionName(id?: string) {
 function regenerate() {
   if (!active.value || !family.value) return
   const model = family.value.productModelId || family.value.templateId
-  const version = latestPublishedVersion(store.data, model)
   const record = store.data.planningRecords.find((item) => item.planningId === active.value?.planningId)
-  if (!version || !record) {
-    errorText.value = '当前没有已发布的命名规则。'
+  const versionId = active.value.modelVersionId || record?.modelVersionId || ''
+  if (!versionId || !record) {
+    errorText.value = '这条物料没有可追溯的已发布版本。'
     return
   }
   const suggestion = suggestMaterialName(store.data, {
     productModelId: model,
-    modelVersionId: version.id,
+    modelVersionId: versionId,
     productTypeName: store.data.productTypes.find((item) => item.id === family.value?.productTypeId)?.name || '',
     steps: record.steps.map((step) => ({ valueNodeId: step.valueNodeId, attributeId: step.attributeId, valueId: step.valueId })),
   })
-  if (suggestion.status === 'conflict') {
+  if (suggestion.canAuto === false) {
     errorText.value = suggestion.message
     return
   }
   draft.skuName = suggestion.name
-  errorText.value = `按当前已发布规则，名称会改成「${suggestion.name}」。保存后才会写入。`
+  errorText.value = `按建档时的发布版本，名称会改成「${suggestion.name}」。保存后才会写入。`
 }
 async function copyMaterialCode() {
   const code = active.value?.materialCode?.trim()

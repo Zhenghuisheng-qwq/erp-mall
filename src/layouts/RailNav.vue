@@ -1,6 +1,6 @@
 <template>
-  <div ref="wrapRef" class="rail-wrap" @mouseenter="cancelClose" @mouseleave="scheduleClose" @focusout="onFocusOut" @keydown="onWrapKeydown">
-    <aside ref="railRef" class="rail" aria-label="主导航">
+  <div ref="wrapRef" class="rail-wrap" :data-mode="mode" @mouseenter="cancelClose" @mouseleave="scheduleClose" @focusout="onFocusOut" @keydown="onWrapKeydown">
+    <aside v-if="mode !== 'single'" ref="railRef" class="rail" :class="{ 'is-icons': mode === 'icons' }" aria-label="主导航">
       <div class="rail-brand" title="商品配置">
         <span class="brand-mark">商</span>
       </div>
@@ -12,6 +12,8 @@
           class="rail-btn"
           :class="{ 'is-current': currentGroup === group.key, 'is-open': shownKey === group.key }"
           :data-group="group.key"
+          :title="group.title"
+          :aria-label="group.title"
           :aria-expanded="shownKey === group.key"
           :aria-controls="shownGroup ? 'nav-flyout' : undefined"
           @mouseenter="onRailEnter(group.key, $event)"
@@ -23,14 +25,16 @@
           <span>{{ group.title }}</span>
         </button>
       </div>
+      <button type="button" class="rail-mode" :aria-label="modeButtonLabel" @click="cycleMode">{{ modeButtonText }}</button>
+      <button v-if="mode === 'dual' && !menuOpen" type="button" class="rail-mode" @click="menuOpen = true">展开菜单</button>
     </aside>
     <div
       v-if="shownGroup"
       id="nav-flyout"
       ref="flyoutRef"
-      class="flyout is-pop"
-      :class="{ 'is-grid': flyoutLayout.mode === 'grid' }"
-      :style="popStyle"
+      class="flyout"
+      :class="{ 'is-pop': popped, 'is-dock': !popped, 'is-grid': flyoutLayout.mode === 'grid' }"
+      :style="popped ? popStyle : undefined"
       role="navigation"
       :aria-label="shownGroup.title"
       @mouseenter="cancelClose"
@@ -38,7 +42,21 @@
     >
       <header class="flyout-head">
         <strong>{{ shownGroup.title }}</strong>
+        <button type="button" class="nav-text-btn" @click="togglePin">{{ pinned ? '取消固定' : '固定' }}</button>
+        <button v-if="mode === 'dual'" type="button" class="nav-text-btn" @click="menuOpen = false">收起</button>
+        <button v-if="mode === 'single'" type="button" class="nav-text-btn" @click="setMode('dual')">双栏</button>
+        <button v-if="mode === 'single'" type="button" class="nav-text-btn" @click="setMode('icons')">图标</button>
       </header>
+      <div v-if="mode === 'single'" class="center-switch">
+        <button
+          v-for="group in groups"
+          :key="group.key"
+          type="button"
+          class="center-btn"
+          :class="{ 'is-current': shownKey === group.key }"
+          @click="showCenter(group.key)"
+        >{{ group.title }}</button>
+      </div>
       <div class="flyout-body" :class="flyoutLayout.mode === 'grid' ? 'is-grid' : 'is-single'">
         <template v-if="flyoutLayout.mode === 'grid'">
           <a
@@ -118,17 +136,47 @@ const props = defineProps<{
   currentGroup: string
 }>()
 
+type NavMode = 'dual' | 'single' | 'icons'
+const NAV_KEY = 'iyge-nav-layout'
+
+function readNav() {
+  const fallback = { mode: 'dual' as NavMode, pinned: false, menuOpen: true }
+  try {
+    const raw = localStorage.getItem(NAV_KEY)
+    if (!raw) return fallback
+    const parsed = JSON.parse(raw) as { mode?: string; pinned?: boolean; menuOpen?: boolean }
+    const mode: NavMode = parsed.mode === 'single' || parsed.mode === 'icons' ? parsed.mode : 'dual'
+    return { mode, pinned: Boolean(parsed.pinned), menuOpen: parsed.menuOpen !== false }
+  } catch {
+    return fallback
+  }
+}
+
+const saved = readNav()
 const router = useRouter()
 const wrapRef = ref<HTMLElement>()
 const railRef = ref<HTMLElement>()
 const flyoutRef = ref<HTMLElement>()
+const mode = ref<NavMode>(saved.mode)
+const pinned = ref(saved.pinned)
+const menuOpen = ref(saved.menuOpen)
 const hoverKey = ref('')
 const heldKey = ref('')
+const browseKey = ref('')
 const flyoutTop = ref(8)
 const popLeft = ref(96)
 let closeTimer = 0
 
-const shownKey = computed(() => hoverKey.value || heldKey.value)
+const popped = computed(() => mode.value === 'icons' || (mode.value === 'dual' && !menuOpen.value))
+const shownKey = computed(() => {
+  if (hoverKey.value) return hoverKey.value
+  if (pinned.value && heldKey.value) return heldKey.value
+  if (mode.value === 'single') return browseKey.value || props.currentGroup
+  if (mode.value === 'dual' && menuOpen.value) return props.currentGroup
+  return ''
+})
+const modeButtonText = computed(() => (mode.value === 'icons' ? '双栏' : '单栏'))
+const modeButtonLabel = computed(() => (mode.value === 'icons' ? '恢复双栏' : '切换为单栏'))
 const shownGroup = computed(() => props.groups.find((group) => group.key === shownKey.value) || null)
 const SLOT: Record<string, { column: number; row: number }> = {
   manage: { column: 1, row: 1 },
@@ -141,7 +189,9 @@ const flyoutLayout = computed(() => {
   const sections = (group?.sections || []).filter((section) => section.items.length)
   const slotted = sections.filter((section) => SLOT[section.key])
   const extra = sections.filter((section) => !SLOT[section.key])
-  if (slotted.length < 2) return { mode: 'single' as const, shortcuts: [] as Leaf[], loose: group?.items || [], sections: [...slotted, ...extra] }
+  const slotOrder = ['manage', 'model', 'operate', 'analysis'].filter((key) => slotted.some((section) => section.key === key)).join('|')
+  const actualOrder = slotted.map((section) => section.key).join('|')
+  if (slotted.length < 2 || actualOrder !== slotOrder) return { mode: 'single' as const, shortcuts: [] as Leaf[], loose: group?.items || [], sections }
   return { mode: 'grid' as const, shortcuts: group?.items || [], loose: [] as Leaf[], sections: [...slotted, ...extra] }
 })
 function slotStyle(key: string) {
@@ -168,6 +218,41 @@ function scheduleClose() {
     hoverKey.value = ''
   }, 180)
 }
+function persist() {
+  localStorage.setItem(NAV_KEY, JSON.stringify({ mode: mode.value, pinned: pinned.value, menuOpen: menuOpen.value }))
+}
+function groupKeyOf(index: string) {
+  return props.groups.find((group) => group.items.some((item) => item.index === index) || group.sections.some((section) => section.items.some((item) => item.index === index)))?.key || ''
+}
+function setMode(next: NavMode) {
+  mode.value = next
+  hoverKey.value = ''
+  browseKey.value = ''
+  if (next === 'dual') menuOpen.value = true
+  if (next === 'single' && pinned.value) heldKey.value = heldKey.value || props.currentGroup
+  persist()
+}
+function cycleMode() {
+  setMode(mode.value === 'dual' ? 'single' : 'dual')
+}
+function showCenter(key: string) {
+  browseKey.value = key
+  hoverKey.value = ''
+  if (pinned.value) heldKey.value = key
+}
+function togglePin() {
+  const key = shownKey.value || props.currentGroup
+  if (!key) return
+  if (pinned.value && heldKey.value === key) {
+    pinned.value = false
+    heldKey.value = ''
+  } else {
+    pinned.value = true
+    heldKey.value = key
+    hoverKey.value = ''
+  }
+  persist()
+}
 function placePop(target: EventTarget | null) {
   const button = target as HTMLElement | null
   const rail = railRef.value
@@ -190,27 +275,40 @@ function onRailEnter(key: string, event: MouseEvent | FocusEvent) {
 }
 function onRailClick(key: string) {
   cancelClose()
-  if (heldKey.value === key) {
+  if (pinned.value && heldKey.value === key) {
+    pinned.value = false
     heldKey.value = ''
     hoverKey.value = ''
+    persist()
     return
   }
+  pinned.value = true
   heldKey.value = key
   hoverKey.value = ''
+  persist()
 }
 function hrefOf(index: string) {
   return router.resolve(index).href
 }
 function closePanel() {
+  pinned.value = false
   heldKey.value = ''
   hoverKey.value = ''
+  browseKey.value = ''
+  persist()
 }
 function go(event: MouseEvent, index: string) {
   if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
   event.preventDefault()
   const target = router.resolve(index)
   if (target.fullPath !== router.currentRoute.value.fullPath) void router.push(target)
-  closePanel()
+  hoverKey.value = ''
+  browseKey.value = ''
+  if (pinned.value) {
+    heldKey.value = groupKeyOf(index) || heldKey.value
+    return
+  }
+  heldKey.value = ''
 }
 function onRailKeydown(event: KeyboardEvent, index: number) {
   const target = event.target as HTMLElement | null
@@ -244,9 +342,11 @@ function onWrapKeydown(event: KeyboardEvent) {
   closePanel()
 }
 function onFocusOut(event: FocusEvent) {
+  if (!popped.value || pinned.value) return
   const next = event.relatedTarget as Node | null
   if (next && wrapRef.value?.contains(next)) return
-  closePanel()
+  hoverKey.value = ''
+  heldKey.value = ''
 }
 function isTypingTarget(target: EventTarget | null) {
   const node = target as HTMLElement | null
@@ -267,11 +367,20 @@ function onDocKeydown(event: KeyboardEvent) {
   if (wrapRef.value?.contains(event.target as Node)) return
   closePanel()
 }
+watch([mode, pinned, menuOpen], persist)
+watch(
+  () => props.currentGroup,
+  (group) => {
+    if (pinned.value && group && !heldKey.value) heldKey.value = group
+  },
+  { immediate: true },
+)
 watch(
   () => props.groups.map((group) => group.key).join('|'),
   () => {
     if (hoverKey.value && !props.groups.some((group) => group.key === hoverKey.value)) hoverKey.value = ''
     if (heldKey.value && !props.groups.some((group) => group.key === heldKey.value)) heldKey.value = ''
+    if (browseKey.value && !props.groups.some((group) => group.key === browseKey.value)) browseKey.value = ''
   },
 )
 
@@ -289,6 +398,13 @@ onBeforeUnmount(() => {
 <style scoped>
 .rail-wrap { display: flex; flex: none; height: 100%; min-height: 0; position: relative; z-index: 20; }
 .rail { width: 96px; flex: none; height: 100%; background: var(--nav-bg); color: var(--nav-text); display: flex; flex-direction: column; }
+.rail.is-icons { width: 56px; }
+.rail.is-icons .rail-btn { min-height: 48px; gap: 0; padding: 8px 0; }
+.rail.is-icons .rail-btn span { display: none; }
+.rail-mode, .nav-text-btn, .center-btn { border: 0; background: transparent; color: var(--nav-current-text); cursor: pointer; font-size: 12px; line-height: 1.2; }
+.rail-mode { margin: 4px 8px 10px; padding: 6px 0; border-radius: 6px; }
+.rail-mode:hover, .nav-text-btn:hover, .center-btn:hover { background: var(--nav-hover); }
+.rail.is-icons .rail-mode { margin: 4px; color: var(--nav-text); }
 .rail-brand { height: 56px; flex: none; display: flex; align-items: center; justify-content: center; background: var(--nav-bg-deep); }
 .rail-scroll { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; padding: 6px 0 12px; }
 .rail-scroll::-webkit-scrollbar { width: 0; }
@@ -325,7 +441,13 @@ onBeforeUnmount(() => {
   border-radius: 0 10px 10px 0;
   box-shadow: var(--shadow-pop);
 }
-.flyout-head { flex: none; padding: 14px 16px 8px; }
+.flyout.is-dock { position: relative; height: 100%; width: 240px; flex: none; border-right: 1px solid var(--flyout-border); }
+.flyout.is-dock.is-grid { width: max-content; max-width: min(22rem, 42vw); }
+.flyout-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 14px 12px 8px; }
+.nav-text-btn { flex: none; padding: 4px 6px; border-radius: 6px; color: var(--app-accent); }
+.center-switch { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 12px 8px; }
+.center-btn { padding: 4px 8px; border-radius: 6px; color: var(--flyout-text); }
+.center-btn.is-current { background: var(--flyout-current-bg); color: var(--flyout-current-text); }
 .flyout-head strong { font-size: 15px; font-weight: 700; color: var(--text-primary); }
 .flyout-link:focus-visible, .flyout-shortcut:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 1px; }
 .flyout-body { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 16px; }

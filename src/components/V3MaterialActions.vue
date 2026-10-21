@@ -25,8 +25,9 @@
         </el-radio-group>
         <p v-else-if="existingName">将记在商品「{{ existingName }}」下面。规格不用再填。</p>
         <p v-else>将新建商品「{{ preview.productName }}」。规格不用再填。</p>
+        <p v-if="namingSource" class="meta">{{ namingSource }}</p>
         <p v-if="namingMessage" class="warn">{{ namingMessage }}</p>
-        <label class="name-label">物料名称<el-input v-model="nameDraft" /></label>
+        <label class="name-label">物料名称<el-input v-model="nameDraft" :placeholder="namingMessage ? '请手工填写物料名称' : ''" /></label>
         <label class="name-label">物料描述<el-input v-model="descDraft" type="textarea" :rows="2" /></label>
         <label class="name-label">供应商编码<el-input v-model="supplierDraft" clearable placeholder="可留空" /></label>
         <p class="meta">规格已经选好，不用再填。系统物料编号确认后自动分配，不能手改。</p>
@@ -45,8 +46,10 @@
       <ul v-else class="materials">
         <li v-for="item in filtered" :key="item.id">
           <div>
-            <strong>{{ item.materialCode }}</strong>
-            <span>{{ item.skuName }} · {{ item.status === 'on_sale' ? '在售' : item.status === 'off_sale' ? '停售' : '草稿' }}</span>
+            <strong>{{ item.materialCode?.trim() || '未分配物料编号' }}</strong>
+            <span>{{ item.skuName?.trim() || '未填写物料名称' }} · {{ item.status === 'on_sale' ? '在售' : item.status === 'off_sale' ? '停售' : '草稿' }}</span>
+            <em v-if="item.nameSource === 'manual'">手工修改</em>
+            <em v-else-if="item.nameSource === 'auto'">规则带入</em>
             <em v-if="item.materialDescription">{{ item.materialDescription }}</em>
           </div>
           <button type="button" class="linkish" @click="openMaterial(item)">打开</button>
@@ -75,6 +78,7 @@ const props = defineProps<{
   bare?: boolean
   openCreateTick?: number
   openListTick?: number
+  matchVersion?: boolean
 }>()
 
 const store = useCatalogStore()
@@ -90,6 +94,7 @@ const lastCode = ref('')
 const keyword = ref('')
 const nameDraft = ref('')
 const namingMessage = ref('')
+const namingSource = ref('')
 const descDraft = ref('')
 const supplierDraft = ref('')
 const planRecord = computed(() => store.data.planningRecords.find((item) => item.planningId === props.planningId))
@@ -102,7 +107,12 @@ const resolved = computed(() => {
 })
 const preview = computed(() => (resolved.value && resolved.value.ok ? resolved.value.spec : null))
 const previewMessage = computed(() => (resolved.value && !resolved.value.ok ? resolved.value.message : ''))
-const count = computed(() => store.data.skus.filter((item) => item.planningId === props.planningId).length)
+function listedMaterial(item: { planningId?: string; modelVersionId?: string }) {
+  if (item.planningId !== props.planningId) return false
+  if (!props.matchVersion) return true
+  return (item.modelVersionId || '') === props.modelVersionId
+}
+const count = computed(() => store.data.skus.filter((item) => listedMaterial(item)).length)
 const existingName = computed(() => {
   if (!preview.value) return ''
   const found = familyChoicesFor(store.data, {
@@ -113,7 +123,7 @@ const existingName = computed(() => {
   })
   return found.length === 1 ? found[0].name : ''
 })
-const materials = computed(() => store.data.skus.filter((item) => item.planningId === props.planningId))
+const materials = computed(() => store.data.skus.filter((item) => listedMaterial(item)))
 const codeText = computed(() => materials.value.map((item) => item.materialCode).filter(Boolean).join('、'))
 const filtered = computed(() => {
   const text = keyword.value.trim()
@@ -130,8 +140,9 @@ function suggestionName() {
     productTypeName: typeName,
     steps: record.steps.map((step) => ({ valueNodeId: step.valueNodeId, attributeId: step.attributeId, valueId: step.valueId })),
   }) : null
-  namingMessage.value = suggestion?.status === 'conflict' ? suggestion.message : ''
-  return suggestion?.name || ''
+  namingMessage.value = suggestion?.canAuto === false ? suggestion.message : ''
+  namingSource.value = suggestion?.canAuto !== false && suggestion?.nodeLabel ? `建议名称来自已发布版本里的节点「${suggestion.nodeLabel}」。` : ''
+  return suggestion?.canAuto === false ? '' : (suggestion?.name || '')
 }
 function openCreate() {
   if (!props.planningId || props.retired) return
@@ -202,7 +213,8 @@ function openMaterial(item: { familyId: string; id: string }) {
 .materials { margin: 12px 0 0; padding: 0; list-style: none; max-height: 320px; overflow: auto; }
 .materials li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #eef2f6; }
 .materials strong { display: block; }
-.materials span { color: #607089; font-size: 13px; }
+.materials span, .materials em { color: #607089; font-size: 13px; font-style: normal; }
+.materials em { display: block; }
 .linkish { border: 0; background: none; color: #1677ff; cursor: pointer; padding: 0; }
 .name-label { display: block; margin-top: 8px; color: #303133; }
 </style>

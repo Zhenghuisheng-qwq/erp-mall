@@ -27,7 +27,11 @@
     </div>
     <el-drawer v-model="open" :title="editing?.name || '参数'" size="480px">
       <template v-if="editing">
-        <el-input v-model="editing.name" style="margin-bottom: 8px" />
+        <div class="filters">
+          <el-input v-model="nameDraft" placeholder="属性名称" style="width: 220px" />
+          <el-button type="primary" @click="saveName">保存名称</el-button>
+        </div>
+        <p v-if="renameHint" class="rename-hint">{{ renameHint }}</p>
         <div class="filters">
           <el-input v-model="valueKeyword" placeholder="搜索取值" style="width: 180px" />
           <el-input v-model="newValue" placeholder="新取值" style="width: 140px" @keyup.enter="addValue" />
@@ -51,18 +55,24 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage } from 'element-plus'
-import { computed, ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { computed, ref, watch } from 'vue'
 import PageHead from '../components/PageHead.vue'
+import { attributeRenameDecision } from '../domain/dictionaryGuard'
 import { uid, useCatalogStore } from '../stores/catalog'
 
 const store = useCatalogStore()
 const keyword = ref('')
+const nameDraft = ref('')
 const valueKeyword = ref('')
 const newValue = ref('')
 const open = ref(false)
 const editingId = ref('p-brand')
 const editing = computed(() => store.data.params.find((item) => item.id === editingId.value))
+const renameHint = computed(() => (editing.value ? attributeRenameDecision(store.data, editing.value.id, nameDraft.value.trim() || `${editing.value.name}新名`).message : ''))
+watch(editing, (param) => {
+  nameDraft.value = param?.name || ''
+}, { immediate: true })
 const rows = computed(() => store.data.params.filter((item) => !keyword.value || item.name.includes(keyword.value) || item.values.some((value) => value.includes(keyword.value))))
 const shownValues = computed(() => editing.value?.values.filter((item) => !valueKeyword.value || item.includes(valueKeyword.value)) ?? [])
 
@@ -72,7 +82,26 @@ function usedTemplates(id: string) {
 }
 function edit(id: string) {
   editingId.value = id
+  nameDraft.value = store.data.params.find((item) => item.id === id)?.name || ''
   open.value = true
+}
+async function saveName() {
+  if (!editing.value) return
+  const decision = attributeRenameDecision(store.data, editing.value.id, nameDraft.value)
+  if (!decision.ok) {
+    ElMessage.warning(decision.message)
+    return
+  }
+  if (decision.needsConfirm) {
+    try {
+      await ElMessageBox.confirm(decision.message, '编辑全局词典')
+    } catch {
+      return
+    }
+  }
+  if (!decision.needsConfirm && editing.value.name === nameDraft.value.trim()) return
+  editing.value.name = nameDraft.value.trim()
+  ElMessage.success('已修改全局属性名称。节点引用和已发布快照没有改写。')
 }
 function openBrand() {
   edit('p-brand')

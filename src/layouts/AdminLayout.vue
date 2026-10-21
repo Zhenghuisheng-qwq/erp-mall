@@ -7,6 +7,7 @@
           <div class="crumb">{{ title }}</div>
         </div>
         <div class="row-actions">
+          <PageAssist :path="route.path" :query-panel="route.query.panel" />
           <el-select :model-value="store.data.activeRole" size="small" style="width: 130px" @change="onRole">
             <el-option label="身份：管理员" value="admin" />
             <el-option label="身份：运营" value="operator" />
@@ -42,88 +43,14 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, markRaw, ref } from 'vue'
 import type { Component } from 'vue'
 import { useRoute } from 'vue-router'
+import { canAccessLocation, menuRevision, railModel } from '../domain/menuConfig'
 import { useCatalogStore } from '../stores/catalog'
 import type { UserRole } from '../domain/types'
+import PageAssist from '../components/PageAssist.vue'
 import RailNav from './RailNav.vue'
 import { applyTheme, readTheme, type AppTheme } from '../theme'
 
-type MenuLeaf = { index: string; title: string; admin?: boolean }
-type MenuSection = { key: string; title: string; admin?: boolean; items: MenuLeaf[] }
-type MenuGroup = { key: string; title: string; icon: Component; admin?: boolean; items: MenuLeaf[]; sections: MenuSection[] }
-
-const MENU: MenuGroup[] = [
-  {
-    key: 'product',
-    title: '商品中心',
-    icon: markRaw(Goods),
-    items: [{ index: '/', title: '商品工作台' }],
-    sections: [
-      {
-        key: 'manage',
-        title: '商品管理',
-        items: [
-          { index: '/products', title: '商品列表' },
-          { index: '/compatibility', title: '适用关系' },
-          { index: '/categories', title: '商品分类中心' },
-          { index: '/product-types', title: '产品类型' },
-        ],
-      },
-      {
-        key: 'model',
-        title: '商品模型配置',
-        admin: true,
-        items: [
-          { index: '/templates', title: '属性方案', admin: true },
-          { index: '/models', title: '商品模型' },
-          { index: '/specs', title: '商品模型设计' },
-          { index: '/params', title: '属性词典' },
-          { index: '/rules', title: '规格约束', admin: true },
-        ],
-      },
-      {
-        key: 'operate',
-        title: '商品运营',
-        items: [
-          { index: '/brands', title: '品牌中心' },
-          { index: '/groups', title: '运营分组' },
-        ],
-      },
-      {
-        key: 'analysis',
-        title: '商品分析',
-        items: [
-          { index: '/overview', title: '商品总览' },
-          { index: '/check', title: '商品质量检查' },
-        ],
-      },
-    ],
-  },
-  {
-    key: 'tools',
-    title: '开发工具',
-    icon: markRaw(SetUp),
-    admin: true,
-    items: [
-      { index: '/tree', title: '商品结构视图' },
-      { index: '/plans', title: '商品规划（旧）' },
-      { index: '/import', title: '商品导入导出' },
-      { index: '/products?panel=columns', title: '列配置与视图' },
-    ],
-    sections: [],
-  },
-  {
-    key: 'system',
-    title: '系统管理',
-    icon: markRaw(Setting),
-    admin: true,
-    items: [
-      { index: '/users', title: '用户管理', admin: true },
-      { index: '/feedback', title: '反馈管理' },
-      { index: '/account', title: '账号设置' },
-    ],
-    sections: [],
-  },
-]
+const ICONS: Record<string, Component> = { product: Goods, tools: SetUp, system: Setting }
 
 const store = useCatalogStore()
 const route = useRoute()
@@ -143,22 +70,13 @@ const active = computed(() => {
   return route.path || '/'
 })
 
-function canSee(admin?: boolean) {
-  return !admin || store.data.activeRole === 'admin'
-}
-
-const groups = computed(() =>
-  MENU.filter((group) => canSee(group.admin))
-    .map((group) => ({
-      ...group,
-      items: group.items.filter((item) => canSee(item.admin)),
-      sections: group.sections
-        .filter((section) => canSee(section.admin))
-        .map((section) => ({ ...section, items: section.items.filter((item) => canSee(item.admin)) }))
-        .filter((section) => section.items.length > 0),
-    }))
-    .filter((group) => group.items.length > 0 || group.sections.length > 0),
-)
+const groups = computed(() => {
+  menuRevision.value
+  return railModel(store.data.activeRole).map((group) => ({
+    ...group,
+    icon: markRaw(ICONS[group.key] || Setting),
+  }))
+})
 
 const currentPlace = computed(() => {
   const current = active.value
@@ -172,8 +90,9 @@ const currentPlace = computed(() => {
 })
 
 function onRole(value: string) {
-  store.setRole(value as UserRole)
-  if (value === 'operator' && route.meta.admin) location.assign('/')
+  const role = value as UserRole
+  store.setRole(role)
+  if ((route.meta.admin && role !== 'admin') || !canAccessLocation(role, route.path, { panel: route.query.panel })) location.assign('/')
 }
 
 const moduleOf = computed(() => {

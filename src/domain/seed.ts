@@ -1,4 +1,5 @@
 import { arrangeSpecPositions } from './logic'
+import { buildDefaultView } from './productListViews'
 import type { AppData, ColumnPref, ListQuery, ProductSpecNode, Sku } from './types'
 
 const now = '2026-05-10T03:53:00.000Z'
@@ -458,6 +459,9 @@ export function createSeed(): AppData {
     listViews: [{ id: 'view-all', name: '全部商品', query: listQuery, columns }],
     activeViewId: 'view-all',
     listQuery,
+    productListMode: 'spu',
+    productListViews: [buildDefaultView('spu', columns, now)],
+    activeProductListViewId: 'view-default',
   }
   appendEbikeDemo(data)
   ensureLeafProductTypes(data)

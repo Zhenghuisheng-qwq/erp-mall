@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { canAccessLocation } from '../domain/menuConfig'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import { useCatalogStore } from '../stores/catalog'
 
@@ -33,6 +34,7 @@ const router = createRouter({
         { path: 'users', name: 'users', component: () => import('../views/UserView.vue'), meta: { title: '用户管理', group: '系统管理', mode: 'advanced', admin: true } },
         { path: 'feedback', name: 'feedback', component: () => import('../views/FeedbackView.vue'), meta: { title: '反馈管理', group: '系统管理', mode: 'advanced' } },
         { path: 'account', name: 'account', component: () => import('../views/AccountView.vue'), meta: { title: '账号设置', group: '系统管理', mode: 'advanced' } },
+        { path: 'menus', name: 'menus', component: () => import('../views/MenuConfigView.vue'), meta: { title: '菜单配置', group: '系统管理', mode: 'advanced', admin: true } },
       ],
     },
   ],
@@ -40,7 +42,9 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const store = useCatalogStore()
-  if (to.meta.admin && store.data.activeRole !== 'admin') return '/'
+  const role = store.data.activeRole
+  if (to.meta.admin && role !== 'admin') return to.path === '/' ? true : '/'
+  if (!canAccessLocation(role, to.path, to.query) && to.path !== '/') return '/'
   return true
 })
 
