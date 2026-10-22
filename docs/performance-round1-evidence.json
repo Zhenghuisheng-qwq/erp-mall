@@ -1,0 +1,524 @@
+{
+  "result": "READY",
+  "baselineBranch": "20261019",
+  "baseline": "8721e572e3a2f9010bcd6a6a9f60489733d56904",
+  "environment": {
+    "node": "v22.18.0",
+    "platform": "win32",
+    "release": "10.0.26200",
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor            ",
+    "logicalCpus": 32,
+    "memoryGiB": 47.1
+  },
+  "method": {
+    "warmups": 2,
+    "repetitions": 7,
+    "alternatingOrder": true,
+    "manualGc": true,
+    "time": "2026-10-22T04:00:00.000Z",
+    "timing": "Uninstrumented Vite SSR modules; fixture creation and equality checks excluded; ms per call; median of 7 batch means"
+  },
+  "checks": [
+    "conditional branches × sibling attributes; explicit / scheme / default roles",
+    "COMMON scheme fallback; explicit node roles override conflicting scheme roles",
+    "ordered duplicate identities / duplicate PLN / retired recovery / temporary / global max",
+    "removed paths and retained history",
+    "restore original path after retirement",
+    "stable equal-sort ordering / display rename / first dictionary and binding wins",
+    "ATTRIBUTE → ATTRIBUTE chain and ancestor lookup",
+    "duplicate raw identity is deduplicated in first occurrence order",
+    "legacy duplicate node ID with per-path empty-value fallback",
+    "empty draft",
+    "invalid draft retains published count and blocks preview",
+    "seeded differential 1",
+    "seeded differential 2",
+    "seeded differential 3",
+    "seeded differential 4",
+    "seeded differential 5",
+    "seeded differential 6",
+    "seeded differential 7",
+    "seeded differential 8",
+    "seeded differential 9",
+    "seeded differential 10",
+    "seeded differential 11",
+    "seeded differential 12",
+    "seeded differential 13",
+    "seeded differential 14",
+    "seeded differential 15",
+    "seeded differential 16",
+    "seeded differential 17",
+    "seeded differential 18",
+    "seeded differential 19",
+    "seeded differential 20",
+    "seeded differential 21",
+    "seeded differential 22",
+    "seeded differential 23",
+    "seeded differential 24",
+    "seeded differential 25",
+    "seeded differential 26",
+    "seeded differential 27",
+    "seeded differential 28",
+    "seeded differential 29",
+    "seeded differential 30",
+    "seeded differential 31",
+    "seeded differential 32",
+    "seeded differential 33",
+    "seeded differential 34",
+    "seeded differential 35",
+    "seeded differential 36",
+    "seeded differential 37",
+    "seeded differential 38",
+    "seeded differential 39",
+    "seeded differential 40",
+    "seed V2 planSkuLines (1 plans)",
+    "editing the same input objects does not reuse stale cached data"
+  ],
+  "measured": [
+    {
+      "name": "small",
+      "dimensions": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "history": 32,
+      "batch": 20,
+      "nodes": 24,
+      "depth": 6,
+      "combinations": 16,
+      "operations": {
+        "combinations": {
+          "beforeMs": 0.07224500000000375,
+          "afterMs": 0.05723999999999592,
+          "runsMs": {
+            "before": [
+              0.07224500000000375,
+              0.06129999999999995,
+              0.07038499999999885,
+              0.08211000000000013,
+              0.07352999999999951,
+              0.08850999999999658,
+              0.06351000000000226
+            ],
+            "after": [
+              0.054674999999997455,
+              0.05766999999999598,
+              0.0754099999999994,
+              0.05118500000000381,
+              0.05723999999999592,
+              0.05455000000000041,
+              0.07392000000000394
+            ]
+          }
+        },
+        "preview": {
+          "beforeMs": 0.26900999999999725,
+          "afterMs": 0.15225000000000363,
+          "runsMs": {
+            "before": [
+              0.24969499999999697,
+              0.2897449999999992,
+              0.2766700000000014,
+              0.26900999999999725,
+              0.24882499999999935,
+              0.30505000000000565,
+              0.24853500000000395
+            ],
+            "after": [
+              0.15073000000000433,
+              0.15455499999999917,
+              0.1457400000000007,
+              0.15129499999999893,
+              0.19493499999999814,
+              0.15225000000000363,
+              0.2061900000000037
+            ]
+          }
+        },
+        "reconcile": {
+          "beforeMs": 0.10162000000000262,
+          "afterMs": 0.07641999999999598,
+          "runsMs": {
+            "before": [
+              0.1037900000000036,
+              0.11028499999999894,
+              0.09488000000000056,
+              0.09927500000000009,
+              0.10162000000000262,
+              0.09397500000000036,
+              0.10471000000000004
+            ],
+            "after": [
+              0.09517499999999472,
+              0.07641999999999598,
+              0.1410100000000057,
+              0.07164500000000089,
+              0.07655000000000882,
+              0.0723950000000059,
+              0.0753150000000005
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "medium",
+      "dimensions": [
+        6,
+        4,
+        4,
+        4
+      ],
+      "history": 1500,
+      "batch": 3,
+      "nodes": 162,
+      "depth": 6,
+      "combinations": 384,
+      "operations": {
+        "combinations": {
+          "beforeMs": 1.1503666666666656,
+          "afterMs": 0.7557000000000093,
+          "runsMs": {
+            "before": [
+              1.1583000000000538,
+              1.1958666666666886,
+              1.079466666666652,
+              1.117499999999988,
+              1.2065333333333303,
+              1.1503666666666656,
+              1.1391333333333478
+            ],
+            "after": [
+              0.817833333333283,
+              0.7211999999999534,
+              0.8621666666666291,
+              0.6763000000000071,
+              0.7560666666666597,
+              0.7320000000000467,
+              0.7557000000000093
+            ]
+          }
+        },
+        "preview": {
+          "beforeMs": 20.43243333333324,
+          "afterMs": 2.4229666666666767,
+          "runsMs": {
+            "before": [
+              20.541300000000017,
+              20.214999999999993,
+              21.011666666666695,
+              20.798166666666702,
+              20.43243333333324,
+              20.2814,
+              20.203566666666575
+            ],
+            "after": [
+              2.339933333333344,
+              2.6392999999999724,
+              2.5114000000000183,
+              2.35910000000005,
+              2.4229666666666767,
+              2.3461666666667043,
+              2.607433333333271
+            ]
+          }
+        },
+        "reconcile": {
+          "beforeMs": 17.001766666666754,
+          "afterMs": 1.7959666666667242,
+          "runsMs": {
+            "before": [
+              17.534099999999853,
+              16.921633333333222,
+              16.821300000000065,
+              17.001766666666754,
+              17.18259999999994,
+              16.889966666666623,
+              17.38203333333331
+            ],
+            "after": [
+              1.7684333333333295,
+              2.0051666666666583,
+              1.7735666666667385,
+              1.7959666666667242,
+              1.8863999999998668,
+              1.7892333333334136,
+              1.9782999999999145
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "large",
+      "dimensions": [
+        12,
+        6,
+        6,
+        8
+      ],
+      "history": 12000,
+      "batch": 1,
+      "nodes": 610,
+      "depth": 6,
+      "combinations": 3456,
+      "operations": {
+        "combinations": {
+          "beforeMs": 14.66319999999996,
+          "afterMs": 8.273599999999988,
+          "runsMs": {
+            "before": [
+              14.66319999999996,
+              16.39539999999988,
+              14.314300000000003,
+              17.59840000000031,
+              13.01339999999982,
+              15.57380000000012,
+              14.449499999999716
+            ],
+            "after": [
+              9.309799999999996,
+              6.346199999999953,
+              8.273599999999988,
+              6.7698999999997795,
+              9.347399999999652,
+              8.238100000000031,
+              9.240400000000136
+            ]
+          }
+        },
+        "preview": {
+          "beforeMs": 1264.3801000000003,
+          "afterMs": 32.83590000000004,
+          "runsMs": {
+            "before": [
+              1281.2776999999996,
+              1264.3801000000003,
+              1235.9277000000002,
+              1299.7266,
+              1196.2067000000006,
+              1213.101999999999,
+              1287.4225000000006
+            ],
+            "after": [
+              35.68000000000029,
+              26.881900000000314,
+              32.44390000000021,
+              32.264900000000125,
+              33.5091999999986,
+              34.02310000000034,
+              32.83590000000004
+            ]
+          }
+        },
+        "reconcile": {
+          "beforeMs": 1209.3543000000027,
+          "afterMs": 26.67290000000139,
+          "runsMs": {
+            "before": [
+              1298.8623000000007,
+              1160.8709000000017,
+              1194.3840999999993,
+              1336.8754000000008,
+              1209.3543000000027,
+              1153.9159,
+              1317.453300000001
+            ],
+            "after": [
+              30.127300000000105,
+              27.809799999999086,
+              25.141999999999825,
+              26.67290000000139,
+              24.16889999999694,
+              25.317699999999604,
+              29.488099999998667
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "counters": {
+    "before": {
+      "preview": {
+        "legalCalls": 3,
+        "draftLegalCalls": 2,
+        "reconcileCalls": 1,
+        "recordCopies": 1500,
+        "maxScans": 192,
+        "numberRecordsExamined": 306336,
+        "allocatedNumbers": 192,
+        "ancestorLookups": 4608,
+        "nodeIndexEntries": 0,
+        "childChecks": 79218,
+        "matchCandidates": 241152
+      },
+      "reconcile": {
+        "legalCalls": 1,
+        "draftLegalCalls": 1,
+        "reconcileCalls": 1,
+        "recordCopies": 1500,
+        "maxScans": 192,
+        "numberRecordsExamined": 306336,
+        "allocatedNumbers": 192,
+        "ancestorLookups": 1536,
+        "nodeIndexEntries": 0,
+        "childChecks": 26406,
+        "matchCandidates": 241152
+      }
+    },
+    "after": {
+      "preview": {
+        "legalCalls": 2,
+        "draftLegalCalls": 1,
+        "reconcileCalls": 0,
+        "recordCopies": 0,
+        "maxScans": 0,
+        "numberRecordsExamined": 0,
+        "allocatedNumbers": 0,
+        "ancestorLookups": 260,
+        "nodeIndexEntries": 324,
+        "childChecks": 324,
+        "matchCandidates": 192
+      },
+      "reconcile": {
+        "legalCalls": 1,
+        "draftLegalCalls": 1,
+        "reconcileCalls": 1,
+        "recordCopies": 1500,
+        "maxScans": 1,
+        "numberRecordsExamined": 1500,
+        "allocatedNumbers": 192,
+        "ancestorLookups": 130,
+        "nodeIndexEntries": 162,
+        "childChecks": 162,
+        "matchCandidates": 192
+      }
+    }
+  },
+  "existingChecks": [
+    {
+      "name": "planning",
+      "baseline": 18,
+      "after": 18,
+      "exitCode": 0
+    },
+    {
+      "name": "draft-combo",
+      "baseline": 10,
+      "after": 10,
+      "exitCode": 0
+    },
+    {
+      "name": "material",
+      "baseline": 12,
+      "after": 12,
+      "exitCode": 0
+    },
+    {
+      "name": "material-archive",
+      "baseline": 8,
+      "after": 8,
+      "exitCode": 0
+    },
+    {
+      "name": "consistency",
+      "baseline": 9,
+      "after": 9,
+      "exitCode": 0
+    },
+    {
+      "name": "combo-material-status",
+      "baseline": 42,
+      "after": 42,
+      "exitCode": 0
+    },
+    {
+      "name": "round1",
+      "baseline": 24,
+      "after": 24,
+      "exitCode": 0
+    },
+    {
+      "name": "round2",
+      "baseline": 6,
+      "after": 6,
+      "exitCode": 0
+    },
+    {
+      "name": "round3",
+      "baseline": 16,
+      "after": 16,
+      "exitCode": 0
+    },
+    {
+      "name": "round5",
+      "baseline": 27,
+      "after": 27,
+      "exitCode": 0
+    },
+    {
+      "name": "naming",
+      "baseline": 24,
+      "after": 24,
+      "exitCode": 0
+    },
+    {
+      "name": "grade",
+      "baseline": 13,
+      "after": 13,
+      "exitCode": 0
+    },
+    {
+      "name": "compatibility",
+      "baseline": 15,
+      "after": 15,
+      "exitCode": 0
+    },
+    {
+      "name": "excel-import",
+      "baseline": 20,
+      "after": 20,
+      "exitCode": 0
+    }
+  ],
+  "verify": {
+    "baseline": "PASS",
+    "after": "PASS"
+  },
+  "build": {
+    "baseline": "PASS",
+    "after": "PASS",
+    "command": "npm run build (vue-tsc -b && vite build)"
+  },
+  "browser": {
+    "version": "155.0.8059.85",
+    "viewport": "1440x900",
+    "fixedTime": "2026-10-22T04:00:00.000Z",
+    "cases": [
+      "initial preview",
+      "publish alignment",
+      "conditional draft edit",
+      "preview counts",
+      "publish new version",
+      "PLN reuse and history",
+      "republish",
+      "reload",
+      "V2 new product page",
+      "before/after UI and full business-state equality"
+    ],
+    "passed": true
+  },
+  "originalFailures": [
+    {
+      "command": "node scripts/browser-smoke.mjs",
+      "exitCode": 1,
+      "reason": "Baseline times out waiting for obsolete .combo-toggle; current UI uses 管理合法组合. Old script unchanged."
+    }
+  ],
+  "sourceSha256": {
+    "src/domain/planning.ts": "ea66ba485e40afbf8c4b7e4f4aeca8c5e6b0149bc8d3dd15a12745fe5e043aad",
+    "src/domain/draftComboPreview.ts": "fc2961c5183a1495752e9e1531ff9100bd8f9b2b5475b5828e8b707a09dd18b2"
+  }
+}

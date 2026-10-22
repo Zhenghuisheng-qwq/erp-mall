@@ -23,3 +23,6 @@ backups
 *.njsproj
 *.sln
 *.sw?
+
+# Local fixtures, logs and screenshots from the planning performance checks
+/work/performance-round1/

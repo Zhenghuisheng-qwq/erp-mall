@@ -16,33 +16,37 @@ export function expandFilteredPaths(
   accepts: (attribute: ProductSpecNode) => boolean,
   labelOf: (attribute: ProductSpecNode) => string,
 ): FilteredPathStep[][] {
-  const attributes = nodes
-    .filter((item) => item.parentId === parentId && item.nodeType === 'ATTRIBUTE' && accepts(item))
-    .sort((a, b) => a.sort - b.sort)
-  let combos: FilteredPathStep[][] = [[]]
-  let grew = false
-  attributes.forEach((attribute) => {
-    const options = filteredOptions(nodes, attribute, accepts, labelOf)
-    if (!options.length) return
-    grew = true
-    combos = combos.flatMap((prefix) => options.map((option) => [...prefix, ...option]))
+  // 只在本次展开内索引；保留源数组顺序，让同 sort 的节点和 accepts 调用顺序不变。
+  const children = new Map<string | null, ProductSpecNode[]>()
+  nodes.forEach((node) => {
+    const siblings = children.get(node.parentId)
+    if (siblings) siblings.push(node)
+    else children.set(node.parentId, [node])
   })
-  return grew ? combos : [[]]
-}
-
-function filteredOptions(
-  nodes: ProductSpecNode[],
-  attribute: ProductSpecNode,
-  accepts: (attribute: ProductSpecNode) => boolean,
-  labelOf: (attribute: ProductSpecNode) => string,
-) {
-  const name = labelOf(attribute)
-  const values = nodes.filter((item) => item.parentId === attribute.id && item.nodeType === 'VALUE').sort((a, b) => a.sort - b.sort)
-  if (!values.length) return expandFilteredPaths(nodes, attribute.id, accepts, labelOf).filter((path) => path.length)
-  return values.flatMap((value) => {
-    const step = { name, value: value.valueId, nodeId: value.id }
-    return expandFilteredPaths(nodes, value.id, accepts, labelOf).map((path) => [step, ...path])
-  })
+  function expand(parentId: string | null): FilteredPathStep[][] {
+    const attributes = (children.get(parentId) || [])
+      .filter((item) => item.nodeType === 'ATTRIBUTE' && accepts(item))
+      .sort((a, b) => a.sort - b.sort)
+    let combos: FilteredPathStep[][] = [[]]
+    let grew = false
+    attributes.forEach((attribute) => {
+      const options = filteredOptions(attribute)
+      if (!options.length) return
+      grew = true
+      combos = combos.flatMap((prefix) => options.map((option) => [...prefix, ...option]))
+    })
+    return grew ? combos : [[]]
+  }
+  function filteredOptions(attribute: ProductSpecNode) {
+    const name = labelOf(attribute)
+    const values = (children.get(attribute.id) || []).filter((item) => item.nodeType === 'VALUE').sort((a, b) => a.sort - b.sort)
+    if (!values.length) return expand(attribute.id).filter((path) => path.length)
+    return values.flatMap((value) => {
+      const step = { name, value: value.valueId, nodeId: value.id }
+      return expand(value.id).map((path) => [step, ...path])
+    })
+  }
+  return expand(parentId)
 }
 
 /** 节点自己的角色优先。没有角色时才读取属性方案，不改方案数据。 */
@@ -50,8 +54,13 @@ export function planningAttributeRole(data: AppData, productModelId: string, att
   if (attribute.role === 'COMMON') return { role: 'common', source: 'node' }
   if (attribute.role === 'VARIANT') return { role: 'variant', source: 'node' }
   const bound = data.templateParams.find((item) => item.templateId === productModelId && item.paramId === attribute.attributeId)
-  if (bound?.role === 'common' || bound?.role === 'variant') return { role: bound.role, source: 'scheme' }
-  return { role: 'variant', source: 'scheme' }
+  return attributeRole(attribute, bound?.role)
+}
+
+function attributeRole(attribute: ProductSpecNode, schemeRole?: ParamRole): { role: ParamRole; source: PlanningRoleSource } {
+  if (attribute.role === 'COMMON') return { role: 'common', source: 'node' }
+  if (attribute.role === 'VARIANT') return { role: 'variant', source: 'node' }
+  return { role: schemeRole === 'common' ? 'common' : 'variant', source: 'scheme' }
 }
 
 /** 仍要靠属性方案才能知道角色的属性节点。只报告，不拦截计算。 */
@@ -69,10 +78,6 @@ export interface LegalCombination {
   steps: PlanningStep[]
   identityKey: string
   label: string
-}
-
-function attributeLabel(data: AppData, attribute: ProductSpecNode) {
-  return data.params.find((item) => item.id === attribute.attributeId)?.name || '规格'
 }
 
 function parentValueNodeId(byId: Map<string, ProductSpecNode>, valueNodeId: string) {
@@ -97,26 +102,46 @@ function treeOf(productModelId: string, nodes: ProductSpecNode[]) {
 export function legalPlanningCombinations(data: AppData, productModelId: string, nodes: ProductSpecNode[]): LegalCombination[] {
   const tree = treeOf(productModelId, nodes)
   const byId = new Map(tree.map((item) => [item.id, item]))
-  const raw = expandFilteredPaths(tree, null, () => true, (attribute) => attributeLabel(data, attribute))
+  const names = new Map<string, string>()
+  data.params.forEach((param) => {
+    if (!names.has(param.id)) names.set(param.id, param.name)
+  })
+  const schemeRoles = new Map<string, ParamRole>()
+  data.templateParams.forEach((binding) => {
+    if (binding.templateId === productModelId && !schemeRoles.has(binding.paramId)) schemeRoles.set(binding.paramId, binding.role)
+  })
+  const labelOf = (attribute: ProductSpecNode) => names.get(attribute.attributeId) || '规格'
+  const raw = expandFilteredPaths(tree, null, () => true, labelOf)
+  // 一个取值可能出现在很多组合里，只解析一次角色和祖先；输出 step 仍各自复制。
+  const stepByValue = new Map<string, { step: PlanningStep; hasAttribute: boolean }>()
   const seen = new Set<string>()
   const rows: LegalCombination[] = []
   raw.filter((path) => path.length).forEach((path) => {
     const steps = path.map((item) => {
-      const valueNode = byId.get(item.nodeId)
-      const parent = valueNode?.parentId ? byId.get(valueNode.parentId) : undefined
-      const attribute = parent?.nodeType === 'ATTRIBUTE' ? parent : undefined
-      const role = attribute ? planningAttributeRole(data, productModelId, attribute) : { role: 'variant' as const, source: 'scheme' as const }
-      const step: PlanningStep = {
-        valueNodeId: item.nodeId,
-        attributeNodeId: attribute?.id || '',
-        attributeId: attribute?.attributeId || valueNode?.attributeId || '',
-        attributeName: attribute ? attributeLabel(data, attribute) : item.name,
-        valueId: valueNode?.valueId || item.value,
-        parentValueNodeId: parentValueNodeId(byId, item.nodeId),
-        role: role.role,
-        roleSource: role.source,
+      let cached = stepByValue.get(item.nodeId)
+      if (!cached) {
+        const valueNode = byId.get(item.nodeId)
+        const parent = valueNode?.parentId ? byId.get(valueNode.parentId) : undefined
+        const attribute = parent?.nodeType === 'ATTRIBUTE' ? parent : undefined
+        const role = attribute ? attributeRole(attribute, schemeRoles.get(attribute.attributeId)) : { role: 'variant' as const, source: 'scheme' as const }
+        const step: PlanningStep = {
+          valueNodeId: item.nodeId,
+          attributeNodeId: attribute?.id || '',
+          attributeId: attribute?.attributeId || valueNode?.attributeId || '',
+          attributeName: attribute ? labelOf(attribute) : '',
+          valueId: valueNode?.valueId || '',
+          parentValueNodeId: parentValueNodeId(byId, item.nodeId),
+          role: role.role,
+          roleSource: role.source,
+        }
+        cached = { step, hasAttribute: Boolean(attribute) }
+        stepByValue.set(item.nodeId, cached)
       }
-      return step
+      return {
+        ...cached.step,
+        attributeName: cached.hasAttribute ? cached.step.attributeName : item.name,
+        valueId: cached.step.valueId || item.value,
+      }
     })
     const identityKey = planningIdentityKey(steps)
     if (seen.has(identityKey)) return
@@ -138,14 +163,45 @@ export function planningIdentityKey(steps: PlanningStep[]) {
     .join('\u001e')
 }
 
-function nextPlanningId(records: PlanningRecord[]) {
+function maxPlanningNumber(records: PlanningRecord[]) {
   let max = 0
   records.forEach((item) => {
     const matched = /^PLN-(\d+)$/.exec(item.planningId)
     if (!matched) return
     max = Math.max(max, Number(matched[1]))
   })
-  return `PLN-${String(max + 1).padStart(6, '0')}`
+  return max
+}
+
+function indexPlanningPool(pool: PlanningRecord[]) {
+  const index = new Map<string, PlanningRecord[]>()
+  pool.forEach((record) => {
+    const matches = index.get(record.identityKey)
+    if (matches) matches.push(record)
+    else index.set(record.identityKey, [record])
+  })
+  return index
+}
+
+function unusedPlanningMatch(index: Map<string, PlanningRecord[]>, identityKey: string, used: Set<string>) {
+  // 同身份保留原记录顺序；used 按 PLN 判断，不能用 Map 的最后一条覆盖前面的记录。
+  return index.get(identityKey)?.find((item) => !used.has(item.planningId))
+}
+
+/** 对已去重的合法组合只读统计。沿用包括停用档的恢复，不分配编号或复制规划档。 */
+export function summarizePlanningCombinations(records: PlanningRecord[], productModelId: string, combinations: LegalCombination[]) {
+  const pool = records.filter((item) => item.productModelId === productModelId && item.origin !== 'temporary')
+  const index = indexPlanningPool(pool)
+  const used = new Set<string>()
+  let reused = 0
+  combinations.forEach((combo) => {
+    const found = unusedPlanningMatch(index, combo.identityKey, used)
+    if (found) {
+      used.add(found.planningId)
+      reused += 1
+    }
+  })
+  return { created: combinations.length - reused, reused }
 }
 
 export interface PlanningReconcileResult {
@@ -174,12 +230,14 @@ export function reconcilePlanningRecords(input: {
     steps: item.steps.map((step) => ({ ...step })),
   }))
   const pool = records.filter((item) => item.productModelId === input.productModelId && item.origin !== 'temporary')
+  const index = indexPlanningPool(pool)
   const used = new Set<string>()
+  let nextNumber: number | undefined
   let created = 0
   let reused = 0
   let retired = 0
   combinations.forEach((combo) => {
-    const found = pool.find((item) => item.identityKey === combo.identityKey && !used.has(item.planningId))
+    const found = unusedPlanningMatch(index, combo.identityKey, used)
     if (found) {
       used.add(found.planningId)
       found.steps = combo.steps.map((step) => ({ ...step }))
@@ -191,7 +249,10 @@ export function reconcilePlanningRecords(input: {
       reused += 1
       return
     }
-    const planningId = nextPlanningId(records)
+    // 合法组合已经按 identityKey 去重，新增档不会再被后面的组合匹配。
+    nextNumber ??= maxPlanningNumber(records)
+    nextNumber += 1
+    const planningId = `PLN-${String(nextNumber).padStart(6, '0')}`
     const record: PlanningRecord = {
       planningId,
       productModelId: input.productModelId,

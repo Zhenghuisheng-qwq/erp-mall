@@ -1,6 +1,6 @@
 import { specPublishProblems, sameSpecSnapshot } from './logic'
 import { nodeHostSignature } from './nodeCompatibility'
-import { legalPlanningCombinations, reconcilePlanningRecords } from './planning'
+import { legalPlanningCombinations, summarizePlanningCombinations } from './planning'
 import type { AppData, ProductSpecNode } from './types'
 
 export interface DraftComboRow {
@@ -51,14 +51,7 @@ export function previewDraftCombinations(data: AppData, templateId: string, node
   const known = new Map((data.planningRecords || [])
     .filter((item) => item.productModelId === templateId && item.origin !== 'temporary')
     .map((item) => [item.identityKey, item.planningId]))
-  const outcome = reconcilePlanningRecords({
-    records: data.planningRecords || [],
-    data,
-    productModelId: templateId,
-    modelVersionId: latest?.id || 'preview',
-    nodes,
-    now: '',
-  })
+  const outcome = summarizePlanningCombinations(data.planningRecords || [], templateId, combos)
   return {
     ...base,
     problems: [],
