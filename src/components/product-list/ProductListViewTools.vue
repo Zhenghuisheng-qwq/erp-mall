@@ -1,10 +1,11 @@
 <template>
-  <el-popover v-model:visible="visible" trigger="click" placement="bottom-end" :width="360">
+  <el-popover v-model:visible="visible" trigger="click" placement="bottom-end" :width="360" popper-class="product-list-tools-pop">
     <template #reference>
-      <el-button>视图工具</el-button>
+      <el-button>列表设置</el-button>
     </template>
     <div class="view-tools">
       <p class="muted">列、分组、排序和视图都保存在当前视图里。</p>
+      <el-checkbox :model-value="categorySidebar" @change="(value: boolean | string | number) => emit('categorySidebar', Boolean(value))">常驻分类栏</el-checkbox>
       <p class="tool-label">列</p>
       <el-input v-model="columnQuery" placeholder="搜索字段" clearable />
       <ul class="column-list">
@@ -68,10 +69,12 @@ const props = defineProps<{
   sortOptions: { field: string; label: string }[]
   grouping: ProductListFieldOrder | null
   sorting: ProductListFieldOrder | null
+  categorySidebar: boolean
   sortMode: ProductListSortMode
 }>()
 const visible = defineModel<boolean>('visible', { required: true })
 const emit = defineEmits<{
+  categorySidebar: [enabled: boolean]
   columnVisible: [key: string, visible: boolean]
   columnMove: [from: string, to: string]
   resetColumns: []
@@ -125,4 +128,8 @@ function onSortMode(mode: string | number | boolean) {
 .column-list { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow: auto; }
 .column-list li { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .drag-handle { cursor: grab; color: var(--text-secondary, #607089); user-select: none; }
+</style>
+
+<style>
+.product-list-tools-pop { max-width: calc(100vw - 24px); box-sizing: border-box; }
 </style>

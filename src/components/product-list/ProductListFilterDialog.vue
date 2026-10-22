@@ -1,5 +1,6 @@
 <template>
-  <el-dialog v-model="visible" title="筛选" width="720px">
+  <el-dialog v-model="visible" title="更多筛选" width="min(720px, calc(100vw - 24px))">
+    <p class="muted">条件即时生效；关闭面板保留当前筛选。同字段的多条条件需同时满足。</p>
     <div v-for="filter in rows" :key="filter.id" class="filter-row" :data-condition="filter.field">
       <el-select :model-value="filter.field" style="width: 140px" @change="(value: string) => emit('field', filter.id, value)">
         <el-option v-for="item in fields" :key="item.field" :label="item.label" :value="item.field" />
@@ -21,8 +22,8 @@
       <el-button link type="danger" @click="emit('remove', filter.id)">删除</el-button>
     </div>
     <el-button @click="emit('add')">添加条件</el-button>
-    <p class="muted">外露后显示在列表顶部。取消外露不会删掉已经生效的条件。</p>
-    <el-checkbox v-for="field in fields" :key="field.field" :data-expose-field="field.field" :model-value="exposed.includes(field.field)" @change="(value: boolean | string | number) => emit('expose', field.field, Boolean(value))">{{ field.label }}</el-checkbox>
+    <p class="muted">显示在常用筛选：取消显示不会删除条件。复杂条件通过本面板管理。</p>
+    <el-checkbox v-for="field in fields.filter(item => item.field !== 'category')" :key="field.field" :data-expose-field="field.field" :model-value="exposed.includes(field.field)" @change="(value: boolean | string | number) => emit('expose', field.field, Boolean(value))">{{ field.label }}</el-checkbox>
   </el-dialog>
 </template>
 
@@ -50,5 +51,6 @@ const emit = defineEmits<{
 </script>
 
 <style scoped>
-.filter-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.filter-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.filter-row > * { max-width: 100%; }
 </style>

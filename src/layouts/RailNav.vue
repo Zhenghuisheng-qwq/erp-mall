@@ -1,5 +1,5 @@
 <template>
-  <div ref="wrapRef" class="rail-wrap" :data-mode="mode" @mouseenter="cancelClose" @mouseleave="scheduleClose" @focusout="onFocusOut" @keydown="onWrapKeydown">
+  <div ref="wrapRef" class="rail-wrap" :data-mode="mode">
     <div class="nav-column" :class="{ 'is-single': mode === 'single', 'is-icons': mode === 'icons' }">
     <aside v-if="mode === 'single'" class="sider" aria-label="主导航">
       <div class="sider-brand" title="商品配置">
@@ -22,10 +22,10 @@
               <el-icon :size="18"><component :is="group.icon" /></el-icon>
               <span>{{ group.title }}</span>
             </template>
-            <el-menu-item v-for="item in group.items" :key="item.index" :index="item.index">{{ item.title }}</el-menu-item>
+            <el-menu-item v-for="item in group.items" :key="item.index" :index="item.index"><a :href="hrefOf(item.index)" @click.stop="go($event, item.index)">{{ item.title }}</a></el-menu-item>
             <el-sub-menu v-for="section in group.sections" :key="section.key" :index="section.key">
               <template #title>{{ section.title }}</template>
-              <el-menu-item v-for="leaf in section.items" :key="leaf.index" :index="leaf.index">{{ leaf.title }}</el-menu-item>
+              <el-menu-item v-for="leaf in section.items" :key="leaf.index" :index="leaf.index"><a :href="hrefOf(leaf.index)" @click.stop="go($event, leaf.index)">{{ leaf.title }}</a></el-menu-item>
             </el-sub-menu>
           </el-sub-menu>
         </el-menu>
@@ -47,9 +47,7 @@
           :aria-label="group.title"
           :aria-expanded="shownKey === group.key"
           :aria-controls="shownGroup ? 'nav-flyout' : undefined"
-          @mouseenter="onRailEnter(group.key, $event)"
-          @focus="onRailEnter(group.key, $event)"
-          @click="onRailClick(group.key)"
+          @click="onRailClick(group.key, $event.currentTarget)"
           @keydown="onRailKeydown($event, index)"
         >
           <el-icon :size="20"><component :is="group.icon" /></el-icon>
@@ -57,12 +55,11 @@
         </button>
       </div>
     </aside>
-    <nav class="nav-dock" aria-label="导航布局">
-      <button ref="layoutBtnRef" type="button" class="nav-tool" aria-haspopup="menu" :aria-expanded="layoutOpen" aria-label="切换布局" title="切换布局" @click="toggleLayout">
-        <span class="nav-tool-label">布局</span>
+    <nav class="nav-dock" aria-label="导航设置">
+      <button ref="layoutBtnRef" type="button" class="nav-tool" aria-haspopup="menu" :aria-expanded="layoutOpen" aria-label="导航设置" title="导航设置" @click="toggleLayout">
+        <span class="nav-tool-label">导航设置</span>
         <span v-if="mode === 'icons'" class="nav-tool-mark" aria-hidden="true">≡</span>
       </button>
-      <button v-if="mode === 'dual' && !menuOpen" type="button" class="nav-tool" @click="menuOpen = true">展开菜单</button>
     </nav>
     </div>
     <Teleport defer to="#iyge-nav-fold">
@@ -71,15 +68,15 @@
       </button>
     </Teleport>
     <Teleport to="body">
-      <div v-if="layoutOpen" ref="layoutPopRef" class="layout-pop" role="menu" aria-label="导航布局" :style="layoutStyle">
+      <div v-if="layoutOpen" ref="layoutPopRef" class="layout-pop" role="menu" aria-label="导航设置" :style="layoutStyle">
         <button
           v-for="item in layoutChoices"
           :key="item.id"
           type="button"
           class="layout-option"
           role="menuitemradio"
-          :aria-checked="mode === item.id"
-          :class="{ 'is-current': mode === item.id }"
+          :aria-checked="layout === item.id"
+          :class="{ 'is-current': layout === item.id }"
           @click="chooseLayout(item.id)"
         >{{ item.label }}</button>
       </div>
@@ -93,13 +90,10 @@
       :style="popped ? popStyle : undefined"
       role="navigation"
       :aria-label="shownGroup.title"
-      @mouseenter="cancelClose"
       @keydown="onFlyoutKeydown"
     >
       <header class="flyout-head">
         <strong>{{ shownGroup.title }}</strong>
-        <button type="button" class="nav-text-btn" @click="togglePin">{{ pinned ? '取消固定' : '固定' }}</button>
-        <button v-if="mode === 'dual'" type="button" class="nav-text-btn" @click="menuOpen = false">收起</button>
       </header>
       <div class="flyout-body" :class="flyoutLayout.mode === 'grid' ? 'is-grid' : 'is-single'">
         <template v-if="flyoutLayout.mode === 'grid'">
@@ -170,6 +164,7 @@ import { Expand, Fold } from '@element-plus/icons-vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Component } from 'vue'
 import { useRouter } from 'vue-router'
+import { NAV_KEY, readNavigation, type NavigationLayout } from './navigationPreferences'
 
 type Leaf = { index: string; title: string }
 type Section = { key: string; title: string; items: Leaf[] }
@@ -181,27 +176,6 @@ const props = defineProps<{
   currentGroup: string
 }>()
 
-type NavMode = 'dual' | 'single' | 'icons'
-type ExpandedMode = 'dual' | 'single'
-const NAV_KEY = 'iyge-nav-layout'
-
-function readNav() {
-  const fallback = { mode: 'dual' as NavMode, pinned: false, menuOpen: true, openeds: null as string[] | null, expandedMode: 'dual' as ExpandedMode }
-  try {
-    const raw = localStorage.getItem(NAV_KEY)
-    if (!raw) return fallback
-    const parsed = JSON.parse(raw) as { mode?: string; pinned?: boolean; menuOpen?: boolean; openeds?: unknown; expandedMode?: string }
-    const mode: NavMode = parsed.mode === 'single' || parsed.mode === 'icons' ? parsed.mode : 'dual'
-    const openeds = Array.isArray(parsed.openeds) ? parsed.openeds.filter((item): item is string => typeof item === 'string') : null
-    const storedExpanded: ExpandedMode = parsed.expandedMode === 'single' ? 'single' : 'dual'
-    const expandedMode: ExpandedMode = mode === 'icons' ? storedExpanded : mode
-    return { mode, pinned: Boolean(parsed.pinned), menuOpen: parsed.menuOpen !== false, openeds, expandedMode }
-  } catch {
-    return fallback
-  }
-}
-
-const saved = readNav()
 const router = useRouter()
 const wrapRef = ref<HTMLElement>()
 const railRef = ref<HTMLElement>()
@@ -209,62 +183,39 @@ const flyoutRef = ref<HTMLElement>()
 const menuRef = ref<{ open: (index: string) => void }>()
 const layoutBtnRef = ref<HTMLButtonElement>()
 const layoutPopRef = ref<HTMLElement>()
-const mode = ref<NavMode>(saved.mode)
-const expandedMode = ref<ExpandedMode>(saved.expandedMode)
-const pinned = ref(saved.pinned)
-const menuOpen = ref(saved.menuOpen)
-const layoutOpen = ref(false)
-const layoutStyle = ref({ left: '0px', bottom: '0px' })
-const hoverKey = ref('')
-const heldKey = ref('')
-const flyoutTop = ref(8)
-const popLeft = ref(96)
-let closeTimer = 0
-let ignoreMenuEvents = false
-const layoutChoices: { id: NavMode; label: string }[] = [
-  { id: 'dual', label: '双栏' },
-  { id: 'single', label: '单栏' },
-  { id: 'icons', label: '仅图标' },
-]
-
-function visibleKeySet() {
-  return new Set(props.groups.flatMap((group) => [group.key, ...group.sections.map((section) => section.key)]))
+function visibleKeys() {
+  return props.groups.flatMap(group => [group.key, ...group.sections.map(section => section.key)])
 }
 function placeKeys() {
-  const keys: string[] = []
-  if (props.currentGroup) keys.push(props.currentGroup)
-  for (const group of props.groups) {
-    for (const section of group.sections) {
-      if (section.items.some((item) => item.index === props.active)) keys.push(section.key)
-    }
-  }
-  return keys
+  return props.groups.flatMap(group => [
+    ...(group.key === props.currentGroup ? [group.key] : []),
+    ...group.sections.filter(section => section.items.some(item => item.index === props.active)).map(section => section.key),
+  ])
 }
-function seedOpeneds() {
-  const visible = visibleKeySet()
-  const base = saved.openeds ?? ['product']
-  const next = base.filter((key) => visible.has(key))
-  if (saved.openeds === null) {
-    for (const key of placeKeys()) if (visible.has(key) && !next.includes(key)) next.push(key)
-  }
-  for (const group of props.groups) {
-    if (group.sections.some((section) => next.includes(section.key)) && visible.has(group.key) && !next.includes(group.key)) next.push(group.key)
-  }
-  return next
+function storedPreferences() {
+  try { return localStorage.getItem(NAV_KEY) } catch { return null }
 }
-
-const openeds = ref<string[]>(seedOpeneds())
-const popped = computed(() => mode.value === 'icons' || (mode.value === 'dual' && !menuOpen.value))
-const shownKey = computed(() => {
-  if (mode.value === 'single') return ''
-  if (hoverKey.value) return hoverKey.value
-  if (pinned.value && heldKey.value) return heldKey.value
-  if (mode.value === 'dual' && menuOpen.value) return props.currentGroup
-  return ''
-})
-const compactLabel = computed(() => (mode.value === 'icons' ? '展开菜单' : '缩小菜单'))
-const menuStamp = computed(() => props.groups.map((group) => group.key).join('|'))
-const shownGroup = computed(() => props.groups.find((group) => group.key === shownKey.value) || null)
+const saved = readNavigation(storedPreferences(), visibleKeys(), placeKeys())
+const layout = ref(saved.layout)
+const collapsed = ref(saved.collapsed)
+const openeds = ref(saved.openeds)
+// A selected group in an expanded dual layout is transient, just like an icon flyout.
+const openGroup = ref('')
+const layoutOpen = ref(false)
+const layoutStyle = ref({ left: '0px', bottom: '0px' })
+const flyoutTop = ref(8)
+const popLeft = ref(56)
+let ignoreMenuEvents = false
+const layoutChoices: { id: NavigationLayout; label: string }[] = [
+  { id: 'single', label: '单栏导航' },
+  { id: 'dual', label: '双栏导航' },
+]
+const mode = computed(() => collapsed.value ? 'icons' : layout.value)
+const popped = computed(() => collapsed.value)
+const shownKey = computed(() => mode.value === 'single' ? '' : openGroup.value || (collapsed.value ? '' : props.currentGroup || props.groups[0]?.key || ''))
+const compactLabel = computed(() => collapsed.value ? '展开导航' : '收起导航')
+const menuStamp = computed(() => visibleKeys().join('|'))
+const shownGroup = computed(() => props.groups.find(group => group.key === shownKey.value) || null)
 const SLOT: Record<string, { column: number; row: number }> = {
   manage: { column: 1, row: 1 },
   model: { column: 2, row: 1 },
@@ -296,260 +247,131 @@ const popStyle = computed(() => {
   }
 })
 
-function cancelClose() {
-  window.clearTimeout(closeTimer)
-}
-function scheduleClose() {
-  cancelClose()
-  closeTimer = window.setTimeout(() => {
-    hoverKey.value = ''
-  }, 180)
-}
 function persist() {
-  localStorage.setItem(NAV_KEY, JSON.stringify({ mode: mode.value, pinned: pinned.value, menuOpen: menuOpen.value, openeds: openeds.value, expandedMode: expandedMode.value }))
+  try { localStorage.setItem(NAV_KEY, JSON.stringify({ layout: layout.value, collapsed: collapsed.value, openeds: openeds.value })) } catch { /* Storage may be unavailable; navigation still works. */ }
 }
-function groupKeyOf(index: string) {
-  return props.groups.find((group) => group.items.some((item) => item.index === index) || group.sections.some((section) => section.items.some((item) => item.index === index)))?.key || ''
-}
-function setMode(next: NavMode, options?: { preserveDock?: boolean }) {
-  if (next === 'dual' || next === 'single') expandedMode.value = next
-  if (next !== 'single') ignoreMenuEvents = true
-  if (next === 'single') {
-    const visible = visibleKeySet()
-    const merged = openeds.value.filter((key) => visible.has(key))
-    for (const key of placeKeys()) if (visible.has(key) && !merged.includes(key)) merged.push(key)
-    openeds.value = merged
-  }
-  mode.value = next
-  hoverKey.value = ''
-  layoutOpen.value = false
-  if (next === 'dual' && !options?.preserveDock) menuOpen.value = true
-  persist()
+function revealCurrent() {
+  const valid = new Set(visibleKeys())
+  openeds.value = [...new Set([...openeds.value, ...placeKeys()])].filter(key => valid.has(key))
   nextTick(() => {
-    ignoreMenuEvents = false
+    if (mode.value === 'single') for (const key of placeKeys()) menuRef.value?.open(key)
   })
 }
-function toggleFold() {
-  if (mode.value === 'icons') {
-    setMode(expandedMode.value, { preserveDock: true })
-    return
-  }
-  expandedMode.value = mode.value
-  setMode('icons', { preserveDock: true })
+function transitionNavigation(change: () => void) {
+  ignoreMenuEvents = true
+  change()
+  openGroup.value = ''
+  layoutOpen.value = false
+  if (!collapsed.value) revealCurrent()
+  nextTick(() => { ignoreMenuEvents = false })
+}
+function toggleFold() { transitionNavigation(() => { collapsed.value = !collapsed.value }) }
+function chooseLayout(next: NavigationLayout) {
+  transitionNavigation(() => { layout.value = next })
+  nextTick(() => layoutBtnRef.value?.focus())
 }
 function placeLayout() {
-  const button = layoutBtnRef.value
-  if (!button) return
-  const rect = button.getBoundingClientRect()
-  const left = Math.min(rect.right + 6, window.innerWidth - 132)
-  layoutStyle.value = { left: `${Math.round(left)}px`, bottom: `${Math.round(window.innerHeight - rect.bottom)}px` }
+  const rect = layoutBtnRef.value?.getBoundingClientRect()
+  if (rect) layoutStyle.value = { left: `${Math.max(8, Math.min(rect.right + 6, window.innerWidth - 160))}px`, bottom: `${Math.max(8, window.innerHeight - rect.bottom)}px` }
 }
 function toggleLayout() {
   layoutOpen.value = !layoutOpen.value
-  if (layoutOpen.value) nextTick(placeLayout)
-}
-function chooseLayout(next: NavMode) {
-  setMode(next)
+  if (layoutOpen.value) {
+    if (collapsed.value) closePanel(false)
+    nextTick(() => { placeLayout(); layoutPopRef.value?.querySelector<HTMLButtonElement>('button')?.focus() })
+  }
 }
 function onMenuOpen(index: string) {
-  if (ignoreMenuEvents || mode.value !== 'single' || openeds.value.includes(index)) return
-  openeds.value = [...openeds.value, index]
+  if (!ignoreMenuEvents && mode.value === 'single' && !openeds.value.includes(index)) openeds.value = [...openeds.value, index]
 }
 function onMenuClose(index: string) {
-  if (ignoreMenuEvents || mode.value !== 'single') return
-  openeds.value = openeds.value.filter((key) => key !== index)
+  if (!ignoreMenuEvents && mode.value === 'single') openeds.value = openeds.value.filter(key => key !== index)
 }
 function onMenuSelect(index: string) {
-  if (!index.startsWith('/')) return
-  const target = router.resolve(index)
-  if (target.fullPath !== router.currentRoute.value.fullPath) void router.push(target)
+  if (index.startsWith('/') && router.resolve(index).fullPath !== router.currentRoute.value.fullPath) void router.push(index)
 }
-function togglePin() {
-  const key = shownKey.value || props.currentGroup
-  if (!key) return
-  if (pinned.value && heldKey.value === key) {
-    pinned.value = false
-    heldKey.value = ''
-  } else {
-    pinned.value = true
-    heldKey.value = key
-    hoverKey.value = ''
-  }
-  persist()
+function groupButton(key: string) {
+  return [...(railRef.value?.querySelectorAll<HTMLButtonElement>('[data-group]') || [])].find(button => button.dataset.group === key)
 }
 function placePop(target: EventTarget | null) {
-  const button = target as HTMLElement | null
-  const rail = railRef.value
-  if (!button || !rail) return
-  const buttonTop = button.getBoundingClientRect().top
-  popLeft.value = Math.round(rail.getBoundingClientRect().right - 8)
-  flyoutTop.value = Math.max(8, buttonTop)
-  nextTick(() => {
-    const panel = flyoutRef.value
-    if (!panel) return
-    const height = panel.getBoundingClientRect().height
-    const maxTop = Math.max(8, window.innerHeight - height - 8)
-    if (flyoutTop.value > maxTop) flyoutTop.value = maxTop
-  })
+  if (!(target instanceof HTMLElement) || !railRef.value) return
+  popLeft.value = Math.round(railRef.value.getBoundingClientRect().right)
+  // Reserve useful vertical space even for groups near the bottom of a short viewport.
+  flyoutTop.value = Math.max(8, Math.min(target.getBoundingClientRect().top, window.innerHeight - 360))
 }
-function onRailEnter(key: string, event: MouseEvent | FocusEvent) {
-  cancelClose()
-  hoverKey.value = key
-  placePop(event.currentTarget)
+function onRailClick(key: string, target: EventTarget | null) {
+  layoutOpen.value = false
+  openGroup.value = collapsed.value && openGroup.value === key ? '' : key
+  if (collapsed.value) placePop(target)
 }
-function onRailClick(key: string) {
-  cancelClose()
-  if (pinned.value && heldKey.value === key) {
-    pinned.value = false
-    heldKey.value = ''
-    hoverKey.value = ''
-    persist()
-    return
-  }
-  pinned.value = true
-  heldKey.value = key
-  hoverKey.value = ''
-  persist()
-}
-function hrefOf(index: string) {
-  return router.resolve(index).href
-}
-function closePanel() {
-  pinned.value = false
-  heldKey.value = ''
-  hoverKey.value = ''
-  persist()
+function hrefOf(index: string) { return router.resolve(index).href }
+function closePanel(restoreFocus: boolean) {
+  const key = openGroup.value
+  openGroup.value = ''
+  if (restoreFocus && key) groupButton(key)?.focus()
 }
 function go(event: MouseEvent, index: string) {
   if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
   event.preventDefault()
-  const target = router.resolve(index)
-  if (target.fullPath !== router.currentRoute.value.fullPath) void router.push(target)
-  hoverKey.value = ''
-  if (pinned.value) {
-    heldKey.value = groupKeyOf(index) || heldKey.value
-    return
-  }
-  heldKey.value = ''
+  onMenuSelect(index)
+  if (collapsed.value) closePanel(true)
 }
 function onRailKeydown(event: KeyboardEvent, index: number) {
-  const target = event.target as HTMLElement | null
-  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
   if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
     event.preventDefault()
     const buttons = railRef.value?.querySelectorAll<HTMLButtonElement>('.rail-btn')
-    if (!buttons?.length) return
-    const step = event.key === 'ArrowDown' ? 1 : -1
-    buttons[(index + step + buttons.length) % buttons.length]?.focus()
-    return
-  }
-  if (event.key === 'ArrowRight') {
+    if (buttons?.length) buttons[(index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length]?.focus()
+  } else if (event.key === 'ArrowRight') {
     event.preventDefault()
-    flyoutRef.value?.querySelector<HTMLElement>('a.flyout-link')?.focus()
+    const key = props.groups[index]?.key
+    if (!key) return
+    openGroup.value = key
+    placePop(event.currentTarget)
+    nextTick(() => flyoutRef.value?.querySelector<HTMLAnchorElement>('a')?.focus())
   }
 }
 function onFlyoutKeydown(event: KeyboardEvent) {
-  if (event.key !== 'ArrowLeft') return
-  const target = event.target as HTMLElement | null
-  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
-  const key = shownKey.value
-  if (!key) return
-  event.preventDefault()
-  railRef.value?.querySelector<HTMLButtonElement>(`[data-group="${key}"]`)?.focus()
-}
-function onWrapKeydown(event: KeyboardEvent) {
-  if (event.key !== 'Escape') return
-  const target = event.target as HTMLElement | null
-  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) return
-  if (layoutOpen.value) {
-    layoutOpen.value = false
-    return
+  if (event.key === 'ArrowLeft') {
+    event.preventDefault()
+    groupButton(shownKey.value)?.focus()
   }
-  closePanel()
-}
-function onFocusOut(event: FocusEvent) {
-  if (!popped.value || pinned.value) return
-  const next = event.relatedTarget as Node | null
-  if (next && wrapRef.value?.contains(next)) return
-  hoverKey.value = ''
-  heldKey.value = ''
-}
-function isTypingTarget(target: EventTarget | null) {
-  const node = target as HTMLElement | null
-  if (!node?.closest) return false
-  const tag = node.tagName
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || node.isContentEditable) return true
-  return Boolean(node.closest('.el-dialog, .el-message-box, .el-overlay, .el-popper, .context-menu'))
 }
 function onDocPointerDown(event: PointerEvent) {
   const target = event.target as Node | null
-  if (layoutOpen.value) {
-    const inPop = Boolean(target && layoutPopRef.value?.contains(target))
-    const inBtn = Boolean(target && layoutBtnRef.value?.contains(target))
-    if (!inPop && !inBtn) layoutOpen.value = false
-  }
-  if (!shownKey.value || mode.value === 'single') return
-  if (target && wrapRef.value?.contains(target)) return
-  if (target instanceof Element && target.closest('#iyge-nav-fold')) return
-  closePanel()
+  if (!target) return
+  if (!layoutPopRef.value?.contains(target) && !layoutBtnRef.value?.contains(target)) layoutOpen.value = false
+  if (collapsed.value && !wrapRef.value?.contains(target) && !(target instanceof Element && target.closest('#iyge-nav-fold'))) closePanel(false)
 }
 function onDocKeydown(event: KeyboardEvent) {
-  if (event.key !== 'Escape') return
-  if (layoutOpen.value) {
-    layoutOpen.value = false
-    return
-  }
-  if (!shownKey.value) return
-  if (isTypingTarget(event.target)) return
-  if (wrapRef.value?.contains(event.target as Node)) return
-  closePanel()
+  if (event.key !== 'Escape' || event.defaultPrevented) return
+  const target = event.target instanceof HTMLElement ? event.target : null
+  // Element Plus dialogs/dropdowns own Escape first; never intercept typing or their focus.
+  if (target?.matches('input, textarea, select, [contenteditable="true"]') || target?.closest('.el-dialog, .el-message-box, .el-popper, .context-menu')) return
+  if ([...document.querySelectorAll<HTMLElement>('.el-overlay, .el-popper')].some(node => node.getClientRects().length && getComputedStyle(node).visibility !== 'hidden')) return
+  if (layoutOpen.value) { layoutOpen.value = false; layoutBtnRef.value?.focus() }
+  else if (collapsed.value && openGroup.value) closePanel(true)
 }
-watch([mode, pinned, menuOpen, openeds, expandedMode], persist)
-watch(
-  () => props.currentGroup,
-  (group) => {
-    if (pinned.value && group && !heldKey.value) heldKey.value = group
-  },
-  { immediate: true },
-)
-watch(
-  () => props.groups.map((group) => group.key).join('|'),
-  () => {
-    if (hoverKey.value && !props.groups.some((group) => group.key === hoverKey.value)) hoverKey.value = ''
-    if (heldKey.value && !props.groups.some((group) => group.key === heldKey.value)) heldKey.value = ''
-    const visible = visibleKeySet()
-    const next = openeds.value.filter((key) => visible.has(key))
-    if (next.length !== openeds.value.length) openeds.value = next
-  },
-)
-watch(
-  () => props.active,
-  () => {
-    if (mode.value !== 'single') return
-    const visible = visibleKeySet()
-    const extra = placeKeys().filter((key) => visible.has(key) && !openeds.value.includes(key))
-    if (!extra.length) return
-    openeds.value = [...openeds.value, ...extra]
-    nextTick(() => {
-      for (const key of extra) {
-        try {
-          menuRef.value?.open(key)
-        } catch {
-          // 分组尚未挂载时不打断导航
-        }
-      }
-    })
-  },
-)
-
+function onResize() {
+  if (collapsed.value && openGroup.value) placePop(groupButton(openGroup.value) || null)
+  if (layoutOpen.value) placeLayout()
+}
+watch([layout, collapsed, openeds], persist)
+watch(() => router.currentRoute.value.fullPath, () => { openGroup.value = ''; layoutOpen.value = false; revealCurrent() })
+watch(menuStamp, () => {
+  if (!props.groups.some(group => group.key === openGroup.value)) openGroup.value = ''
+  revealCurrent()
+})
 onMounted(() => {
+  revealCurrent()
+  persist()
   document.addEventListener('pointerdown', onDocPointerDown)
   window.addEventListener('keydown', onDocKeydown)
+  window.addEventListener('resize', onResize)
 })
 onBeforeUnmount(() => {
-  cancelClose()
   document.removeEventListener('pointerdown', onDocPointerDown)
   window.removeEventListener('keydown', onDocKeydown)
+  window.removeEventListener('resize', onResize)
 })
 </script>
 
@@ -568,9 +390,9 @@ onBeforeUnmount(() => {
 .nav-fold:hover { background: var(--hover-bg); }
 .nav-fold:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 1px; }
 .nav-dock { flex: none; display: flex; flex-direction: column; gap: 4px; padding: 6px; }
-.nav-tool, .nav-text-btn { border: 0; background: transparent; color: var(--nav-text); cursor: pointer; font-size: 12px; line-height: 1.2; }
+.nav-tool { border: 0; background: transparent; color: var(--nav-text); cursor: pointer; font-size: 12px; line-height: 1.2; }
 .nav-tool { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 32px; padding: 6px 4px; border-radius: 6px; }
-.nav-tool:hover, .nav-text-btn:hover { background: var(--nav-hover); color: var(--text-primary); }
+.nav-tool:hover { background: var(--nav-hover); color: var(--text-primary); }
 .nav-tool:focus-visible { outline: 2px solid var(--app-accent); outline-offset: -2px; }
 .layout-pop { position: fixed; z-index: 80; min-width: 120px; padding: 4px; border-radius: 8px; background: var(--flyout-bg); color: var(--flyout-text); border: 1px solid var(--flyout-border); box-shadow: var(--shadow-pop); }
 .layout-option { display: block; width: 100%; text-align: left; border: 0; background: transparent; color: inherit; border-radius: 6px; padding: 8px 10px; cursor: pointer; font-size: 13px; }
@@ -579,6 +401,7 @@ onBeforeUnmount(() => {
 .layout-option:focus-visible { outline: 2px solid var(--app-accent); outline-offset: -2px; }
 .sider-brand { height: 56px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: var(--nav-bg-deep); overflow: hidden; }
 .sider-brand strong { font-size: 15px; font-weight: 650; color: var(--text-primary); white-space: nowrap; }
+.sider :deep(.el-menu-item a) { color: inherit; display: block; width: 100%; text-decoration: none; }
 .sider-scroll { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; }
 .sider-scroll::-webkit-scrollbar { width: 6px; }
 .sider-scroll::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
@@ -628,7 +451,6 @@ onBeforeUnmount(() => {
 .flyout.is-dock { position: relative; height: 100%; width: 240px; flex: none; border-right: 1px solid var(--flyout-border); }
 .flyout.is-dock.is-grid { width: max-content; max-width: min(22rem, 42vw); }
 .flyout-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 14px 12px 8px; }
-.nav-text-btn { flex: none; padding: 4px 6px; border-radius: 6px; color: var(--app-accent); }
 .flyout-head strong { font-size: 15px; font-weight: 700; color: var(--text-primary); }
 .flyout-link:focus-visible, .flyout-shortcut:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 1px; }
 .flyout-body { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 16px; }

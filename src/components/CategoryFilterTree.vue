@@ -17,9 +17,8 @@
     </ul>
     <p v-if="keyword.trim() && rows.length === 0" class="muted">没有匹配的分类。</p>
     <div class="tree-actions">
-      <button v-if="placement !== 'sidebar'" type="button" @click="$emit('dock')">停靠左侧</button>
-      <button v-else type="button" @click="$emit('float')">回到顶部</button>
-      <button type="button" @click="$emit('hide')">收起</button>
+      <button type="button" @click="$emit('clear')">清除分类</button>
+      <button v-if="closable" type="button" @click="$emit('close')">收起分类面板</button>
     </div>
   </div>
 </template>
@@ -29,8 +28,8 @@ import { computed, ref } from 'vue'
 import { highlightParts, visibleCategoryRows } from '../domain/categoryTree'
 import type { Category } from '../domain/types'
 
-const props = defineProps<{ categories: Category[]; selectedIds: string[]; placement: 'popover' | 'sidebar' }>()
-defineEmits<{ toggle: [id: string]; clear: []; dock: []; float: []; hide: [] }>()
+const props = defineProps<{ categories: Category[]; selectedIds: string[]; closable?: boolean }>()
+defineEmits<{ toggle: [id: string]; clear: []; close: [] }>()
 
 const keyword = ref('')
 const expanded = ref(new Set<string>())
@@ -52,7 +51,7 @@ function toggleExpand(id: string) {
 
 <style scoped>
 .category-filter-tree { display: flex; flex-direction: column; gap: 8px; min-width: 220px; }
-.tree-list { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow: auto; }
+.tree-list { list-style: none; margin: 0; padding: 0; max-height: min(320px, 45vh); overflow: auto; }
 .tree-list li { display: flex; align-items: center; gap: 4px; min-height: 28px; border-radius: 4px; }
 .tree-list li.is-on { background: color-mix(in srgb, var(--el-color-primary) 14%, transparent); }
 .tree-list li.is-off { opacity: 0.55; }
