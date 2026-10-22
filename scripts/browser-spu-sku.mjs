@@ -241,9 +241,9 @@ try {
   await go('/skus')
   await createView(page, 'SKU 独立视图')
   await page.getByPlaceholder('名称、分类、属性、SKU、OA 编号').fill('不会匹配的旧关键词')
-  await openTools(page)
-  await page.locator('[data-column-key="category"] .el-checkbox').click()
-  await page.locator('h1').click()
+  await page.getByRole('button', { name: /^字段 / }).click()
+  await page.locator('[data-sku-column="category"] .el-checkbox').click()
+  await page.getByRole('button', { name: '应用配置', exact: true }).click()
   const skuPage = (await read()).productListPages.sku
   assert.deepEqual((await read()).productListPages.spu, spuPage)
   await go(`/skus?spu=${spuId}`)

@@ -1,5 +1,6 @@
 import { ensureProductListViews } from './productListViews'
 import { emptyQuery } from './seed'
+import { ensureSkuWorkbench } from './skuWorkbenchState'
 import type { AppData, ProductListMode, ProductListPageState } from './types'
 
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value))
@@ -9,7 +10,8 @@ export function ensureProductListPages(data: AppData) {
   if (data.productListPages?.spu && data.productListPages.sku) {
     const spu = ensureProductListViews(productListPageData(data, 'spu'))
     const sku = ensureProductListViews(productListPageData(data, 'sku'))
-    return spu || sku
+    const workbench = ensureSkuWorkbench(data)
+    return spu || sku || workbench
   }
   ensureProductListViews(data)
   const page = (mode: ProductListMode): ProductListPageState => ({
@@ -20,6 +22,7 @@ export function ensureProductListPages(data: AppData) {
     activePresetId: data.activeViewId || '',
   })
   data.productListPages = { spu: data.productListPages?.spu || page('spu'), sku: data.productListPages?.sku || page('sku') }
+  ensureSkuWorkbench(data)
   return true
 }
 

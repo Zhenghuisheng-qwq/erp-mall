@@ -1,4 +1,5 @@
 import { dedupeIds, insertManualIds, moveManualId, resolveManualOrder } from './productListManual'
+import { cloneSku, repairSkuConfig } from './skuWorkbenchState'
 import { emptyModeQuery, groupFields, knownFilterFields, sortFields, unfilteredIds, writePresetFilters } from './productListQuery'
 import type { AppData, CategoryFilterLayout, ColumnPref, ListView, ProductListColumnConfig, ProductListFieldOrder, ProductListMode, ProductListModeQuery, ProductListSavedView, ProductListSortMode, ProductListViewFilter } from './types'
 
@@ -81,14 +82,16 @@ export function repairColumns(raw: unknown, mode: ProductListMode): ProductListC
     if (!key || seen.has(key)) return
     seen.add(key)
     const visible = (item as { visible?: unknown }).visible !== false
-    if (known.has(key)) kept.push({ key, visible: required.has(key) ? true : visible, order: kept.length })
-    else unknown.push({ key, visible, order: 0 })
+    const metadata = item as { width?: unknown; frozen?: unknown }
+    const extra: Pick<ProductListColumnConfig, 'width' | 'frozen'> = { ...(typeof metadata.width === 'number' && Number.isFinite(metadata.width) ? { width: Math.max(72, Math.min(600, metadata.width)) } : {}), ...(metadata.frozen === 'left' || metadata.frozen === 'right' || metadata.frozen === false ? { frozen: metadata.frozen } : {}) }
+    if (known.has(key)) kept.push({ key, visible: required.has(key) ? true : visible, order: kept.length, ...extra })
+    else unknown.push({ key, visible, order: 0, ...extra })
   })
   catalog.forEach((item) => {
     if (seen.has(item.key)) return
     kept.push({ key: item.key, visible: required.has(item.key) ? true : item.defaultVisible, order: kept.length })
   })
-  return [...kept, ...unknown].map((item, index) => ({ key: item.key, visible: item.visible, order: index }))
+  return [...kept, ...unknown].map((item, index) => ({ ...item, order: index }))
 }
 
 export function buildDefaultView(mode: ProductListMode, legacyColumns: ColumnPref[] | undefined, now: string): ProductListSavedView {
@@ -118,6 +121,7 @@ function viewStamp(view: ProductListSavedView) {
     skuQuery: view.skuQuery,
     manualOrder: view.manualOrder,
     categoryFilterLayout: view.categoryFilterLayout,
+    skuWorkbench: view.skuWorkbench,
   })
 }
 
@@ -158,6 +162,7 @@ function repairView(view: ProductListSavedView, data: AppData): boolean {
   view.skuColumns = repairColumns(view.skuColumns, 'sku')
   view.spuQuery = repairModeQuery(view.spuQuery, 'spu', data)
   view.skuQuery = repairModeQuery(view.skuQuery, 'sku', data)
+  if (view.skuWorkbench) view.skuWorkbench = repairSkuConfig(view.skuWorkbench, data)
   view.manualOrder = { spuIds: dedupeIds(view.manualOrder?.spuIds), skuIds: dedupeIds(view.manualOrder?.skuIds) }
   view.categoryFilterLayout = view.categoryFilterLayout === 'sidebar' || view.categoryFilterLayout === 'hidden' ? view.categoryFilterLayout : 'popover'
   if (!view.createdAt) view.createdAt = view.updatedAt || ''
@@ -329,6 +334,7 @@ export function createProductListView(data: AppData, name: string, sourceId: str
     categoryFilterLayout: source.categoryFilterLayout === 'sidebar' || source.categoryFilterLayout === 'hidden' ? source.categoryFilterLayout : 'popover',
     createdAt: stamp,
     updatedAt: stamp,
+    ...(source.skuWorkbench ? { skuWorkbench: cloneSku(source.skuWorkbench) } : {}),
   }
   data.productListViews = data.productListViews || []
   data.productListViews.push(view)

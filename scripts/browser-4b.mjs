@@ -90,6 +90,8 @@ try {
 
   await chooseView('SKU 明细')
   await page.getByRole('button', { name: 'SKU 管理', exact: true }).click()
+  await page.waitForURL('**/skus')
+  await page.locator('[data-sku-workbench]').waitFor()
   await createView(page, 'SKU 明细')
   await page.locator('.list-switch[data-mode="sku"]').waitFor()
   const skuHeaders = await headers()

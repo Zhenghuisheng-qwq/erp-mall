@@ -39,6 +39,18 @@ export async function closeTools(page) {
 }
 
 export async function createView(page, name) {
+  await page.waitForLoadState('networkidle')
+  await page.locator('.list-switch').waitFor()
+  if (await page.locator('[data-sku-workbench]').count()) {
+    await page.getByRole('button', { name: '更多', exact: true }).click()
+    await page.getByRole('button', { name: '新建视图', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: '新建视图', exact: true })
+    await dialog.getByPlaceholder('视图名称').fill(name)
+    await dialog.getByRole('button', { name: '创建', exact: true }).click()
+    await dialog.waitFor({ state: 'hidden' })
+    await page.locator('.view-current').filter({ hasText: exactText(name) }).waitFor()
+    return
+  }
   await openTools(page)
   await page.locator('.view-tools').getByRole('button', { name: '新建视图', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: '新建视图' })

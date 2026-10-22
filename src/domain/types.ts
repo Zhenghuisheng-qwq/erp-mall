@@ -1,4 +1,6 @@
-export const DATA_VERSION = 14
+import type { SkuViewConfig, SkuWorkbenchState } from './skuWorkbenchTypes'
+
+export const DATA_VERSION = 15
 export const STORAGE_KEY = 'iyge-v2-mock-db'
 
 export type SaleStatus = 'on_sale' | 'off_sale' | 'draft'
@@ -433,6 +435,8 @@ export interface ProductListColumnConfig {
   key: string
   visible: boolean
   order: number
+  width?: number
+  frozen?: 'left' | 'right' | false
 }
 
 export type ProductListFilterOperator = 'contains' | 'notContains' | 'eq' | 'neq' | 'in' | 'before' | 'after' | 'between'
@@ -485,6 +489,7 @@ export interface ProductListSavedView {
   categoryFilterLayout?: CategoryFilterLayout
   createdAt: string
   updatedAt: string
+  skuWorkbench?: SkuViewConfig
 }
 
 export interface Profile {
@@ -544,6 +549,7 @@ export interface ProductListPageState {
   query: ListQuery
   presets: ListView[]
   activePresetId: string
+  skuWorkbench?: SkuWorkbenchState
 }
 
 export interface FieldIssue {

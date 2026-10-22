@@ -212,6 +212,8 @@ try {
   }
   await expectMaterialsInList()
   await page.getByRole('button', { name: 'SKU 管理', exact: true }).click()
+  await page.waitForURL(`${base}/skus`)
+  await page.locator('[data-sku-workbench]').waitFor()
   await search.fill(materialA.skuName)
   await page.locator('[data-empty="sku"]').waitFor()
   for (const item of [materialA, materialB, materialC]) assert.equal(await page.locator(`[data-sku-id="${item.id}"]`).count(), 0)

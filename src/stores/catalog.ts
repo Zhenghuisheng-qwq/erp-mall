@@ -18,6 +18,8 @@ import { blankVariantAttrs, categoryPath, descendantIds, familySkus, sameSpecSna
 import { reconcilePlanningRecords } from '../domain/planning'
 import { compatibilityModelBlock, compatibilitySkuBlock } from '../domain/compatibility'
 import { ensureProductListPages } from '../domain/productListPages'
+import { persistSkuPage } from '../domain/skuWorkbenchState'
+import type { ProductListPageState } from '../domain/types'
 import { isRealSku } from '../domain/catalogIdentity'
 import { appendSkuBatch, editSku, previewSkuAppend, saveSpu, spuRemovalBlock, type SkuDraft, type SkuGeneration } from '../domain/spuSku'
 import { draftHostRulesDiffer, forgetDraftNodeRules, freezeDraftNodeHosts } from '../domain/nodeCompatibility'
@@ -31,6 +33,8 @@ import { DATA_VERSION, STORAGE_KEY, type AppData, type Category, type ColumnPref
 
 type ModuleName = 'products' | 'categories' | 'templates' | 'params' | 'rules' | 'groups' | 'system'
 type StoredPayload = { version?: number; data?: AppData }
+let migrationStorageError = ''
+export function catalogMigrationError() { return migrationStorageError }
 
 function renameSchemeColumn(columns: ColumnPref[] | undefined, mark: { changed: boolean }) {
   columns?.forEach((column) => {
@@ -43,6 +47,7 @@ function renameSchemeColumn(columns: ColumnPref[] | undefined, mark: { changed: 
 
 /** 版本 1 没有分类启用状态。缺省视为启用，并写回版本 2。商品、方案、映射原样保留。 */
 export function normalizeStored(parsed: StoredPayload): AppData | null {
+  migrationStorageError = ''
   const data = parsed.data
   if (!data?.families || !data.skus || !data.categories || !data.templates || !data.mappings || !data.templateParams) return null
   const version = parsed.version ?? 1
@@ -182,7 +187,8 @@ export function normalizeStored(parsed: StoredPayload): AppData | null {
   if (ensureProductListViews(data)) mark.changed = true
   if (ensureProductListPages(data)) mark.changed = true
   if (mark.changed && typeof localStorage !== 'undefined') {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data }))
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data })); migrationStorageError = '' }
+    catch (error) { migrationStorageError = `旧配置已在内存中兼容读取，但无法写入本机：${error instanceof Error ? error.message : String(error)}。原存储未被清空，可在解除存储限制后重试保存。` }
   }
   return data
 }
@@ -212,16 +218,26 @@ export function uid(prefix: string) {
 export const useCatalogStore = defineStore('catalog', () => {
   const data = reactive<AppData>(loadData())
   ensureProductListPages(data)
+  let explicitlyPersisted = ''
 
   watch(
     data,
     () => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data }))
+      const encoded = JSON.stringify({ version: DATA_VERSION, data })
+      if (encoded === explicitlyPersisted) { explicitlyPersisted = ''; return }
+      explicitlyPersisted = ''
+      localStorage.setItem(STORAGE_KEY, encoded)
     },
     { deep: true },
   )
 
   const isAdmin = computed(() => data.activeRole === 'admin')
+
+  function commitSkuPage(next: ProductListPageState) {
+    const result = persistSkuPage(data, next, text => localStorage.setItem(STORAGE_KEY, text), DATA_VERSION)
+    if (result.ok) { explicitlyPersisted = result.encoded; migrationStorageError = '' }
+    return result
+  }
 
   function unusedCatalogId(prefix: 'fam' | 'sku') {
     let id: string
@@ -276,6 +292,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     const parsed = JSON.parse(text) as StoredPayload
     const next = normalizeStored(parsed)
     if (!next?.params) throw new Error('演示数据版本不匹配，当前数据没有被替换')
+    if (migrationStorageError) throw new Error(migrationStorageError)
     replaceAll(next)
   }
 
@@ -715,6 +732,7 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   return {
     data,
+    commitSkuPage,
     isAdmin,
     resetAll,
     resetModule,

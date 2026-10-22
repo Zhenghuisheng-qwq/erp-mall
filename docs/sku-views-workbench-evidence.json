@@ -1,0 +1,722 @@
+{
+  "result": "READY",
+  "date": "2026-10-22",
+  "baseline": {
+    "branch": "20261022",
+    "head": "215e3edfb51d72a7660eae8b83c78d4dd640b191",
+    "initialWorkspace": "clean",
+    "archive": "work/sku-workbench/baseline.zip",
+    "source": "work/sku-workbench/baseline"
+  },
+  "final": {
+    "branch": "20261022",
+    "head": "215e3edfb51d72a7660eae8b83c78d4dd640b191",
+    "status": " M .gitignore\n M README.md\n M package.json\n M scripts/browser-4b.mjs\n M scripts/browser-frontend-final.mjs\n M scripts/browser-spu-sku.mjs\n M scripts/browser-ui.mjs\n M src/domain/productListPages.ts\n M src/domain/productListViews.ts\n M src/domain/types.ts\n M src/router/index.ts\n M src/stores/catalog.ts\n?? docs/sku-views-workbench-evidence.json\n?? docs/sku-views-workbench.md\n?? scripts/browser-sku-spu-preservation.mjs\n?? scripts/browser-sku-workbench.mjs\n?? scripts/sku-workbench-performance.ts\n?? scripts/sku-workbench-query-check.ts\n?? scripts/sku-workbench-state-check.ts\n?? src/components/product-list/sku/\n?? src/components/product-list/useSkuWorkbench.ts\n?? src/domain/skuWorkbenchFields.ts\n?? src/domain/skuWorkbenchQuery.ts\n?? src/domain/skuWorkbenchState.ts\n?? src/domain/skuWorkbenchTypes.ts\n?? src/views/SkuWorkbenchView.vue\n",
+    "committed": false,
+    "pushed": false,
+    "deployed": false
+  },
+  "checks": [
+    {
+      "command": "npm run check:frontend",
+      "exit": 0,
+      "log": "work/sku-workbench/final-domain.log"
+    },
+    {
+      "command": "npm run check:sku-views",
+      "exit": 0,
+      "log": "work/sku-workbench/workbench-final.log"
+    },
+    {
+      "command": "BROWSER_ENGINE=webkit node scripts/browser-sku-workbench.mjs",
+      "exit": 0,
+      "log": "work/sku-workbench/webkit-final-current.log"
+    },
+    {
+      "command": "npm run check:integration",
+      "exit": 0,
+      "log": "work/sku-workbench/integration-current-final.log"
+    },
+    {
+      "command": "npm run check:spu-sku",
+      "exit": 0,
+      "log": "work/sku-workbench/spu-sku-final.log"
+    },
+    {
+      "command": "npm run check:navigation-filter",
+      "exit": 0,
+      "log": "work/sku-workbench/final-navigation-filter.log"
+    },
+    {
+      "command": "node scripts/browser-sku-spu-preservation.mjs",
+      "exit": 0,
+      "log": "work/sku-workbench/spu-visual.log"
+    },
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/sku-workbench-performance.ts",
+      "exit": 0,
+      "log": "work/sku-workbench/performance.log"
+    },
+    {
+      "command": "npm run typecheck",
+      "exit": 0,
+      "log": "work/sku-workbench/typecheck.log"
+    },
+    {
+      "command": "npm run build",
+      "exit": 0,
+      "log": "work/sku-workbench/build.log"
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc --ignoreConfig --noEmit --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck --strict --types node scripts/sku-workbench-query-check.ts scripts/sku-workbench-state-check.ts scripts/sku-workbench-performance.ts",
+      "exit": 0,
+      "log": "work/sku-workbench/check-types.log"
+    },
+    {
+      "command": "git diff --check and no-index --check on untracked files; node --check on new browser entries",
+      "exit": 0
+    }
+  ],
+  "results": {
+    "chrome": {
+      "result": "PASS",
+      "browserEngine": "chromium",
+      "browser": "155.0.8059.85",
+      "viewports": [
+        "1600x1000",
+        "780x900"
+      ],
+      "checkpoints": [
+        {
+          "name": "system-excludes-material",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-c",
+            "wb-d",
+            "wb-e"
+          ]
+        },
+        {
+          "name": "draft-cancel-no-apply",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-c",
+            "wb-d",
+            "wb-e"
+          ]
+        },
+        {
+          "name": "or-groups-applied",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-d"
+          ]
+        },
+        {
+          "name": "save-favorite-refresh",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-d"
+          ]
+        },
+        {
+          "name": "temporary-search-intersection",
+          "ids": [
+            "wb-a"
+          ]
+        },
+        {
+          "name": "work-filter-plus-temporary-search",
+          "ids": [
+            "wb-c"
+          ]
+        },
+        {
+          "name": "return-keeps-applied-work",
+          "ids": [
+            "wb-c"
+          ]
+        },
+        {
+          "name": "refresh-keeps-dirty-work",
+          "ids": [
+            "wb-c"
+          ]
+        },
+        {
+          "name": "restore-official-keeps-temporary-search",
+          "ids": [
+            "wb-a"
+          ]
+        },
+        {
+          "name": "search-clear-restores-rule",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-d"
+          ]
+        },
+        {
+          "name": "scope-opens-all-without-erasing-view",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-c"
+          ]
+        },
+        {
+          "name": "named-view-intersects-spu",
+          "ids": [
+            "wb-a",
+            "wb-b"
+          ]
+        },
+        {
+          "name": "matching-data-edit-updates-rule",
+          "ids": [
+            "wb-a"
+          ]
+        },
+        {
+          "name": "clear-filters-keeps-spu-scope",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-c"
+          ]
+        },
+        {
+          "name": "leave-scope-restores-all",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-c",
+            "wb-d",
+            "wb-e"
+          ]
+        },
+        {
+          "name": "prepare-save-failure",
+          "ids": [
+            "wb-e"
+          ]
+        },
+        {
+          "name": "failed-save-keeps-official-and-dirty-work",
+          "ids": [
+            "wb-e"
+          ]
+        },
+        {
+          "name": "retry-save-refresh",
+          "ids": [
+            "wb-e"
+          ]
+        },
+        {
+          "name": "copy-refresh-preserves-full-config",
+          "ids": [
+            "wb-e"
+          ]
+        },
+        {
+          "name": "delete-default-falls-back-without-deleting-data",
+          "ids": [
+            "wb-e"
+          ]
+        },
+        {
+          "name": "invalid-condition-fails-closed",
+          "ids": []
+        },
+        {
+          "name": "rebuild-invalid-work-preserves-formal-and-business",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-c",
+            "wb-d",
+            "wb-e"
+          ]
+        },
+        {
+          "name": "no-match-empty-state",
+          "ids": []
+        },
+        {
+          "name": "horizontal-wheel-scroll",
+          "ids": [
+            "wb-e"
+          ]
+        }
+      ],
+      "screenshots": [
+        "desktop.png",
+        "filter-groups.png",
+        "fields.png",
+        "invalid-config.png",
+        "dark.png",
+        "narrow.png"
+      ],
+      "diagnostics": [],
+      "evidence": "work/sku-workbench/browser/result.json"
+    },
+    "webkit": {
+      "result": "PASS",
+      "browserEngine": "webkit",
+      "browser": "27.2",
+      "viewports": [
+        "1600x1000",
+        "780x900"
+      ],
+      "checkpoints": [
+        {
+          "name": "system-excludes-material",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-c",
+            "wb-d",
+            "wb-e"
+          ]
+        },
+        {
+          "name": "draft-cancel-no-apply",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-c",
+            "wb-d",
+            "wb-e"
+          ]
+        },
+        {
+          "name": "or-groups-applied",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-d"
+          ]
+        },
+        {
+          "name": "save-favorite-refresh",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-d"
+          ]
+        },
+        {
+          "name": "temporary-search-intersection",
+          "ids": [
+            "wb-a"
+          ]
+        },
+        {
+          "name": "work-filter-plus-temporary-search",
+          "ids": [
+            "wb-c"
+          ]
+        },
+        {
+          "name": "return-keeps-applied-work",
+          "ids": [
+            "wb-c"
+          ]
+        },
+        {
+          "name": "refresh-keeps-dirty-work",
+          "ids": [
+            "wb-c"
+          ]
+        },
+        {
+          "name": "restore-official-keeps-temporary-search",
+          "ids": [
+            "wb-a"
+          ]
+        },
+        {
+          "name": "search-clear-restores-rule",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-d"
+          ]
+        },
+        {
+          "name": "scope-opens-all-without-erasing-view",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-c"
+          ]
+        },
+        {
+          "name": "named-view-intersects-spu",
+          "ids": [
+            "wb-a",
+            "wb-b"
+          ]
+        },
+        {
+          "name": "matching-data-edit-updates-rule",
+          "ids": [
+            "wb-a"
+          ]
+        },
+        {
+          "name": "clear-filters-keeps-spu-scope",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-c"
+          ]
+        },
+        {
+          "name": "leave-scope-restores-all",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-c",
+            "wb-d",
+            "wb-e"
+          ]
+        },
+        {
+          "name": "prepare-save-failure",
+          "ids": [
+            "wb-e"
+          ]
+        },
+        {
+          "name": "failed-save-keeps-official-and-dirty-work",
+          "ids": [
+            "wb-e"
+          ]
+        },
+        {
+          "name": "retry-save-refresh",
+          "ids": [
+            "wb-e"
+          ]
+        },
+        {
+          "name": "copy-refresh-preserves-full-config",
+          "ids": [
+            "wb-e"
+          ]
+        },
+        {
+          "name": "delete-default-falls-back-without-deleting-data",
+          "ids": [
+            "wb-e"
+          ]
+        },
+        {
+          "name": "invalid-condition-fails-closed",
+          "ids": []
+        },
+        {
+          "name": "rebuild-invalid-work-preserves-formal-and-business",
+          "ids": [
+            "wb-a",
+            "wb-b",
+            "wb-c",
+            "wb-d",
+            "wb-e"
+          ]
+        },
+        {
+          "name": "no-match-empty-state",
+          "ids": []
+        },
+        {
+          "name": "horizontal-wheel-scroll",
+          "ids": [
+            "wb-e"
+          ]
+        }
+      ],
+      "screenshots": [
+        "desktop.png",
+        "filter-groups.png",
+        "fields.png",
+        "invalid-config.png",
+        "dark.png",
+        "narrow.png"
+      ],
+      "diagnostics": [],
+      "evidence": "work/sku-workbench/webkit/result.json"
+    },
+    "integration": {
+      "evidence": "work/sku-workbench/integration/result.json",
+      "listEntries": 5,
+      "businessPoints": 13,
+      "diagnostics": [
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        },
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        }
+      ]
+    },
+    "spuSku": {
+      "evidence": "work/sku-workbench/spu-sku/result.json",
+      "domainGroups": 19,
+      "browserPoints": 12
+    },
+    "navigation": {
+      "evidence": "work/sku-workbench/navigation-filter/result.json",
+      "browserPoints": 9,
+      "queryComparisons": 10,
+      "diagnostics": [],
+      "windowDiagnostics": [
+        {
+          "source": "baseline",
+          "url": "http://127.0.0.1:50297/skus",
+          "message": "ResizeObserver loop completed with undelivered notifications."
+        }
+      ]
+    },
+    "spuVisual": {
+      "evidence": "work/sku-workbench/spu-visual/result.json",
+      "comparisons": [
+        {
+          "name": "light",
+          "width": 1440,
+          "height": 960,
+          "pixels": 1382400,
+          "changed": 0
+        },
+        {
+          "name": "dark",
+          "width": 1440,
+          "height": 960,
+          "pixels": 1382400,
+          "changed": 0
+        }
+      ]
+    },
+    "performance": {
+      "result": "PASS",
+      "environment": {
+        "node": "v22.18.0",
+        "platform": "win32",
+        "release": "10.0.26200",
+        "arch": "x64",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor            "
+      },
+      "businessTime": "2026-10-22T04:00:00Z",
+      "warmups": 2,
+      "repetitions": 9,
+      "method": "Node performance.now; query and current-page field presentation timed separately; assertion cost excluded from both intervals; no browser/full-page timing or prior-speedup claim",
+      "samples": [
+        {
+          "skuCount": 100,
+          "spuCount": 10,
+          "dynamicFieldCount": 2,
+          "conditionCount": 1,
+          "sortCount": 2,
+          "groupLevels": 1,
+          "matchingCount": 50,
+          "pageSize": 50,
+          "queryMedianMs": 1.0195999999999685,
+          "pagePresentationMedianMs": 0.16809999999998126,
+          "queryMs": [
+            1.4207999999999856,
+            1.1607000000000198,
+            1.02800000000002,
+            1.096900000000005,
+            0.9918999999999869,
+            0.9494000000000824,
+            0.9359999999999218,
+            1.0131000000000085,
+            1.0195999999999685
+          ],
+          "pagePresentationMs": [
+            0.16600000000005366,
+            0.16810000000009495,
+            0.1652000000000271,
+            0.1568000000000893,
+            0.22299999999995634,
+            0.248299999999972,
+            0.23249999999995907,
+            0.16809999999998126,
+            0.1512000000000171
+          ]
+        },
+        {
+          "skuCount": 10000,
+          "spuCount": 10,
+          "dynamicFieldCount": 2,
+          "conditionCount": 1,
+          "sortCount": 2,
+          "groupLevels": 1,
+          "matchingCount": 5000,
+          "pageSize": 50,
+          "queryMedianMs": 91.79909999999995,
+          "pagePresentationMedianMs": 0.1675000000000182,
+          "queryMs": [
+            94.17640000000006,
+            92.31119999999987,
+            91.79909999999995,
+            91.33960000000002,
+            97.5442999999998,
+            96.9983000000002,
+            91.42439999999988,
+            89.34490000000005,
+            90.8311000000001
+          ],
+          "pagePresentationMs": [
+            0.1714999999999236,
+            0.15579999999999927,
+            0.1675000000000182,
+            0.1515999999999167,
+            0.17180000000007567,
+            0.17519999999990432,
+            0.1488000000001648,
+            0.18200000000001637,
+            0.14619999999990796
+          ]
+        }
+      ]
+    }
+  },
+  "files": [
+    {
+      "path": ".gitignore",
+      "sha256": "99e80b9080e44166e0f044d832ff7cf9ac18b4223b81c8f5b3c8c46b611f32bc"
+    },
+    {
+      "path": "README.md",
+      "sha256": "18e9645a6af7545994dd0265b4126a02a4ad8a1588e76cd117d3ad3d931f6077"
+    },
+    {
+      "path": "docs/sku-views-workbench.md",
+      "sha256": "354f2fc58a97c3f26b3c7c58b41a53917fefc3354a496837f4ef3272ea4e6dca"
+    },
+    {
+      "path": "package.json",
+      "sha256": "9985f0f1d98ba50e774a869a93a3e59e98e9661b6e6e4035005c4c34bb57c183"
+    },
+    {
+      "path": "scripts/browser-4b.mjs",
+      "sha256": "9b344102b9789c7bb45fd93f276f43f49167e7887c12924f23422bdee06065b3"
+    },
+    {
+      "path": "scripts/browser-frontend-final.mjs",
+      "sha256": "25d0ef03d068ce8fd252ceab9ceecb93e50209227df2905fff3fcdf7f9fe8ec6"
+    },
+    {
+      "path": "scripts/browser-sku-spu-preservation.mjs",
+      "sha256": "c08cdf973d1dc4e934b28da31a05d06128ca6f2bd54bd53e877f046690bf4ff3"
+    },
+    {
+      "path": "scripts/browser-sku-workbench.mjs",
+      "sha256": "8269777adb7d93ad037f9fd41105848b13e2b807ae58dc3d8264d93503cbf789"
+    },
+    {
+      "path": "scripts/browser-spu-sku.mjs",
+      "sha256": "3c5b4cbe94917cdf7cdca58ebc55388458b460b789523f6bdecb9275cc3c4aed"
+    },
+    {
+      "path": "scripts/browser-ui.mjs",
+      "sha256": "c9687bb06a94bf35eb9a813c17490c7a2e9b26b8e3199f9d8c310097af381dbe"
+    },
+    {
+      "path": "scripts/sku-workbench-performance.ts",
+      "sha256": "5454bf3fac20b5e5caf8fb4ee5321dae421c7247de4f62f7f3b079b54f2dadeb"
+    },
+    {
+      "path": "scripts/sku-workbench-query-check.ts",
+      "sha256": "4db12916d3b6fac875f9e7e432c0662776927f5d4b624ddaf32fa4fdef3df5c3"
+    },
+    {
+      "path": "scripts/sku-workbench-state-check.ts",
+      "sha256": "f53c2b016d087f2be94a6c80c2746a4bbf0389b1c2fd1f2d53e9f08a67c81e13"
+    },
+    {
+      "path": "src/components/product-list/sku/SkuDisplayDialog.vue",
+      "sha256": "86ba2c5e9ccd00f09cffb40c099d9445ec642d489324947ede122aef3fcf51a6"
+    },
+    {
+      "path": "src/components/product-list/sku/SkuFilterDialog.vue",
+      "sha256": "29d07f52da5bdd4cc980974bb99c546628e474af8c2cd1066e79f2bc93a1ef26"
+    },
+    {
+      "path": "src/components/product-list/sku/SkuRuleEditor.vue",
+      "sha256": "372b277510e278f4d33591994e7c26ec7530e641714f8fe524ce3cdd49ca7671"
+    },
+    {
+      "path": "src/components/product-list/useSkuWorkbench.ts",
+      "sha256": "89c224530b10edc23e42f81e10125b8c11610bdc90ed12a6af6bb76fc7bf9d55"
+    },
+    {
+      "path": "src/domain/productListPages.ts",
+      "sha256": "69c14ebe80bfe973390037580605f20c612a9452f6ae0a022bc21e9c5c0f0168"
+    },
+    {
+      "path": "src/domain/productListViews.ts",
+      "sha256": "9a68a9b60cc925c8ef8b8432d3d4a95d1be3d49ae7af159628ceaaa5992786ca"
+    },
+    {
+      "path": "src/domain/skuWorkbenchFields.ts",
+      "sha256": "cecef0db82d754dadfec38c4120b45a098fe20803ff1b722a7c954fdd483d87d"
+    },
+    {
+      "path": "src/domain/skuWorkbenchQuery.ts",
+      "sha256": "1ca09b764642aa9ee50c3ecfb3b66c1c9fd1df31768fd4d5050bfe8b622d4f10"
+    },
+    {
+      "path": "src/domain/skuWorkbenchState.ts",
+      "sha256": "469f787ae96f636ce00441f98cefccd178c16ac7e88e17ba955daed8c255bfc8"
+    },
+    {
+      "path": "src/domain/skuWorkbenchTypes.ts",
+      "sha256": "c2ad3ff329bc85bdc4730e4b66360000974e59160e126552fe57d4bb1ec58d08"
+    },
+    {
+      "path": "src/domain/types.ts",
+      "sha256": "bd02db4455fe9a4749bfd01885e35fb38ebd3141615aa6743090457d1c530a2d"
+    },
+    {
+      "path": "src/router/index.ts",
+      "sha256": "3ab5707a92bbd49fa38a5f85c395eb6974b6e2dc828150c062e30fd4311f9dd4"
+    },
+    {
+      "path": "src/stores/catalog.ts",
+      "sha256": "4a6274b35f7c79d9be5168377897e245c5da5468146875f5154c8056260aebab"
+    },
+    {
+      "path": "src/views/SkuWorkbenchView.vue",
+      "sha256": "2a83d174d9a2ba4726caff1e3a449576a12341847591dc436bf05dd7f6c8226e"
+    }
+  ],
+  "protectedPathsUnchanged": [
+    "src/domain/planning.ts",
+    "src/domain/draftComboPreview.ts",
+    "src/domain/logic.ts",
+    "src/domain/catalogIdentity.ts",
+    "src/components/ProductModelSelector.vue",
+    "src/views/SpecConfigView.vue",
+    "src/views/ProductListView.vue",
+    "src/layouts",
+    "package-lock.json"
+  ],
+  "limitations": [
+    "Real macOS Safari and physical trackpad not tested; Windows Playwright WebKit 27.2 was tested.",
+    "No live Excel re-import; no back end, cross-device sync or team sharing.",
+    "Relative date refresh is once per minute and on visibility/remount.",
+    "Legacy SPU nested selection reset, ResizeObserver/Vue Flow deprecation and build chunk warning remain."
+  ],
+  "patch": "work/sku-workbench/sku-workbench-full.diff"
+}
