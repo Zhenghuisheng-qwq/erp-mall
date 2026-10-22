@@ -259,7 +259,7 @@
 
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CategoryFilterTree from '../components/CategoryFilterTree.vue'
 import ProductListFilterDialog from '../components/product-list/ProductListFilterDialog.vue'
@@ -267,6 +267,8 @@ import { conditionRange, filterOperators, filterSummaries, quickFilterState, typ
 import PageHead from '../components/PageHead.vue'
 import ProductListViewTools from '../components/product-list/ProductListViewTools.vue'
 import { useProductListManualOrder } from '../components/product-list/useProductListManualOrder'
+import { useProductListCategoryLayout } from '../components/product-list/useProductListCategoryLayout'
+import { presentTableGroups } from '../components/product-list/tablePresentation'
 import { familyBrandText, familyBrandValues, isRealSku, linkedModelName, materialArchivesOf, productTypeName, realSkusOf, savedSkuCode, savedSkuName, savedSkuSpec, skuCountText } from '../domain/productList'
 import { catalogRole, compatibilitySkuBlock, roleOfType } from '../domain/compatibility'
 import { categoryPath, shelfOf, shelfText, templateById } from '../domain/logic'
@@ -301,9 +303,6 @@ const columnOpen = ref(false)
 const createOpen = ref(false)
 const settingsOpen = ref(false)
 const filterOpen = ref(false)
-const categoryOpen = ref(false)
-const narrowScreen = ref(window.innerWidth < 960)
-const categorySideClosed = ref(false)
 const stageOpen = ref(false)
 const collapsed = reactive<Record<string, boolean>>({})
 const draftName = ref('')
@@ -342,25 +341,7 @@ const tableColumns = computed(() => visibleColumns(activeView.value, listMode.va
 const modeColumns = computed(() => orderedColumns(activeView.value, listMode.value))
 const activeQuery = computed(() => currentModeQuery(activeView.value))
 const presentation = computed(() => presentProductList(scopeId.value ? { ...store.data, families: store.data.families.filter(item => item.id === scopeId.value) } : store.data, activeView.value, query.value.page, query.value.pageSize))
-const shownGroups = computed(() => presentation.value.groups.map((group) => ({
-  key: group.key,
-  label: group.label,
-  total: group.total,
-  families: group.rows.map((row) => row.family),
-  skus: group.rows.flatMap((row) => row.sku ? [{
-    id: row.id,
-    familyId: row.family.id,
-    code: savedSkuCode(row.sku),
-    name: savedSkuName(row.sku),
-    spec: savedSkuSpec(row.family, row.sku),
-    familyName: row.family.name,
-    category: categoryPath(store.data, row.family.categoryId),
-    typeName: productTypeName(store.data, row.family),
-    modelName: linkedModelName(store.data, row.family),
-    status: row.sku.status,
-    updatedAt: row.sku.updatedAt?.slice(0, 16).replace('T', ' '),
-  }] : []),
-})))
+const shownGroups = computed(() => presentTableGroups(store.data, presentation.value.groups))
 const activeTotal = computed(() => presentation.value.total)
 const summaries = computed(() => filterSummaries(activeQuery.value, filterFields.value, value => categoryPath(store.data, value) || value))
 const filterCount = computed(() => summaries.value.length)
@@ -398,8 +379,6 @@ const sortStatusLabel = computed(() => {
   const label = sortOptions.value.find((item) => item.field === field)?.label
   return label ? `按${label}` : '按字段'
 })
-const categoryLayout = computed(() => activeView.value.categoryFilterLayout === 'sidebar' || activeView.value.categoryFilterLayout === 'hidden' ? activeView.value.categoryFilterLayout : 'popover')
-const showSidebar = computed(() => categoryLayout.value === 'sidebar' && !narrowScreen.value && !categorySideClosed.value)
 const categoryQuick = computed(() => quickFilterState(activeQuery.value, { field: 'category', label: '商品分类', kind: 'enum' }))
 const categoryState = computed(() => resolveCategoryFilter(store.data, chosen('category')))
 const selectedCategoryIds = computed(() => categoryState.value.ids)
@@ -477,11 +456,6 @@ function clearCategory() {
   liveQuery().filters = liveQuery().filters.filter(item => item.field !== 'category')
   touchFilters()
 }
-function setCategorySidebar(enabled: boolean) {
-  setViewCategoryLayout(listData.value, enabled ? 'sidebar' : 'popover')
-  categorySideClosed.value = false
-  categoryOpen.value = false
-}
 function removeSummary(id: string) {
   if (id === '$keyword') onKeyword('')
   else removeCondition(id)
@@ -490,9 +464,6 @@ function clearFilters() {
   liveQuery().keyword = ''
   liveQuery().filters = []
   touchFilters()
-}
-function syncNarrow() {
-  narrowScreen.value = window.innerWidth < 960
 }
 function kindOf(field: string) {
   return filterFields.value.find((item) => item.field === field)?.kind || 'text'
@@ -741,17 +712,18 @@ function batchStatus(familyId: string, status: Sku['status']) {
   ElMessage.success('状态已更新')
 }
 
-watch(() => activeView.value.id, () => { categoryOpen.value = false; categorySideClosed.value = false })
-watch(showSidebar, () => { categoryOpen.value = false })
+// Register the existing route-open hook before the category layout's resize hook.
+onMounted(() => {
+  if (route.query.panel === 'columns') columnOpen.value = true
+})
+const { categoryOpen, categorySideClosed, narrowScreen, categoryLayout, showSidebar, setCategorySidebar } = useProductListCategoryLayout(
+  activeView,
+  layout => setViewCategoryLayout(listData.value, layout),
+)
 watch(presentation, () => {
   if (query.value.page !== presentation.value.page) query.value.page = presentation.value.page
 }, { immediate: true })
-onMounted(() => {
-  if (route.query.panel === 'columns') columnOpen.value = true
-  syncNarrow()
-  window.addEventListener('resize', syncNarrow)
-})
-onBeforeUnmount(() => window.removeEventListener('resize', syncNarrow))
+
 watch(
   () => route.query.panel,
   (panel) => {
