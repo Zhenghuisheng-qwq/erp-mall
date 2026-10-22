@@ -28,6 +28,8 @@ export interface SkuWorkbenchState {
   favorites: string[]
   order: string[]
   working: Record<string, SkuViewConfig>
+  /** Completed preset migrations survive deletion of the generated view. */
+  migratedPresetIds?: string[]
 }
 export type SkuFieldType = 'text' | 'enum' | 'multi' | 'number' | 'date' | 'boolean' | 'spu' | 'category'
 export interface SkuField {

@@ -133,9 +133,14 @@ export function ensureSkuWorkbench(data: AppData): boolean {
   if (!page.views.some(view => view.id === SYSTEM_SKU_VIEW_ID)) page.views.unshift(createSkuSavedView(SYSTEM_SKU_VIEW_ID, '全部 SKU', repairSkuConfig(defaultSkuConfig(), data), legacy))
   const system = page.views.find(view => view.id === SYSTEM_SKU_VIEW_ID)
   if (system) { system.name = '全部 SKU'; system.mode = 'sku'; system.skuWorkbench = repairSkuConfig(defaultSkuConfig(), data) }
+  const previous = page.skuWorkbench
+  const migratedPresets = new Set<string>(Array.isArray(previous?.migratedPresetIds) ? previous.migratedPresetIds.filter((id): id is string => typeof id === 'string') : [])
+  // Older workbench data has no event log. Existing generated IDs prove a
+  // completed migration; preserving that fact prevents later deletion revival.
+  page.views.forEach(view => { if (view.id.startsWith('sku-preset:')) migratedPresets.add(view.id.slice('sku-preset:'.length)) })
   page.presets.filter(preset => preset.id !== 'view-all').forEach(preset => {
     const id = `sku-preset:${preset.id}`
-    if (page.views.some(view => view.id === id)) return
+    if (migratedPresets.has(preset.id)) return
     const config = legacy ? configFromLegacy(legacy, data) : defaultSkuConfig()
     const query = cloneSku(legacy?.skuQuery || { keyword: '', filters: [], exposed: [], grouping: null, sorting: null })
     const converted = filtersFromListQuery(data, preset.query)
@@ -145,9 +150,9 @@ export function ensureSkuWorkbench(data: AppData): boolean {
     let name = `筛选预设 · ${preset.name}`
     while (page.views.some(view => view.name === name)) name += '（历史）'
     page.views.push(createSkuSavedView(id, name, repairSkuConfig(config, data), legacy))
+    migratedPresets.add(preset.id)
   })
   const ids = new Set(page.views.map(view => view.id))
-  const previous = page.skuWorkbench
   const work: Record<string, SkuViewConfig> = {}
   Object.entries(previous?.working || {}).forEach(([id, config]) => {
     const scoped = id.startsWith(`${SYSTEM_SKU_VIEW_ID}@spu:`) && data.families.some(family => family.id === id.slice(`${SYSTEM_SKU_VIEW_ID}@spu:`.length))
@@ -160,6 +165,7 @@ export function ensureSkuWorkbench(data: AppData): boolean {
     version: 1, activeId: previous && ids.has(previous.activeId) ? previous.activeId : fallback,
     defaultId: previous && ids.has(previous.defaultId) ? previous.defaultId : SYSTEM_SKU_VIEW_ID,
     favorites: unique(list(previous?.favorites)), order: unique([...list(previous?.order), ...page.views.map(view => view.id)]), working: work,
+    migratedPresetIds: [...migratedPresets],
   }
   page.skuWorkbench = state
   return JSON.stringify(page) !== before

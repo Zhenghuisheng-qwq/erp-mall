@@ -203,7 +203,7 @@ function result(outcome: { ok: boolean; message?: string }) { if (!outcome.ok &&
 function applyConfig(next: SkuViewConfig) { result(workbench.apply(next)); page.value = 1 }
 function openDisplay(tab: 'fields' | 'sort' | 'more') { displayTab.value = tab; displayOpen.value = true }
 function selectView(id: string) { if (result(workbench.select(id))) { viewsOpen.value = false; page.value = 1 } }
-function restoreView() { result(workbench.restore()); page.value = 1 }
+function restoreView() { if (result(workbench.restore())) page.value = 1 }
 async function rebuildInvalid() { try { await ElMessageBox.confirm('将当前工作配置重建为全部 SKU 的默认规则？原保存视图保留，只有再次保存才会覆盖。当前 SPU 范围仍保留。', '重建工作配置') } catch { return }; applyConfig(defaultSkuConfig()) }
 function clearFilters() { search.value = ''; const next = structuredClone(JSON.parse(JSON.stringify(config.value))) as SkuViewConfig; next.conditions.children = []; if (next.legacy) { next.legacy.keyword = ''; next.legacy.filters = [] }; applyConfig(next) }
 function nodeSummary(id: string) { return describeSkuConditions(store.data, { ...config.value, legacy: undefined, conditions: { ...config.value.conditions, children: config.value.conditions.children.filter(node => node.id === id) } }) }

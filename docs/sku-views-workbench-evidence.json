@@ -718,5 +718,414 @@
     "Relative date refresh is once per minute and on visibility/remount.",
     "Legacy SPU nested selection reset, ResizeObserver/Vue Flow deprecation and build chunk warning remain."
   ],
-  "patch": "work/sku-workbench/sku-workbench-full.diff"
+  "patch": "work/sku-workbench/sku-workbench-full.diff",
+  "followUpFixes": [
+    {
+      "date": "2026-10-23",
+      "result": "READY",
+      "scope": "Three independently reproduced SKU workbench defects only",
+      "baseline": {
+        "branch": "20261022",
+        "head": "2a0b1cc771c23620dab3f117f22fbfc98458f525",
+        "initialWorkspace": "clean",
+        "archive": "work/sku-workbench-fixes/baseline.zip",
+        "archiveSha256": "9b1750810666a7a5a2207b6c92f36d62eb3ff2b8f022cf624f179ed8b6771341",
+        "source": "work/sku-workbench-fixes/baseline",
+        "originalEvidence": "work/sku-workbench-fixes/previous-evidence.json"
+      },
+      "final": {
+        "branch": "20261022",
+        "head": "2a0b1cc771c23620dab3f117f22fbfc98458f525",
+        "status": " M .gitignore\n M docs/sku-views-workbench-evidence.json\n M docs/sku-views-workbench.md\n M package.json\n M src/components/product-list/useSkuWorkbench.ts\n M src/domain/skuWorkbenchQuery.ts\n M src/domain/skuWorkbenchState.ts\n M src/domain/skuWorkbenchTypes.ts\n M src/views/SkuWorkbenchView.vue\n?? scripts/browser-sku-workbench-fixes.mjs\n?? scripts/sku-workbench-grouping-fix-check.ts\n?? scripts/sku-workbench-grouping-fix-fixtures.ts\n?? scripts/sku-workbench-migration-fix-check.ts\n?? scripts/sku-workbench-restore-fix-check.ts\n",
+        "staged": false,
+        "committed": false,
+        "pushed": false,
+        "merged": false,
+        "deployed": false
+      },
+      "environment": {
+        "platform": "win32",
+        "release": "10.0.26200",
+        "node": "v22.18.0",
+        "browser": "155.0.8059.85",
+        "engine": "installed Chrome via playwright-core",
+        "viewport": "1600x1000",
+        "locale": "zh-CN",
+        "timezone": "Asia/Shanghai",
+        "fixedBusinessTime": "2026-10-23T04:00:00Z",
+        "isolatedContexts": true,
+        "dependenciesChanged": false
+      },
+      "issues": [
+        {
+          "priority": "P1",
+          "name": "dynamic-attribute grouping loses and duplicates SKU",
+          "status": "FIXED",
+          "rootCause": "Comparator ties distinct group identities; adjacent grouping emits repeated keys subsequently overwritten by page Map",
+          "change": "Stable identity buckets per level after existing sort and before paging; preserve first-seen tied group order and leaf order",
+          "beforeShown": [
+            "s3",
+            "s2",
+            "s3"
+          ],
+          "afterShown": [
+            "s1",
+            "s3",
+            "s2"
+          ],
+          "beforeLog": "work/sku-workbench-fixes/before-grouping.log",
+          "beforeSourceReplayLog": "work/sku-workbench-fixes/before-grouping-recheck.log",
+          "beforeEvidence": "work/sku-workbench-fixes/before-grouping-reproduction.json",
+          "afterEvidence": "work/sku-workbench-fixes/after-grouping-reproduction.json",
+          "matrix": "work/sku-workbench-fixes/after-grouping-matrix.json"
+        },
+        {
+          "priority": "P2",
+          "name": "deleted migrated preset view reappears",
+          "status": "FIXED",
+          "rootCause": "Missing generated view treated as never migrated",
+          "change": "Persist optional migratedPresetIds event log within SKU page preferences; retain old presets; infer events from existing generated views",
+          "dataVersion": 15,
+          "workbenchVersion": 1,
+          "beforeLog": "work/sku-workbench-fixes/migration-before.log",
+          "beforeEvidence": "work/sku-workbench-fixes/migration/before-result.json",
+          "afterEvidence": "work/sku-workbench-fixes/migration/after-result.json"
+        },
+        {
+          "priority": "P2",
+          "name": "failed restore discards work before persistence",
+          "status": "FIXED",
+          "rootCause": "localWork deleted before commit; page reset unconditionally even on failure",
+          "change": "Delete candidate target working key, commit, then clear local target only on success; reset page only on success",
+          "beforeLog": "work/sku-workbench-fixes/restore-before.log",
+          "beforeEvidence": "work/sku-workbench-fixes/restore-before.json",
+          "intermediatePaginationFailure": "work/sku-workbench-fixes/browser-page-before/failure.json",
+          "intermediatePaginationLog": "work/sku-workbench-fixes/browser-page-before.log",
+          "afterEvidence": "work/sku-workbench-fixes/restore-after.json"
+        }
+      ],
+      "baselineChecks": {
+        "result": "PASS",
+        "originalQueryChecks": 23,
+        "originalStateGroups": 6,
+        "source": "work/sku-workbench-fixes/baseline",
+        "log": "work/sku-workbench-fixes/before-existing-checks.log",
+        "meaning": "Original passing checks did not cover these boundaries"
+      },
+      "beforeBrowser": {
+        "command": "node scripts/browser-sku-workbench-fixes.mjs --before",
+        "environment": {
+          "SKU_FIX_OUTPUT_DIR": "work/sku-workbench-fixes/browser-before-final-test"
+        },
+        "exit": 1,
+        "result": "FAIL",
+        "expectedDetection": true,
+        "source": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\sku-workbench-fixes\\baseline",
+        "log": "work/sku-workbench-fixes/browser-before-final-test.log",
+        "evidence": "work/sku-workbench-fixes/browser-before-final-test/result.json",
+        "checks": [
+          {
+            "name": "grouped-matches-displayed-once",
+            "result": "FAIL",
+            "message": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n2 !== 3\n"
+          },
+          {
+            "name": "deleted-preset-stays-deleted-reentry-refresh",
+            "result": "FAIL",
+            "message": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\ntrue !== false\n"
+          },
+          {
+            "name": "saved-restore-failure-keeps-work-and-retry",
+            "result": "FAIL",
+            "message": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert.ok(failed.compact)\n"
+          },
+          {
+            "name": "scoped-restore-failure-keeps-work-and-retry",
+            "result": "FAIL",
+            "message": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert.ok(failed.compact)\n"
+          },
+          {
+            "name": "scoped-create-entry",
+            "result": "PASS"
+          }
+        ],
+        "diagnostics": []
+      },
+      "finalBrowser": {
+        "result": "PASS",
+        "evidence": "work/sku-workbench-fixes/browser-after/result.json",
+        "checks": [
+          {
+            "name": "grouped-matches-displayed-once",
+            "result": "PASS"
+          },
+          {
+            "name": "deleted-preset-stays-deleted-reentry-refresh",
+            "result": "PASS"
+          },
+          {
+            "name": "saved-restore-failure-keeps-work-and-retry",
+            "result": "PASS"
+          },
+          {
+            "name": "saved-restore-retry-refresh",
+            "result": "PASS"
+          },
+          {
+            "name": "scoped-restore-failure-keeps-work-and-retry",
+            "result": "PASS"
+          },
+          {
+            "name": "scoped-restore-retry-refresh",
+            "result": "PASS"
+          },
+          {
+            "name": "scoped-create-entry",
+            "result": "PASS"
+          }
+        ],
+        "diagnostics": [],
+        "screenshots": [
+          "work/sku-workbench-fixes/browser-after/dynamic-empty-not-applicable.png",
+          "work/sku-workbench-fixes/browser-after/deleted-preset-after-refresh.png",
+          "work/sku-workbench-fixes/browser-after/saved-restore-failure-keeps-work.png",
+          "work/sku-workbench-fixes/browser-after/saved-restore-retry-success.png",
+          "work/sku-workbench-fixes/browser-after/scoped-restore-failure-keeps-work.png",
+          "work/sku-workbench-fixes/browser-after/scoped-restore-retry-success.png"
+        ]
+      },
+      "originalBrowserRegression": {
+        "workbench": {
+          "evidence": "work/sku-workbench-fixes/workbench/result.json",
+          "checkpoints": 24,
+          "diagnostics": []
+        },
+        "spuSku": {
+          "evidence": "work/sku-workbench-fixes/spu-sku/result.json",
+          "checkpoints": 12,
+          "diagnostics": []
+        }
+      },
+      "checks": [
+        {
+          "command": "npm run check:sku-views:fixes",
+          "exit": 0,
+          "log": "work/sku-workbench-fixes/final-fixes.log",
+          "coverage": "7 grouping groups; migration round trips; 4 restore transaction cases; 7 Chrome checkpoints"
+        },
+        {
+          "command": "node scripts/run-domain-check.mjs scripts/sku-workbench-query-check.ts",
+          "exit": 0,
+          "log": "work/sku-workbench-fixes/final-query.log",
+          "coverage": "23 original query checks"
+        },
+        {
+          "command": "node scripts/run-domain-check.mjs scripts/sku-workbench-state-check.ts",
+          "exit": 0,
+          "log": "work/sku-workbench-fixes/final-state.log",
+          "coverage": "6 original state groups"
+        },
+        {
+          "command": "npm run check:spu-sku",
+          "environment": {
+            "SPU_SKU_OUTPUT_DIR": "work/sku-workbench-fixes/spu-sku"
+          },
+          "exit": 0,
+          "log": "work/sku-workbench-fixes/spu-sku.log",
+          "coverage": "19 domain groups and 12 Chrome workflows; source unchanged after this run except restoreView failure pagination branch, covered by final fixes"
+        },
+        {
+          "command": "node scripts/browser-sku-workbench.mjs",
+          "environment": {
+            "SKU_WORKBENCH_OUTPUT_DIR": "work/sku-workbench-fixes/workbench"
+          },
+          "exit": 0,
+          "log": "work/sku-workbench-fixes/workbench.log",
+          "coverage": "24 original browser checkpoints; run before final one-line restoreView correction, positive and negative restore branches subsequently verified by final fixes"
+        },
+        {
+          "command": "npm run typecheck",
+          "exit": 0,
+          "log": "work/sku-workbench-fixes/typecheck.log",
+          "afterLastProductionChange": true
+        },
+        {
+          "command": "npm run build",
+          "exit": 0,
+          "log": "work/sku-workbench-fixes/build.log",
+          "afterLastProductionChange": true,
+          "warning": "Existing >500kB chunk warning retained"
+        },
+        {
+          "command": "node node_modules/typescript/bin/tsc --ignoreConfig --noEmit --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck --strict --types node scripts/sku-workbench-grouping-fix-check.ts scripts/sku-workbench-grouping-fix-fixtures.ts scripts/sku-workbench-migration-fix-check.ts scripts/sku-workbench-restore-fix-check.ts",
+          "exit": 0,
+          "log": "work/sku-workbench-fixes/check-types.log"
+        },
+        {
+          "command": "node --check scripts/browser-sku-workbench-fixes.mjs; git diff --check; git -c core.autocrlf=false diff --no-index --check -- NUL <each of five untracked test files>",
+          "exit": 0,
+          "noIndexRawExit": 1,
+          "noIndexExplanation": "New files differ from NUL; --no-index implies --exit-code. All five have empty stdout/stderr, no whitespace diagnostics.",
+          "log": "work/sku-workbench-fixes/final-static.log"
+        }
+      ],
+      "preservation": {
+        "originalEvidenceFieldsUnchanged": true,
+        "scopeAudit": "work/sku-workbench-fixes/scope-audit.json",
+        "businessArraysUnchangedByViewCommands": true,
+        "spuPreferencesPreserved": true,
+        "otherWorkingKeysPreserved": true,
+        "historyAndBusinessAlgorithmsUnchanged": true
+      },
+      "files": [
+        {
+          "file": ".gitignore",
+          "sha256": "1317c121533d9b770c9fafea6c0ebf266bd8669b04ca3698507a9a0355baf873",
+          "sha256Lf": "81e4fa55b028e26b1d3df2a101d15bd021e3a6160dcae5f2d4bbca34d3ee9f89"
+        },
+        {
+          "file": "docs/sku-views-workbench.md",
+          "sha256": "d40de4e11e0d0e9f605a904ba3c41e78d04393c3de4894664cb4d1349b5a0c66",
+          "sha256Lf": "d40de4e11e0d0e9f605a904ba3c41e78d04393c3de4894664cb4d1349b5a0c66"
+        },
+        {
+          "file": "package.json",
+          "sha256": "113f4ff3f3c8c1cd06323d617fab8a8c45fee7bc5d76715bae24c065248767b8",
+          "sha256Lf": "d92c8fd984208475c82fffb81fb31143fd602dde99bfbd3051178f0cc5e3eafc"
+        },
+        {
+          "file": "src/components/product-list/useSkuWorkbench.ts",
+          "sha256": "6e0f913b83c32863ac0e21afb5c17adb6891cfdc8660061353de950e8d8e58b9",
+          "sha256Lf": "6e0f913b83c32863ac0e21afb5c17adb6891cfdc8660061353de950e8d8e58b9"
+        },
+        {
+          "file": "src/domain/skuWorkbenchQuery.ts",
+          "sha256": "79605c7a89f360daf1e2cb06e2ad0aa312df0c0b546134a3496cc9f6096c032d",
+          "sha256Lf": "79605c7a89f360daf1e2cb06e2ad0aa312df0c0b546134a3496cc9f6096c032d"
+        },
+        {
+          "file": "src/domain/skuWorkbenchState.ts",
+          "sha256": "332fca1c2066934b8148637e563d05666fc7eca690f8ebf7f838dabf4b0e5644",
+          "sha256Lf": "332fca1c2066934b8148637e563d05666fc7eca690f8ebf7f838dabf4b0e5644"
+        },
+        {
+          "file": "src/domain/skuWorkbenchTypes.ts",
+          "sha256": "19a3023bff381dcbebf1f506a896a55e19d1cfd847aadba1235023d314a44bec",
+          "sha256Lf": "19a3023bff381dcbebf1f506a896a55e19d1cfd847aadba1235023d314a44bec"
+        },
+        {
+          "file": "src/views/SkuWorkbenchView.vue",
+          "sha256": "c3ac2d5b26d9925f3bd3fe047ef65879e3326b88f4ff0365b082b08a61bcaf00",
+          "sha256Lf": "c3ac2d5b26d9925f3bd3fe047ef65879e3326b88f4ff0365b082b08a61bcaf00"
+        },
+        {
+          "file": "scripts/browser-sku-workbench-fixes.mjs",
+          "sha256": "f2b9e3aacde777ecb770814a2888d72c0611614918b3d3ddf8a4804f078497db",
+          "sha256Lf": "f2b9e3aacde777ecb770814a2888d72c0611614918b3d3ddf8a4804f078497db"
+        },
+        {
+          "file": "scripts/sku-workbench-grouping-fix-check.ts",
+          "sha256": "b122db0cdbb338d10f0b14e1edb89aadf2bccda0eb5fe42b205053ea5945bcd2",
+          "sha256Lf": "b122db0cdbb338d10f0b14e1edb89aadf2bccda0eb5fe42b205053ea5945bcd2"
+        },
+        {
+          "file": "scripts/sku-workbench-grouping-fix-fixtures.ts",
+          "sha256": "7419b4a749bb9ccf1442f0b07d3e2a81bb8eb0d4ba7bdad3e367b5e05098f5cd",
+          "sha256Lf": "7419b4a749bb9ccf1442f0b07d3e2a81bb8eb0d4ba7bdad3e367b5e05098f5cd"
+        },
+        {
+          "file": "scripts/sku-workbench-migration-fix-check.ts",
+          "sha256": "2dec4a1b6f471b0b8e016389bcfa4fb996b1191a99a1a30b080643a9c6f7b6b9",
+          "sha256Lf": "2dec4a1b6f471b0b8e016389bcfa4fb996b1191a99a1a30b080643a9c6f7b6b9"
+        },
+        {
+          "file": "scripts/sku-workbench-restore-fix-check.ts",
+          "sha256": "7a3fedbdf006ebab74090f8044d4aaf26a0256c0d553c28eee6e37cf9b91cade",
+          "sha256Lf": "7a3fedbdf006ebab74090f8044d4aaf26a0256c0d553c28eee6e37cf9b91cade"
+        }
+      ],
+      "evidenceFiles": [
+        {
+          "file": "work/sku-workbench-fixes/scope-audit.json",
+          "sha256": "bec7090d6d957003e99ccce5e83d8c654085520e8c2b9aac10873bd5ca5bb584"
+        },
+        {
+          "file": "work/sku-workbench-fixes/browser-after/result.json",
+          "sha256": "9d698f52a6cc8509cbba95e23838904ec1fc332aff09c5a2aebc963e1b7133a6"
+        },
+        {
+          "file": "work/sku-workbench-fixes/browser-before-final-test/result.json",
+          "sha256": "29ef9e9a59a56993362f90eecb394d62c0b74309e43bf07762448446d8cc81c8"
+        },
+        {
+          "file": "work/sku-workbench-fixes/browser-page-before/failure.json",
+          "sha256": "dc93b62ddd32ec7bacb12e6b2801513e62e833c689c4f3153f82a3174041188b"
+        },
+        {
+          "file": "work/sku-workbench-fixes/after-grouping-reproduction.json",
+          "sha256": "f4cea946ce5a4b51494a70793b0c1feaa4d4475f13cc40768db9e43e6c3cc73a"
+        },
+        {
+          "file": "work/sku-workbench-fixes/after-grouping-matrix.json",
+          "sha256": "fe9489e9d505311d88a00c1c3a2f4bcc445a2da9690d690603e7749ddd258a62"
+        },
+        {
+          "file": "work/sku-workbench-fixes/migration/after-result.json",
+          "sha256": "78d6828e2dc1f408eb66eee1122870a6fa5cceebea189394e6f9ccd426a31985"
+        },
+        {
+          "file": "work/sku-workbench-fixes/restore-after.json",
+          "sha256": "f974faaf3e081ffdb4dbbcd33e82b17710c7bdbdae2a08bb355902f78d215566"
+        },
+        {
+          "file": "work/sku-workbench-fixes/final-fixes.log",
+          "sha256": "082209f49899b7f26835e310ecdf5bdc96db3282ba3ff4ddaccd1714eb6d81d0"
+        },
+        {
+          "file": "work/sku-workbench-fixes/final-query.log",
+          "sha256": "49795b0918abc887d0a42874097f5905af00b0ed39797460cc65141a0aaf341c"
+        },
+        {
+          "file": "work/sku-workbench-fixes/final-state.log",
+          "sha256": "cf13866b35f9023b2be0ee6b6edaa19584f2b721cbad4d068f285f339226d1c6"
+        },
+        {
+          "file": "work/sku-workbench-fixes/typecheck.log",
+          "sha256": "6c2516120eb5629a794521d36e578d7804070e2f7d60031c525f72ec94b1a94b"
+        },
+        {
+          "file": "work/sku-workbench-fixes/build.log",
+          "sha256": "071d8713f79a475e6ea30e09341b9b9a428647bbb47797b974a93403bd33d114"
+        },
+        {
+          "file": "work/sku-workbench-fixes/check-types.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "work/sku-workbench-fixes/spu-sku.log",
+          "sha256": "a319c2035a063d8e6b16a7a4e249d26e567da344ef61c08dc0edc46e52b0e0d8"
+        },
+        {
+          "file": "work/sku-workbench-fixes/workbench.log",
+          "sha256": "813010d602e74c340927027bb6eb62c6010eb1a11d43a4b41ebefe1531a9e796"
+        },
+        {
+          "file": "work/sku-workbench-fixes/final-static.log",
+          "sha256": "4b33f9ebf4f22e66cb55800bee981a2e68bb5e914848ae096a40a6bc9376fc92"
+        }
+      ],
+      "diff": "work/sku-workbench-fixes/sku-workbench-fixes-full.diff",
+      "remaining": [
+        "No recorded deletion event in pre-fix data cannot be reconstructed; such unmarked absent legacy views migrate once",
+        "Existing storage quota still applies; failure is now coherent and retryable",
+        "Existing SPU selection reset, ResizeObserver/Vue Flow notices and bundle warning remain outside this fix scope"
+      ],
+      "notExecuted": [
+        "Real macOS Safari, physical trackpad, Edge and this-round WebKit",
+        "Real Excel import",
+        "Full designer/navigation rerun and quantified performance benchmarking; protected source unchanged"
+      ],
+      "phaseFlags": "Migration --before and restore SKU_RESTORE_FIX_PHASE name output only; their historical before evidence was taken before module edits. For repeatable complete old-source replay use the browser --before or grouping Git-module --before entry."
+    }
+  ]
 }

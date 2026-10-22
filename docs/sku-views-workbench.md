@@ -1,5 +1,7 @@
 # SKU 视图工作台实施报告
 
+记录说明：第 1–15 节是 2026-10-22 的历史实施记录，保留原结论及当时 HEAD。本次 2026-10-23 三项收尾修复与实际复验见第 16 节；历史通过记录不代表已覆盖本次三个边界。
+
 RESULT：READY。约定的 SKU 视图功能与下述验证完成；真实 macOS Safari 等边界单独列出。
 
 ## 1. 实际基线与保留成果
@@ -240,3 +242,111 @@ Remove-Item Env:BROWSER_ENGINE
 结束分支仍为 `20261022`，HEAD 仍为 `215e3edfb51d72a7660eae8b83c78d4dd640b191`。本轮源码、脚本和报告均留在工作区，没有暂存或提交。完整文件清单/哈希、实际命令结果和截图清单见 `sku-views-workbench-evidence.json`；完整本地 diff 位于 `work/sku-workbench/sku-workbench-full.diff`，包括未跟踪新文件。
 
 约定范围可以验收收口，无已知由本轮引入的阻断问题。READY 限于本报告矩阵与已说明环境，不代表真实 Safari、所有设备或全站历史问题均已通过。达到本轮范围后停止；未提交、未推送、未合并、未部署。
+
+## 16. 2026-10-23：三项收尾修复
+
+### 16.1 结论、现场和证据归属
+
+**RESULT：READY**。P1 动态属性分组漏显/重复、P2 已删除迁移视图复生、P2 恢复失败丢工作配置均已修复，并具有修前失败和修后通过的实际证据。本次未扩展工作台功能。
+
+实际开始及结束分支均为 `20261022`，HEAD 均为 `2a0b1cc771c23620dab3f117f22fbfc98458f525`。开工 `git status --short` 为空，结束为 9 个已跟踪文件修改、5 个新检查文件未跟踪，无暂存改动。未提交、推送、合并或部署。最终具体状态和逐文件 SHA-256 见 evidence JSON 的 `followUpFixes`，不能使用第 15 节的历史工作区状态解释本次成果。
+
+重新阅读 README、现有本报告及 evidence JSON，并检查适用祖先目录和仓库，未发现 AGENTS.md。开工源码取实际 HEAD 完整归档：`work/sku-workbench-fixes/baseline.zip`，解压至 `baseline/`；HEAD 在 `baseline-head.txt`。开工没有未提交/未跟踪源码需要额外收录。历史 evidence 原样另存 `previous-evidence.json`；本次只追加 `followUpFixes`，校验原有 JSON 字段和值不变。
+
+本节所有相对证据路径以 `work/sku-workbench-fixes/` 为根。浏览器使用独立临时 context 和独立 fixture，不读取、清空或替换用户日常浏览器数据。环境为 Windows 10.0.26200、Node 22.18.0、项目现有锁定依赖、Chrome 155.0.8059.85。专项浏览器 1600×1000、中文、固定业务时刻 `2026-10-23T04:00:00Z`，固定 SKU/SPU ID；不依赖真实时间排序偶然性。
+
+### 16.2 三个问题的根因、修复和影响
+
+| 问题 | 修前触发、根因和用户影响 | 最小修复及选择理由 |
+|---|---|---|
+| P1 动态属性分组 | s1/s3 模板绑定颜色但为空，s2 不绑定；默认 s1、s2、s3。比较器允许两个缺值状态相等，但分组身份分别为 `__empty__` / `__not_applicable__`。原相邻聚合输出三个组，其中两个 key 相同；页面 Map 后项覆盖前项，显示 s3、s2、s3，s1 丢失 | 在既有比较排序后，按每层 `groupParts` 身份建立本次查询内的 Map 树并展开，再计算 allIds、全量组计数和分页。不同身份各自保留，比较相等的组按首次出现确定先后，叶组内保留原比较器行序；不另写页面兜底去重、不合并“未记录/不适用”、不截断数据 |
+| P2 删除迁移视图复生 | `ensureSkuWorkbench` 每次把“缺少 sku-preset:* 视图”当成“未迁移”。正式删除保留原 preset，离开再进入或刷新又重建，无法持续删除 | SKU 页面 `skuWorkbench` 新增可选 `migratedPresetIds`，记录已经处理的 preset ID。首次迁移写入事件；旧元数据缺失时从仍存在的生成视图 ID 补记；删除视图保留事件。以迁移事件区分“从未迁移”与“已经处理”，无需删除历史 preset 或依赖不充分的单一版本号 |
+| P2 恢复失败丢工作 | 原 restore 在真正写 localStorage 之前删除 localWork；QuotaExceededError 后 UI 变 comfortable、dirty=false、按钮禁用，磁盘仍 compact，错误提示与事实冲突。另确认在第 2 页失败仍无条件回首页，可触发分页的持久化写入 | 先克隆候选 page、同步完整本地工作、仅删候选目标 key，commit 成功后才删除本地目标 key。页面 restoreView 仅成功后重置页码；失败保留完整 compact 工作、dirty、可重试入口、页码和磁盘字节。保留原错误文案及 `!dirty` 禁用条件，使其由正确状态自然驱动 |
+
+分组修复后最小样本 query/allIds/页面实际展示均为 **s1、s3、s2**，两个唯一稳定组，计数 2 和 1。没有分组时不进入新增聚合；已被比较器区分的普通组顺序保持，比较器打平的不同身份采用稳定首次出现顺序。两级分组先保持父组身份，再聚合同父下子组；同组跨页时各页 key 唯一，全量父/叶计数不按页缩水。
+
+迁移标记只属于 `AppData.productListPages.sku.skuWorkbench` 偏好，不进入商品业务数组。`DATA_VERSION=15`、工作台配置 `version=1` 均不变；可选附加元数据随现有 page 克隆、实际保存、exportJson/importJson、normalizeStored 流程保留。旧数据没有该字段仍正常首次迁移；未处理的新 preset 仍迁移一次；未删除迁移视图的 ID、用户改名、条件和展示配置不被覆盖。删除当前活动/默认迁移视图沿用系统“全部 SKU”回退，原删除命令负责清理收藏、顺序和工作配置引用。
+
+历史局限：如果补丁前已经删除视图、且数据中没有任何迁移记录，无法从“只有 preset，没有对应视图”反推过去删除意图。该类旧输入按未迁移处理一次；建立标记后再次删除会稳定保留。未猜测删除意图，也未删除旧 presets 来掩盖问题。
+
+### 16.3 修改文件与边界
+
+生产代码仅五个文件：
+
+- `src/domain/skuWorkbenchQuery.ts`：身份聚合放在分页前，统一查询结果和页面 Map 消费契约。
+- `src/domain/skuWorkbenchState.ts`：迁移事件读取、旧数据兼容、首次写入和重建状态时保留。
+- `src/domain/skuWorkbenchTypes.ts`：可选迁移事件字段及职责注释。
+- `src/components/product-list/useSkuWorkbench.ts`：restore 提交顺序，失败保留本地状态，成功只清目标 key。
+- `src/views/SkuWorkbenchView.vue`：恢复成功后才重置页码的一行协调逻辑；没有修改模板、样式或布局。
+
+五个新检查文件：`scripts/sku-workbench-grouping-fix-check.ts`、`sku-workbench-grouping-fix-fixtures.ts`、`sku-workbench-migration-fix-check.ts`、`sku-workbench-restore-fix-check.ts`、`browser-sku-workbench-fixes.mjs`。`package.json` 增加 `check:sku-views:fixes`，复用项目依赖和现有领域运行器；`.gitignore` 忽略独立基线、日志与截图；两个指定报告追加本次记录。无新依赖、无全仓格式化。
+
+`tablePresentation.ts` 和页面 Map 消费经过实际测试但无需改代码：根因位于输入重复 key，修复输入契约即可。没有修改 SPU 页面、导航、已有筛选/显示弹窗、业务身份、SKU 创建/生成、规划、物料和设计器算法。受保护文件与开工快照的内容校验见 `scope-audit.json`。恢复页码修正是问题三的失败一致性要求，未扩大为其他页面动作的重构。
+
+### 16.4 先复现再修复的证据
+
+开工完整旧源码上的原查询 23 项、状态 6 组仍通过（`before-existing-checks.log`），说明旧覆盖没有约束这三个边界，而非这些问题不存在。
+
+| 实际修前检查 | 真实结果和证据 |
+|---|---|
+| 分组真实 query + tablePresentation + 页面同款 Map | `before-grouping.log` exit 1；`before-grouping-reproduction.json` 明确记录 s1/s2/s3 命中、重复 key、s3/s2/s3 展示。修改后通过 Git 原提交模块重新执行仍 exit 1，见 `before-grouping-recheck.log`；并保存原模块和 SHA-256，未用新代码充当原版 |
+| 真实 Pinia/store/composable 删除后初始化 | `migration-before.log` exit 1；`migration/before-result.json`：视图立即删除后，再初始化重新出现，断言 actual=true / expected=false |
+| 实际序列化存储边界注入下一次 QuotaExceededError | `restore-before.log` / `restore-before.json` exit 1：UI comfortable、dirty=false，磁盘工作仍 compact |
+| 完整旧源码的 Chrome 三问题复现 | `browser-before/result.json` 与 `browser-before.log` exit 1，四个失败点：分组、迁移视图复生、普通恢复失败、范围恢复失败；不是伪造失败返回值 |
+| 最终新增浏览器检查回放完整旧源码 | `browser-before-final-test.log`、`browser-before-final-test/result.json` exit 1，仍准确发现上述四个失败点；使用最终相同断言和夹具，包括普通视图第 2 页 |
+| 补齐恢复分页边界 | 保留 composable 三项修复、页面仍用旧 restoreView 时，`browser-page-before.log` exit 1，实际第 1 页 / 预期第 2 页；随后才做页面一行修正 |
+
+`browser-sku-workbench-fixes.mjs --before` 真正选择完整旧源码目录；`sku-workbench-grouping-fix-check.ts --before` 真正从指定 Git 提交装载原查询模块。迁移检查的 `--before` 和恢复检查的 `SKU_RESTORE_FIX_PHASE` 仅命名输出，其修前日志是在修改对应生产模块之前实际取得；不可仅设置该标签就声称运行旧源码。需要独立重放三个问题时使用完整旧源码浏览器入口。
+
+### 16.5 本次实际通过的检查
+
+| 实际执行命令 | 本次结果、关键断言与证据 |
+|---|---|
+| `npm run check:sku-views:fixes` | 最终代码 exit 0，`final-fixes.log`。分组 7 组：最小交错、升降序、一级/两级、非连续身份、多级组内排序；页大小 1/2/3/4/5/10/20，固定独立 ID/父叶计数、每页唯一 key、查询与真正展示的集合/数量/顺序一致、输入不变。迁移覆盖首次/重复、正式删除、重入、落盘重载、复制、导出导入、旧字段缺失、新 preset、用户修改和有效引用。恢复覆盖普通、系统、SPU 范围系统和范围命名视图四场景，完整配置/dirty/磁盘字节/其他 key、失败一次零成功写入、重试一次成功写入、真实重载一致。专项 Chrome 7 点 PASS |
+| `node scripts/run-domain-check.mjs scripts/sku-workbench-query-check.ts` | exit 0，原 23 项 PASS，`final-query.log`，未改变原断言 |
+| `node scripts/run-domain-check.mjs scripts/sku-workbench-state-check.ts` | exit 0，原 6 组 PASS，`final-state.log`，未改变原断言 |
+| `npm run check:spu-sku` | exit 0，原 19 组领域 + 12 个 Chrome 流程 PASS；`spu-sku.log` / `spu-sku/result.json`。包括创建前选 SPU、取消不写、模板追加、防双击、单条维护、规划入口与历史、多 MAT、页面隔离和范围恢复 |
+| `node scripts/browser-sku-workbench.mjs` | exit 0，原 24 点 PASS，`workbench.log` / `workbench/result.json`。三层配置、取消/应用/保存/恢复、临时搜索、范围交集、复制刷新、默认回退、失效规则、空结果、横向滚动，明暗及窄屏截图。该项完成后补了 restoreView 一行失败分支，最终专项再验证该分支和成功分支；其余已通过源码范围未变 |
+| `npm run typecheck` | 最后生产改动后 exit 0，`typecheck.log` |
+| `npm run build` | 最后生产改动后 exit 0，`build.log`。既有大包提示仍存在，无构建错误；未为消除提示改打包 |
+| 新增领域检查独立严格类型检查 | exit 0，`check-types.log`；完整命令见下方及 evidence JSON |
+| `node --check scripts/browser-sku-workbench-fixes.mjs`、`git diff --check`、五个未跟踪检查文件的 `git diff --no-index --check` | PASS，`final-static.log`；前两项 exit 0。未跟踪文件单独做 NUL 空文件对照，`--no-index` 隐含差异退出码，五项原始 exit 1 表示存在新文件差异，stdout/stderr 均为空、无空白错误，未把真实诊断忽略或遗漏未跟踪文件 |
+
+最终专项浏览器实际覆盖：颜色缺值/不适用每条只出现一次；删除迁移视图→SPU 页→SKU 页→刷新仍删除；普通已保存视图第 2 页 compact 工作恢复失败仍 compact/dirty/可重试/第 2 页/磁盘字节相同；解除失败重试→comfortable/清目标工作→刷新一致；SPU 范围系统工作配置完成同一闭环；从范围进入新增 SKU 仍预选对应 SPU。三问题专项和原 24 点工作台的诊断数组均为空，未记录新增浏览器异常或 Vue 警告。已有 SPU/SKU 脚本保留自己的诊断规则，没有屏蔽告警来通过。
+
+截图已实际查看：`browser-before/dynamic-empty-not-applicable.png` 与 `browser-after/dynamic-empty-not-applicable.png` 显示错误三组/重复 s3 修复为正确两组及三条唯一 SKU；`browser-before-final-test/saved-restore-failure-keeps-work.png` 与 `browser-after/saved-restore-failure-keeps-work.png` 对照失败时舒适/禁用/第 1 页与紧凑/未保存/可重试/第 2 页；`browser-after/*-retry-success.png` 显示恢复成功状态。变化来自正确数据和状态反馈，无页面样式重设计。删除及 SPU 范围另有同目录截图。原工作台明暗/窄屏截图由本次原 24 点脚本重新生成，不把 10 月 22 日截图称为本次新跑。
+
+### 16.6 可复现入口与数据保护
+
+```powershell
+# 已安装项目锁定依赖及 Chrome 的检出环境；没有重新执行 npm ci
+npm run check:sku-views:fixes
+node scripts/run-domain-check.mjs scripts/sku-workbench-query-check.ts
+node scripts/run-domain-check.mjs scripts/sku-workbench-state-check.ts
+npm run check:spu-sku
+node scripts/browser-sku-workbench.mjs
+npm run typecheck
+npm run build
+git diff --check
+
+# 新检查包含在应用 tsconfig 外，单独严格验证
+node node_modules/typescript/bin/tsc --ignoreConfig --noEmit --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck --strict --types node scripts/sku-workbench-grouping-fix-check.ts scripts/sku-workbench-grouping-fix-fixtures.ts scripts/sku-workbench-migration-fix-check.ts scripts/sku-workbench-restore-fix-check.ts
+
+# 真正的原版回放：应因发现旧缺陷退出 1，不能记为修后通过
+node scripts/browser-sku-workbench-fixes.mjs --before
+node scripts/run-domain-check.mjs scripts/sku-workbench-grouping-fix-check.ts --before
+```
+
+完整旧源码不在默认目录时用 `SKU_FIX_BASELINE` 指向开工提交的完整源码；该脚本检查必需源文件存在，缺少时直接报错，不跳过。基线可用 `git archive --format=zip --output=work/sku-workbench-fixes/baseline.zip 2a0b1cc771c23620dab3f117f22fbfc98458f525` 后 `Expand-Archive` 到该默认目录重建。分组单模块回放可设 `SKU_GROUP_BASELINE`，找不到 Git 对象有明确错误，不能指定修复后的提交冒充修前。三个检查无需个人绝对路径。
+
+专项浏览器默认 `BROWSER_CHANNEL=chrome`，可设已安装 `msedge`；缺失引擎会明确失败。`SKU_FIX_OUTPUT_DIR` 可改输出目录，原版/修后默认隔离；本次最终原版回放额外设为 `work/sku-workbench-fixes/browser-before-final-test`，避免覆盖最初复现。其他输出参数为 `SKU_GROUP_OUTPUT_DIR`、`SKU_MIGRATION_FIX_OUTPUT`、`SKU_RESTORE_FIX_OUTPUT_DIR`、`SPU_SKU_OUTPUT_DIR`、`SKU_WORKBENCH_OUTPUT_DIR`。本次后两项分别指向本节目录下 `spu-sku`、`workbench`，没有覆盖历史证据。
+
+领域检查实际使用生产 query、tablePresentation、Pinia、composable、store、序列化和加载；只在存储边界注入失败。业务数组、身份/顺序、SPU 偏好、正式视图和非目标工作 key 均做对应不可变断言。没有复制/替换业务库、清空用户 localStorage、改 PLN 编号或发布快照。完整本地补丁 `sku-workbench-fixes-full.diff` 含五个新检查文件，当前工作区可直接 `git diff` 审查已跟踪修改；忽略目录只存证据/基线，不交付为生产源码。
+
+### 16.7 未验证、既有问题与收口
+
+未验证真实 macOS Safari、实体触控板和 Edge；Chrome 为本轮实际验收浏览器，本轮没有再跑 WebKit，不借用历史 WebKit 记录冒充复验。没有重新导入真实 Excel、重跑整套设计器/导航视觉或开展性能量化；这些源码和机制未改，本轮用 SPU/SKU 业务回归和受保护文件内容校验确认范围，不宣称全站通过。
+
+独立既有问题仍为历史 SPU 展开勾选重置、ResizeObserver/Vue Flow 提示、生产大包提示及浏览器配额边界。本次专项没有观察到前三者的新表现；构建仍实际输出大包提示，未屏蔽。迁移缺少历史删除事件的限制见 16.2。配额失败本身仍可能发生，本次修复其失败一致性及可重试能力，不宣称消除配额。
+
+三个约定缺陷均有真实修前失败、修后领域与页面证据，必要构建和相关业务回归通过；没有本次引入的已知阻断问题。保留现有功能、信息架构、样式与业务关系，在此收口，不自动继续扩展。

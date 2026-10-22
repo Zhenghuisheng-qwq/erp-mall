@@ -73,11 +73,14 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     return commit(next)
   }
   function restore(): SkuCommandResult {
-    delete localWork.value[workingKey.value]
+    const key = workingKey.value
     const next = trial()
     if (!next?.skuWorkbench) return missing()
     syncWork(next)
-    return commit(next)
+    delete next.skuWorkbench.working[key]
+    const result = commit(next)
+    if (result.ok) delete localWork.value[key]
+    return result
   }
   function nameError(name: string, except = '') {
     const text = name.trim()

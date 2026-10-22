@@ -238,10 +238,6 @@ export function querySkuWorkbench(data: AppData, config: SkuViewConfig, options:
       } else rows = rows.slice().sort((left, right) => compare(left, right, rules))
     }
   }
-  const allIds = rows.map(row => row.id)
-  const total = rows.length
-  const size = Number.isFinite(options.pageSize) && (options.pageSize || 0) > 0 ? Math.floor(options.pageSize || 20) : 20
-  const page = Math.max(1, Math.min(Math.floor(options.page || 1) || 1, Math.max(1, Math.ceil(total / size))))
   function groupParts(row: SkuRecord) {
     return config.groups.map(rule => {
       const cell = get(row, rule.field), field = fields.get(rule.field)
@@ -255,6 +251,29 @@ export function querySkuWorkbench(data: AppData, config: SkuViewConfig, options:
       return { key: JSON.stringify(cell.value), label: field?.options.find(option => option.value === cell.value)?.label || text }
     })
   }
+  if (config.groups.length) {
+    // Comparison can tie distinct identities (empty vs inapplicable, or equal
+    // display names). Gather each identity before paging so Map consumers cannot
+    // overwrite repeated group keys. First appearance breaks group ties; each
+    // leaf retains the existing comparator's row order.
+    interface Bucket { children: Map<string, Bucket>; rows: SkuRecord[] }
+    const root: Bucket = { children: new Map(), rows: [] }
+    for (const row of rows) {
+      let bucket = root
+      for (const part of groupParts(row)) {
+        let child = bucket.children.get(part.key)
+        if (!child) { child = { children: new Map(), rows: [] }; bucket.children.set(part.key, child) }
+        bucket = child
+      }
+      bucket.rows.push(row)
+    }
+    const flatten = (bucket: Bucket): SkuRecord[] => bucket.children.size ? [...bucket.children.values()].flatMap(flatten) : bucket.rows
+    rows = flatten(root)
+  }
+  const allIds = rows.map(row => row.id)
+  const total = rows.length
+  const size = Number.isFinite(options.pageSize) && (options.pageSize || 0) > 0 ? Math.floor(options.pageSize || 20) : 20
+  const page = Math.max(1, Math.min(Math.floor(options.page || 1) || 1, Math.max(1, Math.ceil(total / size))))
   const counts = new Map<string, number>()
   for (const row of rows) { const parts = groupParts(row); parts.forEach((_, i) => { const key = JSON.stringify(parts.slice(0, i + 1).map(item => item.key)); counts.set(key, (counts.get(key) || 0) + 1) }) }
   const currentRows = rows.slice((page - 1) * size, page * size)
