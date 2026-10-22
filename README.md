@@ -29,7 +29,7 @@ npm run preview
 
 ## 演示说明
 
-- 数据在浏览器 localStorage，键名 `iyge-v2-mock-db`，版本号 1。
+- 数据在浏览器 localStorage，键名 `iyge-v2-mock-db`，当前版本号 14；兼容读取旧版本，不清空历史数据。
 - 顶栏可以重置全部、重置当前模块、导出和导入。
 - 预设商品都标了「预设演示」，不是线上导出。
 - 左侧菜单默认展示全部功能。右上角可切换「管理员 / 运营」。
@@ -41,7 +41,23 @@ npm run preview
 
 对象怎么连、配置怎么从词表走到规格再走回总览，写在 [docs/商品配置闭环.md](docs/商品配置闭环.md)。
 
-## 已验收：新增商品的模型选择器
+## SPU / SKU 管理
+
+从「商品管理」进入独立的 SPU 管理和 SKU 管理。先保存 SPU，再手工创建或从模板、模型、规划分批追加 SKU；物料继续使用独立的「物料建档」入口。
+
+本轮数据兼容、页面职责、旧链接和验证证据见 [docs/spu-sku-management.md](docs/spu-sku-management.md)。
+
+```bash
+npm run typecheck
+npm run check:frontend
+npm run check:spu-sku
+npm run check:integration
+npm run build
+```
+
+浏览器检查使用独立上下文和项目的 playwright-core，需要已安装 Chrome；可用 `BROWSER_CHANNEL=msedge` 选择 Edge。不会读取或清空日常浏览器数据。
+
+## 历史验收：V2 模型选择器
 
 商品模型设计器允许属性下面再挂属性。新增商品选择器必须按当前节点路径展开，不要把同级属性自动提升到当前页。
 

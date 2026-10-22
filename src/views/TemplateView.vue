@@ -28,6 +28,7 @@
             <el-button link type="primary" @click="edit(row.id)">配置</el-button>
             <el-button link @click="copy(row.id)">复制</el-button>
             <el-button link @click="preview(row.id)">预览录入</el-button>
+            <el-button link type="primary" @click="router.push({ path: '/skus/new', query: { template: row.id } })">创建 SKU</el-button>
             <el-button link type="danger" @click="remove(row.id)">删除</el-button>
           </template>
         </el-table-column>
@@ -75,7 +76,7 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import PageHead from '../components/PageHead.vue'
 import { boundParams } from '../domain/logic'
 import type { CatalogTemplate, ParamRole } from '../domain/types'
@@ -89,6 +90,7 @@ type SchemeDraft = {
 }
 
 const store = useCatalogStore()
+const router = useRouter()
 const route = useRoute()
 const open = ref(false)
 const previewOpen = ref(false)

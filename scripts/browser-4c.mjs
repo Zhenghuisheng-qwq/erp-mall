@@ -20,7 +20,7 @@ async function pack() {
   return page.evaluate(() => window.__pack(JSON.parse(localStorage.getItem('iyge-v2-mock-db') || '{}').data))
 }
 async function names() {
-  return page.locator('.spu-table .linkish, .sku-table .linkish').allInnerTexts()
+  return page.locator('.spu-table button[data-family-id], .sku-table .linkish').allInnerTexts()
 }
 async function closeDialog() {
   await page.locator('.el-dialog__headerbtn').last().click()
@@ -64,7 +64,7 @@ try {
   await page.locator('[data-category-tree]').waitFor()
   await page.locator('[data-expand-id="c-host"]').click()
   await page.locator('[data-category-id="c-watch"]').click()
-  await page.getByRole('heading', { name: '商品列表' }).click()
+  await page.getByRole('heading', { name: 'SPU 管理', exact: true }).click()
   await page.locator('.spu-table .linkish', { hasText: 'Watch' }).waitFor()
   const watchNames = await names()
   if (watchNames.some((item) => item.includes('iPhone') || item.includes('MacBook') || item.includes('都市款'))) {
@@ -126,8 +126,8 @@ try {
   if (!asc || asc === desc) throw new Error(`排序没有变化 ${asc} / ${desc}`)
   await page.evaluate(() => {
     const raw = JSON.parse(localStorage.getItem('iyge-v2-mock-db') || '{}')
-    raw.data.listQuery.pageSize = 2
-    raw.data.listQuery.page = 1
+    raw.data.productListPages.spu.query.pageSize = 2
+    raw.data.productListPages.spu.query.page = 1
     localStorage.setItem('iyge-v2-mock-db', JSON.stringify(raw))
   })
   await page.reload({ waitUntil: 'networkidle' })
@@ -135,11 +135,11 @@ try {
   await page.locator('.spu-table .linkish').first().waitFor()
   if ((await page.locator('.el-pagination .is-active').innerText()) !== '2') throw new Error('没有翻到第 2 页')
 
-  await page.locator('.list-switch .el-radio-button', { hasText: '规格' }).click()
+  await page.getByRole('button', { name: 'SKU 管理', exact: true }).click()
   await page.locator('.sku-table [data-sku-id]').first().waitFor()
   const skuText = await page.locator('.sku-table').innerText()
   if (skuText.includes('MAT-4C') || skuText.includes('PLN-4C') || skuText.includes('物料甲')) throw new Error('SKU 视图混入了物料')
-  await page.locator('.list-switch .el-radio-button', { hasText: '商品' }).click()
+  await page.getByRole('button', { name: 'SPU 管理', exact: true }).click()
   await openTools(page)
   await page.locator('[data-column-key="brand"] .el-checkbox').click()
   await page.waitForFunction(() => ![...document.querySelectorAll('.spu-table .el-table__header-wrapper th .cell')].some((item) => item.textContent.trim() === '品牌'))
@@ -176,8 +176,8 @@ try {
 
   await page.evaluate(() => {
     const raw = JSON.parse(localStorage.getItem('iyge-v2-mock-db') || '{}')
-    raw.data.listQuery.pageSize = 20
-    raw.data.listQuery.page = 1
+    raw.data.productListPages.spu.query.pageSize = 20
+    raw.data.productListPages.spu.query.page = 1
     localStorage.setItem('iyge-v2-mock-db', JSON.stringify(raw))
   })
   await page.reload({ waitUntil: 'networkidle' })
@@ -186,13 +186,13 @@ try {
   const expanded = await page.locator('.sku-expand[data-family-id="f-iphone"]').innerText()
   if (!expanded.includes('s-iphone-blue') || !expanded.includes('颜色 蓝色') || expanded.includes('MAT-4C')) throw new Error('展开明细不对：' + expanded)
   await page.locator('.spu-table .linkish', { hasText: 'Apple iPhone 17' }).click()
-  await page.waitForURL('**/products/f-iphone')
-  await page.getByRole('heading', { name: '基本信息' }).waitFor()
+  await page.waitForURL('**/spus/f-iphone')
+  await page.getByRole('heading', { name: 'SPU 详情', exact: true }).waitFor()
   await page.goto(`${base}/products`, { waitUntil: 'networkidle' })
   await page.locator('.spu-table tr.el-table__row', { hasText: '4C物料款' }).getByRole('button', { name: '管理物料' }).click()
   await page.getByText('MAT-4C').first().waitFor()
   await page.goto(`${base}/products/new`, { waitUntil: 'networkidle' })
-  await page.getByRole('heading', { name: '新增商品' }).waitFor()
+  await page.getByRole('heading', { name: '新建 SPU', exact: true }).waitFor()
   await page.goto(`${base}/products`, { waitUntil: 'networkidle' })
   const keywordBox = page.getByPlaceholder('名称、分类、属性、SKU、OA 编号')
   await keywordBox.fill('蓝色')

@@ -640,7 +640,8 @@ function setShelf(status: 'draft' | 'online' | 'offline') {
   draft.shelfStatus = status
   if (status === 'draft') draft.lifecycle = 'draft'
   draft.createdAt = draft.createdAt || new Date().toISOString()
-  store.saveBundle({ ...draft }, draftSkus.value.map((item) => ({ ...item, variantAttrs: { ...item.variantAttrs } })))
+  const result = store.saveBundle({ ...draft }, draftSkus.value.map((item) => ({ ...item, variantAttrs: { ...item.variantAttrs } })))
+  if (!result.ok) { ElMessage.warning(result.message); return }
   saved.value = true
   ElMessage.success(status === 'offline' ? '已下架，原有规格还在' : '已存为草稿')
   router.push('/products')
@@ -659,7 +660,8 @@ function save(formal: boolean) {
   if (formal) draft.shelfStatus = 'online'
   else if (draft.shelfStatus !== 'offline') draft.shelfStatus = 'draft'
   draft.lifecycle = formal && errors.value.length === 0 ? 'ready' : 'draft'
-  store.saveBundle({ ...draft }, draftSkus.value.map((item) => ({ ...item, variantAttrs: { ...item.variantAttrs } })))
+  const result = store.saveBundle({ ...draft }, draftSkus.value.map((item) => ({ ...item, variantAttrs: { ...item.variantAttrs } })))
+  if (!result.ok) { ElMessage.warning(result.message); return }
   saved.value = true
   ElMessage.success(formal ? '商品已保存' : '草稿已保存')
   router.push('/products')

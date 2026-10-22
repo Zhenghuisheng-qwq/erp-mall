@@ -15,7 +15,7 @@ await page.addInitScript(() => {
 })
 
 async function names() {
-  return page.locator('.spu-table .linkish').allInnerTexts()
+  return page.locator('.spu-table button[data-family-id]').allInnerTexts()
 }
 async function pack() {
   return page.evaluate(() => window.__pack(JSON.parse(localStorage.getItem('iyge-v2-mock-db') || '{}').data))
@@ -27,7 +27,7 @@ async function totalNumber() {
 async function orderState() {
   return page.evaluate(() => {
     const raw = JSON.parse(localStorage.getItem('iyge-v2-mock-db') || '{}')
-    const view = (raw.data.productListViews || []).find((item) => item.id === raw.data.activeProductListViewId)
+    const view = (raw.data.productListPages.spu.views || []).find((item) => item.id === raw.data.productListPages.spu.activeId)
     return view?.manualOrder?.spuIds || []
   })
 }
@@ -80,9 +80,9 @@ try {
         updatedAt: '2026-10-20T00:00:00.000Z',
       })
     }
-    raw.data.listQuery.pageSize = 20
-    raw.data.listQuery.page = 1
-    const view = (raw.data.productListViews || []).find((item) => item.id === raw.data.activeProductListViewId) || raw.data.productListViews?.[0]
+    raw.data.productListPages.spu.query.pageSize = 20
+    raw.data.productListPages.spu.query.page = 1
+    const view = (raw.data.productListPages.spu.views || []).find((item) => item.id === raw.data.productListPages.spu.activeId) || raw.data.productListPages.spu.views?.[0]
     if (view) {
       view.mode = 'spu'
       view.spuQuery.keyword = ''
@@ -182,7 +182,7 @@ try {
   await page.locator('[data-category-tree]').waitFor()
   if (!(await page.locator('[data-category-id="c-phone"]').count())) await page.locator('[data-expand-id="c-host"]').click()
   await page.locator('[data-category-id="c-phone"]').click()
-  await page.getByRole('heading', { name: '商品列表' }).click()
+  await page.getByRole('heading', { name: 'SPU 管理', exact: true }).click()
   await page.locator('[data-category-tree]').waitFor({ state: 'hidden' })
   const filteredTotal = await totalNumber()
   const filtered = await names()
@@ -194,7 +194,7 @@ try {
   await closeTools(page)
   await page.locator('[data-category-trigger]').click()
   await page.getByRole('button', { name: '全部分类' }).click()
-  await page.getByRole('heading', { name: '商品列表' }).click()
+  await page.getByRole('heading', { name: 'SPU 管理', exact: true }).click()
   if ((await totalNumber()) !== prepared) throw new Error('清除分类后数量没有恢复')
   await page.locator('.el-tag', { hasText: '筛选1' }).click()
   if ((await totalNumber()) !== filteredTotal) throw new Error('重新应用筛选后分类条件丢了')

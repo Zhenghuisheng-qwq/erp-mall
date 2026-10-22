@@ -117,6 +117,7 @@ try {
       { requestId: '4a-1', skuId: 'mat-4a-1', planningId: 'PLN-4A', materialCode: 'MAT-4A-1', createdTime: '2026-10-20T01:00:00.000Z', lifecycle: 'active' },
       { requestId: '4a-2', skuId: 'mat-4a-2', planningId: 'PLN-4A', materialCode: 'MAT-4A-2', createdTime: '2026-10-20T01:00:00.000Z', lifecycle: 'active' },
     )
+    delete data.productListPages // exercise migration of the original two-mode fixture
     const active = (data.productListViews || []).find((item) => item.id === data.activeProductListViewId) || data.productListViews?.[0]
     if (active) {
       active.mode = 'spu'
@@ -161,7 +162,7 @@ try {
   }
   if (phoneText.includes('s-watch')) throw new Error('手表 SKU 串到了 iPhone')
 
-  await page.locator('.list-switch .el-radio-button', { hasText: '规格' }).click()
+  await page.getByRole('button', { name: 'SKU 管理', exact: true }).click()
   await page.locator('.list-switch[data-mode="sku"]').waitFor()
   const skuCount = await page.locator('[data-result-count]').innerText()
   if (skuCount !== 'SKU 10 条') throw new Error('SKU 总数不对：' + skuCount)
@@ -197,9 +198,9 @@ try {
 
   await page.evaluate(() => {
     const raw = JSON.parse(localStorage.getItem('iyge-v2-mock-db') || '{}')
-    raw.data.listQuery.pageSize = 2
-    raw.data.listQuery.page = 99
-    raw.data.listQuery.keyword = ''
+    raw.data.productListPages.sku.query.pageSize = 2
+    raw.data.productListPages.sku.query.page = 99
+    raw.data.productListPages.sku.query.keyword = ''
     raw.data.productListMode = 'sku'
     localStorage.setItem('iyge-v2-mock-db', JSON.stringify(raw))
   })
@@ -210,28 +211,28 @@ try {
   await page.locator('.el-pagination .btn-prev').click()
   await page.locator('.el-pagination .is-active', { hasText: '4' }).waitFor()
   if ((await page.locator('.sku-table [data-sku-id]').count()) === 0) throw new Error('翻页后没有 SKU')
-  await page.locator('.list-switch .el-radio-button', { hasText: '商品' }).click()
+  await page.getByRole('button', { name: 'SPU 管理', exact: true }).click()
   await page.locator('.list-switch[data-mode="spu"]').waitFor()
   await page.locator('.el-pagination .is-active', { hasText: '1' }).waitFor()
   if ((await page.locator('.spu-table [data-family-id]').count()) === 0) throw new Error('切回 SPU 后是空白页')
 
-  await page.locator('.list-switch .el-radio-button', { hasText: '规格' }).click()
+  await page.getByRole('button', { name: 'SKU 管理', exact: true }).click()
   await keyword.fill('s-iphone-blue')
   await keyword.press('Enter')
-  await page.locator('.sku-table tr', { hasText: 's-iphone-blue' }).getByRole('button', { name: '商品详情' }).click()
-  await page.waitForURL('**/products/f-iphone?sku=s-iphone-blue')
-  await page.getByRole('heading', { name: '基本信息' }).waitFor()
-  await page.goto(`${base}/products`, { waitUntil: 'networkidle' })
+  await page.locator('.sku-table tr', { hasText: 's-iphone-blue' }).getByRole('button', { name: '编辑 SKU' }).click()
+  await page.waitForURL('**/skus/s-iphone-blue')
+  await page.getByRole('heading', { name: '编辑 SKU', exact: true }).waitFor()
+  await page.goto(`${base}/skus`, { waitUntil: 'networkidle' })
   await page.locator('.list-switch[data-mode="sku"]').waitFor()
   await keyword.fill('')
   await keyword.press('Enter')
-  await page.locator('.list-switch .el-radio-button', { hasText: '商品' }).click()
+  await page.getByRole('button', { name: 'SPU 管理', exact: true }).click()
   await page.locator('.spu-table tr.el-table__row', { hasText: '4A物料款' }).getByRole('button', { name: '管理物料' }).click()
   await page.getByText('物料 MAT-4A-1 · 规划 PLN-4A').waitFor()
   await page.getByText('MAT-4A-2').first().waitFor()
   await page.getByText('物料乙').first().waitFor()
   await page.goto(`${base}/products`, { waitUntil: 'networkidle' })
-  await page.locator('.list-switch .el-radio-button', { hasText: '规格' }).click()
+  await page.getByRole('button', { name: 'SKU 管理', exact: true }).click()
   await page.locator('.list-switch[data-mode="sku"]').waitFor()
   await page.reload({ waitUntil: 'networkidle' })
   if ((await page.locator('.list-switch').getAttribute('data-mode')) !== 'sku') throw new Error('刷新后没有按已保存视图恢复规格模式')
@@ -239,7 +240,7 @@ try {
   if (!refreshedSku.length || refreshedSku.some((item) => item.includes('MAT-') || item.includes('PLN-'))) {
     throw new Error('刷新后的规格表不正确：' + refreshedSku.join())
   }
-  await page.locator('.list-switch .el-radio-button', { hasText: '商品' }).click()
+  await page.getByRole('button', { name: 'SPU 管理', exact: true }).click()
   await page.locator('.list-switch[data-mode="spu"]').waitFor()
   if ((await page.locator('[data-result-count]').innerText()) !== '商品 8 款') throw new Error('切回商品模式后数量不对')
   await keyword.fill('iPhone')

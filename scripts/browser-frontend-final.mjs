@@ -198,7 +198,7 @@ try {
   await close(combo())
   await record('model-switch-clears-combo-state')
 
-  await navigate('/products')
+  await navigate('/spus')
   await page.locator('.list-switch').waitFor()
   const search = page.getByPlaceholder('名称、分类、属性、SKU、OA 编号')
   // V3 material archives belong to an SPU; isRealSku deliberately excludes them.
@@ -211,11 +211,11 @@ try {
     return row
   }
   await expectMaterialsInList()
-  await page.locator('.list-switch').getByText('规格', { exact: true }).click()
+  await page.getByRole('button', { name: 'SKU 管理', exact: true }).click()
   await search.fill(materialA.skuName)
   await page.locator('[data-empty="sku"]').waitFor()
   for (const item of [materialA, materialB, materialC]) assert.equal(await page.locator(`[data-sku-id="${item.id}"]`).count(), 0)
-  await page.locator('.list-switch').getByText('商品', { exact: true }).click()
+  await page.getByRole('button', { name: 'SPU 管理', exact: true }).click()
   await expectMaterialsInList()
   await record('created-materials-visible-in-list')
   const beforeReload = await read()
@@ -225,7 +225,7 @@ try {
   await record('list-refresh-restores-data')
   const familyRow = await expectMaterialsInList()
   await familyRow.getByRole('button', { name: '管理物料', exact: true }).click()
-  await page.waitForURL(`${base}/products/${materialA.familyId}`)
+  await page.waitForURL(`${base}/materials/${materialA.familyId}`)
   for (const item of [materialA, materialB, materialC]) {
     const card = page.locator('.materials li').filter({ hasText: item.materialCode })
     await card.waitFor()

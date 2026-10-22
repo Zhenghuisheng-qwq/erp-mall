@@ -14,9 +14,12 @@ import {
 } from '../domain/categoryTree'
 import { applyAccessoryCategoryFix, PHONE_CASE_CATEGORY_FIX } from '../domain/categoryFix'
 import { dictionaryRemovalBlock } from '../domain/dictionaryGuard'
-import { blankVariantAttrs, categoryPath, descendantIds, familySkus, projectAttrs, sameSpecSnapshot, specPublishProblems } from '../domain/logic'
+import { blankVariantAttrs, categoryPath, descendantIds, familySkus, sameSpecSnapshot, specPublishProblems } from '../domain/logic'
 import { reconcilePlanningRecords } from '../domain/planning'
-import { compatibilityFamilyBlock, compatibilityModelBlock, compatibilitySkuBlock } from '../domain/compatibility'
+import { compatibilityModelBlock, compatibilitySkuBlock } from '../domain/compatibility'
+import { ensureProductListPages } from '../domain/productListPages'
+import { isRealSku } from '../domain/catalogIdentity'
+import { appendSkuBatch, editSku, previewSkuAppend, saveSpu, spuRemovalBlock, type SkuDraft, type SkuGeneration } from '../domain/spuSku'
 import { draftHostRulesDiffer, forgetDraftNodeRules, freezeDraftNodeHosts } from '../domain/nodeCompatibility'
 import { scrubSampleDictionary } from '../domain/compatibilitySamples'
 import { createTemporaryMaterial, createV3Material, renameV3Product, setPlanningGrades, tombstoneMaterialReceipts, updateV3Material } from '../domain/material'
@@ -109,7 +112,7 @@ export function normalizeStored(parsed: StoredPayload): AppData | null {
     mark.changed = true
   })
   data.families.forEach((family) => {
-    if (family.modelVersionId) return
+    if (family.modelVersionId || version >= 14) return
     const published = data.specModelVersions
       .filter((item) => item.templateId === family.templateId && item.status === 'published')
       .slice()
@@ -177,6 +180,7 @@ export function normalizeStored(parsed: StoredPayload): AppData | null {
     data.listQuery = next
   }
   if (ensureProductListViews(data)) mark.changed = true
+  if (ensureProductListPages(data)) mark.changed = true
   if (mark.changed && typeof localStorage !== 'undefined') {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data }))
   }
@@ -207,6 +211,7 @@ export function uid(prefix: string) {
 
 export const useCatalogStore = defineStore('catalog', () => {
   const data = reactive<AppData>(loadData())
+  ensureProductListPages(data)
 
   watch(
     data,
@@ -218,7 +223,14 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   const isAdmin = computed(() => data.activeRole === 'admin')
 
+  function unusedCatalogId(prefix: 'fam' | 'sku') {
+    let id: string
+    do { id = uid(prefix) } while (data.families.some(item => item.id === id) || data.skus.some(item => item.id === id) || data.materialReceipts.some(item => item.skuId === id) || data.compatibilities.some(item => item.accessorySkuId === id))
+    return id
+  }
+
   function replaceAll(next: AppData) {
+    ensureProductListPages(next)
     Object.assign(data, next)
   }
 
@@ -272,31 +284,42 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function saveBundle(family: ProductFamily, skus: Sku[]) {
-    const nextFamily = { ...family, updatedAt: new Date().toISOString() }
-    const nextSkus = skus.map((item) => ({ ...item, familyId: nextFamily.id, projectedAttrs: projectAttrs(nextFamily, item) }))
-    const index = data.families.findIndex((item) => item.id === nextFamily.id)
-    if (index >= 0) data.families[index] = nextFamily
-    else data.families.unshift(nextFamily)
-    const others = data.skus.filter((item) => item.familyId !== nextFamily.id)
-    data.skus = others.concat(nextSkus)
+    // Compatibility entry for the old editor: validate the complete operation before writing.
+    // Missing children are retained; an editor draft is never a deletion instruction.
+    const trial: AppData = JSON.parse(JSON.stringify(data))
+    const now = new Date().toISOString()
+    const saved = saveSpu(trial, family, now)
+    if (!saved.ok) return saved
+    for (const sku of skus) {
+      const existing = trial.skus.find(item => item.id === sku.id)
+      if (existing) {
+        if (existing.familyId !== family.id) return { ok: false as const, message: '不能更换 SKU 所属 SPU。' }
+        const edited = editSku(trial, sku.id, sku, now)
+        if (!edited.ok) return edited
+      } else {
+        const generation: SkuGeneration = { kind: 'manual', rows: [sku] }
+        const preview = previewSkuAppend(trial, family.id, generation)
+        const appended = appendSkuBatch(trial, { familyId: family.id, generation, selectedKeys: preview.rows.map(row => row.key), now, nextId: () => sku.id })
+        if (!appended.ok) return appended
+      }
+    }
+    data.families = trial.families
+    data.skus = trial.skus
+    return { ok: true as const }
   }
 
   function removeFamily(id: string) {
-    const blocked = compatibilityFamilyBlock(data, id)
+    const blocked = spuRemovalBlock(data, id)
     if (blocked) return blocked
-    const removed = data.skus.filter((item) => item.familyId === id)
     data.families = data.families.filter((item) => item.id !== id)
-    data.skus = data.skus.filter((item) => item.familyId !== id)
-    removed.forEach((item) => tombstoneMaterialReceipts(data, item.id))
     return ''
   }
 
-  function patchSku(id: string, patch: Partial<Sku>) {
-    const sku = data.skus.find((item) => item.id === id)
+  function patchSku(id: string, patch: Pick<Sku, 'status'>) {
+    const sku = data.skus.find((item) => item.id === id && isRealSku(data, item))
     const family = sku && data.families.find((item) => item.id === sku.familyId)
     if (!sku || !family) return
-    Object.assign(sku, patch, { projectedAttrs: projectAttrs(family, { ...sku, ...patch }) })
-    family.updatedAt = new Date().toISOString()
+    return editSku(data, id, { ...sku, status: patch.status }, new Date().toISOString())
   }
 
   function removeSku(id: string) {
@@ -305,9 +328,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     const sku = data.skus.find((item) => item.id === id)
     if (!sku) return ''
     data.skus = data.skus.filter((item) => item.id !== id)
-    if (!data.skus.some((item) => item.familyId === sku.familyId)) {
-      data.families = data.families.filter((item) => item.id !== sku.familyId)
-    }
     tombstoneMaterialReceipts(data, id)
     return ''
   }
@@ -702,6 +722,11 @@ export const useCatalogStore = defineStore('catalog', () => {
     importJson,
     skusOf,
     saveBundle,
+    saveSpu: (family: ProductFamily) => family.id && !data.families.some(item => item.id === family.id)
+      ? { ok: false as const, message: 'SPU 已不存在，请重新打开列表；未重新创建已删除的记录。' }
+      : saveSpu(data, { ...family, id: family.id || unusedCatalogId('fam') }, new Date().toISOString()),
+    appendSkus: (familyId: string, generation: SkuGeneration, selectedKeys: string[]) => appendSkuBatch(data, { familyId, generation, selectedKeys, now: new Date().toISOString(), nextId: () => unusedCatalogId('sku') }),
+    editSku: (id: string, draft: SkuDraft) => editSku(data, id, draft, new Date().toISOString()),
     removeFamily,
     patchSku,
     removeSku,

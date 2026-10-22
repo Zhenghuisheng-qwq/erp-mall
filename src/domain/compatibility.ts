@@ -1,4 +1,5 @@
 import { categoryPath } from './logic'
+import { isMaterialArchive } from './catalogIdentity'
 import type { AppData, CompatibilityHost, CompatibilityLink, PlanningRecord, PlanningStep, Sku } from './types'
 
 export interface HostModelOption {
@@ -80,6 +81,7 @@ export function hostByKey(data: AppData, productModelId: string, identityKey: st
 export function accessoryCandidates(data: AppData, productTypeId: string, keyword = '', host?: CompatibilityHost): AccessoryCandidate[] {
   const text = keyword.trim().toLowerCase()
   return data.skus.flatMap((sku) => {
+    if (!isMaterialArchive(data, sku)) return []
     const family = data.families.find((item) => item.id === sku.familyId)
     if (!family?.productTypeId || family.productTypeId !== productTypeId) return []
     if (roleOfType(data, family.productTypeId) !== 'accessory') return []
@@ -224,6 +226,7 @@ function validatePair(data: AppData, skuId: string, host: CompatibilityHost) {
   const family = data.families.find((item) => item.id === sku.familyId)
   if (!family) return '这条物料没有所属商品。'
   if (!family.productTypeId || roleOfType(data, family.productTypeId) !== 'accessory') return '这条物料不是配件，不能把它关联到主机。'
+  if (!isMaterialArchive(data, sku)) return '这条记录不是配件物料，请在物料管理中选择。'
   const known = listHostModels(data).find((item) => item.host.productModelId === host.productModelId && item.host.identityKey === host.identityKey)
   if (!known) return '找不到这款已建档的主机型号，没有自动新建。'
   if (host.scope === 'planning') {

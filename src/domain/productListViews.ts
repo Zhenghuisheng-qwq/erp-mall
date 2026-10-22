@@ -31,10 +31,11 @@ const SKU_FIELDS: ColumnField[] = [
   { key: 'code', label: 'SKU 编号', defaultVisible: true },
   { key: 'name', label: 'SKU 名称', required: true, defaultVisible: true },
   { key: 'spec', label: '完整规格', defaultVisible: true },
-  { key: 'family', label: '所属商品', defaultVisible: true },
+  { key: 'family', label: '所属 SPU', defaultVisible: true },
   { key: 'category', label: '商品分类', defaultVisible: true },
   { key: 'typeName', label: '产品类型', defaultVisible: true },
   { key: 'status', label: 'SKU 状态', defaultVisible: true },
+  { key: 'updatedAt', label: '最近维护', defaultVisible: true },
 ]
 
 export function columnFields(mode: ProductListMode) {

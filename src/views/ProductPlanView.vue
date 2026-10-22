@@ -1,6 +1,6 @@
 <template>
   <div>
-    <PageHead title="商品规划" desc="从已发布模型点选一个上层取值。保存后按它下面真实存在的规格路径生成商品和多条 SKU。">
+    <PageHead title="商品规划" desc="从已发布模型点选一个上层取值。保存后按它下面真实存在的规格路径选择 SPU 并追加多条 SKU。">
       <el-button v-if="activeModel" @click="activeModelId = ''">返回模型列表</el-button>
     </PageHead>
     <div v-if="!activeModel" class="panel">
@@ -18,8 +18,8 @@
           <span>{{ modelName(item.productModelId) }} · {{ skuCount(item) }} 个 SKU · {{ item.createdTime.slice(0, 16).replace('T', ' ') }}</span>
         </div>
         <div class="row-actions">
-          <el-button v-if="productOf(item.id)" link type="primary" @click="router.push(`/products/${productOf(item.id)}`)">查看商品</el-button>
-          <el-button v-else link type="primary" @click="generateProduct(item.id)">生成商品</el-button>
+          <el-button v-if="productOf(item.id)" link type="primary" @click="router.push(`/spus/${productOf(item.id)}`)">查看 SPU</el-button>
+          <el-button link type="primary" @click="generateProduct(item.id)">创建 SKU</el-button>
           <el-button link type="primary" @click="openPlan(item.id)">继续编辑</el-button>
           <el-button link type="danger" @click="removePlan(item.id)">删除</el-button>
         </div>
@@ -48,10 +48,10 @@
         <p v-for="item in preview?.skus || []" :key="item.name" class="chosen"><span>SKU</span><strong>{{ item.name }}</strong></p>
         <div class="row-actions">
           <el-button type="primary" @click="save">保存规划</el-button>
-          <el-button v-if="generatedId" @click="router.push(`/products/${generatedId}`)">查看商品</el-button>
-          <el-button v-else :disabled="!editingPlanId" @click="generateProduct(editingPlanId)">生成商品</el-button>
+          <el-button v-if="generatedId" @click="router.push(`/spus/${generatedId}`)">查看 SPU</el-button>
+          <el-button :disabled="!editingPlanId" @click="generateProduct(editingPlanId)">创建 SKU</el-button>
         </div>
-        <p v-if="!editingPlanId" class="muted">保存规划后才能生成商品。</p>
+        <p v-if="!editingPlanId" class="muted">保存规划后才能创建 SKU。</p>
       </section>
     </div>
   </div>
@@ -63,7 +63,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHead from '../components/PageHead.vue'
 import { categoryPath, latestPublishedVersion, orderedPlanNodes, paramById, planSkuLines, planTitle, specCanvasOf, togglePlanValue } from '../domain/logic'
-import type { ProductFamily, ProductPlan, ProductSpecNode, Sku } from '../domain/types'
+import type { ProductPlan, ProductSpecNode } from '../domain/types'
 import { uid, useCatalogStore } from '../stores/catalog'
 
 const store = useCatalogStore()
@@ -133,58 +133,10 @@ function modelName(id: string) {
   return specCanvasOf(store.data, id)?.name || store.data.templates.find((item) => item.id === id)?.name || '商品模型'
 }
 function productOf(planId: string) {
-  return store.data.families.find((item) => item.productPlanId === planId)?.id || ''
+  return store.data.families.find((item) => item.productPlanId === planId)?.id || store.data.skus.find(item => item.creationSource?.productPlanId === planId)?.familyId || ''
 }
-function generateProduct(planId: string) {
-  const plan = store.data.productPlans.find((item) => item.id === planId)
-  if (!plan || plan.status !== 'saved') {
-    ElMessage.warning('请先保存规划')
-    return
-  }
-  const existing = productOf(plan.id)
-  if (existing) {
-    ElMessage.warning('这个规划已经生成过商品')
-    return
-  }
-  const parts = planSkuLines(store.data, plan)
-  const productType = store.data.productTypes.find((item) => item.id === plan.productTypeId)
-  if (!parts || !parts.skus.length || !productType) {
-    ElMessage.warning('这个规划还不能生成商品')
-    return
-  }
-  const now = new Date().toISOString()
-  const familyId = uid('fam')
-  const family: ProductFamily = {
-    id: familyId,
-    name: parts.productName,
-    templateId: plan.productModelId,
-    productModelId: plan.productModelId,
-    modelVersionId: parts.modelVersionId,
-    productTypeId: plan.productTypeId,
-    productPlanId: plan.id,
-    categoryId: productType.categoryId,
-    oaProductId: '',
-    commonAttrs: parts.commonAttrs,
-    productGroupIds: [],
-    lifecycle: 'draft',
-    shelfStatus: 'draft',
-    createdAt: now,
-    origin: 'created',
-    updatedAt: now,
-  }
-  const skus: Sku[] = parts.skus.map((item) => ({
-    id: uid('sku'),
-    familyId,
-    code: '',
-    oaSkuId: '',
-    status: 'draft',
-    variantAttrs: item.variantAttrs,
-    projectedAttrs: {},
-    skuName: item.name,
-    sourceNodeIds: item.sourceNodeIds,
-  }))
-  store.saveBundle(family, skus)
-  ElMessage.success(`已生成商品，${skus.length} 个 SKU`)
+function generateProduct(id: string) {
+  if (store.data.productPlans.some(item => item.id === id)) router.push({ path: '/skus/new', query: { plan: id } })
 }
 function enter(id: string) {
   const model = models.value.find((item) => item.id === id)
@@ -252,6 +204,7 @@ function save() {
   ElMessage.success('已保存规划')
 }
 function removePlan(id: string) {
+  if (productOf(id)) { ElMessage.warning('这个规划已有 SPU 或 SKU 来源关联，不能直接删除。'); return }
   store.data.productPlans = store.data.productPlans.filter((item) => item.id !== id)
   if (editingPlanId.value === id) editingPlanId.value = ''
   ElMessage.success('已删除规划')

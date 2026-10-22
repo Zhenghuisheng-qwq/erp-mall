@@ -1,0 +1,50 @@
+<template>
+  <div>
+    <PageHead title="编辑 SKU" desc="只维护当前规格商品，不更换所属 SPU。"><el-button @click="back">返回 SKU 管理</el-button></PageHead>
+    <el-empty v-if="!sku || !family || !draft" description="SKU 不存在或此记录属于物料，请从物料管理查看。" />
+    <section v-else class="panel">
+      <p>所属 SPU：<el-button link type="primary" @click="router.push(`/spus/${family.id}`)">{{ family.name }}</el-button></p>
+      <p>来源：{{ sourceText }} · 绑定版本：{{ versionName }}</p>
+      <div style="max-width: 760px"><SkuFields v-model="draft" :family="family" :spec-locked="Boolean(sku.sourceNodeIds?.length || sku.planningId || sku.creationSource?.kind === 'plan')" /></div>
+      <p v-if="error" class="issue-error" role="alert">{{ error }}</p>
+      <div class="row-actions"><el-button @click="back">取消</el-button><el-button type="primary" :loading="saving" @click="save">保存 SKU</el-button></div>
+    </section>
+  </div>
+</template>
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import PageHead from '../components/PageHead.vue'
+import SkuFields from '../components/catalog/SkuFields.vue'
+import { useUnsavedCatalog } from '../components/catalog/useUnsavedCatalog'
+import { isRealSku } from '../domain/catalogIdentity'
+import type { SkuDraft } from '../domain/spuSku'
+import { useCatalogStore } from '../stores/catalog'
+const store = useCatalogStore()
+const route = useRoute()
+const router = useRouter()
+const dirty = ref(false)
+const error = ref('')
+const saving = ref(false)
+const sku = computed(() => store.data.skus.find(item => item.id === route.params.id && isRealSku(store.data, item)))
+const family = computed(() => store.data.families.find(item => item.id === sku.value?.familyId))
+const draft = ref<SkuDraft>()
+watch(() => route.params.id, () => { draft.value = sku.value ? { code: sku.value.code, skuName: sku.value.skuName, oaSkuId: sku.value.oaSkuId, status: sku.value.status, variantAttrs: { ...sku.value.variantAttrs } } : undefined; dirty.value = false }, { immediate: true })
+watch(draft, () => { dirty.value = true }, { deep: true, flush: 'sync' })
+useUnsavedCatalog(dirty)
+const sourceText = computed(() => {
+  const source = sku.value?.creationSource
+  if (source) return `${{ manual: '手工录入', template: '模板生成', model: '模型生成', plan: '规划生成' }[source.kind]}${source.productPlanId ? `：${source.planName || source.productPlanId}` : ''}`
+  return family.value?.productPlanId ? `历史规划：${store.data.productPlans.find(item => item.id === family.value?.productPlanId)?.name || family.value.productPlanId}` : '历史记录未记录来源'
+})
+const versionName = computed(() => { const id = sku.value?.modelVersionId || family.value?.modelVersionId; return store.data.specModelVersions.find(item => item.id === id)?.versionName || id || '未记录' })
+function save() {
+  if (saving.value || !sku.value || !draft.value) return
+  saving.value = true
+  const result = store.editSku(sku.value.id, draft.value)
+  if (!result.ok) { error.value = result.message; saving.value = false; return }
+  dirty.value = false; ElMessage.success('SKU 已保存'); back()
+}
+function back() { router.push({ path: '/skus', query: typeof route.query.spu === 'string' ? { spu: route.query.spu } : {} }) }
+</script>

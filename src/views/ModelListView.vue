@@ -19,6 +19,7 @@
           <template #default="{ row }">
             <el-button link type="primary" @click="open(row.id, true)">查看模型</el-button>
             <el-button link type="primary" @click="open(row.id, false)">编辑模型</el-button>
+            <el-button link @click="router.push({ path: '/skus/new', query: { template: row.id } })">创建 SKU</el-button>
             <el-button link @click="copy(row.id)">复制模型</el-button>
             <el-button link @click="setStatus(row.id, 'published')">发布模型</el-button>
             <el-button link @click="setStatus(row.id, 'offline')">下线模型</el-button>
@@ -53,6 +54,7 @@ import { useRouter } from 'vue-router'
 import CategoryTreeSelect from '../components/CategoryTreeSelect.vue'
 import PageHead from '../components/PageHead.vue'
 import { categoryPath } from '../domain/logic'
+import { isRealSku } from '../domain/catalogIdentity'
 import type { SpecModelStatus } from '../domain/types'
 import { uid, useCatalogStore } from '../stores/catalog'
 
@@ -82,7 +84,7 @@ const rows = computed(() => {
       status: canvas?.status || (latest ? 'published' : 'draft'),
       version: canvas?.status === 'draft' ? canvas.versionName || `V${(latest?.version || 0) + 1}` : latest?.versionName || canvas?.versionName || 'V1',
       products: families.length,
-      skus: store.data.skus.filter((item) => familyIds.has(item.familyId)).length,
+      skus: store.data.skus.filter((item) => familyIds.has(item.familyId) && isRealSku(store.data, item)).length,
       updatedAt: canvas?.updatedAt ? canvas.updatedAt.slice(0, 16).replace('T', ' ') : '尚未单独保存',
     }
   })

@@ -1,4 +1,4 @@
-export const DATA_VERSION = 13
+export const DATA_VERSION = 14
 export const STORAGE_KEY = 'iyge-v2-mock-db'
 
 export type SaleStatus = 'on_sale' | 'off_sale' | 'draft'
@@ -248,6 +248,17 @@ export interface ProductFamily {
 }
 
 export interface Sku {
+  /** 新记录明确区分真实 SKU 与物料；旧记录保留原值，由统一判定函数回退。 */
+  recordKind?: 'sku' | 'material'
+  /** 每条新增 SKU 自己保留生成来源，不覆盖 SPU 的历史单规划关联。 */
+  creationSource?: {
+    kind: 'manual' | 'template' | 'model' | 'plan'
+    templateId: string
+    modelVersionId: string
+    productPlanId?: string
+    planName?: string
+    createdAt: string
+  }
   id: string
   familyId: string
   code: string
@@ -482,6 +493,8 @@ export interface Profile {
 }
 
 export interface AppData {
+  /** V14：两个管理页各自持有视图、筛选预设和分页；旧字段保留用于历史兼容。 */
+  productListPages?: Record<ProductListMode, ProductListPageState>
   mode: AppMode
   activeRole: UserRole
   categories: Category[]
@@ -523,6 +536,14 @@ export interface AppData {
   productListViews?: ProductListSavedView[]
   /** 当前展示视图。已有选择时，打开页面不会改掉。 */
   activeProductListViewId?: string
+}
+
+export interface ProductListPageState {
+  views: ProductListSavedView[]
+  activeId: string
+  query: ListQuery
+  presets: ListView[]
+  activePresetId: string
 }
 
 export interface FieldIssue {

@@ -1,5 +1,5 @@
 import { chromium } from 'playwright-core'
-import { openTools, waitUiSettled } from './browser-ui.mjs'
+import { createView, openTools, waitUiSettled } from './browser-ui.mjs'
 
 const base = process.env.SMOKE_URL || 'http://127.0.0.1:5190'
 const browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'chrome', headless: true })
@@ -89,7 +89,8 @@ try {
   }
 
   await chooseView('SKU 明细')
-  await page.locator('.list-switch .el-radio-button', { hasText: '规格' }).click()
+  await page.getByRole('button', { name: 'SKU 管理', exact: true }).click()
+  await createView(page, 'SKU 明细')
   await page.locator('.list-switch[data-mode="sku"]').waitFor()
   const skuHeaders = await headers()
   if (!skuHeaders.includes('SKU 编号') || !skuHeaders.includes('完整规格') || skuHeaders.includes('SKU 数量') || skuHeaders.includes('规格数')) {
@@ -99,10 +100,11 @@ try {
   if (skuIds.length !== 10 || skuIds.some((item) => item.startsWith('MAT-'))) throw new Error('SKU 行不对：' + skuIds.join())
   const overviewStill = await page.evaluate((id) => {
     const raw = JSON.parse(localStorage.getItem('iyge-v2-mock-db') || '{}')
-    return raw.data.productListViews.find((item) => item.id === id)?.mode
+    return raw.data.productListPages.spu.views.find((item) => item.id === id)?.mode
   }, overviewId)
   if (overviewStill !== 'spu') throw new Error('改 SKU 明细时把商品总览也改了')
 
+  await page.getByRole('button', { name: 'SPU 管理', exact: true }).click()
   await chooseView('商品总览')
   await page.locator('.list-switch[data-mode="spu"]').waitFor()
   const restored = await headers()

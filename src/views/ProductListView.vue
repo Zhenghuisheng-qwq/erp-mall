@@ -1,8 +1,16 @@
 <template>
   <div>
-    <PageHead title="商品列表" desc="默认按商品主体查看。需要逐条规格时，切换到 SKU 视图。">
-      <el-button type="primary" @click="router.push('/products/new')">新增商品</el-button>
+    <PageHead :title="mode === 'spu' ? 'SPU 管理' : 'SKU 管理'" :desc="mode === 'spu' ? '维护商品主体，查看和追加其下 SKU。' : '独立管理真实规格商品；物料档案在物料管理中维护。'">
+      <el-button @click="router.push(mode === 'spu' ? '/skus' : '/spus')">{{ mode === 'spu' ? 'SKU 管理' : 'SPU 管理' }}</el-button>
+      <el-button v-if="mode === 'spu'" @click="router.push('/materials/new')">物料建档</el-button>
+      <el-button type="primary" @click="router.push(mode === 'spu' ? '/spus/new' : { path: '/skus/new', query: scopeId ? { spu: scopeId } : {} })">{{ mode === 'spu' ? '新建 SPU' : '新增 SKU' }}</el-button>
     </PageHead>
+    <div v-if="scopeId" class="panel" style="margin-bottom: 12px" data-spu-scope>
+      当前查看：{{ scopeFamily?.name || '已删除的 SPU' }} 的 SKU
+      <el-button v-if="scopeFamily" link type="primary" @click="router.push(`/spus/${scopeId}`)">查看 SPU</el-button>
+      <el-button @click="router.push('/skus')">查看全部 SKU</el-button>
+      <p class="muted">当前为临时范围，筛选和视图调整不会覆盖全部 SKU 的保存设置。</p>
+    </div>
     <div class="panel" :class="{ 'is-category-side': showSidebar }" :data-category-layout="categoryLayout">
       <aside v-if="showSidebar" class="category-side" data-category-side>
         <CategoryFilterTree placement="sidebar" :categories="store.data.categories" :selected-ids="selectedCategoryIds" @toggle="toggleCategory" @clear="clearCategory" @float="floatCategory" @hide="hideCategory" @dock="dockCategory" />
@@ -30,18 +38,15 @@
           :columns="modeColumns" :group-options="groupOptions" :sort-options="sortOptions"
           :grouping="activeQuery.grouping" :sorting="activeQuery.sorting" :sort-mode="sortMode"
           @column-visible="toggleColumn" @column-move="moveColumn" @reset-columns="resetColumns"
-          @group-change="setViewGrouping(store.data, $event)" @sort-change="setViewSorting(store.data, $event)"
+          @group-change="setViewGrouping(listData, $event)" @sort-change="setViewSorting(listData, $event)"
           @sort-mode="onSortMode" @manage="manageView"
         />
         <span v-if="groupStatusLabel" class="tool-state" data-group-state>分组：{{ groupStatusLabel }}</span>
         <span v-if="sortStatusLabel" class="tool-state" data-sort-state>排序：{{ sortStatusLabel }}</span>
-        <el-radio-group :model-value="listMode" size="small" @change="setListMode">
-          <el-radio-button value="spu">商品</el-radio-button>
-          <el-radio-button value="sku">规格</el-radio-button>
-        </el-radio-group>
         <span class="muted" data-result-count>{{ listMode === 'spu' ? `商品 ${presentation.total} 款` : `SKU ${presentation.total} 条` }}</span>
       </div>
       <div class="filters">
+        <el-select v-if="mode === 'sku'" :model-value="scopeId" filterable clearable placeholder="筛选所属 SPU" style="width: 220px" data-list-spu @change="(id: string) => router.push({ path: '/skus', query: id ? { spu: id } : {} })"><el-option v-for="item in store.data.families" :key="item.id" :value="item.id" :label="`${item.name} · ${item.oaProductId || item.id}`" /></el-select>
         <el-input :model-value="activeQuery.keyword" placeholder="名称、分类、属性、SKU、OA 编号" clearable style="width: 260px" data-filter="keyword" @update:model-value="onKeyword" />
         <el-popover v-if="showCategoryPopover" v-model:visible="categoryOpen" trigger="click" placement="bottom-start" :width="280">
           <template #reference>
@@ -72,9 +77,12 @@
         <el-button :disabled="familyIds.length === 0" @click="setShelfMany('offline')">批量下架</el-button>
         <el-button :disabled="familyIds.length === 0" type="danger" @click="removeMany">批量删除</el-button>
       </div>
-      <div v-if="store.data.listViews.length > 1" class="row-actions" style="margin-bottom: 10px">
+      <div v-if="mode === 'sku' && skuIds.length" class="row-actions" style="margin-bottom: 10px">
+        <span>已选 {{ skuIds.length }} 条</span><el-button @click="store.setSkuStatus(skuIds, 'on_sale')">批量在售</el-button><el-button @click="store.setSkuStatus(skuIds, 'off_sale')">批量停售</el-button><el-button type="danger" @click="removeSkuMany">批量删除</el-button>
+      </div>
+      <div v-if="listData.listViews.length > 1" class="row-actions" style="margin-bottom: 10px">
         <span class="muted">已存筛选</span>
-        <el-tag v-for="view in store.data.listViews" :key="view.id" :type="store.data.activeViewId === view.id ? 'primary' : 'info'" style="cursor: pointer" @click="store.applyView(view.id)" @close="store.removeView(view.id)" :closable="view.id !== 'view-all'">{{ view.name }}</el-tag>
+        <el-tag v-for="view in listData.listViews" :key="view.id" :type="listData.activeViewId === view.id ? 'primary' : 'info'" style="cursor: pointer" @click="applyPreset(view.id)" @close="removePreset(view.id)" :closable="view.id !== 'view-all'">{{ view.name }}</el-tag>
       </div>
       <p v-if="presentation.manualBlocked" class="warn">手工排序已保存。当前还有分组，请先清除分组，再按手工顺序查看。分组不会被自动改掉。</p>
       <div v-if="manualOn && pickedIds.length" class="row-actions" style="margin-bottom: 8px">
@@ -101,8 +109,8 @@
           <template #default="{ row }">
             <div class="sku-expand" :data-family-id="row.id">
               <div class="row-actions" style="margin-bottom: 8px">
-                <el-button size="small" @click="router.push(`/products/${row.id}`)">{{ row.line === 'v3' ? '管理物料' : '编辑整款商品' }}</el-button>
-                <el-button v-if="row.line !== 'v3'" size="small" @click="router.push(`/products/${row.id}?add=1`)">新增规格</el-button>
+                <el-button size="small" @click="router.push(`/spus/${row.id}`)">编辑 SPU</el-button>
+                <el-button size="small" @click="router.push({ path: '/skus/new', query: { spu: row.id } })">新增 SKU</el-button>
                 <el-button v-if="realCount(row.id) > 0" size="small" :disabled="selected[row.id]?.length === 0" @click="batchStatus(row.id, 'on_sale')">所选改在售</el-button>
                 <el-button v-if="realCount(row.id) > 0" size="small" :disabled="selected[row.id]?.length === 0" @click="batchStatus(row.id, 'off_sale')">所选改停售</el-button>
               </div>
@@ -124,10 +132,10 @@
                     </el-select>
                   </template>
                 </el-table-column>
-                <el-table-column v-if="row.line !== 'v3'" prop="oaSkuId" label="OA_SKUID" width="140" />
+                <el-table-column prop="oaSkuId" label="OA_SKUID" width="140" />
                 <el-table-column label="操作" width="180">
                   <template #default="{ row: sku }">
-                    <el-button link type="primary" @click="router.push(`/products/${row.id}?sku=${sku.id}`)">编辑</el-button>
+                    <el-button link type="primary" @click="router.push(`/skus/${sku.id}?spu=${row.id}`)">编辑</el-button>
                     <el-button v-if="row.line !== 'v3'" link @click="copySku(row.id, sku.id)">复制</el-button>
                     <el-button link type="danger" @click="removeSku(sku.id)">删除</el-button>
                   </template>
@@ -139,14 +147,14 @@
         <el-table-column v-for="col in tableColumns" :key="col.key" :prop="col.key" :label="col.label" min-width="120">
           <template #default="{ row }">
             <template v-if="col.key === 'name'">
-              <button class="linkish" :data-family-id="row.id" @click="router.push(`/products/${row.id}`)">{{ row.name }}</button>
+              <button class="linkish" :data-family-id="row.id" @click="router.push(`/spus/${row.id}`)">{{ row.name }}</button>
               <span v-if="row.line === 'v3'" class="sku-hint">{{ materialSummary(row.id) }}</span>
               <span v-if="planSource(row)" class="sku-hint">来自规划：{{ planSource(row) }}</span>
             </template>
             <template v-else-if="col.key === 'category'">{{ categoryPath(store.data, row.categoryId) }}</template>
             <template v-else-if="col.key === 'template'">{{ templateById(store.data, row.templateId)?.name }}</template>
             <template v-else-if="col.key === 'brand'">{{ brandText(row) }}</template>
-            <template v-else-if="col.key === 'skuCount'"><span :data-sku-count="realCount(row.id)">{{ skuCountText(realCount(row.id)) }}</span></template>
+            <template v-else-if="col.key === 'skuCount'"><button class="linkish" :data-sku-count="realCount(row.id)" @click="router.push({ path: '/skus', query: { spu: row.id } })">{{ skuCountText(realCount(row.id)) }}</button></template>
             <template v-else-if="col.key === 'sale'">{{ saleCount(row.id) }}</template>
             <template v-else-if="col.key === 'origin'">{{ row.origin === 'sample' ? '预设演示' : '本次新增' }}</template>
             <template v-else-if="col.key === 'updatedAt'">{{ row.updatedAt.slice(0, 16).replace('T', ' ') }}</template>
@@ -156,18 +164,21 @@
             <template v-else-if="col.key === 'oaProductId'">{{ row.oaProductId || '-' }}</template>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="300" fixed="right">
+        <el-table-column label="操作" width="390" fixed="right">
           <template #default="{ row }">
             <el-button v-if="row.line === 'v3'" link type="primary" @click="router.push(compatTarget(row))">{{ compatTitle(row) }}</el-button>
-            <el-button link type="primary" @click="router.push(`/products/${row.id}`)">{{ row.line === 'v3' ? '管理物料' : '编辑' }}</el-button>
-            <el-button link @click="copyFamily(row.id)">复制</el-button>
+            <el-button link type="primary" @click="router.push(`/spus/${row.id}`)">编辑 SPU</el-button>
+            <el-button link @click="router.push({ path: '/skus/new', query: { spu: row.id } })">新增 SKU</el-button>
+            <el-button v-if="row.line === 'v3'" link @click="router.push(`/materials/${row.id}`)">管理物料</el-button>
+            <el-button link @click="copyFamily(row.id)">复制 SPU</el-button>
             <el-button link type="danger" @click="removeFamily(row.id, row.name)">删除</el-button>
             <el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'before')">插到前面</el-button>
             <el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'after')">插到后面</el-button>
           </template>
         </el-table-column>
       </el-table>
-      <el-table v-else v-show="!group.label || !collapsed[group.label]" class="sku-table" :data="group.skus" row-key="id">
+      <el-table v-else v-show="!group.label || !collapsed[group.label]" class="sku-table" :data="group.skus" row-key="id" @selection-change="(rows: { id: string }[]) => onSkuSelect(group.key, rows)">
+        <el-table-column type="selection" width="42" reserve-selection />
         <template #empty><span data-empty="sku">{{ skuEmpty }}</span></template>
         <el-table-column v-if="manualOn" width="46">
           <template #default="{ row }"><span class="drag-handle" draggable="true" :data-drag-id="row.id" @dragstart="onRowDrag(row.id)" @dragover.prevent @drop="onRowDrop(row.id)">☰</span></template>
@@ -181,17 +192,18 @@
             <template v-else-if="col.key === 'name'">{{ row.name }}</template>
             <template v-else-if="col.key === 'spec'"><span :data-sku-spec="row.id">{{ row.spec }}</span></template>
             <template v-else-if="col.key === 'family'">
-              <button class="linkish" @click="router.push(`/products/${row.familyId}`)">{{ row.familyName }}</button>
+              <button class="linkish" @click="router.push(`/spus/${row.familyId}`)">{{ row.familyName }}</button>
             </template>
             <template v-else-if="col.key === 'category'">{{ row.category }}</template>
             <template v-else-if="col.key === 'typeName'">{{ row.typeName }}</template>
-            <template v-else-if="col.key === 'status'">{{ statusText(row.status) }}</template>
+            <template v-else-if="col.key === 'status'"><el-select :model-value="row.status" size="small" @change="(status: Sku['status']) => store.patchSku(row.id, { status })"><el-option label="草稿" value="draft" /><el-option label="在售" value="on_sale" /><el-option label="停售" value="off_sale" /></el-select></template>
+            <template v-else-if="col.key === 'updatedAt'">{{ row.updatedAt || '—' }}</template>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="router.push(`/products/${row.familyId}?sku=${row.id}`)">商品详情</el-button>
-            <el-button v-if="row.materialCount > 0" link @click="router.push(`/products/${row.familyId}`)">物料 {{ row.materialCount }} 条</el-button>
+            <el-button link type="primary" @click="router.push({ path: `/skus/${row.id}`, query: scopeId ? { spu: scopeId } : {} })">编辑 SKU</el-button>
+            <el-button link type="danger" @click="removeSku(row.id)">删除</el-button>
             <el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'before')">插到前面</el-button>
             <el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'after')">插到后面</el-button>
           </template>
@@ -238,7 +250,7 @@
       :categories="store.data.categories" :exposed="activeQuery.exposed"
       @add="addCondition" @field="changeFilterField" @operator="changeFilterOperator"
       @value="setConditionValue" @remove="removeCondition"
-      @expose="(field, exposed) => setViewExposed(store.data, field, exposed)"
+      @expose="(field, exposed) => setViewExposed(listData, field, exposed)"
     />
   </div>
 </template>
@@ -254,18 +266,35 @@ import PageHead from '../components/PageHead.vue'
 import ProductListViewTools from '../components/product-list/ProductListViewTools.vue'
 import { useProductListManualOrder } from '../components/product-list/useProductListManualOrder'
 import { familyBrandText, familyBrandValues, isRealSku, linkedModelName, materialArchivesOf, productTypeName, realSkusOf, savedSkuCode, savedSkuName, savedSkuSpec, skuCountText } from '../domain/productList'
-import { catalogRole, compatibilityFamilyBlock, roleOfType } from '../domain/compatibility'
-import { categoryPath, shelfOf, shelfText, statusText, templateById } from '../domain/logic'
+import { catalogRole, compatibilitySkuBlock, roleOfType } from '../domain/compatibility'
+import { categoryPath, shelfOf, shelfText, templateById } from '../domain/logic'
 import { familyMaterialDigest } from '../domain/material'
-import { activeFilterCount, fieldSelection, groupFields, knownFilterFields, presentProductList, resolveCategoryFilter, sortFields, sortModeOf } from '../domain/productListQuery'
-import { DEFAULT_PRODUCT_LIST_VIEW_ID, activeProductListView, copyProductListView, createProductListView, currentModeQuery, deleteProductListView, insertViewManual, moveViewManual, orderedColumns, renameProductListView, reorderProductListColumn, resetProductListColumns, selectProductListView, setProductListColumnVisible, setProductListViewMode, setViewCategoryLayout, setViewExposed, setViewFieldValues, setViewGrouping, setViewKeyword, setViewSortMode, setViewSorting, visibleColumns } from '../domain/productListViews'
-import type { ProductFamily, ProductListFilterOperator, ProductListViewFilter, Sku } from '../domain/types'
+import { activeFilterCount, emptyModeQuery, fieldSelection, groupFields, knownFilterFields, presentProductList, resolveCategoryFilter, sortFields, sortModeOf } from '../domain/productListQuery'
+import { DEFAULT_PRODUCT_LIST_VIEW_ID, activeProductListView, copyProductListView, createProductListView, currentModeQuery, deleteProductListView, insertViewManual, moveViewManual, orderedColumns, renameProductListView, reorderProductListColumn, resetProductListColumns, selectProductListView, setProductListColumnVisible, applyPresetToActiveView, setViewCategoryLayout, setViewExposed, setViewFieldValues, setViewGrouping, setViewKeyword, setViewSortMode, setViewSorting, visibleColumns } from '../domain/productListViews'
+import type { ListView, ProductFamily, ProductListMode, ProductListPageState, ProductListFilterOperator, ProductListViewFilter, Sku } from '../domain/types'
+import { productListPageData } from '../domain/productListPages'
+import { spuRemovalBlock } from '../domain/spuSku'
 import { uid, useCatalogStore } from '../stores/catalog'
 
+const { mode } = defineProps<{ mode: ProductListMode }>()
 const store = useCatalogStore()
 const router = useRouter()
 const route = useRoute()
-const query = store.data.listQuery
+const scopeId = computed(() => mode === 'sku' && typeof route.query.spu === 'string' ? route.query.spu : '')
+const scopeFamily = computed(() => store.data.families.find(item => item.id === scopeId.value))
+const temporary = ref<ProductListPageState>()
+watch(scopeId, id => {
+  temporary.value = undefined
+  if (!id) return
+  const page = store.data.productListPages?.sku
+  if (!page) return
+  const next: ProductListPageState = JSON.parse(JSON.stringify(page))
+  next.query.page = 1
+  next.views.forEach(view => { view.skuQuery = emptyModeQuery('sku') })
+  temporary.value = next
+}, { immediate: true })
+const listData = computed(() => productListPageData(store.data, mode, temporary.value))
+const query = computed(() => listData.value.listQuery)
 const columnOpen = ref(false)
 const createOpen = ref(false)
 const settingsOpen = ref(false)
@@ -280,15 +309,36 @@ const nameError = ref('')
 const renameError = ref('')
 const selected = reactive<Record<string, string[]>>({})
 const familyIds = ref<string[]>([])
+const skuSelections = reactive<Record<string, string[]>>({})
+const skuIds = computed(() => [...new Set(Object.values(skuSelections).flat())].filter(id => store.data.skus.some(item => item.id === id && isRealSku(store.data, item))))
+function onSkuSelect(group: string, rows: { id: string }[]) { skuSelections[group] = rows.map(row => row.id) }
+async function removeSkuMany() {
+  const blocked = skuIds.value.map(id => compatibilitySkuBlock(store.data, id)).find(Boolean)
+  if (blocked) { ElMessage.warning(blocked); return }
+  try { await ElMessageBox.confirm(`删除选中的 ${skuIds.value.length} 条 SKU？SPU 会保留。`, '批量删除 SKU') } catch { return }
+  skuIds.value.forEach(id => store.removeSku(id))
+  Object.keys(skuSelections).forEach(key => delete skuSelections[key])
+}
+function applyPreset(id: string) {
+  const page = listData.value
+  const preset = page.listViews.find(item => item.id === id)
+  if (!preset) return
+  page.activeViewId = id; page.listQuery = JSON.parse(JSON.stringify(preset.query)); applyPresetToActiveView(page, preset)
+}
+function removePreset(id: string) {
+  if (id === 'view-all') return
+  listData.value.listViews = listData.value.listViews.filter(item => item.id !== id)
+  if (listData.value.activeViewId === id) applyPreset('view-all')
+}
 const defaultViewId = DEFAULT_PRODUCT_LIST_VIEW_ID
 const brands = computed(() => Array.from(new Set(store.data.families.flatMap((item) => familyBrandValues(store.data, item)))).sort((left, right) => left.localeCompare(right, 'zh')))
-const displayViews = computed(() => store.data.productListViews || [])
-const activeView = computed(() => activeProductListView(store.data))
-const listMode = computed(() => activeView.value.mode)
+const displayViews = computed(() => listData.value.productListViews || [])
+const activeView = computed(() => activeProductListView(listData.value))
+const listMode = computed(() => mode)
 const tableColumns = computed(() => visibleColumns(activeView.value, listMode.value))
 const modeColumns = computed(() => orderedColumns(activeView.value, listMode.value))
 const activeQuery = computed(() => currentModeQuery(activeView.value))
-const presentation = computed(() => presentProductList(store.data, activeView.value, query.page, query.pageSize))
+const presentation = computed(() => presentProductList(scopeId.value ? { ...store.data, families: store.data.families.filter(item => item.id === scopeId.value) } : store.data, activeView.value, query.value.page, query.value.pageSize))
 const shownGroups = computed(() => presentation.value.groups.map((group) => ({
   key: group.key,
   label: group.label,
@@ -305,7 +355,7 @@ const shownGroups = computed(() => presentation.value.groups.map((group) => ({
     typeName: productTypeName(store.data, row.family),
     modelName: linkedModelName(store.data, row.family),
     status: row.sku.status,
-    materialCount: materialArchivesOf(store.data, row.family.id).length,
+    updatedAt: row.sku.updatedAt?.slice(0, 16).replace('T', ' '),
   }] : []),
 })))
 const activeTotal = computed(() => presentation.value.total)
@@ -328,8 +378,8 @@ const sortOptions = computed(() => sortFields(listMode.value))
 const sortMode = computed(() => sortModeOf(activeQuery.value))
 const manualOn = computed(() => sortMode.value === 'manual' && !activeQuery.value.grouping)
 const { pickedIds, stageIds, confirmStage, onRowDrag, onRowDrop, togglePick, addStage, clearStage, removeStaged, askInsert } = useProductListManualOrder({
-  move: (dragId, targetId, place) => moveViewManual(store.data, dragId, targetId, place),
-  insert: (stagedIds, targetId, place) => insertViewManual(store.data, stagedIds, targetId, place),
+  move: (dragId, targetId, place) => moveViewManual(listData.value, dragId, targetId, place),
+  insert: (stagedIds, targetId, place) => insertViewManual(listData.value, stagedIds, targetId, place),
   hasFilters: () => filterCount.value > 0,
 })
 const groupStatusLabel = computed(() => {
@@ -389,43 +439,35 @@ function warn(result: { ok: true } | { ok: false; message: string }) {
 async function switchDisplayView(id: string) {
   if (id === activeView.value.id) return
   if (!(await confirmStage())) return
-  if (!warn(selectProductListView(store.data, id))) return
-  query.page = 1
-}
-async function setListMode(next: string | number | boolean) {
-  if (next !== 'spu' && next !== 'sku') return
-  const mode = next
-  if (activeView.value.mode === mode) return
-  if (!(await confirmStage())) return
-  if (!warn(setProductListViewMode(store.data, activeView.value.id, mode))) return
-  query.page = 1
+  if (!warn(selectProductListView(listData.value, id))) return
+  query.value.page = 1
 }
 function onKeyword(value: string) {
-  setViewKeyword(store.data, value)
+  setViewKeyword(listData.value, value)
 }
 function chosen(field: string) {
   return fieldSelection(activeQuery.value, field)
 }
 function setExposedValue(field: string, values: string[]) {
-  setViewFieldValues(store.data, field, values)
+  setViewFieldValues(listData.value, field, values)
 }
 function toggleCategory(id: string) {
   const next = selectedCategoryIds.value.includes(id) ? selectedCategoryIds.value.filter((item) => item !== id) : [...selectedCategoryIds.value, id]
-  setViewFieldValues(store.data, 'category', next)
+  setViewFieldValues(listData.value, 'category', next)
 }
 function clearCategory() {
-  setViewFieldValues(store.data, 'category', [])
+  setViewFieldValues(listData.value, 'category', [])
 }
 function dockCategory() {
-  setViewCategoryLayout(store.data, 'sidebar')
+  setViewCategoryLayout(listData.value, 'sidebar')
   categoryOpen.value = false
 }
 function floatCategory() {
-  setViewCategoryLayout(store.data, 'popover')
+  setViewCategoryLayout(listData.value, 'popover')
   categoryOpen.value = true
 }
 function hideCategory() {
-  setViewCategoryLayout(store.data, 'hidden')
+  setViewCategoryLayout(listData.value, 'hidden')
   categoryOpen.value = false
 }
 function syncNarrow() {
@@ -457,7 +499,7 @@ function liveQuery() {
 }
 function touchFilters() {
   activeView.value.updatedAt = new Date().toISOString()
-  query.page = 1
+  query.value.page = 1
 }
 function addCondition() {
   const field = filterFields.value[0]
@@ -521,7 +563,7 @@ function toggleGroup(label: string) {
 }
 function onSortMode(mode: string | number | boolean) {
   if (mode !== 'default' && mode !== 'field' && mode !== 'manual') return
-  const result = setViewSortMode(store.data, mode)
+  const result = setViewSortMode(listData.value, mode)
   if (!result.ok) ElMessage.warning(result.message)
 }
 function stageLabel(id: string) {
@@ -532,10 +574,10 @@ function stageLabel(id: string) {
   return store.data.families.find((item) => item.id === id)?.name || id
 }
 function toggleColumn(key: string, visible: boolean) {
-  warn(setProductListColumnVisible(store.data, activeView.value.id, listMode.value, key, visible))
+  warn(setProductListColumnVisible(listData.value, activeView.value.id, listMode.value, key, visible))
 }
 function moveColumn(from: string, to: string) {
-  warn(reorderProductListColumn(store.data, activeView.value.id, listMode.value, from, to))
+  warn(reorderProductListColumn(listData.value, activeView.value.id, listMode.value, from, to))
 }
 function manageView(action: 'create' | 'settings' | 'save-filter' | 'import') {
   if (action === 'create') openCreate()
@@ -544,7 +586,7 @@ function manageView(action: 'create' | 'settings' | 'save-filter' | 'import') {
   else router.push('/import')
 }
 function resetColumns() {
-  if (!warn(resetProductListColumns(store.data, activeView.value.id, listMode.value, store.defaultColumns()))) return
+  if (!warn(resetProductListColumns(listData.value, activeView.value.id, listMode.value, store.defaultColumns()))) return
   ElMessage.success('已恢复当前模式的默认列')
 }
 function openCreate() {
@@ -553,13 +595,13 @@ function openCreate() {
   createOpen.value = true
 }
 function confirmCreate() {
-  const result = createProductListView(store.data, draftName.value, activeView.value.id, () => uid('view'))
+  const result = createProductListView(listData.value, draftName.value, activeView.value.id, () => uid('view'))
   if (!result.ok) {
     nameError.value = result.message
     return
   }
   createOpen.value = false
-  query.page = 1
+  query.value.page = 1
   ElMessage.success('视图已创建')
 }
 function openSettings() {
@@ -568,7 +610,7 @@ function openSettings() {
   settingsOpen.value = true
 }
 function confirmRename() {
-  const result = renameProductListView(store.data, activeView.value.id, renameDraft.value)
+  const result = renameProductListView(listData.value, activeView.value.id, renameDraft.value)
   if (!result.ok) {
     renameError.value = result.message
     return
@@ -576,22 +618,24 @@ function confirmRename() {
   ElMessage.success('名称已保存')
 }
 function confirmCopy() {
-  const result = copyProductListView(store.data, activeView.value.id, () => uid('view'))
+  const result = copyProductListView(listData.value, activeView.value.id, () => uid('view'))
   if (!warn(result)) return
   settingsOpen.value = false
-  query.page = 1
+  query.value.page = 1
   ElMessage.success('已复制为独立视图')
 }
 async function confirmDelete() {
   await ElMessageBox.confirm(`删除视图「${activeView.value.name}」？商品不会被删除。`, '删除视图')
-  const result = deleteProductListView(store.data, activeView.value.id)
+  const result = deleteProductListView(listData.value, activeView.value.id)
   if (!warn(result)) return
   settingsOpen.value = false
-  query.page = 1
+  query.value.page = 1
   ElMessage.success('视图已删除')
 }
 function saveFilter() {
-  store.saveView(`筛选${store.data.listViews.length}`)
+  const page = listData.value
+  const view: ListView = { id: uid('view'), name: `筛选${page.listViews.length}`, query: { ...JSON.parse(JSON.stringify(query.value)), page: 1 }, columns: [], keyword: activeQuery.value.keyword, viewFilters: JSON.parse(JSON.stringify(activeQuery.value.filters)) }
+  page.listViews.push(view); page.activeViewId = view.id
   ElMessage.success('筛选已保存，刷新后还在')
 }
 function familyRole(row: ProductFamily) {
@@ -612,7 +656,7 @@ function copyFamily(id: string) {
     ElMessage.warning('物料请在对应规格上继续创建，不会整款复制。')
     return
   }
-  router.push(`/products/new?from=${id}`)
+  router.push(`/spus/new?from=${id}`)
 }
 async function removeFamily(id: string, name: string) {
   const family = store.data.families.find((item) => item.id === id)
@@ -620,7 +664,7 @@ async function removeFamily(id: string, name: string) {
     ElMessage.warning('已发布的商品不能直接删除，请先下架。')
     return
   }
-  await ElMessageBox.confirm(`删除「${name}」和它下面的全部规格？`, '删除商品')
+  await ElMessageBox.confirm(`删除空 SPU「${name}」？有关联记录时会阻止删除。`, '删除商品')
   const blocked = store.removeFamily(id)
   if (blocked) {
     ElMessage.warning(blocked)
@@ -649,8 +693,8 @@ async function removeMany() {
     ElMessage.warning('选中的商品里有已发布的，请先下架再删除。')
     return
   }
-  await ElMessageBox.confirm(`删除选中的 ${familyIds.value.length} 款商品和它们的规格？`, '批量删除')
-  const blocked = familyIds.value.map((id) => compatibilityFamilyBlock(store.data, id)).find(Boolean)
+  await ElMessageBox.confirm(`删除选中的 ${familyIds.value.length} 个空 SPU？不会级联删除 SKU 或物料。`, '批量删除')
+  const blocked = familyIds.value.map((id) => spuRemovalBlock(store.data, id)).find(Boolean)
   if (blocked) {
     ElMessage.warning(blocked)
     return
@@ -660,12 +704,12 @@ async function removeMany() {
   ElMessage.success('已删除')
 }
 async function removeSku(id: string) {
-  await ElMessageBox.confirm('删除这条规格。如果这是最后一条，整款商品也会去掉。', '删除规格')
+  await ElMessageBox.confirm('删除这条 SKU？所属 SPU 会保留。', '删除规格')
   const blocked = store.removeSku(id)
   if (blocked) ElMessage.warning(blocked)
 }
 function copySku(familyId: string, skuId: string) {
-  router.push(`/products/${familyId}?copySku=${skuId}`)
+  router.push({ path: '/skus/new', query: { spu: familyId, copy: skuId } })
 }
 function onSelect(familyId: string, rows: Sku[]) {
   selected[familyId] = rows.map((item) => item.id)
@@ -676,7 +720,7 @@ function batchStatus(familyId: string, status: Sku['status']) {
 }
 
 watch(presentation, () => {
-  if (query.page !== presentation.value.page) query.page = presentation.value.page
+  if (query.value.page !== presentation.value.page) query.value.page = presentation.value.page
 }, { immediate: true })
 onMounted(() => {
   if (route.query.panel === 'columns') columnOpen.value = true

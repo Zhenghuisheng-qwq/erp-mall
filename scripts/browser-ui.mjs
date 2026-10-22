@@ -28,7 +28,7 @@ export async function openTools(page) {
 export async function closeTools(page) {
   await waitUiSettled(page)
   const tools = page.locator('.view-tools')
-  if (await tools.isVisible()) await page.getByRole('heading', { name: '商品列表' }).click()
+  if (await tools.isVisible()) await page.getByRole('heading', { name: /^(SPU 管理|SKU 管理)$/ }).click()
   await tools.waitFor({ state: 'hidden' })
 }
 

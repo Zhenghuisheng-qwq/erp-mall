@@ -7,9 +7,9 @@ import { runMatchChecks } from '../src/domain/excelMatchCheck'
 const XLSX = (pkg as { default?: typeof pkg }).default || pkg
 const root = 'D:/单子/商城erp/前期包/2.0 数据'
 const name = existsSync(root) ? readdirSync(root).find((item) => item.includes('1.1') && item.endsWith('.xlsx')) : ''
-const file = name ? join(root, name) : ''
-if (!file) {
-  console.log('FAIL file 没有找到 1.1 手机 Apple.xlsx')
+const file = process.env.ERP_MATERIAL_XLSX || (name ? join(root, name) : '')
+if (!file || !existsSync(file)) {
+  console.log('FAIL file 没有找到真实物料表。请设置 ERP_MATERIAL_XLSX 为 1.1 手机 Apple.xlsx 的路径。')
   process.exit(1)
 }
 const book = XLSX.readFile(file, { cellFormula: true })

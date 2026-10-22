@@ -36,7 +36,8 @@ export function defaultMenuNodes(): MenuNode[] {
     group('model', '商品模型配置', 'product', 3, ADMIN),
     group('operate', '商品运营', 'product', 4, BOTH),
     group('analysis', '商品分析', 'product', 5, BOTH),
-    page('/products', '商品列表', 'manage', 1, BOTH),
+    page('/spus', 'SPU 管理', 'manage', 1, BOTH),
+    page('/skus', 'SKU 管理', 'manage', 1.5, BOTH),
     page('/compatibility', '适用关系', 'manage', 2, BOTH),
     page('/categories', '商品分类中心', 'manage', 3, BOTH),
     page('/product-types', '产品类型', 'manage', 4, BOTH),
@@ -88,6 +89,9 @@ function rolesOf(value: unknown, fallback: UserRole[]): UserRole[] {
 }
 
 export function sanitizeMenu(nodes: MenuNode[]): MenuNode[] {
+  // Inherit customized placement and access from the old product page, once per missing page.
+  const legacy = nodes.find(item => item.id === 'page:/products')
+  if (legacy) nodes = [...nodes, ...(['/spus', '/skus'] as const).filter(route => !nodes.some(item => item.id === `page:${route}`)).map((route, index) => ({ ...legacy, id: `page:${route}`, route, title: route === '/spus' ? 'SPU 管理' : 'SKU 管理', sort: legacy.sort + index * 0.5, roles: [...legacy.roles] }))]
   const defaults = new Map(defaultMenuNodes().map((item) => [item.id, item]))
   const incoming = clone(nodes).filter((item) => defaults.has(item.id) || (item.custom && item.kind === 'group'))
   const byId = new Map<string, MenuNode>()
@@ -256,8 +260,9 @@ export function accessRoute(role: UserRole, path: string) {
 }
 
 export function canAccessLocation(role: UserRole, path: string, query: { panel?: unknown } = {}) {
-  if (path === '/products' && query.panel === 'columns') return accessRoute(role, '/products?panel=columns')
-  if (path.startsWith('/products/') && path !== '/products') return accessRoute(role, '/products')
+  if ((path === '/products' || path === '/spus' || path === '/skus') && query.panel === 'columns') return accessRoute(role, '/products?panel=columns') && accessRoute(role, path === '/skus' ? '/skus' : '/spus')
+  if (path === '/products' || path.startsWith('/products/') || path.startsWith('/spus/') || path.startsWith('/materials/')) return accessRoute(role, '/spus')
+  if (path.startsWith('/skus/')) return accessRoute(role, '/skus')
   return accessRoute(role, path === '' ? '/' : path)
 }
 

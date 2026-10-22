@@ -15,7 +15,7 @@ await page.addInitScript(() => {
 })
 
 async function names() {
-  return page.locator('.spu-table .linkish').allInnerTexts()
+  return page.locator('.spu-table button[data-family-id]').allInnerTexts()
 }
 async function pack() {
   return page.evaluate(() => window.__pack(JSON.parse(localStorage.getItem('iyge-v2-mock-db') || '{}').data))

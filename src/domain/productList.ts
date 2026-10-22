@@ -1,10 +1,12 @@
 import { categoryPath, projectAttrs, shelfOf } from './logic'
 import type { AppData, ListQuery, ProductFamily, ProductListMode, Sku } from './types'
+import { isMaterialArchive, isRealSku } from './catalogIdentity'
+export { isMaterialArchive, isRealSku } from './catalogIdentity'
 
 /**
  * 商品列表只读适配。
  * Family 是已经在用的商品主体，所以 SPU 行就是 Family，不是商品模型。
- * 真实 SKU 只来自历史规格。V3 建档写进同一数组的是物料，规划编号是 PLN，两者都不能当成 SKU。
+ * 真实 SKU 包括历史规格及显式标记的新规格。MAT 与 PLN 都不作为 SKU。
  */
 
 export interface SkuListRow {
@@ -18,19 +20,8 @@ export interface SkuListRow {
   typeName: string
   modelName: string
   status: Sku['status']
+  /** 所属 SPU 的物料数，不表示这条 SKU 与这些物料存在关联。 */
   materialCount: number
-}
-
-export function isMaterialArchive(data: AppData, sku: Sku) {
-  if ((sku.materialCode || '').trim()) return true
-  if ((data.materialReceipts || []).some((item) => item.skuId === sku.id)) return true
-  const family = data.families.find((item) => item.id === sku.familyId)
-  return family?.line === 'v3'
-}
-
-export function isRealSku(data: AppData, sku: Sku) {
-  if (!data.families.some((item) => item.id === sku.familyId)) return false
-  return !isMaterialArchive(data, sku)
 }
 
 export function realSkusOf(data: AppData, familyId: string) {

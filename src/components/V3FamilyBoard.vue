@@ -79,6 +79,7 @@
 
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
+import { isMaterialArchive } from '../domain/catalogIdentity'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { catalogRole, hostLabel, linksOfSku, listHostModels, roleOfType } from '../domain/compatibility'
@@ -110,7 +111,7 @@ const identity = computed(() => {
 })
 const modelId = computed(() => family.value?.productModelId || family.value?.templateId || '')
 const modelName = computed(() => (modelId.value ? specCanvasOf(store.data, modelId.value)?.name || '商品模型' : ''))
-const materials = computed(() => store.data.skus.filter((item) => item.familyId === props.familyId))
+const materials = computed(() => store.data.skus.filter((item) => item.familyId === props.familyId && isMaterialArchive(store.data, item)))
 const filtered = computed(() => {
   const text = keyword.value.trim()
   const rows = text ? materials.value.filter((item) => `${item.materialCode || ''} ${item.skuName || ''} ${item.materialDescription || ''} ${item.supplierCode || ''} ${item.guanjiapoCode || ''}`.includes(text)) : materials.value

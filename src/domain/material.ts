@@ -1,3 +1,4 @@
+import { isMaterialArchive } from './catalogIdentity'
 import { latestPublishedVersion, projectAttrs } from './logic'
 import { filedNameSource, suggestMaterialName, suggestTemporaryName } from './naming'
 import { legalPlanningCombinations } from './planning'
@@ -300,6 +301,7 @@ export function createV3Material(data: AppData, input: {
   const occupied = materialCodeConflict(data, materialCode)
   if (occupied) return { ok: false, message: occupied }
   const sku: Sku = {
+    recordKind: 'material',
     id: input.nextId('sku'),
     familyId: family.id,
     code: '',
@@ -361,7 +363,7 @@ export function updateV3Material(data: AppData, input: {
 }): { ok: true } | { ok: false; message: string } {
   const sku = data.skus.find((item) => item.id === input.skuId)
   const family = sku ? data.families.find((item) => item.id === sku.familyId) : undefined
-  if (!sku || !family || family.line !== 'v3') return { ok: false, message: '找不到这条物料。' }
+  if (!sku || !family || !isMaterialArchive(data, sku)) return { ok: false, message: '找不到这条物料。' }
   const skuName = input.skuName.trim()
   if (!skuName) return { ok: false, message: '请填写物料名称。' }
   const previousName = sku.skuName || ''
@@ -578,6 +580,7 @@ export function createTemporaryMaterial(data: AppData, input: {
     data.families.unshift(family)
   } else family.updatedAt = now
   const sku: Sku = {
+    recordKind: 'material',
     id: input.nextId('sku'),
     familyId: family.id,
     code: '',

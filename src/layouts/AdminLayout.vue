@@ -32,7 +32,7 @@
       </header>
       <div class="demo-strip">演示数据只保存在这台浏览器里。不会连接客户数据库，也不会改线上商品。</div>
       <main class="content">
-        <router-view />
+        <router-view :key="['spu-new', 'spu-edit', 'sku-new', 'sku-edit'].includes(String(route.name)) ? route.fullPath : route.name" />
       </main>
     </section>
   </div>
@@ -65,8 +65,9 @@ function onToggleTheme() {
 const fileRef = ref<HTMLInputElement>()
 const title = computed(() => String(route.meta.title || '商品配置'))
 const active = computed(() => {
-  if (route.path === '/products' && route.query.panel === 'columns') return '/products?panel=columns'
-  if (route.path.startsWith('/products')) return '/products'
+  if (['/products', '/spus', '/skus'].includes(route.path) && route.query.panel === 'columns') return '/products?panel=columns'
+  if (route.path.startsWith('/products') || route.path.startsWith('/spus') || route.path.startsWith('/materials')) return '/spus'
+  if (route.path.startsWith('/skus')) return '/skus'
   if (route.path.startsWith('/specs')) return '/specs'
   return route.path || '/'
 })
@@ -98,7 +99,7 @@ function onRole(value: string) {
 
 const moduleOf = computed(() => {
   const path = route.path
-  if (path.startsWith('/products') || path.startsWith('/import') || path.startsWith('/compatibility') || path === '/' || path.startsWith('/check') || path.startsWith('/overview')) return 'products' as const
+  if (path.startsWith('/products') || path.startsWith('/spus') || path.startsWith('/skus') || path.startsWith('/materials') || path.startsWith('/import') || path.startsWith('/compatibility') || path === '/' || path.startsWith('/check') || path.startsWith('/overview')) return 'products' as const
   if (path.startsWith('/categories') || path.startsWith('/mappings')) return 'categories' as const
   if (path.startsWith('/templates') || path.startsWith('/specs') || path.startsWith('/models')) return 'templates' as const
   if (path.startsWith('/params')) return 'params' as const

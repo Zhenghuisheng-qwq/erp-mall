@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { canAccessLocation } from '../domain/menuConfig'
+import { isMaterialArchive } from '../domain/catalogIdentity'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import { useCatalogStore } from '../stores/catalog'
 
@@ -11,11 +12,25 @@ const router = createRouter({
       component: AdminLayout,
       children: [
         { path: '', name: 'home', component: () => import('../views/WorkbenchView.vue'), meta: { title: '商品工作台', group: '商品工作台', mode: 'daily' } },
-        { path: 'products', name: 'products', component: () => import('../views/ProductListView.vue'), meta: { title: '商品列表', group: '商品工作台', mode: 'daily' } },
+        { path: 'products', redirect: to => ({ path: '/spus', query: to.query }) },
+        { path: 'spus', name: 'spus', component: () => import('../views/ProductListView.vue'), props: { mode: 'spu' }, meta: { title: 'SPU 管理' } },
+        { path: 'skus', name: 'skus', component: () => import('../views/ProductListView.vue'), props: { mode: 'sku' }, meta: { title: 'SKU 管理' } },
+        { path: 'spus/new', name: 'spu-new', component: () => import('../views/SpuEditView.vue'), meta: { title: '新建 SPU' } },
+        { path: 'spus/:id', name: 'spu-edit', component: () => import('../views/SpuEditView.vue'), meta: { title: 'SPU 详情' } },
+        { path: 'skus/new', name: 'sku-new', component: () => import('../views/SkuCreateView.vue'), meta: { title: '新增 SKU' } },
+        { path: 'skus/:id', name: 'sku-edit', component: () => import('../views/SkuEditView.vue'), meta: { title: '编辑 SKU' } },
+        { path: 'materials/new', name: 'material-new', component: () => import('../views/MaterialCreateView.vue'), meta: { title: '物料建档' } },
+        { path: 'materials/:id', name: 'material-edit', component: () => import('../views/ProductEditView.vue'), beforeEnter: to => useCatalogStore().data.families.some(item => item.id === to.params.id && item.line === 'v3') || `/spus/${to.params.id}`, meta: { title: '物料管理' } },
         { path: 'import', name: 'import', component: () => import('../views/ProductIoView.vue'), meta: { title: '导入导出', group: '商品中心', mode: 'daily' } },
         { path: 'compatibility', name: 'compatibility', component: () => import('../views/CompatibilityView.vue'), meta: { title: '适用关系', group: '商品中心', mode: 'daily' } },
-        { path: 'products/new', name: 'product-new', component: () => import('../views/ProductEditView.vue'), meta: { title: '新增商品', group: '商品工作台', mode: 'daily', hide: true } },
-        { path: 'products/:id', name: 'product-edit', component: () => import('../views/ProductEditView.vue'), meta: { title: '编辑商品', group: '商品工作台', mode: 'daily', hide: true } },
+        { path: 'products/new', redirect: to => ({ path: '/spus/new', query: to.query }) },
+        { path: 'products/:id', redirect: to => {
+          const data = useCatalogStore().data
+          const sku = data.skus.find(item => item.id === to.query.sku && item.familyId === to.params.id)
+          if (sku) return { path: isMaterialArchive(data, sku) ? `/materials/${sku.familyId}` : `/skus/${sku.id}`, query: isMaterialArchive(data, sku) ? to.query : { spu: sku.familyId } }
+          if (to.query.add || to.query.copySku) return { path: '/skus/new', query: { spu: String(to.params.id), copy: to.query.copySku } }
+          return { path: `/spus/${to.params.id}`, query: to.query }
+        } },
         { path: 'check', name: 'check', component: () => import('../views/CheckView.vue'), meta: { title: '商品质量检查', group: '商品分析', mode: 'daily' } },
         { path: 'overview', name: 'overview', component: () => import('../views/OverviewView.vue'), meta: { title: '商品总览', group: '商品工作台', mode: 'daily' } },
         { path: 'categories', name: 'categories', component: () => import('../views/CategoryView.vue'), meta: { title: '商品分类中心', group: '商品中心', mode: 'advanced' } },
