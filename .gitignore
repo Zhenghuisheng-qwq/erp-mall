@@ -26,3 +26,6 @@ backups
 
 # Local fixtures, logs and screenshots from the planning performance checks
 /work/performance-round1/
+/work/refactor-round2/
+/work/refactor-round3/
+/work/refactor-final/

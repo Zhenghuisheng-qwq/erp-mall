@@ -1,0 +1,644 @@
+{
+  "result": "READY",
+  "branch": "20261019",
+  "head": "3cfbcc0918ed8c63b35af33c8dcb02baab49089f",
+  "baseline": {
+    "files": 189,
+    "digest": "e75642c4be9525599658d903eec65318075dcb99cc5a7b67b926c0f7bc2a8c8c",
+    "path": "work/refactor-round3/baseline",
+    "manifest": "work/refactor-round3/baseline-manifest.json",
+    "includesRound2Uncommitted": true,
+    "unchangedBaseline": true,
+    "preservedRound2Hashes": {
+      "src/views/ProductListView.vue": "3c4c75d2ecc1aab61480e691019ba1c0172ff0f6f101a2c78098ad322edfdda5",
+      "src/components/product-list/ProductListViewTools.vue": "ab4318a2335c2f9ed00a5a8ed37daa2333643d938cf354a32c9a63e6684edf38",
+      "src/components/product-list/ProductListFilterDialog.vue": "ea1517afd44319f4b2bc9b92be0081c1cc7351904e7a0f5e3e9b5d34162d4e82",
+      "src/components/product-list/filterPresentation.ts": "9ea85b806614fb3a1dc2d367298596602b08441e213450f192db452792b83da8",
+      "src/components/product-list/useProductListManualOrder.ts": "c87a143c0540d7fcf6323a985b560c9ebd154cb761ab26e3c5fa5e743ef2ea3b"
+    },
+    "changedExistingFiles": [
+      ".gitignore",
+      "src/views/SpecConfigView.vue"
+    ]
+  },
+  "environment": {
+    "node": "v22.18.0",
+    "platform": "win32",
+    "arch": "x64",
+    "osRelease": "10.0.26200",
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor            ",
+    "browser": "155.0.8059.85"
+  },
+  "domainChecks": [
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/planning-check.ts",
+      "beforePass": 18,
+      "afterPass": 18
+    },
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/draft-combo-check.ts",
+      "beforePass": 10,
+      "afterPass": 10
+    },
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/naming-check.ts",
+      "beforePass": 24,
+      "afterPass": 24
+    },
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/combo-material-status-check.ts",
+      "beforePass": 42,
+      "afterPass": 42
+    },
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/material-check.ts",
+      "beforePass": 12,
+      "afterPass": 12
+    },
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/consistency-check.ts",
+      "beforePass": 9,
+      "afterPass": 9
+    },
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/layout-check.ts",
+      "beforePass": 17,
+      "afterPass": 17
+    },
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/round5-check.ts",
+      "beforePass": 27,
+      "afterPass": 27
+    },
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/round1-check.ts",
+      "beforePass": 24,
+      "afterPass": 24
+    }
+  ],
+  "browser": {
+    "commandBefore": "node scripts/browser-designer-round3.mjs --before",
+    "commandAfter": "node scripts/browser-designer-round3.mjs",
+    "viewport": "1920x1080",
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "clock": "2026-10-22T04:00:00Z plus one second per checkpoint; reset on reload",
+    "independentContext": true,
+    "orderedFullDataAndWritesEqual": true,
+    "checkpointCount": 38,
+    "checkpoints": [
+      {
+        "name": "route-and-model",
+        "storageWrites": 5,
+        "flows": 1
+      },
+      {
+        "name": "outline-selection",
+        "storageWrites": 2,
+        "flows": 0
+      },
+      {
+        "name": "document-selection",
+        "storageWrites": 1,
+        "flows": 0
+      },
+      {
+        "name": "naming-save-order",
+        "storageWrites": 11,
+        "flows": 1
+      },
+      {
+        "name": "unpublished-combo-selection",
+        "storageWrites": 5,
+        "flows": 1
+      },
+      {
+        "name": "publish-naming-version",
+        "storageWrites": 3,
+        "flows": 1
+      },
+      {
+        "name": "republish-existing-version",
+        "storageWrites": 2,
+        "flows": 1
+      },
+      {
+        "name": "filtered-combo-selection",
+        "storageWrites": 4,
+        "flows": 1
+      },
+      {
+        "name": "grade-and-clear-selection",
+        "storageWrites": 2,
+        "flows": 1
+      },
+      {
+        "name": "two-materials-one-planning",
+        "storageWrites": 5,
+        "flows": 1
+      },
+      {
+        "name": "material-filter-list-close",
+        "storageWrites": 6,
+        "flows": 1
+      },
+      {
+        "name": "batch-create-filter-prunes-selection",
+        "storageWrites": 11,
+        "flows": 1
+      },
+      {
+        "name": "fixture-new-conditional-value",
+        "storageWrites": 0,
+        "flows": 1
+      },
+      {
+        "name": "historical-version-materials",
+        "storageWrites": 4,
+        "flows": 1
+      },
+      {
+        "name": "published-reload",
+        "storageWrites": 2,
+        "flows": 1
+      },
+      {
+        "name": "host-config-save",
+        "storageWrites": 5,
+        "flows": 1
+      },
+      {
+        "name": "host-remove-close",
+        "storageWrites": 4,
+        "flows": 1
+      },
+      {
+        "name": "category-type-model-switch",
+        "storageWrites": 7,
+        "flows": 1
+      },
+      {
+        "name": "tab-add-dictionary-attributes",
+        "storageWrites": 5,
+        "flows": 1
+      },
+      {
+        "name": "v-add-values-continuous-layout",
+        "storageWrites": 5,
+        "flows": 1
+      },
+      {
+        "name": "fold-edges",
+        "storageWrites": 2,
+        "flows": 1
+      },
+      {
+        "name": "fold-selection-switch",
+        "storageWrites": 1,
+        "flows": 0
+      },
+      {
+        "name": "keyboard-reorder",
+        "storageWrites": 6,
+        "flows": 1
+      },
+      {
+        "name": "undo-reorder",
+        "storageWrites": 2,
+        "flows": 1
+      },
+      {
+        "name": "sibling-cancel-focus",
+        "storageWrites": 2,
+        "flows": 1
+      },
+      {
+        "name": "node-draft-confirm",
+        "storageWrites": 5,
+        "flows": 0
+      },
+      {
+        "name": "publish-validation-failure",
+        "storageWrites": 2,
+        "flows": 1
+      },
+      {
+        "name": "remount-single-command",
+        "storageWrites": 3,
+        "flows": 1
+      },
+      {
+        "name": "outline-drag-conditional-branch",
+        "storageWrites": 4,
+        "flows": 0
+      },
+      {
+        "name": "undo-drag",
+        "storageWrites": 2,
+        "flows": 0
+      },
+      {
+        "name": "delete-value-layout",
+        "storageWrites": 4,
+        "flows": 1
+      },
+      {
+        "name": "zoom-reset",
+        "storageWrites": 2,
+        "flows": 1
+      },
+      {
+        "name": "fit-view",
+        "storageWrites": 1,
+        "flows": 1
+      },
+      {
+        "name": "pan-canvas",
+        "storageWrites": 2,
+        "flows": 1
+      },
+      {
+        "name": "viewport-reload-behavior",
+        "storageWrites": 1,
+        "flows": 1
+      },
+      {
+        "name": "view-mode-local-fold-no-write",
+        "storageWrites": 4,
+        "flows": 0
+      },
+      {
+        "name": "no-available-model",
+        "storageWrites": 2,
+        "flows": 0
+      },
+      {
+        "name": "empty-dictionary-dialog",
+        "storageWrites": 1,
+        "flows": 1
+      }
+    ],
+    "diagnostics": [
+      {
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      }
+    ],
+    "visuals": [
+      {
+        "name": "structure-light",
+        "pixels": 2073600,
+        "changed": 0,
+        "differences": [],
+        "beforeSha256": "51457424fbdfcc57a45469282ecbc1e1d50655a0e1505ce0b8870c5f49958309",
+        "afterSha256": "51457424fbdfcc57a45469282ecbc1e1d50655a0e1505ce0b8870c5f49958309"
+      },
+      {
+        "name": "outline",
+        "pixels": 2073600,
+        "changed": 0,
+        "differences": [],
+        "beforeSha256": "8b2f4c1d6fa5d76962993467e6c1bed2ca8d2f8102bbbb8dc96d1578992c9573",
+        "afterSha256": "8b2f4c1d6fa5d76962993467e6c1bed2ca8d2f8102bbbb8dc96d1578992c9573"
+      },
+      {
+        "name": "document",
+        "pixels": 2073600,
+        "changed": 0,
+        "differences": [],
+        "beforeSha256": "28bd8b8e8c8ff96e0384a168949c7407564cf1850aa7a31e8e1f2db132d0991d",
+        "afterSha256": "28bd8b8e8c8ff96e0384a168949c7407564cf1850aa7a31e8e1f2db132d0991d"
+      },
+      {
+        "name": "naming",
+        "pixels": 2073600,
+        "changed": 1,
+        "differences": [
+          {
+            "x": 1322,
+            "y": 366,
+            "before": [
+              241,
+              244,
+              248,
+              255
+            ],
+            "after": [
+              232,
+              237,
+              243,
+              255
+            ]
+          }
+        ],
+        "reviewedRasterDifference": "Single dashed-corner pixel; identical geometry/styles and unchanged naming component",
+        "beforeSha256": "a0e2e62997b60190a3d79cb8c5e6a6443c5fb3df77ce4c1cbc354bed15710926",
+        "afterSha256": "e0922bde60023485244d1309cb9bf1b1ae6c8cca782c937ec2115f872c05d3ae"
+      },
+      {
+        "name": "combo-draft",
+        "pixels": 2073600,
+        "changed": 0,
+        "differences": [],
+        "beforeSha256": "d91a670ab0ddc617ed054c6f651218ebd0bbde160382c97e995c72b209e7ed8a",
+        "afterSha256": "d91a670ab0ddc617ed054c6f651218ebd0bbde160382c97e995c72b209e7ed8a"
+      },
+      {
+        "name": "combo-materials",
+        "pixels": 2073600,
+        "changed": 0,
+        "differences": [],
+        "beforeSha256": "d0a5c638e2987db57c7c261ef2efcdb0bc1149c56a9b42aa4e300fcc9575c66f",
+        "afterSha256": "d0a5c638e2987db57c7c261ef2efcdb0bc1149c56a9b42aa4e300fcc9575c66f"
+      },
+      {
+        "name": "combo-history",
+        "pixels": 2073600,
+        "changed": 0,
+        "differences": [],
+        "beforeSha256": "a3af6b6c750cf2fd009123c8111f2e265652b79d4ac0198ad77dc0ede532fb52",
+        "afterSha256": "a3af6b6c750cf2fd009123c8111f2e265652b79d4ac0198ad77dc0ede532fb52"
+      },
+      {
+        "name": "node-hosts",
+        "pixels": 2073600,
+        "changed": 0,
+        "differences": [],
+        "beforeSha256": "764c6dc63e02e79e56fe98e0c65436e51d1bac85e83995d8b5778dbf5c035071",
+        "afterSha256": "764c6dc63e02e79e56fe98e0c65436e51d1bac85e83995d8b5778dbf5c035071"
+      },
+      {
+        "name": "structure-dark",
+        "pixels": 2073600,
+        "changed": 0,
+        "differences": [],
+        "beforeSha256": "45a1f1101d31691d2b734080a97434bf46e497bbbaea0c17f48b6fb6270f4daa",
+        "afterSha256": "45a1f1101d31691d2b734080a97434bf46e497bbbaea0c17f48b6fb6270f4daa"
+      },
+      {
+        "name": "empty-model",
+        "pixels": 2073600,
+        "changed": 0,
+        "differences": [],
+        "beforeSha256": "40aeba738fecba540f0ef2e5d99b49b3bc74080c8d6941dffc31aa8a6a588959",
+        "afterSha256": "40aeba738fecba540f0ef2e5d99b49b3bc74080c8d6941dffc31aa8a6a588959"
+      },
+      {
+        "name": "no-model",
+        "pixels": 2073600,
+        "changed": 0,
+        "differences": [],
+        "beforeSha256": "abb2173af6c7e72f357275b5269806904c76b6dc49f5430162fdc24c35ec9479",
+        "afterSha256": "abb2173af6c7e72f357275b5269806904c76b6dc49f5430162fdc24c35ec9479"
+      }
+    ],
+    "beforeStatesSha256": "2f37ec871cb7edc7712a8d32c8d59c9754e2d31b09e567b82992063aaca58fc4",
+    "afterStatesSha256": "2f37ec871cb7edc7712a8d32c8d59c9754e2d31b09e567b82992063aaca58fc4"
+  },
+  "engineering": {
+    "baselineBuildExit": 0,
+    "finalBuildExit": 0,
+    "hostTypecheckExit": 0,
+    "comboTypecheckExit": 0,
+    "selectionTypecheckExit": 0,
+    "diffCheckExit": 0,
+    "browserSyntaxExit": 0,
+    "originalBrowserFailures": [
+      "browser-layout-fix.mjs: obsolete fixed 100% button locator",
+      "browser-round8.mjs: obsolete entry/node locator"
+    ],
+    "untouchedProtectedFiles": [
+      {
+        "path": "src/components/ProductModelSelector.vue",
+        "sha256": "d35a5e40f080e21ef9da70af0c816fb06a99b45a589330411ad30465b1daf8e6"
+      },
+      {
+        "path": "src/domain/acceptanceCatalog.ts",
+        "sha256": "62691112c11181bcd0fd0e2048ae05670315a9465ef09159592349fc03f6c2d9"
+      },
+      {
+        "path": "src/domain/categoryFix.ts",
+        "sha256": "72e5f7d1815b1bb2c66d9f4c35081316ca071ca8b03ec07df1718254edf3a481"
+      },
+      {
+        "path": "src/domain/categoryFixCheck.ts",
+        "sha256": "b03c832327c699a9fdbf16e154eeacc5af09449466e85c97d2894f46bc4b7786"
+      },
+      {
+        "path": "src/domain/categoryTree.ts",
+        "sha256": "ba4f830abd23bf07c5cf2c90baf79a2d28dfa69c6b89a80e6ae3cdc4ae7672b8"
+      },
+      {
+        "path": "src/domain/categoryTreeSelectCheck.ts",
+        "sha256": "ed0985aec5b0e2d0387c6535d3b5bc95258ce39497581f13d22d0f9d374e9cde"
+      },
+      {
+        "path": "src/domain/comboMaterialStatus.ts",
+        "sha256": "258db43d4bac18b8d978da9ad3e4458ad2b3d950171f372ed3faada6ffd7b590"
+      },
+      {
+        "path": "src/domain/comboMaterialStatusCheck.ts",
+        "sha256": "ce9cdbcb0b621b0b75dc67c05ff1fbd68274240449f103fb1562ad1dc0c19640"
+      },
+      {
+        "path": "src/domain/compatibility.ts",
+        "sha256": "479de66d7c0c1838dbb5aa4920138b6d08e0e19d310b96f98ae62db0ffc446aa"
+      },
+      {
+        "path": "src/domain/compatibilityCheck.ts",
+        "sha256": "a6bcd7c73da6e351aedf1239509856fbbe6602f596c154b96b9de8727b6a588a"
+      },
+      {
+        "path": "src/domain/compatibilitySamples.ts",
+        "sha256": "43860eede1900949acbe84f0dfc212e4dca845395e93992edf67840ca2d0e848"
+      },
+      {
+        "path": "src/domain/consistencyCheck.ts",
+        "sha256": "a1075781b50edc0ad477d1eddb3da471747cbec25f1825814e3137b3d9f0c5ef"
+      },
+      {
+        "path": "src/domain/dictionaryGuard.ts",
+        "sha256": "cf50be89623deac3d5ab340c3bd9c1e9a8f1a17a994f2c3a39ecfc19a1062e62"
+      },
+      {
+        "path": "src/domain/draftComboPreview.ts",
+        "sha256": "fc2961c5183a1495752e9e1531ff9100bd8f9b2b5475b5828e8b707a09dd18b2"
+      },
+      {
+        "path": "src/domain/draftComboPreviewCheck.ts",
+        "sha256": "f1797bc62beaf812c9b5b00269fdf72f3d6f2b90bef81071d3d2d6e07b9fb9e7"
+      },
+      {
+        "path": "src/domain/excelImport.ts",
+        "sha256": "c1534ac5e2a3ddca603637a81e4af64b12ade227933233cf4894704edf2878e0"
+      },
+      {
+        "path": "src/domain/excelImportCheck.ts",
+        "sha256": "44bfb76fedaa4cd4561534e80663357325edddf86345f2ad080b2d32c4fb633b"
+      },
+      {
+        "path": "src/domain/excelMatchCheck.ts",
+        "sha256": "c8fdc474e9fbfaf0aae972e2a0cfbc59b3038d28eafeae54aa1ee3040c0d3228"
+      },
+      {
+        "path": "src/domain/feedbackFiles.ts",
+        "sha256": "15aeb8919be8f7adea5d4361800b161016b038301d6932c15d10118d8b467fc0"
+      },
+      {
+        "path": "src/domain/gradeCheck.ts",
+        "sha256": "8841339630c4b4e4344cf3d1d712076a62abce80324a762512d6babc6b7dbab7"
+      },
+      {
+        "path": "src/domain/layoutCheck.ts",
+        "sha256": "d4def0e33aa8979ec23c9470ed896a9c012326a5e13ecbe0b8f43a393412c001"
+      },
+      {
+        "path": "src/domain/logic.ts",
+        "sha256": "c16636a409a517976c00e04ed2cf04df7d0667cbe3a293a5082f6cc3a28ec99b"
+      },
+      {
+        "path": "src/domain/material.ts",
+        "sha256": "600436e7b29ca0a7f151b05f02f62c83d5f21fca6aceb71e95101418c3d45abb"
+      },
+      {
+        "path": "src/domain/materialArchiveCheck.ts",
+        "sha256": "323d2b311f4abaf45cb7d9049a76b4a84831da0bceb8f4464bb3cc0e2d78226b"
+      },
+      {
+        "path": "src/domain/materialCheck.ts",
+        "sha256": "4f81ef9f1c85ca2701aadc2ad008c8b7d94e5cd8cd613acadbe443ec4a0a9ef1"
+      },
+      {
+        "path": "src/domain/menuConfig.ts",
+        "sha256": "9df8e918b6a098b2dc67a7336eb51a1113c9703724eee34f608452adb3cb3867"
+      },
+      {
+        "path": "src/domain/naming.ts",
+        "sha256": "92265873b9b95aa010bd5fd16e5a6bc848f6e89a32fb9b7456563e92eaefa579"
+      },
+      {
+        "path": "src/domain/namingCheck.ts",
+        "sha256": "f1f967fb10f06d3783414faa9ce8675313d03e516ac7943e12d6d71bbd4c4ec0"
+      },
+      {
+        "path": "src/domain/nodeCompatibility.ts",
+        "sha256": "7280de343310a0b3783823f9767659560220fdd7e20557570b6b3c090b0c6f50"
+      },
+      {
+        "path": "src/domain/outlineEdit.ts",
+        "sha256": "25e135a270060bbceca2b228c9ec6342fbc94e445471ce91237d941b7e921bcc"
+      },
+      {
+        "path": "src/domain/overviewGraph.ts",
+        "sha256": "30ef652276337ed89e5ec2368a5a835a3f4bebac6639b02884edc6dfcab3fbb8"
+      },
+      {
+        "path": "src/domain/overviewGraphCheck.ts",
+        "sha256": "9fe508cf213c789e0792ec06cc69ccd89c9732cac1f4c47a7908b4e282cd544c"
+      },
+      {
+        "path": "src/domain/pageFeatures.ts",
+        "sha256": "d5db0b234956b3bf50df9ff8b9fbf292cd139a3d64a265648076ac16fd7ff19c"
+      },
+      {
+        "path": "src/domain/planning.ts",
+        "sha256": "ea66ba485e40afbf8c4b7e4f4aeca8c5e6b0149bc8d3dd15a12745fe5e043aad"
+      },
+      {
+        "path": "src/domain/planningCheck.ts",
+        "sha256": "c78e318fcb67b06795dcba058f3d538ef3efb1373bb595357f38c701fc942229"
+      },
+      {
+        "path": "src/domain/productList.ts",
+        "sha256": "2656edd6560334c29e6857fc3cc11ce7c1f390b92c32fc23b196128df5fd4c60"
+      },
+      {
+        "path": "src/domain/productListCategoryCheck.ts",
+        "sha256": "9fdf0ce04364deead941cdb2b4684376955b26e8566bc4da2cd7edafe8ad7195"
+      },
+      {
+        "path": "src/domain/productListCheck.ts",
+        "sha256": "fe1d236c7524037ece068d367da02aa76f0c65db78b814a50f9bdd85fdf5f65f"
+      },
+      {
+        "path": "src/domain/productListManual.ts",
+        "sha256": "d56d2e3780767a84488c09159e48c52cbb6f8641e70444ba0d4586bd88a95530"
+      },
+      {
+        "path": "src/domain/productListManualCheck.ts",
+        "sha256": "611a9cd98d65e250d79fa9bcd6bd078869a1db2861161fb920fab47e85efe0a4"
+      },
+      {
+        "path": "src/domain/productListQuery.ts",
+        "sha256": "63b0b3f5e9be9304f8ce48734084ecf81fd171625f87d6448be7ed42a9d7ccdb"
+      },
+      {
+        "path": "src/domain/productListQueryCheck.ts",
+        "sha256": "b1638d271298fc451eee62c26ea67575f549ded282dd697d6d4af418742e8908"
+      },
+      {
+        "path": "src/domain/productListViewCheck.ts",
+        "sha256": "b6588d5417b81784ff7688604b06d83457ec182b2e0351c33372f71b9aa65774"
+      },
+      {
+        "path": "src/domain/productListViews.ts",
+        "sha256": "a93dd215cca59b584fe8dade354756453b91b5a09a5e9b7ec4fa97e28585ba18"
+      },
+      {
+        "path": "src/domain/round1Check.ts",
+        "sha256": "a4ffa49fafeb9a925a03d999c3319d985239ba4f16f1f3c86e73a3397a3edee9"
+      },
+      {
+        "path": "src/domain/round2Check.ts",
+        "sha256": "1681dda346de46710a9291510e719fdd8429cdb031ea34f7112947fb60755e72"
+      },
+      {
+        "path": "src/domain/round5Check.ts",
+        "sha256": "80d814e55f40511d87a1dfb76faa927e94b740c60c9c6db09fbeae0688505cd0"
+      },
+      {
+        "path": "src/domain/seed.ts",
+        "sha256": "e5d28734af371fc98157467a713850ab58683ed0b45bac2f96cbcae7e68126bb"
+      },
+      {
+        "path": "src/domain/types.ts",
+        "sha256": "db592cdda2e25763b12a47dea9402c9b705a660a2d5eff56ef3c041777a470d1"
+      },
+      {
+        "path": "src/stores/catalog.ts",
+        "sha256": "656244a528788a18ad441b7e63061f31307b8d29fd67332c501ab1a3209a39ca"
+      }
+    ]
+  },
+  "productionFileSha256": {
+    "src/views/SpecConfigView.vue": "9584ce6596240353434af4b50cc7f0b60ec3a34cf41a6c504782f7e5a302d392",
+    "src/components/model-editor/LegalComboDialog.vue": "0474059b641fa67e5d4d66cdb17874112a879b624a92f925715ec12dbeae9f11",
+    "src/components/model-editor/NodeHostDialog.vue": "346e856ff20fbc3d145e01c83d982231b2a190404bdea8836d8cb2764d18879d",
+    "src/components/model-editor/comboPresentation.ts": "059b4ca35acc6b40b2cb7d8a0bca0de68cc772c97fe4ca3dbeb9928ce27da7a8",
+    "src/components/model-editor/useComboSelection.ts": "cc91311541b4ea5431ae677b942527c5e370b14f7eff67d9ad46fee83f44211a"
+  }
+}

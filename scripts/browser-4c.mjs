@@ -1,12 +1,8 @@
-import { createRequire } from 'node:module'
-import { existsSync } from 'node:fs'
+import { chromium } from 'playwright-core'
 import { chooseView, clickOption, openTools, pickToolSelect, waitUiSettled } from './browser-ui.mjs'
 
-const require = createRequire(existsSync('D:/tmp/pw/package.json') ? 'D:/tmp/pw/package.json' : import.meta.url)
-const { chromium } = require('playwright-core')
-
 const base = process.env.SMOKE_URL || 'http://127.0.0.1:5190'
-const browser = await chromium.launch({ channel: 'chrome', headless: true })
+const browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'chrome', headless: true })
 const page = await browser.newPage({ viewport: { width: 1440, height: 960 } })
 const errors = []
 page.on('pageerror', (error) => errors.push(String(error)))

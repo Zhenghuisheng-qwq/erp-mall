@@ -25,61 +25,14 @@
             </template>
           </el-dropdown>
         </el-tooltip>
-        <el-popover v-model:visible="columnOpen" trigger="click" placement="bottom-end" :width="360">
-          <template #reference>
-            <el-button>视图工具</el-button>
-          </template>
-          <div class="view-tools">
-            <p class="muted">列、分组、排序和视图都保存在当前视图里。</p>
-            <p class="tool-label">列</p>
-            <el-input v-model="columnQuery" placeholder="搜索字段" clearable />
-            <ul class="column-list">
-              <li
-                v-for="col in filteredColumns"
-                :key="col.key"
-                :data-column-key="col.key"
-                :draggable="columnQuery.trim() ? 'false' : 'true'"
-                @dragstart="onDragStart(col.key)"
-                @dragover.prevent
-                @drop="onDrop(col.key)"
-              >
-                <span class="drag-handle" :title="columnQuery.trim() ? '清除搜索后再调整顺序' : '拖动调整顺序'">⋮⋮</span>
-                <el-checkbox :model-value="col.visible" :disabled="col.required" @change="(value: boolean | string | number) => toggleColumn(col.key, Boolean(value))">{{ col.label }}</el-checkbox>
-              </li>
-            </ul>
-            <p v-if="filteredColumns.length === 0" class="muted">没有匹配的字段。</p>
-            <el-button link type="primary" @click="resetColumns">恢复当前模式的默认列</el-button>
-            <p class="tool-label">分组</p>
-            <el-select :model-value="activeQuery.grouping?.field || ''" clearable placeholder="分组字段" @change="onGroupField">
-              <el-option v-for="item in groupOptions" :key="item.field" :label="item.label" :value="item.field" />
-            </el-select>
-            <el-radio-group :model-value="activeQuery.grouping?.direction || 'asc'" @change="onGroupDirection">
-              <el-radio-button value="asc">升序</el-radio-button>
-              <el-radio-button value="desc">降序</el-radio-button>
-            </el-radio-group>
-            <el-button link type="primary" @click="clearGroup">清除分组</el-button>
-            <p class="tool-label">排序</p>
-            <el-radio-group :model-value="sortMode" @change="onSortMode">
-              <el-radio-button value="default">默认顺序</el-radio-button>
-              <el-radio-button value="field">按字段排序</el-radio-button>
-              <el-radio-button value="manual">手工排序</el-radio-button>
-            </el-radio-group>
-            <el-select :model-value="activeQuery.sorting?.field || ''" clearable placeholder="排序字段" @change="onSortField">
-              <el-option v-for="item in sortOptions" :key="item.field" :label="item.label" :value="item.field" />
-            </el-select>
-            <el-radio-group :model-value="activeQuery.sorting?.direction || 'asc'" @change="onSortDirection">
-              <el-radio-button value="asc">升序</el-radio-button>
-              <el-radio-button value="desc">降序</el-radio-button>
-            </el-radio-group>
-            <el-button link type="primary" @click="clearSort">清除排序</el-button>
-            <div class="tool-links">
-              <el-button @click="openCreate">新建视图</el-button>
-              <el-button @click="openSettings">视图设置</el-button>
-              <el-button @click="saveFilter">保存当前筛选</el-button>
-              <el-button @click="router.push('/import')">导入导出</el-button>
-            </div>
-          </div>
-        </el-popover>
+        <ProductListViewTools
+          v-model:visible="columnOpen"
+          :columns="modeColumns" :group-options="groupOptions" :sort-options="sortOptions"
+          :grouping="activeQuery.grouping" :sorting="activeQuery.sorting" :sort-mode="sortMode"
+          @column-visible="toggleColumn" @column-move="moveColumn" @reset-columns="resetColumns"
+          @group-change="setViewGrouping(store.data, $event)" @sort-change="setViewSorting(store.data, $event)"
+          @sort-mode="onSortMode" @manage="manageView"
+        />
         <span v-if="groupStatusLabel" class="tool-state" data-group-state>分组：{{ groupStatusLabel }}</span>
         <span v-if="sortStatusLabel" class="tool-state" data-sort-state>排序：{{ sortStatusLabel }}</span>
         <el-radio-group :model-value="listMode" size="small" @change="setListMode">
@@ -131,7 +84,7 @@
       <div v-if="manualOn && stageIds.length" class="stage-bar">
         <span>排序暂存区（{{ stageIds.length }}）</span>
         <el-button size="small" @click="stageOpen = true">展开暂存</el-button>
-        <el-button size="small" @click="stageIds = []">清空暂存</el-button>
+        <el-button size="small" @click="clearStage">清空暂存</el-button>
       </div>
       <template v-for="group in shownGroups" :key="group.key">
       <button v-if="group.label" type="button" class="group-head" :data-group-key="group.label" @click="toggleGroup(group.label)">{{ collapsed[group.label] ? '展开' : '收起' }} {{ group.label }}（{{ group.total }}）</button>
@@ -275,36 +228,18 @@
       <ul class="column-list">
         <li v-for="id in stageIds" :key="id">
           <span>{{ stageLabel(id) }}</span>
-          <el-button link type="danger" @click="stageIds = stageIds.filter((item) => item !== id)">移除</el-button>
+          <el-button link type="danger" @click="removeStaged(id)">移除</el-button>
         </li>
       </ul>
-      <el-button @click="stageIds = []">清空暂存</el-button>
+      <el-button @click="clearStage">清空暂存</el-button>
     </el-drawer>
-    <el-dialog v-model="filterOpen" title="筛选" width="720px">
-      <div v-for="filter in activeQuery.filters" :key="filter.id" class="filter-row" :data-condition="filter.field">
-        <el-select :model-value="filter.field" style="width: 140px" @change="(value: string) => changeFilterField(filter.id, value)">
-          <el-option v-for="item in filterFields" :key="item.field" :label="item.label" :value="item.field" />
-        </el-select>
-        <el-select :model-value="filter.operator" style="width: 120px" @change="(value: string) => changeFilterOperator(filter.id, value)">
-          <el-option v-for="item in operatorsFor(filter.field)" :key="item.value" :label="item.label" :value="item.value" />
-        </el-select>
-        <el-date-picker v-if="kindOf(filter.field) === 'date' && filter.operator === 'between'" :model-value="conditionRange(filter)" type="daterange" value-format="YYYY-MM-DD" style="width: 240px" @update:model-value="(value: [string, string] | null) => setConditionRange(filter.id, value)" />
-        <el-date-picker v-else-if="kindOf(filter.field) === 'date'" :model-value="textValue(filter)" type="date" value-format="YYYY-MM-DD" @update:model-value="(value: string) => setConditionText(filter.id, value || '')" />
-        <CategoryTreeSelect v-else-if="filter.field === 'category' && filter.operator === 'in'" multiple :model-value="categoryConditionIds(filter)" :categories="store.data.categories" placeholder="选择分类" style="width: 220px" @update:model-value="(value) => setConditionList(filter.id, Array.isArray(value) ? value : [])" />
-        <CategoryTreeSelect v-else-if="filter.field === 'category'" :model-value="categoryConditionId(filter)" :categories="store.data.categories" placeholder="选择分类" style="width: 220px" @update:model-value="(value) => setConditionText(filter.id, typeof value === 'string' ? value : '')" />
-        <el-select v-else-if="filter.operator === 'in'" :model-value="listValue(filter)" multiple collapse-tags style="width: 220px" @change="(value: string[]) => setConditionList(filter.id, value)">
-          <el-option v-for="item in fieldOptions(filter.field)" :key="item" :label="item" :value="item" />
-        </el-select>
-        <el-select v-else-if="kindOf(filter.field) !== 'text'" :model-value="textValue(filter)" clearable filterable style="width: 220px" @change="(value: string) => setConditionText(filter.id, value || '')">
-          <el-option v-for="item in fieldOptions(filter.field)" :key="item" :label="item" :value="item" />
-        </el-select>
-        <el-input v-else :model-value="textValue(filter)" style="width: 220px" @update:model-value="(value: string) => setConditionText(filter.id, value)" />
-        <el-button link type="danger" @click="removeCondition(filter.id)">删除</el-button>
-      </div>
-      <el-button @click="addCondition">添加条件</el-button>
-      <p class="muted">外露后显示在列表顶部。取消外露不会删掉已经生效的条件。</p>
-      <el-checkbox v-for="field in filterFields" :key="field.field" :data-expose-field="field.field" :model-value="activeQuery.exposed.includes(field.field)" @change="(value: boolean | string | number) => setViewExposed(store.data, field.field, Boolean(value))">{{ field.label }}</el-checkbox>
-    </el-dialog>
+    <ProductListFilterDialog
+      v-model:visible="filterOpen" :rows="filterRows" :fields="filterFields"
+      :categories="store.data.categories" :exposed="activeQuery.exposed"
+      @add="addCondition" @field="changeFilterField" @operator="changeFilterOperator"
+      @value="setConditionValue" @remove="removeCondition"
+      @expose="(field, exposed) => setViewExposed(store.data, field, exposed)"
+    />
   </div>
 </template>
 
@@ -313,15 +248,18 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CategoryFilterTree from '../components/CategoryFilterTree.vue'
-import CategoryTreeSelect from '../components/CategoryTreeSelect.vue'
+import ProductListFilterDialog from '../components/product-list/ProductListFilterDialog.vue'
+import { conditionRange, filterOperators, type FilterEditorRow } from '../components/product-list/filterPresentation'
 import PageHead from '../components/PageHead.vue'
+import ProductListViewTools from '../components/product-list/ProductListViewTools.vue'
+import { useProductListManualOrder } from '../components/product-list/useProductListManualOrder'
 import { familyBrandText, familyBrandValues, isRealSku, linkedModelName, materialArchivesOf, productTypeName, realSkusOf, savedSkuCode, savedSkuName, savedSkuSpec, skuCountText } from '../domain/productList'
 import { catalogRole, compatibilityFamilyBlock, roleOfType } from '../domain/compatibility'
 import { categoryPath, shelfOf, shelfText, statusText, templateById } from '../domain/logic'
 import { familyMaterialDigest } from '../domain/material'
 import { activeFilterCount, fieldSelection, groupFields, knownFilterFields, presentProductList, resolveCategoryFilter, sortFields, sortModeOf } from '../domain/productListQuery'
 import { DEFAULT_PRODUCT_LIST_VIEW_ID, activeProductListView, copyProductListView, createProductListView, currentModeQuery, deleteProductListView, insertViewManual, moveViewManual, orderedColumns, renameProductListView, reorderProductListColumn, resetProductListColumns, selectProductListView, setProductListColumnVisible, setProductListViewMode, setViewCategoryLayout, setViewExposed, setViewFieldValues, setViewGrouping, setViewKeyword, setViewSortMode, setViewSorting, visibleColumns } from '../domain/productListViews'
-import type { ProductFamily, ProductListFilterOperator, ProductListMode, ProductListViewFilter, Sku } from '../domain/types'
+import type { ProductFamily, ProductListFilterOperator, ProductListViewFilter, Sku } from '../domain/types'
 import { uid, useCatalogStore } from '../stores/catalog'
 
 const store = useCatalogStore()
@@ -329,7 +267,6 @@ const router = useRouter()
 const route = useRoute()
 const query = store.data.listQuery
 const columnOpen = ref(false)
-const columnQuery = ref('')
 const createOpen = ref(false)
 const settingsOpen = ref(false)
 const filterOpen = ref(false)
@@ -337,14 +274,10 @@ const categoryOpen = ref(false)
 const narrowScreen = ref(false)
 const stageOpen = ref(false)
 const collapsed = reactive<Record<string, boolean>>({})
-const pickedIds = ref<string[]>([])
-const stageIds = ref<string[]>([])
-const dragId = ref('')
 const draftName = ref('')
 const renameDraft = ref('')
 const nameError = ref('')
 const renameError = ref('')
-const dragKey = ref('')
 const selected = reactive<Record<string, string[]>>({})
 const familyIds = ref<string[]>([])
 const defaultViewId = DEFAULT_PRODUCT_LIST_VIEW_ID
@@ -354,11 +287,6 @@ const activeView = computed(() => activeProductListView(store.data))
 const listMode = computed(() => activeView.value.mode)
 const tableColumns = computed(() => visibleColumns(activeView.value, listMode.value))
 const modeColumns = computed(() => orderedColumns(activeView.value, listMode.value))
-const filteredColumns = computed(() => {
-  const text = columnQuery.value.trim().toLowerCase()
-  if (!text) return modeColumns.value
-  return modeColumns.value.filter((item) => item.label.toLowerCase().includes(text) || item.key.toLowerCase().includes(text))
-})
 const activeQuery = computed(() => currentModeQuery(activeView.value))
 const presentation = computed(() => presentProductList(store.data, activeView.value, query.page, query.pageSize))
 const shownGroups = computed(() => presentation.value.groups.map((group) => ({
@@ -387,10 +315,23 @@ const exposedFields = computed(() => activeQuery.value.exposed.flatMap((field) =
   const found = filterFields.value.find((item) => item.field === field)
   return found ? [found] : []
 }))
+// Convert saved conditions to editor values without duplicating editable state.
+const filterRows = computed<FilterEditorRow[]>(() => activeQuery.value.filters.map((filter) => ({
+  id: filter.id, field: filter.field, operator: filter.operator,
+  kind: kindOf(filter.field), operators: operatorsFor(filter.field), options: fieldOptions(filter.field),
+  text: textValue(filter), values: Array.isArray(filter.value) ? filter.value : [], range: conditionRange(filter),
+  categoryId: filter.field === 'category' ? categoryConditionId(filter) : '',
+  categoryIds: filter.field === 'category' ? categoryConditionIds(filter) : [],
+})))
 const groupOptions = computed(() => groupFields(store.data, listMode.value))
 const sortOptions = computed(() => sortFields(listMode.value))
 const sortMode = computed(() => sortModeOf(activeQuery.value))
 const manualOn = computed(() => sortMode.value === 'manual' && !activeQuery.value.grouping)
+const { pickedIds, stageIds, confirmStage, onRowDrag, onRowDrop, togglePick, addStage, clearStage, removeStaged, askInsert } = useProductListManualOrder({
+  move: (dragId, targetId, place) => moveViewManual(store.data, dragId, targetId, place),
+  insert: (stagedIds, targetId, place) => insertViewManual(store.data, stagedIds, targetId, place),
+  hasFilters: () => filterCount.value > 0,
+})
 const groupStatusLabel = computed(() => {
   const field = activeQuery.value.grouping?.field
   if (!field) return ''
@@ -445,17 +386,6 @@ function warn(result: { ok: true } | { ok: false; message: string }) {
   if (!result.ok) ElMessage.warning(result.message)
   return result.ok
 }
-async function confirmStage() {
-  if (!stageIds.value.length) return true
-  try {
-    await ElMessageBox.confirm('还有未提交的排序暂存。继续后会清空暂存，已经保存的手工顺序不受影响。', '清空暂存')
-    stageIds.value = []
-    pickedIds.value = []
-    return true
-  } catch {
-    return false
-  }
-}
 async function switchDisplayView(id: string) {
   if (id === activeView.value.id) return
   if (!(await confirmStage())) return
@@ -464,7 +394,7 @@ async function switchDisplayView(id: string) {
 }
 async function setListMode(next: string | number | boolean) {
   if (next !== 'spu' && next !== 'sku') return
-  const mode = next as ProductListMode
+  const mode = next
   if (activeView.value.mode === mode) return
   if (!(await confirmStage())) return
   if (!warn(setProductListViewMode(store.data, activeView.value.id, mode))) return
@@ -516,10 +446,7 @@ function fieldOptions(field: string) {
   return []
 }
 function operatorsFor(field: string) {
-  const kind = kindOf(field)
-  if (kind === 'date') return [{ value: 'before', label: '早于' }, { value: 'after', label: '晚于' }, { value: 'between', label: '日期范围' }]
-  if (kind === 'text') return [{ value: 'contains', label: '包含' }, { value: 'notContains', label: '不包含' }, { value: 'eq', label: '等于' }, { value: 'neq', label: '不等于' }]
-  return [{ value: 'eq', label: '等于' }, { value: 'neq', label: '不等于' }, { value: 'in', label: '属于任一' }]
+  return filterOperators(kindOf(field))
 }
 function liveQuery() {
   const view = activeView.value
@@ -535,7 +462,7 @@ function touchFilters() {
 function addCondition() {
   const field = filterFields.value[0]
   if (!field) return
-  const operator = operatorsFor(field.field)[0].value as ProductListFilterOperator
+  const operator = operatorsFor(field.field)[0].value
   liveQuery().filters.push({ id: `f-${Date.now()}`, field: field.field, operator, value: operator === 'between' ? { from: '', to: '' } : operator === 'in' ? [] : '' })
   touchFilters()
 }
@@ -543,14 +470,14 @@ function changeFilterField(id: string, field: string) {
   const filter = liveQuery().filters.find((item) => item.id === id)
   if (!filter) return
   filter.field = field
-  filter.operator = operatorsFor(field)[0].value as ProductListFilterOperator
+  filter.operator = operatorsFor(field)[0].value
   filter.value = filter.operator === 'between' ? { from: '', to: '' } : filter.operator === 'in' ? [] : ''
   touchFilters()
 }
-function changeFilterOperator(id: string, operator: string) {
+function changeFilterOperator(id: string, operator: ProductListFilterOperator) {
   const filter = liveQuery().filters.find((item) => item.id === id)
   if (!filter) return
-  filter.operator = operator as ProductListFilterOperator
+  filter.operator = operator
   filter.value = operator === 'between' ? { from: '', to: '' } : operator === 'in' ? [] : ''
   touchFilters()
 }
@@ -568,30 +495,10 @@ function textValue(filter: ProductListViewFilter) {
   if (filter.field === 'category') return categoryPath(store.data, filter.value) || filter.value
   return filter.value
 }
-function listValue(filter: ProductListViewFilter) {
-  return Array.isArray(filter.value) ? filter.value : []
-}
-function conditionRange(filter: ProductListViewFilter): [string, string] | null {
-  if (!filter.value || typeof filter.value !== 'object' || Array.isArray(filter.value)) return null
-  if (!filter.value.from && !filter.value.to) return null
-  return [filter.value.from || '', filter.value.to || '']
-}
-function setConditionText(id: string, value: string) {
+function setConditionValue(id: string, value: ProductListViewFilter['value']) {
   const filter = liveQuery().filters.find((item) => item.id === id)
   if (!filter) return
   filter.value = value
-  touchFilters()
-}
-function setConditionList(id: string, value: string[]) {
-  const filter = liveQuery().filters.find((item) => item.id === id)
-  if (!filter) return
-  filter.value = value
-  touchFilters()
-}
-function setConditionRange(id: string, value: [string, string] | null) {
-  const filter = liveQuery().filters.find((item) => item.id === id)
-  if (!filter) return
-  filter.value = { from: value?.[0] || '', to: value?.[1] || '' }
   touchFilters()
 }
 function removeCondition(id: string) {
@@ -612,55 +519,10 @@ function setDate(value: [string, string] | null) {
 function toggleGroup(label: string) {
   collapsed[label] = !collapsed[label]
 }
-function onGroupField(field: string) {
-  const direction = activeQuery.value.grouping?.direction || 'asc'
-  setViewGrouping(store.data, field ? { field, direction } : null)
-}
-function onGroupDirection(direction: string | number | boolean) {
-  const field = activeQuery.value.grouping?.field
-  if (!field || (direction !== 'asc' && direction !== 'desc')) return
-  setViewGrouping(store.data, { field, direction })
-}
-function clearGroup() {
-  setViewGrouping(store.data, null)
-}
-function onSortField(field: string) {
-  const direction = activeQuery.value.sorting?.direction || 'asc'
-  setViewSorting(store.data, field ? { field, direction } : null)
-}
-function onSortDirection(direction: string | number | boolean) {
-  const field = activeQuery.value.sorting?.field
-  if (!field || (direction !== 'asc' && direction !== 'desc')) return
-  setViewSorting(store.data, { field, direction })
-}
-function clearSort() {
-  setViewSorting(store.data, null)
-}
 function onSortMode(mode: string | number | boolean) {
   if (mode !== 'default' && mode !== 'field' && mode !== 'manual') return
   const result = setViewSortMode(store.data, mode)
   if (!result.ok) ElMessage.warning(result.message)
-}
-function onRowDrag(id: string) {
-  dragId.value = id
-}
-function onRowDrop(id: string) {
-  if (!dragId.value) return
-  const result = moveViewManual(store.data, dragId.value, id, 'before')
-  dragId.value = ''
-  if (!result.ok) ElMessage.warning(result.message)
-}
-function togglePick(id: string, checked: boolean) {
-  pickedIds.value = checked ? [...pickedIds.value, id] : pickedIds.value.filter((item) => item !== id)
-}
-function addStage() {
-  const next = [...stageIds.value]
-  pickedIds.value.forEach((id) => {
-    if (!next.includes(id)) next.push(id)
-  })
-  stageIds.value = next
-  pickedIds.value = []
-  ElMessage.success(`排序暂存区现有 ${next.length} 条`)
 }
 function stageLabel(id: string) {
   if (listMode.value === 'sku') {
@@ -669,32 +531,17 @@ function stageLabel(id: string) {
   }
   return store.data.families.find((item) => item.id === id)?.name || id
 }
-async function askInsert(id: string, name: string, place: 'before' | 'after') {
-  const where = place === 'before' ? '之前' : '之后'
-  try {
-    await ElMessageBox.confirm(`把暂存的 ${stageIds.value.length} 条插入「${name}」${where}？`, '确认插入')
-  } catch {
-    return
-  }
-  const result = insertViewManual(store.data, stageIds.value, id, place)
-  if (!result.ok) {
-    ElMessage.warning(result.message)
-    return
-  }
-  stageIds.value = []
-  const hidden = activeFilterCount(activeView.value) > 0 ? '当前筛选下可能看不到全部记录。' : ''
-  ElMessage.success(`展示顺序已更新。${hidden}`)
-}
 function toggleColumn(key: string, visible: boolean) {
   warn(setProductListColumnVisible(store.data, activeView.value.id, listMode.value, key, visible))
 }
-function onDragStart(key: string) {
-  dragKey.value = key
+function moveColumn(from: string, to: string) {
+  warn(reorderProductListColumn(store.data, activeView.value.id, listMode.value, from, to))
 }
-function onDrop(key: string) {
-  if (!dragKey.value || columnQuery.value.trim()) return
-  warn(reorderProductListColumn(store.data, activeView.value.id, listMode.value, dragKey.value, key))
-  dragKey.value = ''
+function manageView(action: 'create' | 'settings' | 'save-filter' | 'import') {
+  if (action === 'create') openCreate()
+  else if (action === 'settings') openSettings()
+  else if (action === 'save-filter') saveFilter()
+  else router.push('/import')
 }
 function resetColumns() {
   if (!warn(resetProductListColumns(store.data, activeView.value.id, listMode.value, store.defaultColumns()))) return
@@ -853,20 +700,15 @@ watch(
 .category-chip button { border: 0; background: transparent; color: var(--el-color-primary); cursor: pointer; }
 .list-switch { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
 .filters { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.view-tools { display: flex; flex-direction: column; gap: 8px; max-height: 70vh; overflow: auto; }
-.tool-label { margin: 4px 0 0; color: #607089; font-size: 12px; }
-.tool-links { display: flex; flex-wrap: wrap; gap: 8px; }
 .tool-state { color: #1f3b66; font-size: 13px; }
 .batch-actions { padding-top: 4px; border-top: 1px solid #e5e7eb; }
 .view-current { display: inline-block; max-width: 140px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; white-space: nowrap; }
 .view-mode { margin-left: 6px; }
-.column-panel { display: flex; flex-direction: column; gap: 8px; }
 .column-list { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow: auto; }
 .column-list li { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .drag-handle { cursor: grab; color: var(--text-secondary, #607089); user-select: none; }
 .stage-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .sku-expand { padding: 0 12px 8px; }
 .group-head { display: block; width: 100%; margin: 8px 0 4px; padding: 8px 10px; border: 0; border-radius: 6px; background: var(--surface-muted, #f4f7fb); color: inherit; text-align: left; cursor: pointer; }
-.filter-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .warn { color: var(--el-color-danger); font-size: 13px; }
 </style>

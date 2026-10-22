@@ -1,15 +1,12 @@
 import assert from 'node:assert/strict'
-import { createRequire } from 'node:module'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createServer } from 'vite'
+import { chromium } from 'playwright-core'
 import { BASELINE, NOW, outputDir, baselineSources } from './planning-performance-fixtures.mjs'
 
-const require = createRequire(process.env.PLAYWRIGHT_PACKAGE_JSON ||
-  (existsSync('D:/tmp/pw/package.json') ? 'D:/tmp/pw/package.json' : import.meta.url))
-const { chromium } = require('playwright-core')
-const browser = await chromium.launch({ channel: 'chrome', headless: true })
 const sources = baselineSources()
+const browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'chrome', headless: true })
 const results = {}
 mkdirSync(outputDir, { recursive: true })
 

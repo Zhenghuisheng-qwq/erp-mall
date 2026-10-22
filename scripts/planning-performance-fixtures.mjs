@@ -3,15 +3,20 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createServer, normalizePath } from 'vite'
 
-export const BASELINE = '8721e572e3a2f9010bcd6a6a9f60489733d56904'
+export const BASELINE = process.env.PLANNING_BASELINE || '8721e572e3a2f9010bcd6a6a9f60489733d56904'
 export const NOW = '2026-10-22T04:00:00.000Z'
-export const outputDir = resolve('work/performance-round1')
+export const outputDir = resolve(process.env.PLANNING_OUTPUT_DIR || 'work/performance-round1')
 export const clone = (value) => structuredClone(value)
 
 export function baselineSources() {
-  return Object.fromEntries(['planning', 'draftComboPreview', 'logic'].map((name) => [name,
-    execFileSync('git', ['show', `${BASELINE}:src/domain/${name}.ts`], { encoding: 'utf8' }),
-  ]))
+  return Object.fromEntries(['planning', 'draftComboPreview', 'logic'].map((name) => {
+    const source = `${BASELINE}:src/domain/${name}.ts`
+    try {
+      return [name, execFileSync('git', ['show', source], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })]
+    } catch (error) {
+      throw new Error(`Cannot read planning baseline ${source}. Restore the original Git history or set PLANNING_BASELINE to the intended comparison commit; do not substitute HEAD.`, { cause: error })
+    }
+  }))
 }
 
 export async function loadImplementations(instrument) {

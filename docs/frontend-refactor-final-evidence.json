@@ -1,0 +1,633 @@
+{
+  "result": "READY",
+  "branch": "20261019",
+  "head": "3cfbcc0918ed8c63b35af33c8dcb02baab49089f",
+  "baseline": {
+    "manifest": "work/refactor-final/baseline-manifest.json",
+    "path": "work/refactor-final/baseline",
+    "files": 196,
+    "digest": "ff79fb13a5f71197a4612a40849d29c675f200bc4d0c03061b9fa909d425890a",
+    "snapshotUnchanged": true,
+    "productionSourceFilesUnchanged": 109
+  },
+  "environment": {
+    "node": "v22.18.0",
+    "platform": "win32",
+    "osRelease": "10.0.26200",
+    "browser": "155.0.8059.85"
+  },
+  "fourthRoundChangedExisting": [
+    ".gitignore",
+    "package.json",
+    "scripts/browser-4a.mjs",
+    "scripts/browser-4b.mjs",
+    "scripts/browser-4c.mjs",
+    "scripts/browser-4d.mjs",
+    "scripts/browser-4e.mjs",
+    "scripts/browser-designer-round3.mjs",
+    "scripts/browser-product-list-round2.mjs",
+    "scripts/planning-performance-browser.mjs",
+    "scripts/planning-performance-fixtures.mjs"
+  ],
+  "fourthRoundAdded": [
+    "docs/frontend-refactor-final-evidence.json",
+    "docs/frontend-refactor-final.md",
+    "scripts/browser-frontend-final.mjs",
+    "scripts/check-frontend.mjs"
+  ],
+  "preservedEvidence": {
+    "round1": "docs/performance-round1-evidence.json",
+    "round2": "docs/frontend-refactor-round2-evidence.json",
+    "round3": "docs/frontend-refactor-round3-evidence.json",
+    "productionHashesMatch": true,
+    "sourceSha256": {
+      "src/App.vue": "656e64166110b11cc4da47778d5605a4a495f10d30335172102f105d4b8b33a2",
+      "src/assets/hero.png": "881ffbcaafc212e49addad08846a5b82761355fa20624253af3477ba33262c5c",
+      "src/assets/vite.svg": "5be21acd42eb7b896e517f4e0f0f11eb5c5d9e54fbbcebe9453f033008fcca6f",
+      "src/assets/vue.svg": "5532db34f1c52841881bab8aeca6c3e8d092bd21a689a65f4d8f8cf8041eef9d",
+      "src/components/CategoryFilterTree.vue": "4c55f15cf464d1974c780f9109b0e9c7c09eb6e7ee4f5669b254468830da5f46",
+      "src/components/CategoryTreeSelect.vue": "66b16a768ffbbeedf71939336cc9db3f24c3e7e1a79fca55707c01ce3ee6cc16",
+      "src/components/HelloWorld.vue": "994687b12c210166d0cf38e6037189d93246d55aff441871d82931c64cbbd0a2",
+      "src/components/ModelOutline.vue": "5fbc71c9f430e2a6d97cb583a2c4281e830c15cef824debca122fbd7256bc2c5",
+      "src/components/NamingRuleDialog.vue": "bd83707d8aee5c993a1131e292f148826fc17fa74c156371e98f17054511378e",
+      "src/components/PageAssist.vue": "c8d132be4fc6baca2bb610a8563c478cf7f178a47db7609ca82f09abd5f3aee3",
+      "src/components/PageHead.vue": "ed11622b1208de103beb36fa6b43be8cbcb863aa1d7eb5e9edc8f9491b6bfe4a",
+      "src/components/ProductModelSelector.vue": "d35a5e40f080e21ef9da70af0c816fb06a99b45a589330411ad30465b1daf8e6",
+      "src/components/TemporaryMaterialDialog.vue": "73109ae5373677053118c3b365cb7641244ae686fa5f00bbf45eed3973140cf1",
+      "src/components/V3CreateFlow.vue": "b0cee87fe9c535de6a07f38711d0e7cd575ff63fe3afff5702e6d50207cf2aae",
+      "src/components/V3FamilyBoard.vue": "e323fdf98aec8e586b6a67496666a5f240991f76406af518f03561c339094754",
+      "src/components/V3MaterialActions.vue": "22276c770cf571f072cd24f5e01a11caa27bc3876735d4d5d6728685f05b6829",
+      "src/components/model-editor/CategoryCatalog.vue": "85faba2fda7d760383f5cdda197e59a5edf931fbf91f6b3d4b6bd7358cc9310f",
+      "src/components/model-editor/EmptyModelGuide.vue": "448fc3dda741e5b7266456f870ebd163a7849b64950564a00c900d9155889f43",
+      "src/components/model-editor/LegalComboDialog.vue": "0474059b641fa67e5d4d66cdb17874112a879b624a92f925715ec12dbeae9f11",
+      "src/components/model-editor/ModelOverview.vue": "119a532d752362c6a858d448a8ff23f1d6c1f8f5635b520d12b7edfb2bbb6350",
+      "src/components/model-editor/NodeHostDialog.vue": "346e856ff20fbc3d145e01c83d982231b2a190404bdea8836d8cb2764d18879d",
+      "src/components/model-editor/OverviewGraph.vue": "b17675f66097eb3a9248488c98dd0f75405b33607e88848b126eb721811fe823",
+      "src/components/model-editor/TypeModelRail.vue": "f3c71989f4b1011dde642604ae5848a204de1e8ddd233bf3350ac5f743e78e21",
+      "src/components/model-editor/cloneModel.ts": "f054650f0fe9251d671c26cfde817e7d47964359919c3de6cd50bdb6b6766fcb",
+      "src/components/model-editor/comboPresentation.ts": "059b4ca35acc6b40b2cb7d8a0bca0de68cc772c97fe4ca3dbeb9928ce27da7a8",
+      "src/components/model-editor/useComboSelection.ts": "cc91311541b4ea5431ae677b942527c5e370b14f7eff67d9ad46fee83f44211a",
+      "src/components/product-list/ProductListFilterDialog.vue": "ea1517afd44319f4b2bc9b92be0081c1cc7351904e7a0f5e3e9b5d34162d4e82",
+      "src/components/product-list/ProductListViewTools.vue": "ab4318a2335c2f9ed00a5a8ed37daa2333643d938cf354a32c9a63e6684edf38",
+      "src/components/product-list/filterPresentation.ts": "9ea85b806614fb3a1dc2d367298596602b08441e213450f192db452792b83da8",
+      "src/components/product-list/useProductListManualOrder.ts": "c87a143c0540d7fcf6323a985b560c9ebd154cb761ab26e3c5fa5e743ef2ea3b",
+      "src/domain/acceptanceCatalog.ts": "62691112c11181bcd0fd0e2048ae05670315a9465ef09159592349fc03f6c2d9",
+      "src/domain/categoryFix.ts": "72e5f7d1815b1bb2c66d9f4c35081316ca071ca8b03ec07df1718254edf3a481",
+      "src/domain/categoryFixCheck.ts": "b03c832327c699a9fdbf16e154eeacc5af09449466e85c97d2894f46bc4b7786",
+      "src/domain/categoryTree.ts": "ba4f830abd23bf07c5cf2c90baf79a2d28dfa69c6b89a80e6ae3cdc4ae7672b8",
+      "src/domain/categoryTreeSelectCheck.ts": "ed0985aec5b0e2d0387c6535d3b5bc95258ce39497581f13d22d0f9d374e9cde",
+      "src/domain/comboMaterialStatus.ts": "258db43d4bac18b8d978da9ad3e4458ad2b3d950171f372ed3faada6ffd7b590",
+      "src/domain/comboMaterialStatusCheck.ts": "ce9cdbcb0b621b0b75dc67c05ff1fbd68274240449f103fb1562ad1dc0c19640",
+      "src/domain/compatibility.ts": "479de66d7c0c1838dbb5aa4920138b6d08e0e19d310b96f98ae62db0ffc446aa",
+      "src/domain/compatibilityCheck.ts": "a6bcd7c73da6e351aedf1239509856fbbe6602f596c154b96b9de8727b6a588a",
+      "src/domain/compatibilitySamples.ts": "43860eede1900949acbe84f0dfc212e4dca845395e93992edf67840ca2d0e848",
+      "src/domain/consistencyCheck.ts": "a1075781b50edc0ad477d1eddb3da471747cbec25f1825814e3137b3d9f0c5ef",
+      "src/domain/dictionaryGuard.ts": "cf50be89623deac3d5ab340c3bd9c1e9a8f1a17a994f2c3a39ecfc19a1062e62",
+      "src/domain/draftComboPreview.ts": "fc2961c5183a1495752e9e1531ff9100bd8f9b2b5475b5828e8b707a09dd18b2",
+      "src/domain/draftComboPreviewCheck.ts": "f1797bc62beaf812c9b5b00269fdf72f3d6f2b90bef81071d3d2d6e07b9fb9e7",
+      "src/domain/excelImport.ts": "c1534ac5e2a3ddca603637a81e4af64b12ade227933233cf4894704edf2878e0",
+      "src/domain/excelImportCheck.ts": "44bfb76fedaa4cd4561534e80663357325edddf86345f2ad080b2d32c4fb633b",
+      "src/domain/excelMatchCheck.ts": "c8fdc474e9fbfaf0aae972e2a0cfbc59b3038d28eafeae54aa1ee3040c0d3228",
+      "src/domain/feedbackFiles.ts": "15aeb8919be8f7adea5d4361800b161016b038301d6932c15d10118d8b467fc0",
+      "src/domain/gradeCheck.ts": "8841339630c4b4e4344cf3d1d712076a62abce80324a762512d6babc6b7dbab7",
+      "src/domain/layoutCheck.ts": "d4def0e33aa8979ec23c9470ed896a9c012326a5e13ecbe0b8f43a393412c001",
+      "src/domain/logic.ts": "c16636a409a517976c00e04ed2cf04df7d0667cbe3a293a5082f6cc3a28ec99b",
+      "src/domain/material.ts": "600436e7b29ca0a7f151b05f02f62c83d5f21fca6aceb71e95101418c3d45abb",
+      "src/domain/materialArchiveCheck.ts": "323d2b311f4abaf45cb7d9049a76b4a84831da0bceb8f4464bb3cc0e2d78226b",
+      "src/domain/materialCheck.ts": "4f81ef9f1c85ca2701aadc2ad008c8b7d94e5cd8cd613acadbe443ec4a0a9ef1",
+      "src/domain/menuConfig.ts": "9df8e918b6a098b2dc67a7336eb51a1113c9703724eee34f608452adb3cb3867",
+      "src/domain/naming.ts": "92265873b9b95aa010bd5fd16e5a6bc848f6e89a32fb9b7456563e92eaefa579",
+      "src/domain/namingCheck.ts": "f1f967fb10f06d3783414faa9ce8675313d03e516ac7943e12d6d71bbd4c4ec0",
+      "src/domain/nodeCompatibility.ts": "7280de343310a0b3783823f9767659560220fdd7e20557570b6b3c090b0c6f50",
+      "src/domain/outlineEdit.ts": "25e135a270060bbceca2b228c9ec6342fbc94e445471ce91237d941b7e921bcc",
+      "src/domain/overviewGraph.ts": "30ef652276337ed89e5ec2368a5a835a3f4bebac6639b02884edc6dfcab3fbb8",
+      "src/domain/overviewGraphCheck.ts": "9fe508cf213c789e0792ec06cc69ccd89c9732cac1f4c47a7908b4e282cd544c",
+      "src/domain/pageFeatures.ts": "d5db0b234956b3bf50df9ff8b9fbf292cd139a3d64a265648076ac16fd7ff19c",
+      "src/domain/planning.ts": "ea66ba485e40afbf8c4b7e4f4aeca8c5e6b0149bc8d3dd15a12745fe5e043aad",
+      "src/domain/planningCheck.ts": "c78e318fcb67b06795dcba058f3d538ef3efb1373bb595357f38c701fc942229",
+      "src/domain/productList.ts": "2656edd6560334c29e6857fc3cc11ce7c1f390b92c32fc23b196128df5fd4c60",
+      "src/domain/productListCategoryCheck.ts": "9fdf0ce04364deead941cdb2b4684376955b26e8566bc4da2cd7edafe8ad7195",
+      "src/domain/productListCheck.ts": "fe1d236c7524037ece068d367da02aa76f0c65db78b814a50f9bdd85fdf5f65f",
+      "src/domain/productListManual.ts": "d56d2e3780767a84488c09159e48c52cbb6f8641e70444ba0d4586bd88a95530",
+      "src/domain/productListManualCheck.ts": "611a9cd98d65e250d79fa9bcd6bd078869a1db2861161fb920fab47e85efe0a4",
+      "src/domain/productListQuery.ts": "63b0b3f5e9be9304f8ce48734084ecf81fd171625f87d6448be7ed42a9d7ccdb",
+      "src/domain/productListQueryCheck.ts": "b1638d271298fc451eee62c26ea67575f549ded282dd697d6d4af418742e8908",
+      "src/domain/productListViewCheck.ts": "b6588d5417b81784ff7688604b06d83457ec182b2e0351c33372f71b9aa65774",
+      "src/domain/productListViews.ts": "a93dd215cca59b584fe8dade354756453b91b5a09a5e9b7ec4fa97e28585ba18",
+      "src/domain/round1Check.ts": "a4ffa49fafeb9a925a03d999c3319d985239ba4f16f1f3c86e73a3397a3edee9",
+      "src/domain/round2Check.ts": "1681dda346de46710a9291510e719fdd8429cdb031ea34f7112947fb60755e72",
+      "src/domain/round5Check.ts": "80d814e55f40511d87a1dfb76faa927e94b740c60c9c6db09fbeae0688505cd0",
+      "src/domain/seed.ts": "e5d28734af371fc98157467a713850ab58683ed0b45bac2f96cbcae7e68126bb",
+      "src/domain/types.ts": "db592cdda2e25763b12a47dea9402c9b705a660a2d5eff56ef3c041777a470d1",
+      "src/layouts/AdminLayout.vue": "3b73aca689fc544e36d26f7adb84e1053270fcf2db6176ea095ecf8ee8dbbd10",
+      "src/layouts/RailNav.vue": "7f53d829eaa9b7fb14f21c4db6f3a9d981541dcad751042a0bf631c527555071",
+      "src/main.ts": "a3685e28ac9af385205c81d4981cec0726fa90061bcfb6c68c35e2b849da9c46",
+      "src/router/index.ts": "6ae503ab31f81f0c57a6b9cbb003ad5166a5b0cefc3ac96c2ead204043f08a38",
+      "src/stores/catalog.ts": "656244a528788a18ad441b7e63061f31307b8d29fd67332c501ab1a3209a39ca",
+      "src/style.css": "36fef8063f58833fe0751f5c3a75fc4441c387af45803b2e3d8f96302c780162",
+      "src/theme.css": "b2c648e02dbad3cb3741936d969b5233e51984560ef2560d0090e85ba8acdd2a",
+      "src/theme.ts": "616092ee98c4e2f9f8c5e321167e0e688bca764a03d029cf02e039756484b975",
+      "src/views/AccountView.vue": "1b3e7f7a4306bc747fa5ce6c2099338c62d88ef1ddb4d079d5ca658740ab8aad",
+      "src/views/BrandView.vue": "57b4319725e6323a74e6708051acd2296973a3f9e71c155e70a1fcfb9c3da101",
+      "src/views/CategoryView.vue": "53fb6e68b0473f106f50ffa52a41d6bc8a758b54072441265342dd39338d9e37",
+      "src/views/CheckView.vue": "03d1df2c545b213e0181470ede2d2446f82920931d060aee7d1fb5c2bd5602be",
+      "src/views/CompatibilityView.vue": "5b58aa9434284b09a0a630b24e181c2da9bc259164e091153db4bf24c11a4472",
+      "src/views/FeedbackView.vue": "bc9bdcfcf576fc11933bde34aa52a8e3987c928ed9c77df0a5311ac8bb0dc048",
+      "src/views/GroupView.vue": "86b479e111f3d1efe88b9d129a2aab4dadc243ccbae10a5f6fc3d3d0879d6ef5",
+      "src/views/MappingView.vue": "16b03a357a7414cbdfa4b11ab374d23a2a318ce971f90ac756e78c82b4a4d6b6",
+      "src/views/MenuConfigView.vue": "a9e41e849e84768b538eb26a7ba9256a8e5bebe18f1083ba3fc578e9e638d839",
+      "src/views/ModelListView.vue": "52878e5ce61bb3deecc49c9b3acdb702ab2303a75ba16a09d90f094acf69301c",
+      "src/views/OverviewView.vue": "8e005c04fc2415750e5ae70665bff113dc7f19fec5049cbb6e8e0d80a7362a0c",
+      "src/views/ParamView.vue": "9eddcb31b282f1305a225e7f63b809d93241a7056c864d8e90e7d253a8cd4bb7",
+      "src/views/ProductEditView.vue": "b20a810db5740f0b6c1f8ef0e5b8a08e5aedc913a3549264094af825a1a1af7b",
+      "src/views/ProductIoView.vue": "993eaacb11781ee5d229e73b19d2ed017bda3db02166444c643fb6502775a97f",
+      "src/views/ProductListView.vue": "3c4c75d2ecc1aab61480e691019ba1c0172ff0f6f101a2c78098ad322edfdda5",
+      "src/views/ProductPlanView.vue": "c7efb5d0df31f24fe10cbf0287df7ff7dbbf21e5ff346f2807ad26eb69d897ee",
+      "src/views/ProductTypeView.vue": "833f058eae3ab4e9ac55ac46107bf7dd66fb338ef49cdbab3805d468864b9d20",
+      "src/views/RuleView.vue": "5732176603e0fb0585571235fcaddb9bc1e93e6490250070d3d7028e75a58758",
+      "src/views/SpecConfigView.vue": "9584ce6596240353434af4b50cc7f0b60ec3a34cf41a6c504782f7e5a302d392",
+      "src/views/TemplateView.vue": "28fe382ccc35f3f39a13c05245d36faa50e71d1c7ad6fb8f4e85c4953b0801a4",
+      "src/views/TreePage.vue": "df5515c241ae55ad4af0012fa564c661754fc50cc5c2fde02637a62e697a4b4b",
+      "src/views/UserView.vue": "bb22c5fe9217fcc35e9971cb53daa8e568c5c214e1782fadd668dd347e9aeddf",
+      "src/views/WorkbenchView.vue": "f95a1a35f8f3a8b67debbcdd5481003d529c058503db209ba5fcfa31f89dbfb6"
+    }
+  },
+  "domain": [
+    {
+      "script": "scripts/product-list-query-check.ts",
+      "passLines": 170
+    },
+    {
+      "script": "scripts/category-tree-select-check.ts",
+      "passLines": 11
+    },
+    {
+      "script": "scripts/planning-check.ts",
+      "passLines": 18
+    },
+    {
+      "script": "scripts/draft-combo-check.ts",
+      "passLines": 10
+    },
+    {
+      "script": "scripts/material-check.ts",
+      "passLines": 12
+    },
+    {
+      "script": "scripts/consistency-check.ts",
+      "passLines": 9
+    },
+    {
+      "script": "scripts/layout-check.ts",
+      "passLines": 17
+    },
+    {
+      "script": "scripts/round5-check.ts",
+      "passLines": 27
+    },
+    {
+      "script": "scripts/round1-check.ts",
+      "passLines": 24
+    }
+  ],
+  "typecheckExit": 0,
+  "buildExit": 0,
+  "diffCheckExit": 0,
+  "browser": {
+    "list": {
+      "states": 27,
+      "diagnostics": [],
+      "visuals": [
+        {
+          "name": "light-list",
+          "pixels": 1382400,
+          "changed": 0
+        },
+        {
+          "name": "expanded",
+          "pixels": 1382400,
+          "changed": 0
+        },
+        {
+          "name": "filter-dialog",
+          "pixels": 1382400,
+          "changed": 0
+        },
+        {
+          "name": "view-tools",
+          "pixels": 1382400,
+          "changed": 0
+        },
+        {
+          "name": "sku-list",
+          "pixels": 1382400,
+          "changed": 0
+        },
+        {
+          "name": "dark-list",
+          "pixels": 1382400,
+          "changed": 0
+        },
+        {
+          "name": "narrow-list",
+          "pixels": 864000,
+          "changed": 0
+        }
+      ]
+    },
+    "designer": {
+      "states": 38,
+      "diagnostics": [
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        },
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        },
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        },
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        },
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        },
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        },
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        }
+      ],
+      "visuals": [
+        {
+          "name": "structure-light",
+          "pixels": 2073600,
+          "changed": 0,
+          "differences": []
+        },
+        {
+          "name": "outline",
+          "pixels": 2073600,
+          "changed": 0,
+          "differences": []
+        },
+        {
+          "name": "document",
+          "pixels": 2073600,
+          "changed": 0,
+          "differences": []
+        },
+        {
+          "name": "naming",
+          "pixels": 2073600,
+          "changed": 1,
+          "differences": [
+            {
+              "x": 1322,
+              "y": 366,
+              "before": [
+                241,
+                244,
+                248,
+                255
+              ],
+              "after": [
+                232,
+                237,
+                243,
+                255
+              ]
+            }
+          ],
+          "reviewedRasterDifference": "Single dashed-corner pixel; identical geometry/styles and unchanged naming component"
+        },
+        {
+          "name": "combo-draft",
+          "pixels": 2073600,
+          "changed": 0,
+          "differences": []
+        },
+        {
+          "name": "combo-materials",
+          "pixels": 2073600,
+          "changed": 0,
+          "differences": []
+        },
+        {
+          "name": "combo-history",
+          "pixels": 2073600,
+          "changed": 0,
+          "differences": []
+        },
+        {
+          "name": "node-hosts",
+          "pixels": 2073600,
+          "changed": 0,
+          "differences": []
+        },
+        {
+          "name": "structure-dark",
+          "pixels": 2073600,
+          "changed": 0,
+          "differences": []
+        },
+        {
+          "name": "empty-model",
+          "pixels": 2073600,
+          "changed": 0,
+          "differences": []
+        },
+        {
+          "name": "no-model",
+          "pixels": 2073600,
+          "changed": 0,
+          "differences": []
+        }
+      ]
+    },
+    "integration": {
+      "result": "PASS",
+      "root": "D:\\单子\\商城erp\\mock\\iyge-v2-mock",
+      "browser": "155.0.8059.85",
+      "listChecks": [
+        {
+          "entry": "scripts/browser-4a.mjs",
+          "exit": 0
+        },
+        {
+          "entry": "scripts/browser-4b.mjs",
+          "exit": 0
+        },
+        {
+          "entry": "scripts/browser-4c.mjs",
+          "exit": 0
+        },
+        {
+          "entry": "scripts/browser-4d.mjs",
+          "exit": 0
+        },
+        {
+          "entry": "scripts/browser-4e.mjs",
+          "exit": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "preview-repeat-no-write",
+          "writes": 0
+        },
+        {
+          "name": "publish-initial",
+          "writes": 1
+        },
+        {
+          "name": "create-FINAL-A",
+          "writes": 1
+        },
+        {
+          "name": "create-FINAL-B",
+          "writes": 1
+        },
+        {
+          "name": "mixed-draft-preview-no-write",
+          "writes": 0
+        },
+        {
+          "name": "publish-reuse-and-new",
+          "writes": 1
+        },
+        {
+          "name": "create-FINAL-C",
+          "writes": 1
+        },
+        {
+          "name": "host-cancel-reopen-confirm-once",
+          "writes": 1
+        },
+        {
+          "name": "model-switch-clears-combo-state",
+          "writes": 1
+        },
+        {
+          "name": "created-materials-visible-in-list",
+          "writes": 4
+        },
+        {
+          "name": "list-refresh-restores-data",
+          "writes": 0
+        },
+        {
+          "name": "list-entry-shows-three-materials",
+          "writes": 0
+        },
+        {
+          "name": "remount-shortcut-and-history",
+          "writes": 1
+        }
+      ],
+      "diagnostics": [
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        },
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        }
+      ],
+      "materials": [
+        {
+          "id": "sku-mvj0iwnk-4",
+          "materialCode": "MAT-000001",
+          "planningId": "PLN-000001",
+          "modelVersionId": "phone-model-v1"
+        },
+        {
+          "id": "sku-mvj0ixfc-6",
+          "materialCode": "MAT-000002",
+          "planningId": "PLN-000001",
+          "modelVersionId": "phone-model-v1"
+        },
+        {
+          "id": "sku-mvj0izqo-9",
+          "materialCode": "MAT-000003",
+          "planningId": "PLN-000001",
+          "modelVersionId": "mv-mvj0iyyw-7"
+        }
+      ]
+    },
+    "finalBusiness": {
+      "result": "PASS",
+      "root": "D:\\单子\\商城erp\\mock\\iyge-v2-mock",
+      "browser": "155.0.8059.85",
+      "listChecks": [],
+      "checkpoints": [
+        {
+          "name": "preview-repeat-no-write",
+          "writes": 0
+        },
+        {
+          "name": "publish-initial",
+          "writes": 1
+        },
+        {
+          "name": "create-FINAL-A",
+          "writes": 1
+        },
+        {
+          "name": "create-FINAL-B",
+          "writes": 1
+        },
+        {
+          "name": "mixed-draft-preview-no-write",
+          "writes": 0
+        },
+        {
+          "name": "publish-reuse-and-new",
+          "writes": 1
+        },
+        {
+          "name": "create-FINAL-C",
+          "writes": 1
+        },
+        {
+          "name": "host-cancel-reopen-confirm-once",
+          "writes": 1
+        },
+        {
+          "name": "model-switch-clears-combo-state",
+          "writes": 1
+        },
+        {
+          "name": "created-materials-visible-in-list",
+          "writes": 4
+        },
+        {
+          "name": "list-refresh-restores-data",
+          "writes": 0
+        },
+        {
+          "name": "list-entry-shows-three-materials",
+          "writes": 0
+        },
+        {
+          "name": "remount-shortcut-and-history",
+          "writes": 1
+        }
+      ],
+      "diagnostics": [
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        },
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        }
+      ],
+      "materials": [
+        {
+          "id": "sku-mvj0iwnk-4",
+          "materialCode": "MAT-000001",
+          "planningId": "PLN-000001",
+          "modelVersionId": "phone-model-v1"
+        },
+        {
+          "id": "sku-mvj0ixfc-6",
+          "materialCode": "MAT-000002",
+          "planningId": "PLN-000001",
+          "modelVersionId": "phone-model-v1"
+        },
+        {
+          "id": "sku-mvj0izqo-9",
+          "materialCode": "MAT-000003",
+          "planningId": "PLN-000001",
+          "modelVersionId": "mv-mvj0iyyw-7"
+        }
+      ]
+    },
+    "preRound4FullDataAndWritesEqual": true,
+    "planning": {
+      "passed": true,
+      "cases": [
+        "initial preview",
+        "publish alignment",
+        "conditional draft edit",
+        "preview counts",
+        "publish new version",
+        "PLN reuse and history",
+        "republish",
+        "reload",
+        "V2 new product page",
+        "before/after UI and full business-state equality"
+      ]
+    },
+    "existingResizeObserver": {
+      "oldEvidence": [
+        "Vite chunk > 500 kB",
+        "Vite dev-server ResizeObserver loop completed with undelivered notifications: 2 before and 2 after during legacy browser checks; none in the fixed comparison"
+      ],
+      "currentCount": 2
+    }
+  },
+  "negativeTooling": [
+    "PASS planning-commit: exit 1, actionable error",
+    "PASS list-commit: exit 1, actionable error",
+    "PASS list-evidence: exit 1, actionable error",
+    "PASS designer-manifest: exit 1, actionable error",
+    "PASS designer-source: exit 1, actionable error",
+    "PASS designer-evidence: exit 1, actionable error",
+    "PASS browser-channel: exit 1, actionable error"
+  ],
+  "rawArtifacts": [
+    {
+      "path": "work/refactor-final/domain.log",
+      "sha256": "b59c8874b508fc55952b15a4b6d8b077743c7a82d7f5ffdb75cacb18d62ab20a"
+    },
+    {
+      "path": "work/refactor-final/typecheck.log",
+      "sha256": "6c2516120eb5629a794521d36e578d7804070e2f7d60031c525f72ec94b1a94b"
+    },
+    {
+      "path": "work/refactor-final/build.log",
+      "sha256": "84b8733a4c547d1dace3a19188f3eec81cfcf4e19f80759017cd2455baa2d453"
+    },
+    {
+      "path": "work/refactor-final/list.log",
+      "sha256": "9c903a8d18e2b66fa7e29127ac4f0c62d3d2436f2dee644fa6bb86321dca57b5"
+    },
+    {
+      "path": "work/refactor-final/designer.log",
+      "sha256": "6d35d0d2225caa1f08257227d2fd86fd829206514e992a5bc47f2cdb49f55a45"
+    },
+    {
+      "path": "work/refactor-final/accepted.log",
+      "sha256": "1d2a9acea7d471df9a8e494e5da7f8090e6329632dfed185013677aab0497490"
+    },
+    {
+      "path": "work/refactor-final/business-baseline.log",
+      "sha256": "5950020d30e0a39721af71572c5140e64e9750182f8a1ffab4103186f2802e14"
+    },
+    {
+      "path": "work/refactor-final/business-final.log",
+      "sha256": "065d8d29bfc604e8a90d1a23c8a00776a392c17705057b4e3f654f6c344df6f1"
+    },
+    {
+      "path": "work/refactor-final/planning-browser.log",
+      "sha256": "642b6607e51ed4cb30cb2c4a8b5938465d207b359b8cb20e759b726e29dd9ee5"
+    },
+    {
+      "path": "work/refactor-final/tooling.log",
+      "sha256": "792103840fae02782e60f95790f3b3e65f6431181bc3d0b35cb3d5cb4bf735f7"
+    }
+  ]
+}

@@ -182,131 +182,47 @@
           </ul>
           <p v-if="temporaryListOpen && temporaryMaterials.length > 30" class="insight-empty">这里只列出前 30 条。其余到商品列表按供应商编码或物料编码搜索。</p>
         </section>
-        <el-dialog v-model="comboManageOpen" class="combo-manage-dialog" title="合法组合管理" width="82vw" align-center :close-on-click-modal="false">
-          <template #header>
-            <div class="combo-dialog-title">
-              <strong>合法组合管理</strong>
-              <p v-if="showDraftList">草稿预览 {{ draftPreview.problems.length ? '暂时无法生成' : draftPreview.rows.length + ' 条 · 尚未发布' }}。已发布组合 {{ comboRows.length }} 条。</p>
-              <p v-else>共 {{ comboRows.length }} 条，已选 {{ checkedIds.length }} 条，{{ schemeTitle }}<template v-if="comboStatus.versionName"> · {{ comboStatus.versionName }}</template></p>
-            </div>
+        <LegalComboDialog
+          v-model="comboManageOpen"
+          v-model:keyword="comboKeyword"
+          v-model:unfiled-only="comboUnfiledOnly"
+          v-model:version-id="comboVersionId"
+          :row-count="comboRows.length"
+          :visible-combo-rows="visibleComboRows"
+          :checked-ids="checkedIds"
+          :scheme-title="schemeTitle"
+          :show-draft-list="showDraftList"
+          :draft-preview="draftPreview"
+          :combo-status="comboStatus"
+          :published-combo-versions="publishedComboVersions"
+          :allow-temporary="!!canvasContext.productTypeId"
+          @select-all="selectAllCombos"
+          @clear-selection="clearComboSelection"
+          @invert-selection="invertComboSelection"
+          @toggle-selection="toggleCheck"
+          @mark-grade="markGrade"
+          @create-materials="batchCreateMaterials"
+          @create-temporary="temporaryOpen = true"
+          @open-material="openMaterialDetail"
+          @open-combo="openComboMaterial"
+        >
+          <template #material-actions>
+            <V3MaterialActions
+              v-if="actionCombo && materialLaunch.token && canvasContext.productTypeId"
+              :key="materialLaunch.token"
+              bare
+              :product-model-id="templateId"
+              :model-version-id="actionCombo.modelVersionId"
+              :planning-id="actionCombo.recordId"
+              :category-id="canvasContext.categoryId"
+              :product-type-id="canvasContext.productTypeId"
+              :retired="actionCombo.retired"
+              match-version
+              :open-create-tick="materialLaunch.mode === 'create' ? materialLaunch.token : 0"
+              :open-list-tick="materialLaunch.mode === 'list' ? materialLaunch.token : 0"
+            />
           </template>
-          <div class="combo-manage">
-            <div v-if="showDraftList" class="draft-preview">
-              <strong>草稿预览 · 尚未发布</strong>
-              <p v-if="draftPreview.problems.length">{{ draftPreview.problems[0] }}</p>
-              <ul v-else>
-                <li v-for="item in draftPreview.rows" :key="item.identityKey">{{ item.label }} · {{ item.planningId || '待发布' }}</li>
-              </ul>
-            </div>
-            <div class="combo-toolbar">
-              <el-button size="small" @click="selectAllCombos">全选</el-button>
-              <el-button size="small" :disabled="!checkedIds.length" @click="clearComboSelection">取消全选</el-button>
-              <el-button size="small" @click="invertComboSelection">反选</el-button>
-              <el-button size="small" :disabled="!checkedIds.length" @click="markGrade('core')">标为核心商品</el-button>
-              <el-button size="small" :disabled="!checkedIds.length" @click="markGrade('general')">标为一般产品</el-button>
-              <el-button size="small" :disabled="!checkedIds.length" @click="batchCreateMaterials">批量创建物料</el-button>
-              <el-button v-if="canvasContext.productTypeId" size="small" @click="temporaryOpen = true">创建临时物料</el-button>
-              <el-checkbox v-model="comboUnfiledOnly">仅看未建物料</el-checkbox>
-              <el-select v-model="comboVersionId" class="combo-version" size="small" placeholder="发布版本" :disabled="!publishedComboVersions.length">
-                <el-option v-for="item in publishedComboVersions" :key="item.id" :label="item.versionName" :value="item.id" />
-              </el-select>
-              <el-input v-model="comboKeyword" class="combo-search" clearable placeholder="搜索规格路径、规划编号、物料名称或编号" />
-            </div>
-            <p v-if="comboStatus.unmatched.length" class="combo-anomaly">有 {{ comboStatus.unmatched.length }} 条物料对不上本版本的合法组合，没有自动归类。</p>
-            <ul v-if="comboStatus.unmatched.length" class="combo-unmatched">
-              <li v-for="item in comboStatus.unmatched" :key="item.skuId">
-                <strong>{{ item.skuName.trim() || '未填写物料名称' }}</strong>
-                <span>{{ item.materialCode.trim() || '未分配物料编号' }}</span>
-                <em>{{ item.planningId }} · {{ item.note }}</em>
-              </li>
-            </ul>
-            <p v-if="!comboRows.length" class="insight-empty">{{ comboStatus.message || '发布模型后，这里会列出可以建档的合法组合。' }}</p>
-            <div v-else class="combo-table-wrap">
-              <el-table class="combo-table" :data="visibleComboRows" row-key="key" height="100%" border :row-class-name="comboRowClass">
-                <el-table-column type="expand" width="48">
-                  <template #default="{ row }">
-                    <div class="combo-expand">
-                      <p>完整规格路径：{{ row.label }}</p>
-                      <p v-if="!row.materials.length && !row.historicalMaterials.length" class="muted">这条组合还没有物料。</p>
-                      <p v-else-if="!row.materials.length" class="muted">本版本还没有新建物料。</p>
-                      <ul v-if="row.materials.length">
-                        <li v-for="item in row.materials" :key="item.skuId">
-                          <strong>{{ item.skuName.trim() || '未填写物料名称' }}</strong>
-                          <span>{{ item.materialCode.trim() || '未分配物料编号' }}</span>
-                          <em v-if="originLabel(item.nameSource)">{{ originLabel(item.nameSource) }}</em>
-                          <em v-if="item.anomaly">{{ item.anomaly }}</em>
-                          <el-button link type="primary" @click="openMaterialDetail(item)">查看</el-button>
-                        </li>
-                      </ul>
-                      <p v-if="row.historicalMaterials.length" class="muted">历史版本已建，编号和名称保持原样。</p>
-                      <ul v-if="row.historicalMaterials.length">
-                        <li v-for="item in row.historicalMaterials" :key="item.skuId">
-                          <strong>{{ item.skuName.trim() || '未填写物料名称' }}</strong>
-                          <span>{{ item.materialCode.trim() || '未分配物料编号' }}</span>
-                          <em>来源 {{ item.versionName || '未记录版本' }}</em>
-                          <em v-if="originLabel(item.nameSource)">{{ originLabel(item.nameSource) }}</em>
-                          <el-button link type="primary" @click="openMaterialDetail(item)">查看</el-button>
-                        </li>
-                      </ul>
-                      <p v-for="(note, index) in row.anomalies" :key="index" class="combo-anomaly">{{ note }}</p>
-                    </div>
-                  </template>
-                </el-table-column>
-                <el-table-column width="52" align="center">
-                  <template #default="{ row }">
-                    <el-checkbox :model-value="!!row.planningId && checkedIds.includes(row.planningId)" :disabled="!row.planningId" :title="row.planningId ? '勾选这条组合' : '发布后才能勾选'" @change="row.planningId && toggleCheck(row.planningId)" />
-                  </template>
-                </el-table-column>
-                <el-table-column prop="label" label="完整规格路径" min-width="240" show-overflow-tooltip />
-                <el-table-column label="规划编号" width="140">
-                  <template #default="{ row }">{{ row.recordId || '发布后自动编号' }}</template>
-                </el-table-column>
-                <el-table-column label="商品类型" width="128">
-                  <template #default="{ row }">
-                    <span class="combo-grade">{{ row.gradeLabel }}</span>
-                    <el-tag v-if="row.retired" size="small" type="info">已停用</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="物料状态" width="240">
-                  <template #default="{ row }">
-                    <span :class="row.filed ? 'is-filed' : 'is-empty'">{{ row.materialStatus }}</span>
-                    <el-tag v-if="row.hasAnomaly" size="small" type="warning">需核对</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="物料名称" min-width="180" show-overflow-tooltip>
-                  <template #default="{ row }">{{ row.materialNames || '—' }}</template>
-                </el-table-column>
-                <el-table-column label="物料编号" min-width="160" show-overflow-tooltip>
-                  <template #default="{ row }">{{ row.materialCodes || '—' }}</template>
-                </el-table-column>
-                <el-table-column label="操作" width="168" fixed="right">
-                  <template #default="{ row }">
-                    <el-button link type="primary" :disabled="row.materialCount === 0" @click="openComboMaterial(row, 'list')">查看物料</el-button>
-                    <el-button link type="primary" :disabled="!row.planningId" @click="openComboMaterial(row, 'create')">单条创建</el-button>
-                  </template>
-                </el-table-column>
-                <template #empty>没有符合条件的组合。</template>
-              </el-table>
-            </div>
-          </div>
-          <V3MaterialActions
-            v-if="actionCombo && materialLaunch.token && canvasContext.productTypeId"
-            :key="materialLaunch.token"
-            bare
-            :product-model-id="templateId"
-            :model-version-id="actionCombo.modelVersionId"
-            :planning-id="actionCombo.recordId"
-            :category-id="canvasContext.categoryId"
-            :product-type-id="canvasContext.productTypeId"
-            :retired="actionCombo.retired"
-            match-version
-            :open-create-tick="materialLaunch.mode === 'create' ? materialLaunch.token : 0"
-            :open-list-tick="materialLaunch.mode === 'list' ? materialLaunch.token : 0"
-          />
-          <template #footer>
-            <el-button @click="comboManageOpen = false">关闭</el-button>
-          </template>
-        </el-dialog>
+        </LegalComboDialog>
         <div v-if="templateId" class="board" tabindex="0" @pointerdown="focusBoard">
       <div v-if="editorMode === 'canvas'" class="canvas">
         <VueFlow
@@ -548,25 +464,17 @@
         <el-button type="primary" @click="confirmNodeDraft">确认</el-button>
       </template>
     </el-dialog>
-    <el-dialog v-model="hostOpen" title="节点适用配置" width="480px">
-      <p class="dict-empty">这是模型节点上的草稿配置。保存后只留在当前草稿，发布时冻结到新版本。不会自动建立现有物料的适用关系，也不会改已发布版本。</p>
-      <p class="dict-empty">要给已经建档的物料建立正式关系，请到<el-button link type="primary" @click="openCompatibility">适用关系</el-button>。继承、冲突和排除还没有确认，这里不会自动套用到物料。</p>
-      <p v-if="draftHostRows.length === 0" class="dict-empty">这个节点还没有适用主机。</p>
-      <p v-for="item in draftHostRows" :key="item.identityKey" class="dict-empty">
-        {{ item.label }}
-        <el-button link type="danger" @click="dropDraftHost(item.identityKey)">移除</el-button>
-      </p>
-      <el-input v-model="hostKeyword" placeholder="搜已建档的主机型号" clearable />
-      <p v-if="hostChoices.length === 0" class="dict-empty">没有找到已建档的主机型号。不会按中文名自动新建。</p>
-      <label v-for="item in hostChoices" :key="item.key" class="dict-empty">
-        <input type="checkbox" :checked="hostPicks.includes(item.key) || item.already" :disabled="item.already" @change="toggleHostPick(item.key)" />
-        {{ item.label }}
-      </label>
-      <template #footer>
-        <el-button @click="hostOpen = false">关闭</el-button>
-        <el-button type="primary" :disabled="hostPicks.length === 0" @click="saveDraftHosts">保存到草稿</el-button>
-      </template>
-    </el-dialog>
+    <NodeHostDialog
+      v-model="hostOpen"
+      v-model:keyword="hostKeyword"
+      :draft-host-rows="draftHostRows"
+      :host-choices="hostChoices"
+      :host-picks="hostPicks"
+      @toggle-host="toggleHostPick"
+      @remove-host="dropDraftHost"
+      @save="saveDraftHosts"
+      @open-compatibility="openCompatibility"
+    />
     <el-dialog v-model="copyOpen" title="复制模型" width="440px">
       <p class="copy-label">原模型</p>
       <strong v-if="!copyPick" class="copy-source">{{ copySourceName }}</strong>
@@ -597,10 +505,14 @@ import CategoryCatalog from '../components/model-editor/CategoryCatalog.vue'
 import { cloneProductModel } from '../components/model-editor/cloneModel'
 import EmptyModelGuide from '../components/model-editor/EmptyModelGuide.vue'
 import ModelOverview from '../components/model-editor/ModelOverview.vue'
+import LegalComboDialog from '../components/model-editor/LegalComboDialog.vue'
+import { presentComboRow, type MaterialLaunchMode } from '../components/model-editor/comboPresentation'
+import { useComboSelection } from '../components/model-editor/useComboSelection'
+import NodeHostDialog from '../components/model-editor/NodeHostDialog.vue'
 import TypeModelRail from '../components/model-editor/TypeModelRail.vue'
 import { categoryChain, visibleCategoryRows } from '../domain/categoryTree'
 import { hostLabel, listHostModels } from '../domain/compatibility'
-import { materialNameOriginLabel, nearestNamingRule } from '../domain/naming'
+import { nearestNamingRule } from '../domain/naming'
 import { arrangeSpecPositions, categoryPath, latestPublishedVersion, layoutSpecTree, modelVersionsOf, sameSpecSnapshot, specNodeSize, specTreeAdvance, SPEC_LINK_GAP, SPEC_TREE_GAP, SPEC_TREE_ORIGIN_X, SPEC_TREE_ORIGIN_Y, SPEC_VALUE_TO_VALUE } from '../domain/logic'
 import { defaultOverviewCategoryId, overviewRootId as graphRootId } from '../domain/overviewGraph'
 import { attributeRenameDecision, createDictionaryParam, createDictionaryValue } from '../domain/dictionaryGuard'
@@ -610,9 +522,8 @@ import { legalComboMaterialStatus } from '../domain/comboMaterialStatus'
 import { previewDraftCombinations, publishImpactText } from '../domain/draftComboPreview'
 import NamingRuleDialog from '../components/NamingRuleDialog.vue'
 import TemporaryMaterialDialog from '../components/TemporaryMaterialDialog.vue'
-import { gradeText } from '../domain/material'
 import V3MaterialActions from '../components/V3MaterialActions.vue'
-import type { ProductSpecNode, ParamDef } from '../domain/types'
+import type { ProductGrade, ProductSpecNode, ParamDef } from '../domain/types'
 import { uid, useCatalogStore } from '../stores/catalog'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
@@ -768,7 +679,7 @@ const viewOptions = [
 const outlineCue = ref({ id: '', tick: 0 })
 const undoStack = ref<string[]>([])
 const nodeDraftOpen = ref(false)
-const nodeDraft = ref({ type: 'ATTRIBUTE' as 'ATTRIBUTE' | 'VALUE', name: '' })
+const nodeDraft = ref<{ type: ProductSpecNode['nodeType']; name: string }>({ type: 'ATTRIBUTE', name: '' })
 const editingId = ref('')
 const menu = ref({ open: false, x: 0, y: 0 })
 const attributeOpen = ref(false)
@@ -854,7 +765,8 @@ const flowEdges = ref<{ id: string; source: string; target: string; type: string
 const mapForced = ref<boolean | null>(null)
 
 const nodes = computed(() => store.data.productSpecNodes.filter((item) => item.templateId === templateId.value))
-const checkedIds = ref<string[]>([])
+const comboSelection = useComboSelection()
+const { checkedIds, toggle: toggleCheck, clear: clearComboSelection } = comboSelection
 const comboManageOpen = ref(false)
 const comboKeyword = ref('')
 const comboUnfiledOnly = ref(false)
@@ -867,7 +779,7 @@ watch(
   },
   { immediate: true },
 )
-const materialLaunch = ref<{ token: number; key: string; mode: '' | 'create' | 'list' }>({ token: 0, key: '', mode: '' })
+const materialLaunch = ref<{ token: number; key: string; mode: '' | MaterialLaunchMode }>({ token: 0, key: '', mode: '' })
 const temporaryOpen = ref(false)
 const temporaryListOpen = ref(false)
 const temporaryMaterials = computed(() => {
@@ -876,25 +788,7 @@ const temporaryMaterials = computed(() => {
   return store.data.skus.filter((item) => item.planningId && ids.has(item.planningId))
 })
 const comboStatus = computed(() => legalComboMaterialStatus(store.data, templateId.value, comboVersionId.value))
-const comboRows = computed(() => comboStatus.value.rows.map((row) => ({
-  key: row.identityKey,
-  label: row.label,
-  planningId: row.actionPlanningId,
-  recordId: row.planningLabel,
-  modelVersionId: row.modelVersionId,
-  retired: row.retired,
-  grade: row.grade,
-  gradeLabel: gradeText(row.grade),
-  materialCount: row.materialCount,
-  filed: row.filed,
-  materialCodes: [row.materials, row.historicalMaterials].flatMap((list) => list.map((item) => item.materialCode.trim() || '未分配物料编号')).join('、'),
-  materialNames: [row.materials, row.historicalMaterials].flatMap((list) => list.map((item) => item.skuName.trim() || '未填写物料名称')).join('、'),
-  materialStatus: comboMaterialStatusText(row),
-  materials: row.materials,
-  historicalMaterials: row.historicalMaterials,
-  anomalies: row.anomalies,
-  hasAnomaly: row.anomalies.length > 0 || row.materials.some((item) => item.anomaly),
-})))
+const comboRows = computed(() => comboStatus.value.rows.map(presentComboRow))
 const comboNumbered = computed(() => comboRows.value.filter((item) => item.planningId).length)
 const comboFiled = computed(() => comboRows.value.filter((item) => item.materialCount > 0).length)
 const comboHistorical = computed(() => comboRows.value.filter((item) => item.historicalMaterials.length > 0).length)
@@ -916,18 +810,6 @@ function openCompatibility() {
   hostOpen.value = false
   router.push('/compatibility')
 }
-function originLabel(source?: string) {
-  return materialNameOriginLabel(source)
-}
-function comboMaterialStatusText(row: { materialCount: number; historicalMaterials: { versionName: string }[] }) {
-  const history = row.historicalMaterials.length
-  const names = [...new Set(row.historicalMaterials.map((item) => item.versionName).filter(Boolean))]
-  const source = names.length ? names.join('、') : '未记录版本'
-  if (row.materialCount && history) return `本版本已建 ${row.materialCount} 条 · 历史已建 ${history} 条 · 来源 ${source}`
-  if (row.materialCount) return `已创建 ${row.materialCount} 条`
-  if (history) return `本版本未建 · 历史已建 ${history} 条 · 来源 ${source}`
-  return '未创建'
-}
 const visibleComboRows = computed(() => {
   const text = comboKeyword.value.trim().toLowerCase()
   return comboRows.value.filter((row) => {
@@ -938,16 +820,14 @@ const visibleComboRows = computed(() => {
 })
 const actionCombo = computed(() => comboRows.value.find((item) => item.key === materialLaunch.value.key))
 watch(templateId, () => {
-  checkedIds.value = []
+  clearComboSelection()
   comboManageOpen.value = false
   comboKeyword.value = ''
   comboUnfiledOnly.value = false
   materialLaunch.value = { token: 0, key: '', mode: '' }
 })
 watch(comboRows, (rows) => {
-  const alive = new Set(rows.map((item) => item.planningId).filter(Boolean))
-  const next = checkedIds.value.filter((id) => alive.has(id))
-  if (next.length !== checkedIds.value.length) checkedIds.value = next
+  comboSelection.retain(rows.map((item) => item.planningId).filter(Boolean))
 })
 const canvasContext = computed(() => {
   const canvas = store.data.specCanvases.find((item) => item.templateId === templateId.value)
@@ -2701,16 +2581,9 @@ function focusBoard(event: PointerEvent) {
   if (target?.closest('input, textarea, select, button, a')) return
   board.focus()
 }
-function comboRowClass({ row }: { row: { filed: boolean } }) {
-  return row.filed ? 'is-filed-row' : ''
-}
 function openMaterialDetail(item: { familyId: string; skuId: string }) {
   if (!item.familyId) return
   router.push(`/products/${item.familyId}?sku=${item.skuId}`)
-}
-function toggleCheck(id: string) {
-  if (!id) return
-  checkedIds.value = checkedIds.value.includes(id) ? checkedIds.value.filter((item) => item !== id) : [...checkedIds.value, id]
 }
 function visibleSelectableIds() {
   return visibleComboRows.value.map((row) => row.planningId).filter(Boolean)
@@ -2721,10 +2594,7 @@ function selectAllCombos() {
     ElMessage.warning('没有可选择的组合。发布模型后才能勾选。')
     return
   }
-  checkedIds.value = [...new Set([...checkedIds.value, ...ids])]
-}
-function clearComboSelection() {
-  checkedIds.value = []
+  comboSelection.selectAll(ids)
 }
 function invertComboSelection() {
   const visible = visibleSelectableIds()
@@ -2732,14 +2602,9 @@ function invertComboSelection() {
     ElMessage.warning('没有可选择的组合。发布模型后才能勾选。')
     return
   }
-  const selected = new Set(checkedIds.value)
-  visible.forEach((id) => {
-    if (selected.has(id)) selected.delete(id)
-    else selected.add(id)
-  })
-  checkedIds.value = [...selected]
+  comboSelection.invert(visible)
 }
-function openComboMaterial(row: { key: string }, mode: 'create' | 'list') {
+function openComboMaterial(row: { key: string }, mode: MaterialLaunchMode) {
   materialLaunch.value = { token: materialLaunch.value.token + 1, key: row.key, mode }
 }
 function batchCreateMaterials() {
@@ -2786,13 +2651,13 @@ function batchCreateMaterials() {
   const skipText = skipped ? `，跳过已有物料 ${skipped} 条` : ''
   ElMessage.success(`已创建 ${created} 条物料${skipText}${extra}`)
 }
-function markGrade(grade: 'core' | 'general') {
+function markGrade(grade: ProductGrade) {
   if (!checkedIds.value.length) {
     ElMessage.warning('请先选择组合')
     return
   }
   const count = store.markPlanningGrades(checkedIds.value, grade)
-  checkedIds.value = []
+  clearComboSelection()
   ElMessage.success(`已标记 ${count} 条规划，没有新建物料。`)
 }
 function openTemporary(familyId: string, skuId: string) {
@@ -2901,9 +2766,6 @@ onBeforeUnmount(() => {
 .workbench.is-overview.is-cat-fold,
 .workbench.is-overview.is-rail-fold,
 .workbench.is-overview.is-cat-fold.is-rail-fold { grid-template-columns: minmax(0, 1fr); }
-.draft-preview { margin-bottom: 12px; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 8px; }
-.draft-preview ul { margin: 6px 0 0; padding-left: 18px; }
-.draft-preview li { margin: 2px 0; }
 .studio-actions { display: flex; flex: none; gap: 8px; }
 .version-name { color: #909399; font-size: 13px; font-weight: 500; }
 .meta-row { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 6px 0 0; color: #303133; font-size: 12px; line-height: 1.5; }
@@ -2946,40 +2808,6 @@ onBeforeUnmount(() => {
 .insight li button.is-on { color: var(--app-accent, #1677ff); }
 .insight em { color: var(--text-muted, #8aa0b8); font-style: normal; white-space: nowrap; }
 .insight-empty { margin: 0; padding: 0 12px 10px; color: var(--text-muted, #98a4b3); font-size: 12px; }
-.combo-dialog-title strong { display: block; color: var(--el-text-color-primary, #253044); font-size: 16px; line-height: 1.4; }
-.combo-dialog-title p { margin: 4px 0 0; color: var(--el-text-color-secondary, #66758b); font-size: 13px; font-weight: 400; }
-.combo-manage { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-.combo-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
-.combo-version { width: 112px; }
-.combo-search { width: 320px; margin-left: auto; }
-.combo-expand { padding: 4px 12px 8px 36px; }
-.combo-expand p { margin: 0 0 6px; color: var(--text-secondary, #66758b); font-size: 13px; }
-.combo-expand ul { margin: 0; padding: 0; list-style: none; }
-.combo-expand li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 6px 0; border-top: 1px solid var(--border-subtle, #eef2f6); }
-.combo-expand strong { color: var(--text-primary, #253044); }
-.combo-expand span, .combo-expand em { color: var(--text-secondary, #66758b); font-style: normal; font-size: 13px; }
-.combo-anomaly { margin: 0 0 8px; color: var(--el-color-warning, #b88230); font-size: 12px; }
-.combo-unmatched { margin: 0 0 8px; padding: 0; list-style: none; }
-.combo-unmatched li { display: flex; flex-wrap: wrap; gap: 8px 12px; padding: 4px 0; font-size: 13px; }
-.combo-unmatched em { color: var(--text-muted, #8b98a8); font-style: normal; }
-.combo-table-wrap { flex: 1; min-height: 0; overflow: hidden; }
-.combo-table :deep(.el-table__header th) { background: var(--el-fill-color-light, #f7f8fa); color: var(--el-text-color-primary, #253044); }
-.combo-table :deep(.el-table__cell) { border-color: var(--el-border-color, #e4e8ef); }
-.combo-grade { margin-right: 6px; }
-.is-filed { color: var(--status-success, #137333); }
-.is-empty { color: var(--text-muted, #8b98a8); }
-.combo-table :deep(.el-table__body tr.is-filed-row) {
-  --el-table-tr-bg-color: var(--combo-filed-bg, #b7ebc8);
-  --el-table-row-hover-bg-color: var(--combo-filed-bg-hover, #9fe3b6);
-  background-color: var(--combo-filed-bg, #b7ebc8);
-}
-.combo-table :deep(.el-table__body tr.is-filed-row > td.el-table__cell) {
-  background-color: var(--combo-filed-bg, #b7ebc8) !important;
-}
-.combo-table :deep(.el-table__body tr.is-filed-row:hover > td.el-table__cell),
-.combo-table :deep(.el-table__body tr.is-filed-row.hover-row > td.el-table__cell) {
-  background-color: var(--combo-filed-bg-hover, #9fe3b6) !important;
-}
 .op-bar { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .view-switch { --el-segmented-item-selected-bg-color: var(--el-color-primary); --el-segmented-item-selected-color: #fff; }
 .work-main { min-width: 0; min-height: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden; padding: 12px 14px 10px; background: var(--canvas-bg, #f4f7fb); border-left: 1px solid var(--border-subtle, #eef2f6); }
@@ -3065,6 +2893,7 @@ onBeforeUnmount(() => {
 </style>
 
 <style>
+/* 保留既有浮层全局样式的加载位置，避免改变样式覆盖顺序。 */
 .el-overlay-dialog:has(.combo-manage-dialog) {
   display: flex !important;
   align-items: center;
@@ -3100,6 +2929,7 @@ onBeforeUnmount(() => {
   border-top: 1px solid var(--el-border-color-light, #e4e8ef);
 }
 </style>
+
 <style>
 .dict-select-popper .el-select-dropdown__wrap { max-height: 180px; }
 </style>

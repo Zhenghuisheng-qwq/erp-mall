@@ -1,0 +1,449 @@
+{
+  "result": "READY",
+  "baseline": "3cfbcc0918ed8c63b35af33c8dcb02baab49089f",
+  "branch": "20261019",
+  "capturedAt": "2026-10-22T04:37:07.339Z",
+  "environment": {
+    "node": "v22.18.0",
+    "platform": "win32",
+    "arch": "x64",
+    "osRelease": "10.0.26200",
+    "browser": "155.0.8059.85"
+  },
+  "domainChecks": [
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/product-list-check.ts",
+      "beforePass": 57,
+      "afterPass": 57
+    },
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/product-list-view-check.ts",
+      "beforePass": 89,
+      "afterPass": 89
+    },
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/product-list-query-check.ts",
+      "beforePass": 170,
+      "afterPass": 170
+    },
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/planning-check.ts",
+      "beforePass": 18,
+      "afterPass": 18
+    },
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/draft-combo-check.ts",
+      "beforePass": 10,
+      "afterPass": 10
+    },
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/material-check.ts",
+      "beforePass": null,
+      "afterPass": 12
+    },
+    {
+      "command": "node scripts/run-domain-check.mjs scripts/category-tree-select-check.ts",
+      "beforePass": null,
+      "afterPass": 11
+    }
+  ],
+  "legacyBrowserChecks": [
+    {
+      "command": "node scripts/browser-4a.mjs",
+      "before": {
+        "ok": true,
+        "spu": "商品 8 款",
+        "sku": "SKU 10 条",
+        "skuRows": 10,
+        "searched": [
+          "s-pad-1",
+          "s-iphone-blue"
+        ],
+        "clampedPage": "5"
+      },
+      "after": {
+        "ok": true,
+        "spu": "商品 8 款",
+        "sku": "SKU 10 条",
+        "skuRows": 10,
+        "searched": [
+          "s-pad-1",
+          "s-iphone-blue"
+        ],
+        "clampedPage": "5"
+      }
+    },
+    {
+      "command": "node scripts/browser-4b.mjs",
+      "before": {
+        "ok": true,
+        "overviewId": "view-mvj0ukuj-2",
+        "copyId": "view-mvj0uq8x-2",
+        "spuHeaders": [
+          "商品状态",
+          "商品名称",
+          "品牌",
+          "商品分类",
+          "SKU 数量",
+          "在售",
+          "OA_ProductID",
+          "数据来源",
+          "最近维护",
+          "产品类型",
+          "商品模型",
+          "操作"
+        ],
+        "skuHeaders": [
+          "SKU 编号",
+          "SKU 名称",
+          "完整规格",
+          "所属商品",
+          "商品分类",
+          "产品类型",
+          "SKU 状态",
+          "操作"
+        ],
+        "refreshed": [
+          "商品状态",
+          "商品名称",
+          "品牌",
+          "商品分类",
+          "SKU 数量",
+          "在售",
+          "OA_ProductID",
+          "数据来源",
+          "最近维护",
+          "产品类型",
+          "商品模型",
+          "操作"
+        ]
+      },
+      "after": {
+        "ok": true,
+        "overviewId": "view-mvj1gl4e-2",
+        "copyId": "view-mvj1gqn1-2",
+        "spuHeaders": [
+          "商品状态",
+          "商品名称",
+          "品牌",
+          "商品分类",
+          "SKU 数量",
+          "在售",
+          "OA_ProductID",
+          "数据来源",
+          "最近维护",
+          "产品类型",
+          "商品模型",
+          "操作"
+        ],
+        "skuHeaders": [
+          "SKU 编号",
+          "SKU 名称",
+          "完整规格",
+          "所属商品",
+          "商品分类",
+          "产品类型",
+          "SKU 状态",
+          "操作"
+        ],
+        "refreshed": [
+          "商品状态",
+          "商品名称",
+          "品牌",
+          "商品分类",
+          "SKU 数量",
+          "在售",
+          "OA_ProductID",
+          "数据来源",
+          "最近维护",
+          "产品类型",
+          "商品模型",
+          "操作"
+        ]
+      }
+    },
+    {
+      "command": "node scripts/browser-4c.mjs",
+      "before": {
+        "ok": true,
+        "asc": "4C物料款",
+        "desc": "MacBook Air 演示款",
+        "groups": 5,
+        "apple": 6
+      },
+      "after": {
+        "ok": true,
+        "asc": "4C物料款",
+        "desc": "MacBook Air 演示款",
+        "groups": 5,
+        "apple": 6
+      }
+    },
+    {
+      "command": "node scripts/browser-4d.mjs",
+      "before": {
+        "ok": true,
+        "prepared": 286,
+        "before": "批量商品000",
+        "after": "批量商品001",
+        "staged": [
+          "bulk-001",
+          "bulk-000",
+          "bulk-020",
+          "bulk-021"
+        ],
+        "target": "批量商品260",
+        "targetId": "bulk-260",
+        "total": "商品 286 款",
+        "filteredTotal": 281
+      },
+      "after": {
+        "ok": true,
+        "prepared": 286,
+        "before": "批量商品000",
+        "after": "批量商品001",
+        "staged": [
+          "bulk-001",
+          "bulk-000",
+          "bulk-020",
+          "bulk-021"
+        ],
+        "target": "批量商品260",
+        "targetId": "bulk-260",
+        "total": "商品 286 款",
+        "filteredTotal": 281
+      }
+    },
+    {
+      "command": "node scripts/browser-4e.mjs",
+      "before": {
+        "ok": true,
+        "chip": "分类：手机 ×",
+        "phone": 1,
+        "restored": 6
+      },
+      "after": {
+        "ok": true,
+        "chip": "分类：手机 ×",
+        "phone": 1,
+        "restored": 6
+      }
+    }
+  ],
+  "comparison": {
+    "commands": [
+      "node scripts/browser-product-list-round2.mjs --before",
+      "node scripts/browser-product-list-round2.mjs"
+    ],
+    "states": 27,
+    "diagnostics": [],
+    "beforeSnapshotSha256": "06b98e16f2145003643e1f38dd0dbaac3d8ae2defa84176432c7bac38d66d214",
+    "afterSnapshotSha256": "06b98e16f2145003643e1f38dd0dbaac3d8ae2defa84176432c7bac38d66d214",
+    "checkpoints": [
+      {
+        "name": "no-result",
+        "writes": 1,
+        "count": "商品 0 款"
+      },
+      {
+        "name": "search-clear",
+        "writes": 1,
+        "count": "商品 6 款"
+      },
+      {
+        "name": "fixture",
+        "writes": 0,
+        "count": "商品 7 款"
+      },
+      {
+        "name": "sku-selection-baseline-reset",
+        "writes": 0,
+        "count": "商品 7 款"
+      },
+      {
+        "name": "sku-status",
+        "writes": 1,
+        "count": "商品 7 款"
+      },
+      {
+        "name": "publish-selection",
+        "writes": 1,
+        "count": "商品 7 款"
+      },
+      {
+        "name": "offline-selection",
+        "writes": 1,
+        "count": "商品 7 款"
+      },
+      {
+        "name": "delete-selection",
+        "writes": 1,
+        "count": "商品 6 款"
+      },
+      {
+        "name": "text-filter-immediate",
+        "writes": 2,
+        "count": "商品 2 款"
+      },
+      {
+        "name": "single-date-filter",
+        "writes": 3,
+        "count": "商品 2 款"
+      },
+      {
+        "name": "date-range-filter",
+        "writes": 2,
+        "count": "商品 0 款"
+      },
+      {
+        "name": "single-category-filter",
+        "writes": 2,
+        "count": "商品 1 款"
+      },
+      {
+        "name": "multiple-category-filter",
+        "writes": 3,
+        "count": "商品 2 款"
+      },
+      {
+        "name": "multiple-value-filter",
+        "writes": 3,
+        "count": "商品 2 款"
+      },
+      {
+        "name": "filter-close",
+        "writes": 0,
+        "count": "商品 2 款"
+      },
+      {
+        "name": "column-search",
+        "writes": 2,
+        "count": "商品 6 款"
+      },
+      {
+        "name": "sku-mode",
+        "writes": 1,
+        "count": "SKU 10 条"
+      },
+      {
+        "name": "operator-role",
+        "writes": 2,
+        "count": "商品 6 款"
+      },
+      {
+        "name": "remount",
+        "writes": 0,
+        "count": "商品 6 款"
+      },
+      {
+        "name": "manual-mode",
+        "writes": 1,
+        "count": "商品 6 款"
+      },
+      {
+        "name": "remove-staged",
+        "writes": 0,
+        "count": "商品 6 款"
+      },
+      {
+        "name": "clear-staged",
+        "writes": 0,
+        "count": "商品 6 款"
+      },
+      {
+        "name": "persisted-page-size",
+        "writes": 0,
+        "count": "商品 6 款"
+      },
+      {
+        "name": "empty-database",
+        "writes": 1,
+        "count": "商品 0 款"
+      },
+      {
+        "name": "operator-tools-route-blocked",
+        "writes": 0,
+        "count": null
+      },
+      {
+        "name": "route-opens-tools",
+        "writes": 0,
+        "count": "商品 0 款"
+      },
+      {
+        "name": "import-entry-return",
+        "writes": 0,
+        "count": "商品 0 款"
+      }
+    ],
+    "screenshots": [
+      {
+        "name": "light-list",
+        "pixels": 1382400,
+        "changed": 0,
+        "beforeSha256": "bf2790d752d4c59f0b2978be4471cb410db009f2f96b390b2bcf88cc5386fd34",
+        "afterSha256": "bf2790d752d4c59f0b2978be4471cb410db009f2f96b390b2bcf88cc5386fd34"
+      },
+      {
+        "name": "expanded",
+        "pixels": 1382400,
+        "changed": 0,
+        "beforeSha256": "b0d547a1f884db379051735b173d3a290f7807656306ceb96ee451342490681c",
+        "afterSha256": "b0d547a1f884db379051735b173d3a290f7807656306ceb96ee451342490681c"
+      },
+      {
+        "name": "filter-dialog",
+        "pixels": 1382400,
+        "changed": 0,
+        "beforeSha256": "cc4c19a08309eb25814f688dc8365db498eeeba961f7d1b11d207f02454f3f4b",
+        "afterSha256": "cc4c19a08309eb25814f688dc8365db498eeeba961f7d1b11d207f02454f3f4b"
+      },
+      {
+        "name": "view-tools",
+        "pixels": 1382400,
+        "changed": 0,
+        "beforeSha256": "42e4fbde2ef99ac647f602a1b3bb59e93c1069781c68754f5d26fa7814d326fd",
+        "afterSha256": "42e4fbde2ef99ac647f602a1b3bb59e93c1069781c68754f5d26fa7814d326fd"
+      },
+      {
+        "name": "sku-list",
+        "pixels": 1382400,
+        "changed": 0,
+        "beforeSha256": "d33e544c0d7a53cceb064e663659df059f151564ee773a2b91ba480ba8da55d1",
+        "afterSha256": "d33e544c0d7a53cceb064e663659df059f151564ee773a2b91ba480ba8da55d1"
+      },
+      {
+        "name": "dark-list",
+        "pixels": 1382400,
+        "changed": 0,
+        "beforeSha256": "2a685c6069eaf0d51700f8f3e443a647396ae603ef21bb6b5d1e74f52f8b9158",
+        "afterSha256": "2a685c6069eaf0d51700f8f3e443a647396ae603ef21bb6b5d1e74f52f8b9158"
+      },
+      {
+        "name": "narrow-list",
+        "pixels": 864000,
+        "changed": 0,
+        "beforeSha256": "d5f64b96310fc560e6658caaaae5e28879f9d64004cdbd9638b6bcfa2e4dcd4a",
+        "afterSha256": "d5f64b96310fc560e6658caaaae5e28879f9d64004cdbd9638b6bcfa2e4dcd4a"
+      }
+    ]
+  },
+  "engineering": {
+    "baselineBuildExit": 0,
+    "finalBuildExit": 0,
+    "finalTypecheckExit": 0,
+    "diffCheckExit": 0,
+    "scriptSyntaxExit": 0,
+    "existingWarnings": [
+      "Vite chunk > 500 kB",
+      "Vite dev-server ResizeObserver loop completed with undelivered notifications: 2 before and 2 after during legacy browser checks; none in the fixed comparison"
+    ]
+  },
+  "productionFileSha256": {
+    "src/views/ProductListView.vue": "3c4c75d2ecc1aab61480e691019ba1c0172ff0f6f101a2c78098ad322edfdda5",
+    "src/components/product-list/ProductListViewTools.vue": "ab4318a2335c2f9ed00a5a8ed37daa2333643d938cf354a32c9a63e6684edf38",
+    "src/components/product-list/ProductListFilterDialog.vue": "ea1517afd44319f4b2bc9b92be0081c1cc7351904e7a0f5e3e9b5d34162d4e82",
+    "src/components/product-list/filterPresentation.ts": "9ea85b806614fb3a1dc2d367298596602b08441e213450f192db452792b83da8",
+    "src/components/product-list/useProductListManualOrder.ts": "c87a143c0540d7fcf6323a985b560c9ebd154cb761ab26e3c5fa5e743ef2ea3b"
+  }
+}
