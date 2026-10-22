@@ -104,11 +104,12 @@ export function accessoryCandidates(data: AppData, productTypeId: string, keywor
 }
 
 export function linksOfHost(data: AppData, host: CompatibilityHost) {
-  return (data.compatibilities || []).filter((item) => sameHost(item.host, host) || (host.scope === 'model' && item.host.scope === 'planning' && item.host.productModelId === host.productModelId && item.host.identityKey === host.identityKey))
+  // This is the legacy MAT management summary, never a concrete-device recommendation.
+  return (data.compatibilities || []).filter((item) => item.targetKind !== 'sku' && (sameHost(item.host, host) || (host.scope === 'model' && item.host.scope === 'planning' && item.host.productModelId === host.productModelId && item.host.identityKey === host.identityKey)))
 }
 
 export function linksOfSku(data: AppData, skuId: string) {
-  return (data.compatibilities || []).filter((item) => item.accessorySkuId === skuId)
+  return (data.compatibilities || []).filter((item) => (item.targetId || item.accessorySkuId) === skuId)
 }
 
 export function addCompatibility(data: AppData, input: { accessorySkuIds: string[]; hosts: CompatibilityHost[]; note?: string; now?: string; nextId: (prefix: string) => string }): CompatibilityResult {
@@ -153,7 +154,8 @@ export function updateCompatibilityNote(data: AppData, id: string, note: string,
 
 export function compatibilitySkuBlock(data: AppData, skuId: string) {
   const count = linksOfSku(data, skuId).length
-  return count ? `不能删除。这条物料还有 ${count} 条适用主机关系。请先取消这些关系。` : ''
+  if (count) return `不能删除。这条记录还有 ${count} 条适用主机关系。请先取消这些关系。`
+  return data.deviceBindings?.some(binding => binding.skuId === skuId) ? '不能删除。这条 SKU 仍有设备型号绑定，请先解除绑定。' : ''
 }
 
 export function compatibilityFamilyBlock(data: AppData, familyId: string) {
@@ -163,7 +165,8 @@ export function compatibilityFamilyBlock(data: AppData, familyId: string) {
 
 export function compatibilityModelBlock(data: AppData, modelIds: string[]) {
   const count = (data.compatibilities || []).filter((item) => modelIds.includes(item.host.productModelId)).length
-  return count ? `不能删除。还有 ${count} 条适用配件关系指向这个型号。请先取消这些关系。` : ''
+  if (count) return `不能删除。还有 ${count} 条适用配件关系指向这个型号。请先取消这些关系。`
+  return data.deviceBindings?.some(binding => modelIds.includes(binding.host.productModelId)) ? '不能删除。仍有设备 SKU 绑定这个型号，请先解除绑定。' : ''
 }
 
 export function hostLabel(host: CompatibilityHost) {
@@ -179,7 +182,7 @@ export function linkResolved(data: AppData, link: CompatibilityLink) {
 function decorateHost(data: AppData, host: CompatibilityHost, records: PlanningRecord[]): HostModelOption {
   const type = data.productTypes.find((item) => item.id === host.productTypeId)
   const canvas = data.specCanvases.find((item) => item.templateId === host.productModelId)
-  const links = (data.compatibilities || []).filter((item) => item.host.productModelId === host.productModelId && item.host.identityKey === host.identityKey)
+  const links = (data.compatibilities || []).filter((item) => item.targetKind !== 'sku' && item.host.productModelId === host.productModelId && item.host.identityKey === host.identityKey)
   const typeCounts = new Map<string, { productTypeId: string; name: string; count: number }>()
   links.forEach((link) => {
     const sku = data.skus.find((item) => item.id === link.accessorySkuId)

@@ -12,6 +12,7 @@
           <el-button type="primary" @click="router.push({ path: '/skus/new', query: { spu: family.id } })">新增 SKU</el-button>
           <el-button v-if="family.line === 'v3'" @click="router.push(`/materials/${family.id}`)">管理物料（{{ materials.length }}）</el-button>
           <el-button v-if="version" @click="historyOpen = true">查看历史快照</el-button>
+          <el-button v-if="compatibilityRole === 'host' && children.length" data-spu-compatibility @click="compatibilityOpen = true">适用配件</el-button>
         </div>
         <el-table v-if="children.length" :data="children" size="small">
           <el-table-column label="SKU 编码"><template #default="{ row }">{{ row.code || '—' }}</template></el-table-column>
@@ -26,6 +27,7 @@
       <p>{{ version?.versionName }} · {{ version?.publishTime }}</p>
       <el-table :data="version?.nodesSnapshot || []" max-height="480"><el-table-column prop="id" label="节点 ID" /><el-table-column prop="attributeId" label="属性 ID" /><el-table-column prop="valueId" label="取值" /><el-table-column prop="parentId" label="父节点" /></el-table>
     </el-dialog>
+    <AccessoryCompatibilityDrawer v-model="compatibilityOpen" :family-id="family?.id || ''" />
   </div>
 </template>
 <script setup lang="ts">
@@ -34,6 +36,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import PageHead from '../components/PageHead.vue'
 import SpuForm from '../components/catalog/SpuForm.vue'
+import AccessoryCompatibilityDrawer from '../components/compatibility/AccessoryCompatibilityDrawer.vue'
+import { compatibilityFamilyRole } from '../domain/deviceResolution'
 import { useUnsavedCatalog } from '../components/catalog/useUnsavedCatalog'
 import { newSpuDraft } from '../domain/spuDraft'
 import { categoryPath } from '../domain/logic'
@@ -44,9 +48,11 @@ const route = useRoute()
 const router = useRouter()
 const dirty = ref(false)
 const historyOpen = ref(false)
+const compatibilityOpen = ref(false)
 useUnsavedCatalog(dirty)
 const isNew = computed(() => route.name === 'spu-new')
 const family = computed(() => store.data.families.find(item => item.id === route.params.id))
+const compatibilityRole = computed(() => compatibilityFamilyRole(store.data, family.value?.id || ''))
 const initial = computed(() => isNew.value ? newSpuDraft(store.data, { fromId: String(route.query.from || ''), templateId: String(route.query.template || ''), categoryId: String(route.query.category || '') }) : family.value)
 const version = computed(() => store.data.specModelVersions.find(item => item.id === family.value?.modelVersionId))
 const planName = computed(() => store.data.productPlans.find(item => item.id === family.value?.productPlanId)?.name || family.value?.productPlanId)

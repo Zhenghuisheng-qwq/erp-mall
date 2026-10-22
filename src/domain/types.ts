@@ -1,4 +1,5 @@
 import type { SkuViewConfig, SkuWorkbenchState } from './skuWorkbenchTypes'
+import type { AccessoryTargetKind, CompatibilityCapability, CompatibilityConclusion, CompatibilityCondition, CompatibilityProvenance, CompatibilityVerification, DeviceBinding, DeviceModel } from './accessoryCompatibilityTypes'
 
 export const DATA_VERSION = 15
 export const STORAGE_KEY = 'iyge-v2-mock-db'
@@ -315,7 +316,16 @@ export interface CompatibilityHost {
 
 export interface CompatibilityLink {
   id: string
+  /** Legacy links omit the target fields and continue to identify a MAT. */
   accessorySkuId: string
+  targetKind?: AccessoryTargetKind
+  targetId?: string
+  conclusion?: CompatibilityConclusion
+  verification?: CompatibilityVerification
+  capability?: CompatibilityCapability
+  conditions?: CompatibilityCondition[]
+  source?: string
+  provenance?: CompatibilityProvenance
   host: CompatibilityHost
   note: string
   createdAt: string
@@ -518,6 +528,9 @@ export interface AppData {
   materialReceipts: MaterialCreateReceipt[]
   /** 配件适用哪些主机。旧数据没有时保持空数组，不改已有物料。 */
   compatibilities: CompatibilityLink[]
+  /** Optional preference-independent compatibility catalogue; no business record is synthesized. */
+  deviceModels?: DeviceModel[]
+  deviceBindings?: DeviceBinding[]
   /** 规划节点上的适用主机。旧数据没有时保持空数组，不回填历史物料。 */
   nodeCompatibilityRules: NodeCompatibilityRule[]
   rules: SpecRule[]

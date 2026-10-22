@@ -21,6 +21,11 @@ import { ensureProductListPages } from '../domain/productListPages'
 import { persistSkuPage } from '../domain/skuWorkbenchState'
 import type { ProductListPageState } from '../domain/types'
 import { isRealSku } from '../domain/catalogIdentity'
+import { applyCompatibilityChanges, cloneCompatibility, compatibilityImportProblems, deviceModelProblem } from '../domain/accessoryCompatibilityCommands'
+import type { CompatibilityChange, CompatibilityCommandResult } from '../domain/accessoryCompatibilityCommands'
+import { compatibilityFamilyTypeId, compatibilityRecordRole, deviceSourceStamp, sameDeviceHost, validateCompatibilityHost } from '../domain/deviceResolution'
+import type { DeviceModel } from '../domain/accessoryCompatibilityTypes'
+import type { CompatibilityHost } from '../domain/types'
 import { appendSkuBatch, editSku, previewSkuAppend, saveSpu, spuRemovalBlock, type SkuDraft, type SkuGeneration } from '../domain/spuSku'
 import { draftHostRulesDiffer, forgetDraftNodeRules, freezeDraftNodeHosts } from '../domain/nodeCompatibility'
 import { scrubSampleDictionary } from '../domain/compatibilitySamples'
@@ -46,7 +51,7 @@ function renameSchemeColumn(columns: ColumnPref[] | undefined, mark: { changed: 
 }
 
 /** 版本 1 没有分类启用状态。缺省视为启用，并写回版本 2。商品、方案、映射原样保留。 */
-export function normalizeStored(parsed: StoredPayload): AppData | null {
+export function normalizeStored(parsed: StoredPayload, options: { persist?: boolean } = {}): AppData | null {
   migrationStorageError = ''
   const data = parsed.data
   if (!data?.families || !data.skus || !data.categories || !data.templates || !data.mappings || !data.templateParams) return null
@@ -186,7 +191,9 @@ export function normalizeStored(parsed: StoredPayload): AppData | null {
   }
   if (ensureProductListViews(data)) mark.changed = true
   if (ensureProductListPages(data)) mark.changed = true
-  if (mark.changed && typeof localStorage !== 'undefined') {
+  const compatibilityProblems = compatibilityImportProblems(data)
+  if (compatibilityProblems.length) migrationStorageError = `适用关系配置有待处理项：${compatibilityProblems.join(' ')} 原始记录已保留，请修复或导出备份。`
+  if (mark.changed && !compatibilityProblems.length && options.persist !== false && typeof localStorage !== 'undefined') {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data })); migrationStorageError = '' }
     catch (error) { migrationStorageError = `旧配置已在内存中兼容读取，但无法写入本机：${error instanceof Error ? error.message : String(error)}。原存储未被清空，可在解除存储限制后重试保存。` }
   }
@@ -194,18 +201,25 @@ export function normalizeStored(parsed: StoredPayload): AppData | null {
 }
 
 function loadData(): AppData {
+  let loaded: AppData | undefined
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return createSeed()
+    if (raw === null) return createSeed()
     const parsed = JSON.parse(raw) as StoredPayload
-    const data = normalizeStored(parsed) ?? createSeed()
+    const data = normalizeStored(parsed)
+    if (!data) throw new Error('已有数据的基础结构或版本无法读取。')
+    loaded = data
     const fix = applyAccessoryCategoryFix(data, PHONE_CASE_CATEGORY_FIX)
     if (fix.changed && typeof localStorage !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data }))
     }
     return data
-  } catch {
-    return createSeed()
+  } catch (error) {
+    if (loaded) {
+      migrationStorageError = `数据已在内存中读取，但无法写入本机：${error instanceof Error ? error.message : String(error)}。原存储未清空，可重试保存。`
+      return loaded
+    }
+    throw new Error(`无法安全读取本机数据：${error instanceof Error ? error.message : String(error)}。原始存储已保留，未使用演示数据替换。请先下载原始数据，再恢复有效备份。`, { cause: error })
   }
 }
 
@@ -239,6 +253,95 @@ export const useCatalogStore = defineStore('catalog', () => {
     return result
   }
 
+  function compatibilityPermission(): CompatibilityCommandResult | undefined {
+    return isAdmin.value ? undefined : { ok: false, message: '当前角色仅可查看适用关系，请由管理员维护。' }
+  }
+
+  /** Only these compatibility-owned arrays are changed, after the full payload is stored. */
+  function commitCompatibilityState(next: AppData, result: CompatibilityCommandResult): CompatibilityCommandResult {
+    if (!result.ok) return result
+    const before = JSON.stringify([data.compatibilities, data.deviceModels, data.deviceBindings])
+    if (before === JSON.stringify([next.compatibilities, next.deviceModels, next.deviceBindings])) return result
+    try {
+      const encoded = JSON.stringify({ version: DATA_VERSION, data: next })
+      localStorage.setItem(STORAGE_KEY, encoded)
+      explicitlyPersisted = encoded
+      data.compatibilities = next.compatibilities
+      if (next.deviceModels !== undefined) data.deviceModels = next.deviceModels
+      else delete data.deviceModels
+      if (next.deviceBindings !== undefined) data.deviceBindings = next.deviceBindings
+      else delete data.deviceBindings
+      migrationStorageError = ''
+      return result
+    } catch (error) {
+      return { ...result, ok: false, message: `无法保存到本机：${error instanceof Error ? error.message : String(error)}。当前数据未改变，操作草稿已保留，请重试。` }
+    }
+  }
+
+  function commitCompatibilityChanges(changes: CompatibilityChange[]): CompatibilityCommandResult {
+    const denied = compatibilityPermission()
+    if (denied) return denied
+    const next = cloneCompatibility(data)
+    const result = applyCompatibilityChanges(next, changes, () => uid('compat'), new Date().toISOString())
+    return commitCompatibilityState(next, result)
+  }
+
+  function commitDeviceBinding(input: { skuId: string; host: CompatibilityHost; replaceExisting?: boolean; expectedSourceStamp?: string }): CompatibilityCommandResult {
+    const denied = compatibilityPermission()
+    if (denied) return denied
+    const sku = data.skus.find(item => item.id === input.skuId)
+    if (!sku || !isRealSku(data, sku) || compatibilityRecordRole(data, sku.id) !== 'host') return { ok: false, message: '请选择真实的主机销售 SKU，不能绑定 MAT 或配件。' }
+    if (input.host.productTypeId !== compatibilityFamilyTypeId(data, sku.familyId)) return { ok: false, message: '设备型号与当前 SKU 的产品类型不一致，请选择相同主机类型的型号。' }
+    if (input.host.scope !== 'model') return { ok: false, message: '绑定设备型号时请选择型号级目标，规划范围由设备自己的来源确认。' }
+    const problem = validateCompatibilityHost(data, input.host)
+    if (problem) return { ok: false, message: problem }
+    const stamp = deviceSourceStamp(data, sku.id)
+    if (input.expectedSourceStamp !== undefined && stamp !== input.expectedSourceStamp) return { ok: false, message: '设备来源已变化，请重新打开型号配置后确认。' }
+    const previous = data.deviceBindings?.find(binding => binding.skuId === sku.id)
+    if (previous && !input.replaceExisting) return { ok: false, message: '这条设备已有绑定；重新绑定会改变查询适用配件的型号，请明确确认原绑定及影响。' }
+    if (previous && previous.sourceStamp === stamp && sameDeviceHost(previous.host, input.host)) return { ok: true }
+    const next = cloneCompatibility(data), now = new Date().toISOString()
+    next.deviceBindings = (next.deviceBindings || []).filter(binding => binding.skuId !== sku.id)
+    next.deviceBindings.push({ skuId: sku.id, host: cloneCompatibility(input.host), sourceStamp: stamp, createdAt: previous?.createdAt || now, updatedAt: now })
+    return commitCompatibilityState(next, { ok: true })
+  }
+
+  function clearDeviceBinding(skuId: string): CompatibilityCommandResult {
+    const denied = compatibilityPermission()
+    if (denied) return denied
+    const next = cloneCompatibility(data)
+    if (!next.deviceBindings?.some(binding => binding.skuId === skuId)) return { ok: true }
+    next.deviceBindings = next.deviceBindings.filter(binding => binding.skuId !== skuId)
+    return commitCompatibilityState(next, { ok: true })
+  }
+
+  function saveDeviceModel(input: { id?: string; name: string; productTypeId: string; attributes: Record<string, string> }): CompatibilityCommandResult {
+    const denied = compatibilityPermission()
+    if (denied) return denied
+    const problem = deviceModelProblem(data, input)
+    if (problem) return { ok: false, message: problem }
+    const previous = input.id ? data.deviceModels?.find(model => model.id === input.id) : undefined
+    if (input.id && !previous) return { ok: false, message: '设备型号已不存在，未重新创建已删除的记录。' }
+    if (previous && previous.productTypeId !== input.productTypeId && (data.compatibilities.some(link => link.host.productModelId === `device:${previous.id}`) || data.deviceBindings?.some(binding => binding.host.productModelId === `device:${previous.id}`))) return { ok: false, message: '型号已有正式声明或设备绑定，不能改变产品类型。' }
+    const next = cloneCompatibility(data), now = new Date().toISOString()
+    let id = previous?.id || uid('device')
+    while (!previous && next.deviceModels?.some(model => model.id === id)) id = uid('device')
+    const model: DeviceModel = { id, name: input.name.trim(), productTypeId: input.productTypeId, attributes: cloneCompatibility(input.attributes), createdAt: previous?.createdAt || now, updatedAt: now }
+    next.deviceModels = (next.deviceModels || []).filter(item => item.id !== id)
+    next.deviceModels.push(model)
+    return commitCompatibilityState(next, { ok: true, id })
+  }
+
+  function removeDeviceModel(id: string): CompatibilityCommandResult {
+    const denied = compatibilityPermission()
+    if (denied) return denied
+    if (data.compatibilities.some(link => link.host.productModelId === `device:${id}`) || data.deviceBindings?.some(binding => binding.host.productModelId === `device:${id}`)) return { ok: false, message: '型号仍有正式兼容声明或设备绑定，请先处理引用。' }
+    const next = cloneCompatibility(data)
+    if (!next.deviceModels?.some(model => model.id === id)) return { ok: true }
+    next.deviceModels = next.deviceModels.filter(model => model.id !== id)
+    return commitCompatibilityState(next, { ok: true })
+  }
+
   function unusedCatalogId(prefix: 'fam' | 'sku') {
     let id: string
     do { id = uid(prefix) } while (data.families.some(item => item.id === id) || data.skus.some(item => item.id === id) || data.materialReceipts.some(item => item.skuId === id) || data.compatibilities.some(item => item.accessorySkuId === id))
@@ -248,6 +351,8 @@ export const useCatalogStore = defineStore('catalog', () => {
   function replaceAll(next: AppData) {
     ensureProductListPages(next)
     Object.assign(data, next)
+    if (next.deviceModels === undefined) delete data.deviceModels
+    if (next.deviceBindings === undefined) delete data.deviceBindings
   }
 
   function resetAll() {
@@ -290,10 +395,22 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   function importJson(text: string) {
     const parsed = JSON.parse(text) as StoredPayload
-    const next = normalizeStored(parsed)
+    if (!parsed.data) throw new Error('导入文件缺少商品数据，当前数据没有被替换。')
+    if (!Array.isArray(parsed.data.skus) || !Array.isArray(parsed.data.families)) throw new Error('导入文件缺少有效的商品数组，当前数据没有被替换。')
+    if (!isAdmin.value && JSON.stringify([parsed.data.compatibilities || [], parsed.data.deviceModels, parsed.data.deviceBindings]) !== JSON.stringify([data.compatibilities, data.deviceModels, data.deviceBindings])) throw new Error('当前角色仅可查看适用关系，不能通过导入修改声明或设备绑定。')
+    const compatibilityProblems = compatibilityImportProblems(parsed.data)
+    if (compatibilityProblems.length) throw new Error(`适用关系导入校验失败：${compatibilityProblems.join(' ')} 当前数据没有被替换。`)
+    const next = normalizeStored(parsed, { persist: false })
     if (!next?.params) throw new Error('演示数据版本不匹配，当前数据没有被替换')
     if (migrationStorageError) throw new Error(migrationStorageError)
+    const encoded = JSON.stringify({ version: DATA_VERSION, data: next })
+    try { localStorage.setItem(STORAGE_KEY, encoded) }
+    catch (error) { throw new Error(`无法写入本机：${error instanceof Error ? error.message : String(error)}。当前数据和原存储未改变，可重试导入。`) }
     replaceAll(next)
+    // Object.assign preserves the live object's key order. The imported payload
+    // may have a different order while containing identical data; suppress only
+    // the immediate watch echo of the successfully committed live state.
+    explicitlyPersisted = JSON.stringify({ version: DATA_VERSION, data })
   }
 
   function skusOf(familyId: string) {
@@ -443,7 +560,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     const usedByPlanning = (data.planningRecords || []).some((item) => modelIds.has(item.productModelId)) || (data.productPlans || []).some((item) => item.productTypeId === id)
     const usedByMaterial = data.families.some((item) => item.productTypeId === id) || data.skus.some((sku) => data.families.some((item) => item.id === sku.familyId && item.productTypeId === id))
     const usedByLink = (data.compatibilities || []).some((item) => item.host.productTypeId === id)
-    if (usedByModel || usedByVersion || usedByPlanning || usedByMaterial || usedByLink) return '该产品类型已被商品模型 / 已发布数据引用，不能删除。'
+    const usedByDevice = data.deviceModels?.some(model => model.productTypeId === id) || data.deviceBindings?.some(binding => binding.host.productTypeId === id)
+    if (usedByModel || usedByVersion || usedByPlanning || usedByMaterial || usedByLink || usedByDevice) return '该产品类型已被商品模型 / 已发布数据引用，不能删除。'
     return ''
   }
 
@@ -733,6 +851,11 @@ export const useCatalogStore = defineStore('catalog', () => {
   return {
     data,
     commitSkuPage,
+    commitCompatibilityChanges,
+    commitDeviceBinding,
+    clearDeviceBinding,
+    saveDeviceModel,
+    removeDeviceModel,
     isAdmin,
     resetAll,
     resetModule,

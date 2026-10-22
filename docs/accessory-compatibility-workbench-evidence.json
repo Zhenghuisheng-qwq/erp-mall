@@ -1,0 +1,742 @@
+{
+  "result": "READY",
+  "generatedAt": "2026-10-22T18:20:43.883Z",
+  "branch": "20261022",
+  "head": "a57ff86bb5c52fe6d0185ce84a98e3e416e8495a",
+  "baseline": {
+    "initialWorktree": "clean",
+    "snapshot": "work/accessory-compatibility/baseline.zip",
+    "sha256": "780300ad26e0d66d2053ffcce21f58dacc15abd9c858c7fab13e3f2a2528871a",
+    "source": "git archive of actual HEAD; baseline Vite root isolated from final source",
+    "runner": "work/accessory-compatibility/baseline-checks.mjs"
+  },
+  "worktree": {
+    "changed": [
+      ".gitignore",
+      "README.md",
+      "package.json",
+      "src/domain/compatibility.ts",
+      "src/domain/types.ts",
+      "src/main.ts",
+      "src/stores/catalog.ts",
+      "src/views/CompatibilityView.vue",
+      "src/views/ProductListView.vue",
+      "src/views/SkuEditView.vue",
+      "src/views/SkuWorkbenchView.vue",
+      "src/views/SpuEditView.vue"
+    ],
+    "untracked": [
+      "docs/accessory-compatibility-workbench-evidence.json",
+      "docs/accessory-compatibility-workbench.md",
+      "scripts/accessory-compatibility-fixtures.ts",
+      "scripts/accessory-compatibility-query-check.ts",
+      "scripts/accessory-compatibility-state-check.ts",
+      "scripts/browser-accessory-compatibility.mjs",
+      "src/components/StoredDataRecovery.vue",
+      "src/components/compatibility/AccessoryCompatibilityDrawer.vue",
+      "src/components/compatibility/CompatibilityManager.vue",
+      "src/components/compatibility/DeviceBindingDialog.vue",
+      "src/components/compatibility/LegacyMaterialCompatibility.vue",
+      "src/components/compatibility/compatibilityPresentation.ts",
+      "src/domain/accessoryCompatibilityCommands.ts",
+      "src/domain/accessoryCompatibilityQuery.ts",
+      "src/domain/accessoryCompatibilityTypes.ts",
+      "src/domain/deviceResolution.ts"
+    ],
+    "staged": false,
+    "committed": false,
+    "pushed": false,
+    "merged": false,
+    "deployed": false
+  },
+  "environment": {
+    "os": "win32",
+    "node": "v22.18.0",
+    "browser": "Chrome 155.0.8059.85",
+    "fixedDomainTime": "2026-10-23T04:00:00.000Z",
+    "fixedBrowserDate": "2026-10-23T08:00:00.000Z",
+    "browserNowAdvancesForTimers": true,
+    "realExcel": "D:\\单子\\商城erp\\前期包\\2.0 数据\\1.1 手机 Apple.xlsx",
+    "dataVersion": 15
+  },
+  "outputEnvironment": {
+    "ACCESSORY_BROWSER_OUTPUT": "work/accessory-compatibility/browser-final",
+    "SPU_SKU_OUTPUT_DIR": "work/accessory-compatibility/spu-sku",
+    "SKU_WORKBENCH_OUTPUT_DIR": "work/accessory-compatibility/sku-workbench",
+    "FINAL_OUTPUT_DIR": "work/accessory-compatibility/integration",
+    "SKU_GROUP_OUTPUT_DIR": "work/accessory-compatibility/sku-fixes",
+    "SKU_MIGRATION_FIX_OUTPUT": "work/accessory-compatibility/sku-fixes/migration",
+    "SKU_RESTORE_FIX_OUTPUT_DIR": "work/accessory-compatibility/sku-fixes",
+    "SKU_FIX_OUTPUT_DIR": "work/accessory-compatibility/sku-fixes/browser"
+  },
+  "checks": [
+    {
+      "id": "baseline",
+      "command": "node work/accessory-compatibility/baseline-checks.mjs",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "work/accessory-compatibility/before-checks.log",
+      "logSha256": "18a02034edd533a0d18c469367625ef8b6e5da02c8932d88895f73734a0bd996"
+    },
+    {
+      "id": "accessory",
+      "command": "npm run check:accessory-compatibility",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "work/accessory-compatibility/final-accessory.log",
+      "logSha256": "9ee782d1b8da8076cd9b6a67feebcb80bc71ac2b132255b02d6597b5523bfd93"
+    },
+    {
+      "id": "final-query",
+      "command": "node scripts/run-domain-check.mjs scripts/accessory-compatibility-query-check.ts",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "work/accessory-compatibility/final-query.log",
+      "logSha256": "cfcbb3b5fe7f09050247dcc52455250081df29b9578dc5efc9319d6a2c897a91"
+    },
+    {
+      "id": "existing-domains",
+      "command": "node scripts/run-domain-check.mjs <compatibility-check.ts | sku-workbench-query-check.ts | sku-workbench-state-check.ts | excel-import-check.ts>; npm run check:frontend",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "work/accessory-compatibility/final-domain.log",
+      "logSha256": "163deba2542e9c45da184b05d7ab58423bbe3985653061146a83ddde32ab5464"
+    },
+    {
+      "id": "business-browser",
+      "command": "npm run check:spu-sku; node scripts/browser-sku-workbench.mjs; npm run check:integration -- --business-only",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "work/accessory-compatibility/final-business-browser.log",
+      "logSha256": "48d3ffcb48704b18c311943e9f9bb97e1fb9532c013305047563a02984c34851"
+    },
+    {
+      "id": "prior-three-fixes",
+      "command": "npm run check:sku-views:fixes",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "work/accessory-compatibility/final-sku-fixes.log",
+      "logSha256": "9a4b5755f39b8c4fd02b782b7206dba44dfb406de35955387055afeca4cf4eb7"
+    },
+    {
+      "id": "typecheck",
+      "command": "npm run typecheck",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "work/accessory-compatibility/typecheck.log",
+      "logSha256": "6c2516120eb5629a794521d36e578d7804070e2f7d60031c525f72ec94b1a94b"
+    },
+    {
+      "id": "build",
+      "command": "npm run build",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "work/accessory-compatibility/build.log",
+      "logSha256": "4954c5eb47c50ba83fd1e812d38be8e9f417a7789af1a535ea98de3ec6626f12"
+    },
+    {
+      "id": "test-types",
+      "command": "node node_modules/typescript/bin/tsc --ignoreConfig --noEmit --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck --strict --noUnusedLocals --types node scripts/accessory-compatibility-query-check.ts scripts/accessory-compatibility-state-check.ts scripts/accessory-compatibility-fixtures.ts",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "work/accessory-compatibility/final-check-types.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "whitespaceAndSyntax": {
+    "result": "PASS",
+    "artifact": "work/accessory-compatibility/final-review.json"
+  },
+  "accessoryQuery": {
+    "result": "PASS",
+    "fixedTime": "2026-10-23T04:00:00.000Z",
+    "checks": [
+      {
+        "name": "one device, many types; direct sales and MAT stay independent; confirmed/pending/excluded/off-sale separated",
+        "result": "PASS"
+      },
+      {
+        "name": "one accessory many models; real object and model counts distinct from relation counts",
+        "result": "PASS"
+      },
+      {
+        "name": "missing model and brand-only/name-only records never guess; manual/template explicit bindings and changed source detected",
+        "result": "PASS"
+      },
+      {
+        "name": "template identity uses stable bound param IDs, not brand or names; common/variant conflicts are invalid",
+        "result": "PASS"
+      },
+      {
+        "name": "historical cross-product-type bindings and duplicate explicit bindings stay invalid",
+        "result": "PASS"
+      },
+      {
+        "name": "model/plan/historical SKU use pinned snapshot and actual generation source; plan SKU need not have sku.planningId",
+        "result": "PASS"
+      },
+      {
+        "name": "one read context reuses a frozen version expansion across multiple device resolutions and releases with caller",
+        "result": "PASS"
+      },
+      {
+        "name": "later ProductPlan node/version edits do not rewrite historical SKU device identity or exact PLN",
+        "result": "PASS"
+      },
+      {
+        "name": "same model colors/capacities share model declarations; Pro/Pro Max and other PLN remain isolated",
+        "result": "PASS"
+      },
+      {
+        "name": "same-named models in distinct model namespaces do not merge; ambiguous snapshot not silently first",
+        "result": "PASS"
+      },
+      {
+        "name": "confirmed explicit deny wins across model/PLN scope; pending deny never becomes confirmed recommendation",
+        "result": "PASS"
+      },
+      {
+        "name": "conditional exclusions respect actual attributes: met denies, unmet does not, unknown remains pending",
+        "result": "PASS"
+      },
+      {
+        "name": "conditions use actual attributes; unknown equipment/protocol/power never count as satisfied; basic/fast-charge independent",
+        "result": "PASS"
+      },
+      {
+        "name": "reverse PLN-specific opposite results are not collapsed into unconditional model fact",
+        "result": "PASS"
+      },
+      {
+        "name": "no-basic multiple specific abilities aggregate conservatively and never depend on declaration array order",
+        "result": "PASS"
+      },
+      {
+        "name": "unique confirmed model works without PLN; standalone candidates require no MAT/SKU/active planning",
+        "result": "PASS"
+      },
+      {
+        "name": "legacy MAT defaults retain identity and history; invalid target/type/condition/source stay issues, not recommendations",
+        "result": "PASS"
+      },
+      {
+        "name": "loaded target aliases that disagree or omit target kind are preserved as issues, never reinterpreted as another valid object",
+        "result": "PASS"
+      },
+      {
+        "name": "query and reverse are fully read-only; no node rule becomes a formal statement; search/type filters count actual objects",
+        "result": "PASS"
+      }
+    ],
+    "total": 19
+  },
+  "accessoryState": {
+    "result": "PASS",
+    "environment": {
+      "node": "v22.18.0",
+      "fixedTime": "2026-10-23T04:00:00.000Z",
+      "dataVersion": 15
+    },
+    "checks": [
+      {
+        "name": "preview-cancel-purity",
+        "result": "PASS",
+        "detail": "real batch/copy previews allocate no identity and write no data"
+      },
+      {
+        "name": "actual-storage-failure-retry-idempotency",
+        "result": "PASS",
+        "detail": "next real setItem fails; memory/disk stay identical; retry commits once; duplicate commits zero times"
+      },
+      {
+        "name": "conflict-edit-and-target-validation",
+        "result": "PASS",
+        "detail": "opposite same-range claims do not overwrite; explicit edit preserves id/time; conditional-without-prerequisite and wrong SKU/MAT rejected"
+      },
+      {
+        "name": "explicit-mat-copy-independent-history",
+        "result": "PASS",
+        "detail": "copy preview selected MAT only, keeps source snapshot, later MAT changes do not alter sales declarations; deletion protection retains both identities"
+      },
+      {
+        "name": "binding-confirm-source-and-protection",
+        "result": "PASS",
+        "detail": "binding failure retains memory/disk; rebind requires acknowledgement/current source; model and SKU references protected"
+      },
+      {
+        "name": "independent-device-no-material-required",
+        "result": "PASS",
+        "detail": "can explicitly maintain a model and declaration without device MAT/SKU/planning; quota failure does not create model"
+      },
+      {
+        "name": "export-import-refresh-atomic",
+        "result": "PASS",
+        "detail": "new bindings/statements/source snapshots survive real serialization and reload; failed import preserves original bytes; repeat import does not add relations"
+      },
+      {
+        "name": "legacy-import-and-dangling-reference",
+        "result": "PASS",
+        "detail": "old MAT records retain exact id/range/note/time; repeated normalization stable; dangling declaration retained as issue; wrong object kind rejected before write"
+      },
+      {
+        "name": "maintenance-permission-at-store-boundary",
+        "result": "PASS",
+        "detail": "operator may query but all five maintenance commands reject without writes"
+      },
+      {
+        "name": "migration-storage-failure-retains-history",
+        "result": "PASS",
+        "detail": "readable V14 history remains in memory with explicit failure message; original disk is not cleared or seeded"
+      },
+      {
+        "name": "unreadable-existing-storage-never-seeds",
+        "result": "PASS",
+        "detail": "bad JSON, existing empty payload, missing base array and unsupported version throw a recoverable error; original disk bytes remain, zero writes"
+      }
+    ],
+    "attempts": 20,
+    "writes": 15
+  },
+  "accessoryBrowser": {
+    "result": "PASS",
+    "browser": "155.0.8059.85",
+    "checkpoints": [
+      {
+        "name": "view-detail-reverse-scope-conditions-pure-selection-and-focus"
+      },
+      {
+        "name": "new-declaration-preview-quota-draft-retry-refresh-immediate-results"
+      },
+      {
+        "name": "explicit-material-copy-cancel-confirm-source-snapshot-independent-refresh"
+      },
+      {
+        "name": "unconfigured-device-explicit-binding-refresh"
+      },
+      {
+        "name": "explicit-binding-removal-quota-retry-keeps-declarations"
+      },
+      {
+        "name": "multi-model-spu-explicit-choice"
+      },
+      {
+        "name": "unified-maintenance-entry"
+      },
+      {
+        "name": "readonly-role-view-without-maintenance"
+      },
+      {
+        "name": "drawer-close-preserves-saved-view-search-page-selection-and-scroll"
+      },
+      {
+        "name": "material-only-no-inferred-sale-sku-and-maintenance-guidance"
+      },
+      {
+        "name": "bulk-add-duplicate-preview-pending-exclusion-cancellation"
+      },
+      {
+        "name": "legacy-mat-entry-note-quota-retained-retry-refresh"
+      },
+      {
+        "name": "incomplete-storage-no-seed-download-validate-quota-retry-recovery"
+      },
+      {
+        "name": "dark-desktop",
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "deviceScaleFactor": 1
+      },
+      {
+        "name": "narrow",
+        "viewport": {
+          "width": 780,
+          "height": 900
+        },
+        "deviceScaleFactor": 1
+      },
+      {
+        "name": "equivalent-125-percent",
+        "viewport": {
+          "width": 1093,
+          "height": 614
+        },
+        "deviceScaleFactor": 1.25
+      }
+    ],
+    "screenshots": [
+      "device-sales-light.png",
+      "accessory-reverse.png",
+      "declaration-storage-failure.png",
+      "material-copy-preview.png",
+      "material-only-guidance.png",
+      "incomplete-storage-safe-recovery.png",
+      "dark-desktop.png",
+      "dark-desktop-editor.png",
+      "narrow.png",
+      "narrow-editor.png",
+      "equivalent-125-percent.png",
+      "equivalent-125-percent-editor.png"
+    ],
+    "diagnostics": []
+  },
+  "existingBrowser": {
+    "spuSku": {
+      "result": "PASS",
+      "checkpoints": 12,
+      "diagnostics": []
+    },
+    "skuWorkbench": {
+      "result": "PASS",
+      "checkpoints": 24,
+      "diagnostics": []
+    },
+    "priorThreeFixes": {
+      "result": "PASS",
+      "checkpoints": 7,
+      "diagnostics": []
+    },
+    "coreIntegration": {
+      "result": "PASS",
+      "checkpoints": 13,
+      "listChecks": [],
+      "diagnostics": [
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        },
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        }
+      ],
+      "materials": [
+        {
+          "id": "sku-mvj0iwnk-4",
+          "materialCode": "MAT-000001",
+          "planningId": "PLN-000001",
+          "modelVersionId": "phone-model-v1"
+        },
+        {
+          "id": "sku-mvj0ixfc-6",
+          "materialCode": "MAT-000002",
+          "planningId": "PLN-000001",
+          "modelVersionId": "phone-model-v1"
+        },
+        {
+          "id": "sku-mvj0izqo-9",
+          "materialCode": "MAT-000003",
+          "planningId": "PLN-000001",
+          "modelVersionId": "mv-mvj0iyyw-7"
+        }
+      ]
+    }
+  },
+  "scopeAudit": {
+    "artifact": "work/accessory-compatibility/final-scope-audit.json",
+    "result": "PASS",
+    "protectedCount": 52,
+    "historicalDocsCount": 14,
+    "equality": "Git blob and LF-normalized SHA256; raw CRLF disk bytes may differ"
+  },
+  "finalDisplayChange": {
+    "files": [
+      "src/domain/accessoryCompatibilityQuery.ts",
+      "src/components/compatibility/compatibilityPresentation.ts",
+      "src/components/compatibility/AccessoryCompatibilityDrawer.vue"
+    ],
+    "reason": "Include saved common and variant specifications consistently with existing savedSkuSpec/projectAttrs",
+    "repeated": [
+      "accessory",
+      "final-query",
+      "typecheck",
+      "build",
+      "test-types"
+    ]
+  },
+  "screenshotsReviewed": [
+    "device-sales-light.png",
+    "material-copy-preview.png",
+    "incomplete-storage-safe-recovery.png",
+    "dark-desktop.png",
+    "narrow.png",
+    "equivalent-125-percent-editor.png"
+  ],
+  "knownWarnings": [
+    "Existing build chunks over 500 kB",
+    "Two existing Vue Flow options deprecation warnings in core integration",
+    "One old runner HMR port 24678 contention message during parallel checks; exit 0 and assertions passed"
+  ],
+  "evidenceIncident": {
+    "file": "work/sku-workbench-fixes/migration/after-result.json",
+    "cause": "Initial baseline invocation omitted old output environment variable",
+    "impact": "One ignored historical test artifact overwritten; original bytes unavailable. Not used as current evidence. Tracked historical reports and business data preserved.",
+    "correction": "Explicit isolated output environment and original HEAD checks rerun"
+  },
+  "unverified": [
+    "Native Windows 125% zoom; equivalent CSS viewport/DPR tested",
+    "Edge, WebKit, macOS Safari, physical touchpad and exhaustive device/browser matrix",
+    "Real accessory electrical/protocol/power performance",
+    "User daily browser storage migration/recovery; isolated contexts tested"
+  ],
+  "artifacts": [
+    {
+      "path": "work/accessory-compatibility/baseline.zip",
+      "sha256": "780300ad26e0d66d2053ffcce21f58dacc15abd9c858c7fab13e3f2a2528871a",
+      "bytes": 1288293
+    },
+    {
+      "path": "work/accessory-compatibility/baseline-head.txt",
+      "sha256": "9ee4fe8a5325d245369f4b73ee22e2623d9d395561d1e4fc834fdd756c09f1ff",
+      "bytes": 42
+    },
+    {
+      "path": "work/accessory-compatibility/baseline-checks.mjs",
+      "sha256": "d3a2f637869393a286134b4f928c03c6fd1c64831effb30421754c9a0a2942e3",
+      "bytes": 965
+    },
+    {
+      "path": "work/accessory-compatibility/query-result.json",
+      "sha256": "f343b31d7502769ff0ee126e8c60afdb2bc3db1259e14b6ecd695e13855be591",
+      "bytes": 3113
+    },
+    {
+      "path": "work/accessory-compatibility/state/result.json",
+      "sha256": "87fe8643c9a1978f57b0b79141b4856024e0b7ed21dae2461900aa273b3e141b",
+      "bytes": 2721
+    },
+    {
+      "path": "work/accessory-compatibility/browser-final/result.json",
+      "sha256": "25d12c392a38aa61e806738af25837eb006852a7d2bae4d91ebf2c04fc9ec696",
+      "bytes": 2026
+    },
+    {
+      "path": "work/accessory-compatibility/spu-sku/result.json",
+      "sha256": "ad03905d6556ca2346b06e6c135ff5e9f9eacf495d9060365a9a3da5eebec14d",
+      "bytes": 1479474
+    },
+    {
+      "path": "work/accessory-compatibility/sku-workbench/result.json",
+      "sha256": "d8dd1272dc4511de8203bb18257eed2f4d7f08fcaee64e3115c8865a549e8536",
+      "bytes": 3056
+    },
+    {
+      "path": "work/accessory-compatibility/sku-fixes/browser/result.json",
+      "sha256": "0ba7f639e9c304d62f8d7a0c2d37c9a2776e81a93d5afb2c1a5209e6476eaf94",
+      "bytes": 165102
+    },
+    {
+      "path": "work/accessory-compatibility/integration/result.json",
+      "sha256": "87e2906a82340809a7a2325432b8db1e90f0efbb8a69f3f4736b6a7c47fd69a8",
+      "bytes": 1978
+    },
+    {
+      "path": "work/accessory-compatibility/final-scope-audit.json",
+      "sha256": "53463648aa1e61fc2aee42a01785f5e74cb4b557b87e2c0e6f7ea8d8f301e199",
+      "bytes": 44526
+    },
+    {
+      "path": "work/accessory-compatibility/final-review.json",
+      "sha256": "dad4f98b3514599aac945a8453eacb353904785220727afc5b5ed6a9dd6e6342",
+      "bytes": 8605
+    },
+    {
+      "path": "work/accessory-compatibility/browser-final/device-sales-light.png",
+      "sha256": "3b5102f475a540b60598b70ff05a69b95716ee765fae710cc455683a56a716cb",
+      "bytes": 104485
+    },
+    {
+      "path": "work/accessory-compatibility/browser-final/accessory-reverse.png",
+      "sha256": "d7a7c39d15d4b64e4ff82fc58165342df8af9a31d6bf9d75628c7da782bb8713",
+      "bytes": 107400
+    },
+    {
+      "path": "work/accessory-compatibility/browser-final/declaration-storage-failure.png",
+      "sha256": "2c934ed38b8772f30b1a581cb0548ce45b12448c602d2c50023bb9aa7ac47659",
+      "bytes": 99849
+    },
+    {
+      "path": "work/accessory-compatibility/browser-final/material-copy-preview.png",
+      "sha256": "2eb305117a2c54e3e410090828ea4e0791b02462c634c70cd10ff716bcf10911",
+      "bytes": 119777
+    },
+    {
+      "path": "work/accessory-compatibility/browser-final/material-only-guidance.png",
+      "sha256": "8838dab94fdb8ddfd728a14a1125da409fb965450cccbcee75f3ac2c157eee2a",
+      "bytes": 104641
+    },
+    {
+      "path": "work/accessory-compatibility/browser-final/incomplete-storage-safe-recovery.png",
+      "sha256": "64aad0bb9c2a49ffdf7447ec0e9c426f148d6712305eb5e2801561975d4d76a7",
+      "bytes": 46776
+    },
+    {
+      "path": "work/accessory-compatibility/browser-final/dark-desktop.png",
+      "sha256": "f5a63ab5bbaebe77fbd6bdb8e4864cf4247555640359ca0e5e6a41b05d70c8a4",
+      "bytes": 108181
+    },
+    {
+      "path": "work/accessory-compatibility/browser-final/dark-desktop-editor.png",
+      "sha256": "af36527a8ccf95925ed15e4f4048f8a51b5ed650f3854a6c8b6dee8833cc25db",
+      "bytes": 107207
+    },
+    {
+      "path": "work/accessory-compatibility/browser-final/narrow.png",
+      "sha256": "9bd102c78cb8b4e11fe52ed4e8f6fb4c39929cbc27077acbc06768299f5c8c83",
+      "bytes": 53619
+    },
+    {
+      "path": "work/accessory-compatibility/browser-final/narrow-editor.png",
+      "sha256": "6984ff3a6d893ea4650551a59d5ef60eb4ea57aa9470e70977eb6abcff4a201c",
+      "bytes": 45466
+    },
+    {
+      "path": "work/accessory-compatibility/browser-final/equivalent-125-percent.png",
+      "sha256": "c3cfd98c3a49a09210e878588d471c525e6c67d079aaf501ce26b96556549460",
+      "bytes": 83870
+    },
+    {
+      "path": "work/accessory-compatibility/browser-final/equivalent-125-percent-editor.png",
+      "sha256": "ba84338be2157cc956c89f5e96d19747b958c86c0366e65016d2739c3f6d1eb0",
+      "bytes": 79791
+    }
+  ],
+  "finalSource": [
+    {
+      "path": ".gitignore",
+      "sha256": "dc27c7e36a552897bae2d8e48921d2ee454b8e37d2e43f190a02f3621a8965ac",
+      "bytes": 619
+    },
+    {
+      "path": "README.md",
+      "sha256": "392ce0a38fbbf35728154956de2fa34b23f6388dee24a1376bad7f00ced4bfe5",
+      "bytes": 4148
+    },
+    {
+      "path": "package.json",
+      "sha256": "2183323486b0d9ea7ca6252f2f312ed17073de9ff18830cef74af5c6bb1c2c21",
+      "bytes": 2403
+    },
+    {
+      "path": "src/domain/compatibility.ts",
+      "sha256": "832695cccaa5173d5b68ed43b3f981db9ba28fafc33d290aa4881ecf7d867732",
+      "bytes": 16460
+    },
+    {
+      "path": "src/domain/types.ts",
+      "sha256": "20d0ab29c2a4a18e60baa322bb62beba65e2830fedfdbf3ec7ae9079904e4fb8",
+      "bytes": 20347
+    },
+    {
+      "path": "src/main.ts",
+      "sha256": "f0336e823d6bd23cbadda5e7f6bfce33e2c208a86269363369e5d5b780161a44",
+      "bytes": 940
+    },
+    {
+      "path": "src/stores/catalog.ts",
+      "sha256": "5beb9548129a5c77f1008d61c8ed2b4669d924b2cc1dc810304593a1933a4f26",
+      "bytes": 45330
+    },
+    {
+      "path": "src/views/CompatibilityView.vue",
+      "sha256": "151503025b2727df66a8b901f9fe69e45d78bae08207e1372a84eaa09c8b537d",
+      "bytes": 2396
+    },
+    {
+      "path": "src/views/ProductListView.vue",
+      "sha256": "3f602f955c28d349fccb44484bfbf77df0c84c0820523c502b6a01bffcc872fd",
+      "bytes": 48866
+    },
+    {
+      "path": "src/views/SkuEditView.vue",
+      "sha256": "e230cd2470a665dd087069bdb7c3d9a2b2b718a5503221642ad46439c8c21d5b",
+      "bytes": 4030
+    },
+    {
+      "path": "src/views/SkuWorkbenchView.vue",
+      "sha256": "03e68d0fb83ae3a4c7c989b787f6f1196f91240fda9f098653b526f722dfa57f",
+      "bytes": 35438
+    },
+    {
+      "path": "src/views/SpuEditView.vue",
+      "sha256": "278f3f5dc410090462a5af8950e306a6ef401ae225232311bc67f3f8ccf78f80",
+      "bytes": 5125
+    },
+    {
+      "path": "docs/accessory-compatibility-workbench.md",
+      "sha256": "5fc4118ab1dfb4eb7ba8e0bb3b1c6ea07dd20e62e7d28c6733f8b55961ed90b6",
+      "bytes": 25367
+    },
+    {
+      "path": "scripts/accessory-compatibility-fixtures.ts",
+      "sha256": "f3fa9201c84362828f665b85b5a7aace25ae1c2a1814d5bcf113eadac258511d",
+      "bytes": 8837
+    },
+    {
+      "path": "scripts/accessory-compatibility-query-check.ts",
+      "sha256": "3c599aa459f4a6ec056b6549b40bcec8a0a0827a6b52f1714f6099a1488bd115",
+      "bytes": 27116
+    },
+    {
+      "path": "scripts/accessory-compatibility-state-check.ts",
+      "sha256": "d3e445a65bd0b5d2c40cb5716592b584fd69f3249e1afe11434206b90cf44760",
+      "bytes": 21486
+    },
+    {
+      "path": "scripts/browser-accessory-compatibility.mjs",
+      "sha256": "2020e80b0538b4fdb322dc4c6aedc3f07c94ee7749d7cb1b8c22fca8318668a1",
+      "bytes": 29231
+    },
+    {
+      "path": "src/components/StoredDataRecovery.vue",
+      "sha256": "6efe2682828093f4d840a9034ebb83a2b0cb707432219a87bdbecc9136231f03",
+      "bytes": 3808
+    },
+    {
+      "path": "src/components/compatibility/AccessoryCompatibilityDrawer.vue",
+      "sha256": "58ee6c2b74f417e1ed4d538c655dced9456cd2bcefd9eaa658945b523f7a34d0",
+      "bytes": 20352
+    },
+    {
+      "path": "src/components/compatibility/CompatibilityManager.vue",
+      "sha256": "c586e3ca40c399d42c008c947a3a4e7d3b00a3c1c5797adac747d312cc8e4e45",
+      "bytes": 29354
+    },
+    {
+      "path": "src/components/compatibility/DeviceBindingDialog.vue",
+      "sha256": "fc312b4baca0753b490ca501eeedc5e97f28b131368448ef4740d415b4a974c2",
+      "bytes": 9072
+    },
+    {
+      "path": "src/components/compatibility/LegacyMaterialCompatibility.vue",
+      "sha256": "287ab562f05db3e041600005cfe2e319d1863ac1e5912641764901dbe4047e7a",
+      "bytes": 18028
+    },
+    {
+      "path": "src/components/compatibility/compatibilityPresentation.ts",
+      "sha256": "45db5997187c0c5dc3fe71e210d06c33ca00be150a5f99b91f78640a01b63af3",
+      "bytes": 2937
+    },
+    {
+      "path": "src/domain/accessoryCompatibilityCommands.ts",
+      "sha256": "29299390d747fed1e33de017f04845012b4324d1856de88675b311f67470e547",
+      "bytes": 18547
+    },
+    {
+      "path": "src/domain/accessoryCompatibilityQuery.ts",
+      "sha256": "35f832daa4fa97c38852d99f251a487ccf982d2613a79ffd0291b9f487029b33",
+      "bytes": 18790
+    },
+    {
+      "path": "src/domain/accessoryCompatibilityTypes.ts",
+      "sha256": "a705539a6117c5d457bef7b566d16b0a68ec8b7d0018c673ae5e5ef40e211b9d",
+      "bytes": 4024
+    },
+    {
+      "path": "src/domain/deviceResolution.ts",
+      "sha256": "e39168c71db9062ac20455a19d639bbdde878f2bc75087aeadf28a3409c7be63",
+      "bytes": 18297
+    }
+  ]
+}

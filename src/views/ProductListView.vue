@@ -168,7 +168,8 @@
         </el-table-column>
         <el-table-column label="操作" width="390" fixed="right">
           <template #default="{ row }">
-            <el-button v-if="row.line === 'v3'" link type="primary" @click="router.push(compatTarget(row))">{{ compatTitle(row) }}</el-button>
+            <el-button v-if="compatibilityFamilyRole(store.data, row.id) === 'host' && realCount(row.id)" link type="primary" :data-spu-compatibility="row.id" @click.stop="openCompatibilityFamily(row.id)">适用配件</el-button>
+            <el-button v-else-if="row.line === 'v3'" link type="primary" @click="router.push(compatTarget(row))">{{ compatTitle(row) }}</el-button>
             <el-button link type="primary" @click="router.push(`/spus/${row.id}`)">编辑 SPU</el-button>
             <el-button link @click="router.push({ path: '/skus/new', query: { spu: row.id } })">新增 SKU</el-button>
             <el-button v-if="row.line === 'v3'" link @click="router.push(`/materials/${row.id}`)">管理物料</el-button>
@@ -254,6 +255,7 @@
       @value="setConditionValue" @remove="removeCondition"
       @expose="(field, exposed) => setViewExposed(listData, field, exposed)"
     />
+    <AccessoryCompatibilityDrawer v-model="compatibilityOpen" :family-id="compatibilityFamilyId" />
   </div>
 </template>
 
@@ -263,6 +265,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CategoryFilterTree from '../components/CategoryFilterTree.vue'
 import ProductListFilterDialog from '../components/product-list/ProductListFilterDialog.vue'
+import AccessoryCompatibilityDrawer from '../components/compatibility/AccessoryCompatibilityDrawer.vue'
+import { compatibilityFamilyRole } from '../domain/deviceResolution'
 import { conditionRange, filterOperators, filterSummaries, quickFilterState, type FilterEditorRow, type FilterField } from '../components/product-list/filterPresentation'
 import PageHead from '../components/PageHead.vue'
 import ProductListViewTools from '../components/product-list/ProductListViewTools.vue'
@@ -282,6 +286,8 @@ import { uid, useCatalogStore } from '../stores/catalog'
 
 const { mode } = defineProps<{ mode: ProductListMode }>()
 const store = useCatalogStore()
+const compatibilityOpen = ref(false), compatibilityFamilyId = ref('')
+function openCompatibilityFamily(id: string) { compatibilityFamilyId.value = id; compatibilityOpen.value = true }
 const router = useRouter()
 const route = useRoute()
 const scopeId = computed(() => mode === 'sku' && typeof route.query.spu === 'string' ? route.query.spu : '')

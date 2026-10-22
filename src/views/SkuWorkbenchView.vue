@@ -95,7 +95,7 @@
                   <span v-else>{{ displayCell(row.id, column.key, row) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="280"><template #default="{ row }"><el-button link type="primary" @click="router.push({ path: `/skus/${row.id}`, query: scopeId ? { spu: scopeId } : {} })">编辑 SKU</el-button><el-button link @click="router.push(`/spus/${row.familyId}`)">查看 SPU</el-button><el-button link type="danger" @click="removeOne(row.id)">删除</el-button><el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'before')">插到前面</el-button><el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'after')">插到后面</el-button></template></el-table-column>
+              <el-table-column label="操作" width="340"><template #default="{ row }"><el-button v-if="compatibilityRoles.get(row.id) !== 'other'" link type="primary" :data-open-compatibility="row.id" @click.stop="openCompatibility(row.id)">{{ compatibilityRoles.get(row.id) === 'host' ? '适用配件' : '适用主机' }}</el-button><el-button link type="primary" @click="router.push({ path: `/skus/${row.id}`, query: scopeId ? { spu: scopeId } : {} })">编辑 SKU</el-button><el-button link @click="router.push(`/spus/${row.familyId}`)">查看 SPU</el-button><el-button link type="danger" @click="removeOne(row.id)">删除</el-button><el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'before')">插到前面</el-button><el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'after')">插到后面</el-button></template></el-table-column>
               <template #empty><div class="empty-state" data-empty="sku"><strong>{{ emptyTitle }}</strong><p class="muted">{{ emptyDetail }}</p><el-button v-if="!scopeId" @click="router.push('/skus/new')">新增 SKU</el-button></div></template>
             </el-table>
           </template>
@@ -105,6 +105,7 @@
     </div>
     <SkuFilterDialog v-model="filterOpen" :data="store.data" :config="config" :view-name="currentView.name" :scope-id="scopeId" :now="now" @apply="applyConfig" />
     <SkuDisplayDialog v-model="displayOpen" :data="store.data" :config="config" :tab="displayTab" @apply="applyConfig" />
+    <AccessoryCompatibilityDrawer v-model="compatibilityOpen" :sku-id="compatibilitySkuId" />
     <el-dialog v-model="nameOpen" :title="nameAction" width="420px" :close-on-click-modal="false" @closed="nameError = ''">
       <el-input v-model="draftName" placeholder="视图名称" maxlength="80" @keyup.enter="submitName" />
       <el-checkbox v-if="scopeId && nameAction !== '重命名视图'" v-model="includeScope">将当前 SPU 范围保存为条件</el-checkbox>
@@ -124,6 +125,8 @@ import PageHead from '../components/PageHead.vue'
 import CategoryFilterTree from '../components/CategoryFilterTree.vue'
 import SkuFilterDialog from '../components/product-list/sku/SkuFilterDialog.vue'
 import SkuDisplayDialog from '../components/product-list/sku/SkuDisplayDialog.vue'
+import AccessoryCompatibilityDrawer from '../components/compatibility/AccessoryCompatibilityDrawer.vue'
+import { compatibilityRecordRole } from '../domain/deviceResolution'
 import { useSkuWorkbench } from '../components/product-list/useSkuWorkbench'
 import { useProductListCategoryLayout } from '../components/product-list/useProductListCategoryLayout'
 import { useProductListManualOrder } from '../components/product-list/useProductListManualOrder'
@@ -148,6 +151,8 @@ const now = ref(new Date()), filterOpen = ref(false), displayOpen = ref(false), 
 const viewsOpen = ref(false), moreOpen = ref(false), viewSearch = ref(''), expandedSummary = ref(false)
 const nameOpen = ref(false), nameAction = ref('新建视图'), draftName = ref(''), includeScope = ref(false), nameError = ref('')
 const selectedIds = ref<string[]>([]), selectionNotice = ref(''), collapsed = reactive<Record<string, boolean>>({}), stageOpen = ref(false)
+const compatibilityOpen = ref(false), compatibilitySkuId = ref('')
+function openCompatibility(id: string) { compatibilitySkuId.value = id; compatibilityOpen.value = true }
 const scopeSearch = ref(''), scopePage = ref(1)
 const pageSettings = computed(() => store.data.productListPages?.sku)
 const page = computed({ get: () => scopeId.value ? scopePage.value : pageSettings.value?.query.page || 1, set: value => { if (scopeId.value) scopePage.value = value; else if (pageSettings.value) pageSettings.value.query.page = value } })
@@ -155,6 +160,7 @@ const pageSize = computed(() => pageSettings.value?.query.pageSize || 10)
 const search = computed({ get: () => scopeId.value ? scopeSearch.value : pageSettings.value?.query.keyword || '', set: value => { if (scopeId.value) scopeSearch.value = value; else if (pageSettings.value) pageSettings.value.query.keyword = value; page.value = 1 } })
 watch(scopeId, () => { scopeSearch.value = ''; scopePage.value = 1 })
 const presentation = computed(() => querySkuWorkbench(store.data, config.value, { scopeId: scopeId.value, search: search.value, page: page.value, pageSize: pageSize.value, now: now.value }))
+const compatibilityRoles = computed(() => new Map(presentation.value.rows.map(row => [row.id, compatibilityRecordRole(store.data, row.id)])))
 const fields = computed(() => skuFields(store.data))
 const fieldById = computed(() => new Map(fields.value.map(field => [field.id, field])))
 const visibleColumns = computed(() => config.value.columns.filter(column => column.visible))
