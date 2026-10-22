@@ -10,7 +10,8 @@
     "typecheck": "vue-tsc -b",
     "check:frontend": "node scripts/check-frontend.mjs",
     "check:integration": "node scripts/browser-frontend-final.mjs",
-    "check:spu-sku": "node scripts/run-domain-check.mjs scripts/spu-sku-check.ts && node scripts/browser-spu-sku.mjs"
+    "check:spu-sku": "node scripts/run-domain-check.mjs scripts/spu-sku-check.ts && node scripts/browser-spu-sku.mjs",
+    "check:navigation-filter": "node scripts/run-domain-check.mjs scripts/navigation-filter-check.ts && node scripts/browser-navigation-filter.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",

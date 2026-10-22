@@ -57,6 +57,12 @@ npm run build
 
 浏览器检查使用独立上下文和项目的 playwright-core，需要已安装 Chrome；可用 `BROWSER_CHANNEL=msedge` 选择 Edge。不会读取或清空日常浏览器数据。
 
+## 导航与商品筛选
+
+顶部按钮统一展开/收起导航；左下“导航设置”保留单栏/双栏偏好。SPU/SKU 列表通过“商品分类”和“更多筛选”即时筛选；“列表设置”集中管理常驻分类栏、列、排序、分组和保存视图。
+
+本轮迁移规则、检查与截图见 [导航与筛选验收报告](docs/frontend-navigation-filter-ux.md)。`npm run check:navigation-filter` 使用独立浏览器上下文及开工源码快照；可用 `NAV_FILTER_BASELINE` 指定基线目录，缺失时会明确失败。
+
 ## 历史验收：V2 模型选择器
 
 商品模型设计器允许属性下面再挂属性。新增商品选择器必须按当前节点路径展开，不要把同级属性自动提升到当前页。

@@ -51,10 +51,10 @@ export function filterSummaries(query: ProductListModeQuery, fields: FilterField
     const field = fields.find(item => item.field === filter.field)
     if (!field) continue // The query engine ignores unavailable fields too.
     const values = (Array.isArray(filter.value) ? filter.value : typeof filter.value === 'string' ? [filter.value] : []).map(value => value.trim()).filter(Boolean)
-    const range = conditionRange(filter)
+    const range = conditionRange(filter)?.map(value => value.trim())
     let text: string
     if (filter.operator === 'between') {
-      if (!range) continue
+      if (!range || !range.some(Boolean)) continue
       text = `${range[0] || '不限开始'} 至 ${range[1] || '不限结束'}（含边界）`
     } else {
       if (!values.length && filter.operator !== 'before' && filter.operator !== 'after') continue

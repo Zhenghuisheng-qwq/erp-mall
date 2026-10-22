@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process'
 const checks = [
   // Query already runs list/view/category/manual-order/naming/combo/archive checks.
   'product-list-query', 'category-tree-select', 'planning', 'draft-combo',
-  'material', 'consistency', 'layout', 'round5', 'round1', 'spu-sku',
+  'material', 'consistency', 'layout', 'round5', 'round1', 'spu-sku', 'navigation-filter',
 ]
 for (const name of checks) {
   const entry = `scripts/${name}-check.ts`

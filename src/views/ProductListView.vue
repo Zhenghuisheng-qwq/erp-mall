@@ -22,7 +22,7 @@
         <el-select v-if="mode === 'sku'" :model-value="scopeId" filterable clearable placeholder="筛选所属 SPU" style="width: 220px" data-list-spu @change="(id: string) => router.push({ path: '/skus', query: id ? { spu: id } : {} })"><el-option v-for="item in store.data.families" :key="item.id" :value="item.id" :label="`${item.name} · ${item.oaProductId || item.id}`" /></el-select>
         <el-input :model-value="activeQuery.keyword" placeholder="名称、分类、属性、SKU、OA 编号" clearable style="width: 260px" data-filter="keyword" @update:model-value="onKeyword" />
         <span v-if="showSidebar" class="category-chip" data-category-chip :title="categoryButtonText">{{ categoryButtonText }}</span>
-        <el-popover v-else v-model:visible="categoryOpen" trigger="click" placement="bottom-start" :width="300" popper-class="product-category-pop">
+        <el-popover v-else v-model:visible="categoryOpen" :hide-after="0" trigger="click" placement="bottom-start" :width="300" popper-class="product-category-pop">
           <template #reference><el-button data-category-trigger :title="categoryButtonText">{{ categoryButtonText }}</el-button></template>
           <template v-if="!categoryQuick.simple"><p>分类使用高级条件，请在更多筛选中管理。</p><el-button @click="categoryOpen = false; filterOpen = true">管理分类条件</el-button><el-button @click="clearCategory">清除分类</el-button></template>
           <CategoryFilterTree v-else closable :categories="store.data.categories" :selected-ids="selectedCategoryIds" @toggle="toggleCategory" @clear="clearCategory" @close="categoryOpen = false" />
@@ -769,7 +769,6 @@ watch(
 .active-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
 .active-filters :deep(.el-tag) { max-width: 100%; height: auto; min-height: 24px; white-space: normal; overflow-wrap: anywhere; }
 .active-filters :deep(.el-tag__content) { min-width: 0; }
-.category-chip button { border: 0; background: transparent; color: var(--el-color-primary); cursor: pointer; }
 .list-switch { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
 .filters > * { max-width: 100%; }
 .filters [data-category-trigger] { height: auto; min-height: 32px; white-space: normal; text-align: left; }
@@ -783,7 +782,7 @@ watch(
 .drag-handle { cursor: grab; color: var(--text-secondary, #607089); user-select: none; }
 .stage-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .sku-expand { padding: 0 12px 8px; }
-.group-head { display: block; width: 100%; margin: 8px 0 4px; padding: 8px 10px; border: 0; border-radius: 6px; background: var(--surface-muted, #f4f7fb); color: inherit; text-align: left; cursor: pointer; }
+.group-head { display: block; width: 100%; margin: 8px 0 4px; padding: 8px 10px; border: 0; border-radius: 6px; background: var(--app-surface-muted); color: inherit; text-align: left; cursor: pointer; }
 .warn { color: var(--el-color-danger); font-size: 13px; }
 </style>
 

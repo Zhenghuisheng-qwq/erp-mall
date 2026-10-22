@@ -22,10 +22,10 @@
               <el-icon :size="18"><component :is="group.icon" /></el-icon>
               <span>{{ group.title }}</span>
             </template>
-            <el-menu-item v-for="item in group.items" :key="item.index" :index="item.index"><a :href="hrefOf(item.index)" @click.stop="go($event, item.index)">{{ item.title }}</a></el-menu-item>
+            <el-menu-item v-for="item in group.items" :key="item.index" :index="item.index"><a :href="hrefOf(item.index)" :aria-current="active === item.index ? 'page' : undefined" @click.stop="go($event, item.index)">{{ item.title }}</a></el-menu-item>
             <el-sub-menu v-for="section in group.sections" :key="section.key" :index="section.key">
               <template #title>{{ section.title }}</template>
-              <el-menu-item v-for="leaf in section.items" :key="leaf.index" :index="leaf.index"><a :href="hrefOf(leaf.index)" @click.stop="go($event, leaf.index)">{{ leaf.title }}</a></el-menu-item>
+              <el-menu-item v-for="leaf in section.items" :key="leaf.index" :index="leaf.index"><a :href="hrefOf(leaf.index)" :aria-current="active === leaf.index ? 'page' : undefined" @click.stop="go($event, leaf.index)">{{ leaf.title }}</a></el-menu-item>
             </el-sub-menu>
           </el-sub-menu>
         </el-menu>

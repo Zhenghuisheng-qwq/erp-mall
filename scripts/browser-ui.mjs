@@ -17,19 +17,18 @@ export async function waitUiSettled(page) {
 export async function openTools(page) {
   await waitUiSettled(page)
   const tools = page.locator('.view-tools')
+  // Finish a possible previous closing transition before deciding whether to open.
+  async function settle() {
+    if (await tools.count()) await tools.evaluate(async node => {
+      const popper = node.closest('.el-popper')
+      await Promise.all((popper?.getAnimations({ subtree: true }) || []).map(animation => animation.finished.catch(() => {})))
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    })
+  }
+  await settle()
   if (!(await tools.isVisible())) await page.getByRole('button', { name: '列表设置', exact: true }).click()
   await tools.waitFor()
-  if (!(await tools.isVisible())) {
-    await page.getByRole('button', { name: '列表设置', exact: true }).click()
-    await tools.waitFor()
-  }
-  // Popper repositions after the panel measures its content; dragging must start
-  // from its final geometry rather than from a frame of the opening transition.
-  await tools.evaluate(async node => {
-    const popper = node.closest('.el-popper')
-    await Promise.all((popper?.getAnimations({ subtree: true }) || []).map(animation => animation.finished))
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-  })
+  await settle()
 }
 
 export async function closeTools(page) {
@@ -102,7 +101,8 @@ export async function pickToolSelect(page, placeholder, option) {
 
 export async function setCategorySidebar(page, enabled) {
   await openTools(page)
-  await page.locator('.view-tools').getByRole('checkbox', { name: '常驻分类栏', exact: true }).setChecked(enabled)
+  const checkbox = page.locator('.view-tools .el-checkbox').filter({ hasText: '常驻分类栏' })
+  if (await checkbox.locator('input').isChecked() !== enabled) await checkbox.click()
   await closeTools(page)
   if (enabled && await page.getByRole('button', { name: '展开分类栏', exact: true }).isVisible()) await page.getByRole('button', { name: '展开分类栏', exact: true }).click()
 }

@@ -10,7 +10,7 @@ const output = resolve(process.env.NAV_FILTER_OUTPUT_DIR || 'work/navigation-fil
 const baselineRoot = resolve(process.env.NAV_FILTER_BASELINE || 'work/navigation-filter/baseline')
 if (!existsSync(resolve(baselineRoot, 'src/layouts/RailNav.vue'))) throw new Error(`Missing pre-change source snapshot: ${baselineRoot}. Set NAV_FILTER_BASELINE to the complete source of commit 5e6e74e2c1997b2ffe58f3473bd5be2f660bc64c (including uncommitted source if used).`)
 mkdirSync(output, { recursive: true })
-const servers = [], checkpoints = [], diagnostics = []
+const servers = [], checkpoints = [], diagnostics = [], windowDiagnostics = []
 let browser, page
 const business = data => Object.fromEntries(Object.entries(data).filter(([key]) => !['productListPages', 'productListViews', 'activeProductListViewId', 'listQuery', 'listViews', 'activeViewId', 'activeRole'].includes(key)))
 try {
@@ -19,9 +19,12 @@ try {
     const server = await createServer({ root, server: { host: '127.0.0.1', port: 0, open: false, watch: null } }); servers.push(server); await server.listen()
     return `http://127.0.0.1:${server.httpServer.address().port}`
   }
-  async function context() {
+  async function context(source = 'final') {
     const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 }, locale: 'zh-CN', timezoneId: 'Asia/Shanghai', reducedMotion: 'reduce' })
+    await ctx.exposeBinding('__recordWindowError', ({ page }, message) => windowDiagnostics.push({ source, url: page.url(), message }))
     await ctx.addInitScript(() => {
+      if (location.protocol !== 'http:') return // A newly opened tab starts on opaque about:blank.
+      window.addEventListener('error', event => window.__recordWindowError(event.message))
       if (!localStorage.getItem('iyge-v2-theme')) localStorage.setItem('iyge-v2-theme', 'light')
       const RealDate = Date, epoch = RealDate.parse('2026-10-22T04:00:00.000Z'), started = RealDate.now()
       window.Date = class extends RealDate { constructor(...args) { super(...(args.length ? args : [epoch])) } static now() { return epoch + RealDate.now() - started } }
@@ -130,7 +133,7 @@ try {
   check('escape-layer-priority')
 
   const names = () => page.locator('.spu-table button[data-family-id]').allInnerTexts()
-  async function openCategory() { if (await page.locator('[data-category-side]').isVisible()) return; await page.locator('[data-category-trigger]').click(); await page.locator('[data-category-tree]:visible').waitFor() }
+  async function openCategory() { if (await page.locator('[data-category-side]').isVisible()) return; await page.locator('[data-category-trigger]').click(); await page.locator('.product-category-pop:visible').waitFor() }
   const tree = () => page.locator('[data-category-tree]:visible')
   async function category(id, search) { await tree().getByPlaceholder('搜索分类').fill(search); await tree().locator(`[data-category-id="${id}"]`).click() }
   await openCategory(); await category('c-phone', '手机'); const phone = await names(); assert.ok(phone.some(name => name.includes('iPhone'))); assert.ok(!phone.some(name => name.includes('Watch')))
@@ -171,7 +174,7 @@ try {
   await shot('filters-summary-advanced')
   await page.locator('[data-filter-summary="brand-b"] .el-tag__close').click(); assert.deepEqual((await activeQuery()).filters, complex.filter(item => item.id !== 'brand-b'))
   assert.ok(await page.locator('[data-exposed="brand"]').isVisible())
-  await page.locator('[data-filter="keyword"] input').fill('查无此商品'); await page.locator('[data-empty="spu"]').waitFor(); assert.match(await page.locator('[data-active-filters]').innerText(), /查无此商品/)
+  await page.locator('input[data-filter="keyword"], [data-filter="keyword"] input').fill('查无此商品'); await page.locator('[data-empty="spu"]').waitFor(); assert.match(await page.locator('[data-active-filters]').innerText(), /查无此商品/)
   const beforeClear = await activeQuery(); const colsBefore = (await read()).productListPages.spu.views[0].spuColumns
   await button('清空筛选').click(); const afterClear = await activeQuery()
   assert.equal(afterClear.keyword, ''); assert.deepEqual(afterClear.filters, []); assert.deepEqual(afterClear.sorting, beforeClear.sorting); assert.deepEqual(afterClear.grouping, beforeClear.grouping); assert.deepEqual((await read()).productListPages.spu.views[0].spuColumns, colsBefore)
@@ -194,17 +197,37 @@ try {
   }
   await page.setViewportSize({ width: 1600, height: 1000 }); await flush(); assert.ok(await page.locator('[data-category-side]').isVisible())
   await page.reload({ waitUntil: 'networkidle' }); assert.deepEqual(await names(), widthNames); assert.ok(await page.locator('[data-category-side]').isVisible())
-  await page.locator('.theme-switch').click(); await shot('filters-dark'); await page.locator('.theme-switch').click()
+  await page.locator('.theme-switch').click(); await shot('filters-dark');
+  const groupContrast = await page.locator('.group-head').first().evaluate(node => {
+    const style = getComputedStyle(node)
+    const luminance = color => color.match(/[\d.]+/g).slice(0, 3).map(Number).map(value => { const channel = value / 255; return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4 }).reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0)
+    const values = [luminance(style.color), luminance(style.backgroundColor)].sort((a, b) => b - a)
+    return (values[0] + 0.05) / (values[1] + 0.05)
+  })
+  assert.ok(groupContrast >= 4.5, 'dark group title must remain readable'); await page.locator('.theme-switch').click()
   check('1100-900-780-responsive-panels-preference-refresh-dark')
-  await go('/skus?spu=f-iphone'); await page.locator('[data-filter="keyword"] input').fill('查无此SKU'); await page.locator('[data-empty="sku"]').waitFor(); await button('清空筛选').click()
+  await go('/skus?spu=f-iphone'); await page.locator('input[data-filter="keyword"], [data-filter="keyword"] input').fill('查无此SKU'); await page.locator('[data-empty="sku"]').waitFor(); await button('清空筛选').click()
   assert.match(page.url(), /spu=f-iphone/); assert.ok(await page.locator('[data-spu-scope]').isVisible()); assert.ok((await page.locator('.sku-table .linkish').allInnerTexts()).every(name => name.includes('iPhone')))
   await button('查看全部 SKU').click(); assert.match(page.url(), /\/skus$/)
   assert.deepEqual(business(await read()), business(initial))
   check('spu-sku-isolation-scope-clear-no-business-mutation')
 
   // Compare the original and final query results using the same complete objects.
-  const beforeBase = await serverAt(baselineRoot), beforeCtx = await context(), beforePage = await beforeCtx.newPage()
+  const beforeBase = await serverAt(baselineRoot), beforeCtx = await context('baseline'), beforePage = await beforeCtx.newPage()
   await beforePage.goto(beforeBase + '/spus', { waitUntil: 'networkidle' })
+  // Reproduce the same new-tab route load in the old UI to classify any existing
+  // Element Plus ResizeObserver notification; record it without suppressing it.
+  await beforePage.evaluate(() => localStorage.setItem('iyge-nav-layout', JSON.stringify({ mode: 'icons', expandedMode: 'single' })))
+  await beforePage.reload({ waitUntil: 'networkidle' })
+  await beforePage.locator('[data-group="product"]').click()
+  const oldTabPromise = beforeCtx.waitForEvent('page')
+  await beforePage.locator('#nav-flyout a[href="/skus"]').click({ modifiers: ['Control'] })
+  const oldTab = await oldTabPromise; await oldTab.waitForLoadState('networkidle'); await oldTab.close()
+  await beforePage.locator('#nav-flyout a[href="/skus"]').click(); await beforePage.waitForURL('**/skus')
+  await beforePage.goBack({ waitUntil: 'networkidle' }); await beforePage.goForward({ waitUntil: 'networkidle' })
+  await beforePage.reload({ waitUntil: 'networkidle' })
+  await beforePage.locator('[data-nav-fold]').click(); await beforePage.locator('.sider').waitFor()
+  await beforePage.locator('.sider').getByRole('menuitem', { name: 'SPU 管理', exact: true }).click(); await beforePage.waitForURL('**/spus')
   const dataForCompare = initial
   const compare = async target => target.evaluate(async ({ data, complex }) => {
     const { presentProductList, emptyModeQuery } = await import('/src/domain/productListQuery.ts')
@@ -232,10 +255,14 @@ try {
   writeFileSync(resolve(output, 'visual-comparison.json'), JSON.stringify({ source: baselineRoot, width: a.width, height: a.height, changedPixels }, null, 2))
   check('10-original-final-query-cases-and-unrelated-page-pixel-comparison')
   assert.deepEqual(diagnostics, [], 'no new browser/Vue errors or warnings')
-  writeFileSync(resolve(output, 'result.json'), JSON.stringify({ status: 'PASS', browser: browser.version(), baselineRoot, checkpoints, diagnostics }, null, 2))
+  assert.deepEqual(windowDiagnostics.filter(item => item.message !== 'ResizeObserver loop completed with undelivered notifications.'), [], 'unexpected window errors')
+  const resizeCounts = Object.fromEntries(['baseline', 'final'].map(source => [source, windowDiagnostics.filter(item => item.source === source).length]))
+  assert.ok(resizeCounts.final <= resizeCounts.baseline, `ResizeObserver must not increase: ${JSON.stringify(resizeCounts)}`)
+  writeFileSync(resolve(output, 'window-diagnostics.json'), JSON.stringify({ resizeCounts, windowDiagnostics }, null, 2))
+  writeFileSync(resolve(output, 'result.json'), JSON.stringify({ status: 'PASS', browser: browser.version(), baselineRoot, checkpoints, diagnostics, windowDiagnostics }, null, 2))
   console.log(`PASS ${checkpoints.length} navigation/filter browser checkpoints`)
 } catch (error) {
-  writeFileSync(resolve(output, 'result.json'), JSON.stringify({ status: 'FAIL', checkpoints, diagnostics, error: String(error) }, null, 2))
+  writeFileSync(resolve(output, 'result.json'), JSON.stringify({ status: 'FAIL', checkpoints, diagnostics, windowDiagnostics, error: String(error) }, null, 2))
   if (page) await page.screenshot({ path: resolve(output, 'failure.png'), fullPage: true }).catch(() => {})
   throw error
 } finally { await browser?.close(); for (const server of servers) await server.close() }

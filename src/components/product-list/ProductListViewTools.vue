@@ -1,5 +1,5 @@
 <template>
-  <el-popover v-model:visible="visible" trigger="click" placement="bottom-end" :width="360" popper-class="product-list-tools-pop">
+  <el-popover v-model:visible="visible" :hide-after="0" trigger="click" placement="bottom-end" :width="360" popper-class="product-list-tools-pop" :popper-options="{ modifiers: [{ name: 'preventOverflow', options: { altAxis: true, tether: false, padding: 12 } }] }">
     <template #reference>
       <el-button>列表设置</el-button>
     </template>
@@ -123,9 +123,10 @@ function onSortMode(mode: string | number | boolean) {
 
 <style scoped>
 .view-tools { display: flex; flex-direction: column; gap: 8px; max-height: 70vh; overflow: auto; }
+.view-tools > * { flex-shrink: 0; }
 .tool-label { margin: 4px 0 0; color: #607089; font-size: 12px; }
 .tool-links { display: flex; flex-wrap: wrap; gap: 8px; }
-.column-list { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow: auto; }
+.column-list { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow: auto; }
 .column-list li { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .drag-handle { cursor: grab; color: var(--text-secondary, #607089); user-select: none; }
 </style>
