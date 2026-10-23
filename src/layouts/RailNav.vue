@@ -63,7 +63,7 @@
     </nav>
     </div>
     <Teleport defer to="#iyge-nav-fold">
-      <button type="button" class="nav-fold" data-nav-fold :aria-label="compactLabel" :title="compactLabel" @click="toggleFold">
+      <button type="button" class="nav-fold" data-nav-fold :aria-label="compactLabel" :title="compactLabel" :aria-expanded="temporaryCompact ? Boolean(shownGroup) : undefined" :aria-controls="temporaryCompact && shownGroup ? 'nav-flyout' : undefined" @click="toggleFold">
         <el-icon :size="18"><Expand v-if="mode === 'icons'" /><Fold v-else /></el-icon>
       </button>
     </Teleport>
@@ -174,6 +174,7 @@ const props = defineProps<{
   groups: RailGroup[]
   active: string
   currentGroup: string
+  temporaryCompact?: boolean
 }>()
 
 const router = useRouter()
@@ -210,10 +211,11 @@ const layoutChoices: { id: NavigationLayout; label: string }[] = [
   { id: 'single', label: '单栏导航' },
   { id: 'dual', label: '双栏导航' },
 ]
-const mode = computed(() => collapsed.value ? 'icons' : layout.value)
-const popped = computed(() => collapsed.value)
-const shownKey = computed(() => mode.value === 'single' ? '' : openGroup.value || (collapsed.value ? '' : props.currentGroup || props.groups[0]?.key || ''))
-const compactLabel = computed(() => collapsed.value ? '展开导航' : '收起导航')
+const effectiveCollapsed = computed(() => collapsed.value || props.temporaryCompact === true)
+const mode = computed(() => effectiveCollapsed.value ? 'icons' : layout.value)
+const popped = computed(() => effectiveCollapsed.value)
+const shownKey = computed(() => mode.value === 'single' ? '' : openGroup.value || (effectiveCollapsed.value ? '' : props.currentGroup || props.groups[0]?.key || ''))
+const compactLabel = computed(() => props.temporaryCompact ? '打开导航菜单' : effectiveCollapsed.value ? '展开导航' : '收起导航')
 const menuStamp = computed(() => visibleKeys().join('|'))
 const shownGroup = computed(() => props.groups.find(group => group.key === shownKey.value) || null)
 const SLOT: Record<string, { column: number; row: number }> = {
@@ -262,10 +264,13 @@ function transitionNavigation(change: () => void) {
   change()
   openGroup.value = ''
   layoutOpen.value = false
-  if (!collapsed.value) revealCurrent()
+  if (!effectiveCollapsed.value) revealCurrent()
   nextTick(() => { ignoreMenuEvents = false })
 }
-function toggleFold() { transitionNavigation(() => { collapsed.value = !collapsed.value }) }
+function toggleFold(event: MouseEvent) {
+  if (props.temporaryCompact) { onRailClick(props.currentGroup || props.groups[0]?.key || '', event.currentTarget); nextTick(() => flyoutRef.value?.querySelector<HTMLAnchorElement>('a')?.focus()); return }
+  transitionNavigation(() => { collapsed.value = !collapsed.value })
+}
 function chooseLayout(next: NavigationLayout) {
   transitionNavigation(() => { layout.value = next })
   nextTick(() => layoutBtnRef.value?.focus())
@@ -277,7 +282,7 @@ function placeLayout() {
 function toggleLayout() {
   layoutOpen.value = !layoutOpen.value
   if (layoutOpen.value) {
-    if (collapsed.value) closePanel(false)
+    if (effectiveCollapsed.value) closePanel(false)
     nextTick(() => { placeLayout(); layoutPopRef.value?.querySelector<HTMLButtonElement>('button')?.focus() })
   }
 }
@@ -301,8 +306,8 @@ function placePop(target: EventTarget | null) {
 }
 function onRailClick(key: string, target: EventTarget | null) {
   layoutOpen.value = false
-  openGroup.value = collapsed.value && openGroup.value === key ? '' : key
-  if (collapsed.value) placePop(target)
+  openGroup.value = effectiveCollapsed.value && openGroup.value === key ? '' : key
+  if (effectiveCollapsed.value) placePop(target)
 }
 function hrefOf(index: string) { return router.resolve(index).href }
 function closePanel(restoreFocus: boolean) {
@@ -314,7 +319,7 @@ function go(event: MouseEvent, index: string) {
   if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
   event.preventDefault()
   onMenuSelect(index)
-  if (collapsed.value) closePanel(true)
+  if (effectiveCollapsed.value) closePanel(true)
 }
 function onRailKeydown(event: KeyboardEvent, index: number) {
   if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -340,7 +345,7 @@ function onDocPointerDown(event: PointerEvent) {
   const target = event.target as Node | null
   if (!target) return
   if (!layoutPopRef.value?.contains(target) && !layoutBtnRef.value?.contains(target)) layoutOpen.value = false
-  if (collapsed.value && !wrapRef.value?.contains(target) && !(target instanceof Element && target.closest('#iyge-nav-fold'))) closePanel(false)
+  if (effectiveCollapsed.value && !wrapRef.value?.contains(target) && !(target instanceof Element && target.closest('#iyge-nav-fold'))) closePanel(false)
 }
 function onDocKeydown(event: KeyboardEvent) {
   if (event.key !== 'Escape' || event.defaultPrevented) return
@@ -349,12 +354,13 @@ function onDocKeydown(event: KeyboardEvent) {
   if (target?.matches('input, textarea, select, [contenteditable="true"]') || target?.closest('.el-dialog, .el-message-box, .el-popper, .context-menu')) return
   if ([...document.querySelectorAll<HTMLElement>('.el-overlay, .el-popper')].some(node => node.getClientRects().length && getComputedStyle(node).visibility !== 'hidden')) return
   if (layoutOpen.value) { layoutOpen.value = false; layoutBtnRef.value?.focus() }
-  else if (collapsed.value && openGroup.value) closePanel(true)
+  else if (effectiveCollapsed.value && openGroup.value) closePanel(true)
 }
 function onResize() {
-  if (collapsed.value && openGroup.value) placePop(groupButton(openGroup.value) || null)
+  if (effectiveCollapsed.value && openGroup.value) placePop(groupButton(openGroup.value) || null)
   if (layoutOpen.value) placeLayout()
 }
+watch(() => props.temporaryCompact, () => { openGroup.value = ''; layoutOpen.value = false; nextTick(onResize) })
 watch([layout, collapsed, openeds], persist)
 watch(() => router.currentRoute.value.fullPath, () => { openGroup.value = ''; layoutOpen.value = false; revealCurrent() })
 watch(menuStamp, () => {

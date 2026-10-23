@@ -1,3 +1,5 @@
+import { installCatalogTestLocks } from '../../scripts/catalog-storage-test-env'
+installCatalogTestLocks()
 import { createPinia, setActivePinia } from 'pinia'
 import { chooseModelNode, emptyModelSelection, generateSkuFromModel, inspectFamily } from './logic'
 import { createV3Material, materialOfferings, resolveV3MaterialSpec } from './material'

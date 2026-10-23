@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :inert="saving" :aria-busy="saving">
     <PageHead title="编辑 SKU" desc="只维护当前规格商品，不更换所属 SPU。"><el-button @click="back">返回 SKU 管理</el-button></PageHead>
     <el-empty v-if="!sku || !family || !draft" description="SKU 不存在或此记录属于物料，请从物料管理查看。" />
     <section v-else class="panel">
@@ -45,12 +45,12 @@ const sourceText = computed(() => {
   return family.value?.productPlanId ? `历史规划：${store.data.productPlans.find(item => item.id === family.value?.productPlanId)?.name || family.value.productPlanId}` : '历史记录未记录来源'
 })
 const versionName = computed(() => { const id = sku.value?.modelVersionId || family.value?.modelVersionId; return store.data.specModelVersions.find(item => item.id === id)?.versionName || id || '未记录' })
-function save() {
+async function save() {
   if (saving.value || !sku.value || !draft.value) return
   saving.value = true
-  const result = store.editSku(sku.value.id, draft.value)
+  const result = (await store.editSku(sku.value.id, draft.value))
   if (!result.ok) { error.value = result.message; saving.value = false; return }
-  dirty.value = false; ElMessage.success('SKU 已保存'); back()
+  dirty.value = false; ElMessage.success('SKU 已保存'); await back(); saving.value = false
 }
-function back() { router.push({ path: '/skus', query: typeof route.query.spu === 'string' ? { spu: route.query.spu } : {} }) }
+function back() { return router.push({ path: '/skus', query: typeof route.query.spu === 'string' ? { spu: route.query.spu } : {} }) }
 </script>

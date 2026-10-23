@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :inert="saving" :aria-busy="saving">
     <PageHead title="导入导出" desc="先看清表格，再对字段，预览没问题后才写入。上传本身不会改现有物料。">
       <el-button @click="downloadTemplate">下载导入模板</el-button>
       <el-button @click="exportBooks">导出商品和规格</el-button>
@@ -199,7 +199,7 @@ function installModels() {
   ElMessage.success(result.created ? '已补上手机、平板和保护壳模型。原有手机模型没有改。' : '这三套模型已经在，没有重复创建。')
 }
 watch([aliases, temporaryGroups, modelChoice, mapping], () => { if (preview.value.length) buildPreview() }, { deep: true })
-function confirm() {
+async function confirm() {
   if (saving.value) return
   saving.value = true
   let result: ReturnType<typeof applyExcelImport> = []
@@ -208,7 +208,7 @@ function confirm() {
     const candidate = cloneCompatibility(store.data)
     result = applyExcelImport(candidate, preview.value, uid)
     if (result.every(item => item.ok)) {
-      const committed = store.commitMaterialImport(candidate, basis)
+      const committed = (await store.commitMaterialImport(candidate, basis))
       if (!committed.ok) {
         resultText.value = committed.message || '保存失败，导入预览和选择已保留，可以重试。'
         ElMessage.error(resultText.value)

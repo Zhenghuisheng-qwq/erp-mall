@@ -15,8 +15,8 @@
     <p v-else class="warn">{{ previewMessage }}</p>
     </template>
 
-    <el-dialog v-model="createOpen" class="v3-material-dialog" title="创建物料" width="480px" append-to-body :close-on-click-modal="false" @closed="onCreateClosed">
-      <div v-if="preview" @keydown.tab.stop>
+    <el-dialog v-model="createOpen" class="v3-material-dialog" title="创建物料" width="480px" append-to-body :close-on-click-modal="false" :close-on-press-escape="!saving" :show-close="!saving" @closed="onCreateClosed">
+      <div v-if="preview" :inert="saving" @keydown.tab.stop>
         <p class="spec">{{ preview.label }}</p>
         <p class="meta">规划编号 {{ preview.planningId }} · 模型版本 {{ preview.versionName }}</p>
         <p v-if="compatibilitySummary" class="meta" data-material-template-summary>{{ compatibilitySummary }}</p>
@@ -204,10 +204,10 @@ watch(() => props.openListTick, (tick) => {
 function onCreateClosed() {
   if (!saving.value) errorText.value = ''
 }
-function confirm(keep: boolean) {
+async function confirm(keep: boolean) {
   if (saving.value || !requestId.value) return
   saving.value = true
-  const result = store.createMaterial({
+  const result = (await store.createMaterial({
     productModelId: props.productModelId,
     modelVersionId: props.modelVersionId,
     planningId: props.planningId,
@@ -218,7 +218,7 @@ function confirm(keep: boolean) {
     skuName: nameDraft.value,
     materialDescription: descDraft.value,
     supplierCode: supplierDraft.value,
-  })
+  }))
   saving.value = false
   if (!result.ok) {
     errorText.value = result.message

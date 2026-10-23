@@ -20,6 +20,7 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     return value
   })
   const error = ref(catalogMigrationError())
+  const pending = ref(false)
   const localWork = ref<Record<string, SkuViewConfig>>(cloneSku(state.value?.working || {}))
   const navigation = typeof performance === 'undefined' ? undefined : performance.getEntriesByType('navigation')[0]
   const reloadSku = navigation && 'type' in navigation && navigation.type === 'reload' && new URL(navigation.name).pathname === '/skus'
@@ -40,11 +41,15 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
   const config = computed(() => localWork.value[workingKey.value] || savedConfig.value)
   const dirty = computed(() => skuConfigStamp(config.value) !== skuConfigStamp(savedConfig.value))
 
-  function commit(next: ProductListPageState): SkuCommandResult {
-    const result = store.commitSkuPage(next)
-    if (!result.ok) { error.value = result.message; return result }
-    error.value = ''
-    return { ok: true }
+  async function commit(next: ProductListPageState): Promise<SkuCommandResult> {
+    if (pending.value) return { ok: false, message: '上一项视图操作正在保存，请完成后重试；当前工作配置保留。' }
+    pending.value = true
+    try {
+      const result = await store.commitSkuPage(next)
+      if (!result.ok) { error.value = result.message; return result }
+      error.value = ''
+      return { ok: true }
+    } finally { pending.value = false }
   }
   function trial(): ProductListPageState | undefined {
     const page = pageData.value
@@ -54,7 +59,7 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
   function syncWork(next: ProductListPageState) {
     if (next.skuWorkbench) next.skuWorkbench.working = cloneSku(localWork.value)
   }
-  function apply(nextConfig: SkuViewConfig): SkuCommandResult {
+  async function apply(nextConfig: SkuViewConfig): Promise<SkuCommandResult> {
     const errors = validateSkuConfig(store.data, nextConfig)
     if (errors.length) { error.value = errors.join('；'); return { ok: false, message: error.value } }
     localWork.value[workingKey.value] = cloneSku(nextConfig)
@@ -63,7 +68,7 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     syncWork(next)
     return commit(next)
   }
-  function select(id: string): SkuCommandResult {
+  async function select(id: string): Promise<SkuCommandResult> {
     if (!views.value.some(view => view.id === id)) return { ok: false, message: '找不到这个视图。' }
     activeId.value = id
     const next = trial()
@@ -72,13 +77,13 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     if (!scopeId.value) { next.activeId = id; next.skuWorkbench.activeId = id }
     return commit(next)
   }
-  function restore(): SkuCommandResult {
+  async function restore(): Promise<SkuCommandResult> {
     const key = workingKey.value
     const next = trial()
     if (!next?.skuWorkbench) return missing()
     syncWork(next)
     delete next.skuWorkbench.working[key]
-    const result = commit(next)
+    const result = await commit(next)
     if (result.ok) delete localWork.value[key]
     return result
   }
@@ -88,7 +93,7 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     if (views.value.some(view => view.id !== except && view.name === text)) return '已经有同名视图，请使用其他名称。'
     return ''
   }
-  function create(name: string, includeScope = false): SkuCommandResult {
+  async function create(name: string, includeScope = false): Promise<SkuCommandResult> {
     const invalid = nameError(name)
     if (invalid) return { ok: false, message: invalid }
     const next = trial()
@@ -102,11 +107,11 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     next.skuWorkbench.order.push(id)
     syncWork(next)
     if (!scopeId.value) { next.activeId = id; next.skuWorkbench.activeId = id }
-    const result = commit(next)
+    const result = await commit(next)
     if (result.ok) activeId.value = id
     return result.ok ? { ok: true, id } : result
   }
-  function save(name?: string, includeScope = false): SkuCommandResult {
+  async function save(name?: string, includeScope = false): Promise<SkuCommandResult> {
     if (name !== undefined) return create(name, includeScope)
     if (activeId.value === SYSTEM_SKU_VIEW_ID) return { ok: false, message: '全部 SKU 为系统视图，请另存为自己的视图。' }
     const errors = validateSkuConfig(store.data, config.value)
@@ -118,11 +123,11 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     view.updatedAt = new Date().toISOString()
     syncWork(next)
     delete next.skuWorkbench.working[activeId.value]
-    const result = commit(next)
+    const result = await commit(next)
     if (result.ok) delete localWork.value[activeId.value]
     return result
   }
-  function rename(id: string, name: string): SkuCommandResult {
+  async function rename(id: string, name: string): Promise<SkuCommandResult> {
     if (id === SYSTEM_SKU_VIEW_ID) return { ok: false, message: '系统视图不能重命名。' }
     const invalid = nameError(name, id)
     if (invalid) return { ok: false, message: invalid }
@@ -132,7 +137,7 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     syncWork(next)
     return commit(next)
   }
-  function copy(id: string): SkuCommandResult {
+  async function copy(id: string): Promise<SkuCommandResult> {
     const source = views.value.find(view => view.id === id)
     if (!source) return { ok: false, message: '找不到这个视图。' }
     const next = trial()
@@ -145,11 +150,11 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     next.skuWorkbench.order.push(newId)
     syncWork(next)
     if (!scopeId.value) { next.activeId = newId; next.skuWorkbench.activeId = newId }
-    const result = commit(next)
+    const result = await commit(next)
     if (result.ok) activeId.value = newId
     return result.ok ? { ok: true, id: newId } : result
   }
-  function remove(id: string): SkuCommandResult {
+  async function remove(id: string): Promise<SkuCommandResult> {
     if (id === SYSTEM_SKU_VIEW_ID) return { ok: false, message: '系统视图不能删除。' }
     const next = trial()
     if (!next?.skuWorkbench) return missing()
@@ -160,21 +165,21 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     if (next.skuWorkbench.activeId === id) { next.skuWorkbench.activeId = next.skuWorkbench.defaultId; next.activeId = next.skuWorkbench.defaultId }
     syncWork(next)
     delete next.skuWorkbench.working[id]
-    const result = commit(next)
+    const result = await commit(next)
     if (result.ok) { delete localWork.value[id]; if (activeId.value === id) activeId.value = next.skuWorkbench.defaultId }
     return result
   }
-  function preference(update: (next: NonNullable<ProductListPageState['skuWorkbench']>) => void): SkuCommandResult {
+  async function preference(update: (next: NonNullable<ProductListPageState['skuWorkbench']>) => void): Promise<SkuCommandResult> {
     const next = trial()
     if (!next?.skuWorkbench) return missing()
     syncWork(next); update(next.skuWorkbench)
     return commit(next)
   }
-  function favorite(id: string): SkuCommandResult {
+  async function favorite(id: string): Promise<SkuCommandResult> {
     return preference(next => { next.favorites = next.favorites.includes(id) ? next.favorites.filter(value => value !== id) : [...next.favorites, id] })
   }
-  function setDefault(id: string): SkuCommandResult { return views.value.some(view => view.id === id) ? preference(next => { next.defaultId = id }) : { ok: false, message: '找不到这个视图。' } }
-  function moveFavorite(id: string, delta: number): SkuCommandResult {
+  async function setDefault(id: string): Promise<SkuCommandResult> { return views.value.some(view => view.id === id) ? preference(next => { next.defaultId = id }) : { ok: false, message: '找不到这个视图。' } }
+  async function moveFavorite(id: string, delta: number): Promise<SkuCommandResult> {
     if (id === SYSTEM_SKU_VIEW_ID || !state.value.favorites.includes(id)) return { ok: false, message: '请先收藏一个自定义视图。' }
     return preference(next => {
       const favorites = next.order.filter(value => value !== SYSTEM_SKU_VIEW_ID && next.favorites.includes(value))
@@ -187,5 +192,5 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
   }
   watch(scopeId, id => { activeId.value = id ? SYSTEM_SKU_VIEW_ID : state.value?.activeId || SYSTEM_SKU_VIEW_ID })
   if (!scopeId.value && activeId.value !== state.value.activeId) select(activeId.value)
-  return { views, currentView, activeId, config, dirty, error, state, select, apply, save, create, rename, copy, remove, favorite, setDefault, moveFavorite, restore }
+  return { views, currentView, activeId, config, dirty, error, pending, state, select, apply, save, create, rename, copy, remove, favorite, setDefault, moveFavorite, restore }
 }

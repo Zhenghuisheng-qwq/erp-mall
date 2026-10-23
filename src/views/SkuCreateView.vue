@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :inert="saving" :aria-busy="saving">
     <PageHead title="新增 SKU" desc="先确定所属 SPU，再填写或批量生成规格。预览和取消都不会写入业务数据。"><el-button @click="back">返回 SKU 管理</el-button></PageHead>
     <p v-if="copy" class="muted" data-sku-copy-policy>已复制所选 SKU 的规格草稿。适用设备按目标 SPU 绑定的发布版本重新计算，原商品的人工适用设置仍保留在原商品。</p>
     <section class="panel" style="margin-bottom: 16px">
@@ -131,15 +131,16 @@ function preview() {
 }
 function toggle(key: string, checked: boolean) { selected.value = checked ? [...new Set([...selected.value, key])] : selected.value.filter(item => item !== key) }
 function toggleAll(checked: boolean) { selected.value = checked ? candidates.value.filter(row => row.state === 'new').map(row => row.key) : [] }
-function submit() {
+async function submit() {
   if (saving.value || !submitted || !selected.value.length) return
   saving.value = true
-  const result = store.appendSkus(familyId.value, submitted, selected.value)
+  const result = (await store.appendSkus(familyId.value, submitted, selected.value))
   if (!result.ok) { error.value = result.message; saving.value = false; return }
   if (!result.ids.length) { error.value = '所选规格已经存在，没有新增记录。请重新预览。'; saving.value = false; return }
   dirty.value = false
   ElMessage.success(`已新增 ${result.ids.length} 条 SKU${result.skipped ? `，跳过 ${result.skipped} 条已存在规格` : ''}`)
-  router.push({ path: '/skus', query: { spu: familyId.value } })
+  await router.push({ path: '/skus', query: { spu: familyId.value } })
+  saving.value = false
 }
 function openSpu() { spuInitial.value = newSpuDraft(store.data, { templateId, planId }); spuOpen.value = true }
 async function spuSaved(id: string) {

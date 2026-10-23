@@ -1,3 +1,5 @@
+import { installCatalogTestLocks } from '../../scripts/catalog-storage-test-env'
+installCatalogTestLocks()
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import { cloneProductModel } from '../components/model-editor/cloneModel'
@@ -289,9 +291,9 @@ export async function runPlanningChecks(): Promise<CheckResult[]> {
   setActivePinia(createPinia())
   const store = useCatalogStore()
   const beforeVersions = JSON.stringify(store.data.specModelVersions)
-  const published = store.publishSpecModel('t-phone')
+  const published = (await store.publishSpecModel('t-phone'))
   const phoneIds = idsOf(store.data.planningRecords, 't-phone')
-  const publishedAgain = store.publishSpecModel('t-phone')
+  const publishedAgain = (await store.publishSpecModel('t-phone'))
   const phoneIdsAgain = idsOf(store.data.planningRecords, 't-phone')
   await nextTick()
   setActivePinia(createPinia())

@@ -191,6 +191,7 @@ async function save() {
   const templateId = row.id
   store.data.templateParams = store.data.templateParams.filter((item) => item.templateId !== templateId)
   draft.value.binds.forEach((item) => store.data.templateParams.push({ templateId, ...item }))
+  if (!await flushChanges()) return
   open.value = false
   ElMessage.success('已保存')
 }
@@ -207,22 +208,28 @@ function create() {
   store.data.templates.push({ id, name: '新方案', parentId: null, enabled: true, structureOrder: [] })
   edit(id)
 }
-function copy(id: string) {
+async function flushChanges() {
+  const result = await store.flushPersistence()
+  if (!result.ok) { ElMessage.error(store.persistenceState.message || '方案修改尚未保存，当前输入已保留。'); return false }
+  return true
+}
+async function copy(id: string) {
   const source = store.data.templates.find((item) => item.id === id)
   if (!source) return
   const next = uid('tpl')
   store.data.templates.push({ ...source, id: next, name: `${source.name} 副本`, structureOrder: [...source.structureOrder] })
   store.data.templateParams.filter((item) => item.templateId === id).forEach((item) => store.data.templateParams.push({ ...item, templateId: next }))
+  if (!await flushChanges()) return
   ElMessage.success('已复制方案')
 }
 function preview(id: string) {
   previewId.value = id
   previewOpen.value = true
 }
-function remove(id: string) {
+async function remove(id: string) {
   const message = store.removeTemplate(id)
   if (message) ElMessage.warning(message)
-  else ElMessage.success('已删除')
+  else if (await flushChanges()) ElMessage.success('已删除')
 }
 watch(
   () => route.query.scheme,

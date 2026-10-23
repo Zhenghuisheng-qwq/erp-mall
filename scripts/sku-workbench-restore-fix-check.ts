@@ -1,3 +1,5 @@
+import { installCatalogTestLocks } from './catalog-storage-test-env'
+installCatalogTestLocks()
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { mkdirSync, writeFileSync } from 'node:fs'
@@ -79,7 +81,7 @@ try {
     const workbench = scope.run(() => useSkuWorkbench(scopeId))
     assert.ok(workbench)
     const store = useCatalogStore()
-    assert.ok(workbench.select(test.view).ok)
+    assert.ok((await workbench.select(test.view)).ok)
     await nextTick()
     const key = test.scoped && test.view === SYSTEM_SKU_VIEW_ID ? `${SYSTEM_SKU_VIEW_ID}@spu:${parent.id}` : test.view
     assert.equal(workbench.config.value.density, 'comfortable')
@@ -90,7 +92,7 @@ try {
     compact.density = 'compact'
     compact.conditions.children = [{ kind: 'rule', id: 'restore-status', field: 'status', operator: 'eq', value: 'on_sale' }]
     compact.columns[0] = { key: 'code', visible: true, width: 183, frozen: 'left' }
-    assert.ok(workbench.apply(compact).ok)
+    assert.ok((await workbench.apply(compact)).ok)
     await nextTick()
     assert.equal(workbench.dirty.value, true)
     assert.deepEqual(workbench.config.value, compact)
@@ -102,7 +104,7 @@ try {
     const beforePage = cloneSku(store.data.productListPages?.sku)
     const beforeAttempts = attempts, beforeWrites = writes
     failNext = true
-    const failed = workbench.restore()
+    const failed = (await workbench.restore())
     await nextTick()
     const record = {
       name: test.name, workingKey: key, savedDensity: saved.skuWorkbench?.density,
@@ -125,7 +127,7 @@ try {
     console.log(`PASS restore ${test.name}: storage failure retains compact/full work/dirty/retry and unrelated keys`)
 
     // The first failure is one-shot; retry goes through the same production command.
-    const retry = workbench.restore()
+    const retry = (await workbench.restore())
     await nextTick()
     assert.equal(retry.ok, true)
     assert.equal(workbench.config.value.density, 'comfortable')
@@ -147,7 +149,7 @@ try {
     const refreshedScope = effectScope()
     const refreshed = refreshedScope.run(() => useSkuWorkbench(ref(test.scoped ? parent.id : '')))
     assert.ok(refreshed)
-    assert.ok(refreshed.select(test.view).ok)
+    assert.ok((await refreshed.select(test.view)).ok)
     await nextTick()
     const refreshedStore = useCatalogStore()
     assert.deepEqual(refreshed.config.value, restored)

@@ -214,6 +214,7 @@ const refsOpen = ref(false)
 const moveOpen = ref(false)
 const createName = ref('')
 const parentForCreate = ref<string | null>(null)
+let pendingCreateId = ''
 const editId = ref('')
 const moveId = ref('')
 const moveParent = ref('')
@@ -411,7 +412,12 @@ function cancelRename() {
   renameId.value = ''
   renameValue.value = ''
 }
-function commitRename() {
+async function flushChanges() {
+  const result = await store.flushPersistence()
+  if (!result.ok) { ElMessage.error(store.persistenceState.message || '分类修改尚未保存，当前输入已保留。'); return false }
+  return true
+}
+async function commitRename() {
   if (renameClosing || !renameId.value) return
   const id = renameId.value
   const item = store.data.categories.find((row) => row.id === id)
@@ -420,6 +426,8 @@ function commitRename() {
     return
   }
   if (renameValue.value.trim() === item.name) {
+    renameClosing = true
+    if (!await flushChanges()) { renameClosing = false; nextTick(() => renameInput.value?.focus()); return }
     cancelRename()
     return
   }
@@ -440,6 +448,7 @@ function commitRename() {
     return
   }
   renameClosing = true
+  if (!await flushChanges()) { renameClosing = false; nextTick(() => renameInput.value?.focus()); return }
   renameId.value = ''
   renameValue.value = ''
   ElMessage.success('已保存')
@@ -447,10 +456,11 @@ function commitRename() {
 function openCreate(parentId: string | null) {
   if (!editing.value) return
   parentForCreate.value = parentId
+  pendingCreateId = ''
   createName.value = ''
   createOpen.value = true
 }
-function create() {
+async function create() {
   if (!editing.value) return
   const name = createName.value.trim()
   if (!name) {
@@ -458,11 +468,14 @@ function create() {
     return
   }
   const parentId = parentForCreate.value
-  const created = store.addCategory(name, parentId)
+  const pending = store.data.categories.find(row => row.id === pendingCreateId)
+  const created = pending ? { id: pending.id, message: store.updateCategory(pending.id, { ...pending, name, parentId }) } : store.addCategory(name, parentId)
   if (created.message) {
     ElMessage.warning(created.message)
     return
   }
+  pendingCreateId = created.id
+  if (!await flushChanges()) return
   const id = created.id
   if (parentId) reveal(id)
   selected.value = id
@@ -480,7 +493,7 @@ function openEdit(id: string) {
   draft.templateId = store.data.mappings.find((row) => row.categoryId === id)?.templateId || ''
   editOpen.value = true
 }
-function saveEdit() {
+async function saveEdit() {
   if (!editing.value) return
   const item = store.data.categories.find((row) => row.id === editId.value)
   if (!item) return
@@ -499,6 +512,7 @@ function saveEdit() {
     const currentTemplate = store.data.mappings.find((row) => row.categoryId === item.id)?.templateId || ''
     if (currentTemplate !== draft.templateId) store.setCategoryMapping(item.id, draft.templateId)
   }
+  if (!await flushChanges()) return
   reveal(item.id)
   editOpen.value = false
   ElMessage.success('已保存')
@@ -545,7 +559,7 @@ function pickMoveTarget(id: string | null) {
   }
   moveParent.value = id || ''
 }
-function confirmMove() {
+async function confirmMove() {
   if (!editing.value) return
   const item = store.data.categories.find((row) => row.id === moveId.value)
   if (!item) return
@@ -555,12 +569,14 @@ function confirmMove() {
     return
   }
   if ((item.parentId || '') === (moveParent.value || '')) {
+    if (!await flushChanges()) return
     closeMove()
     return
   }
   const message = store.moveCategory(item.id, moveParent.value || null)
   if (message) ElMessage.warning(message)
   else {
+    if (!await flushChanges()) return
     reveal(item.id)
     closeMove()
     ElMessage.success('已移动分类')
@@ -580,6 +596,7 @@ async function copyNode(id: string) {
     ElMessage.warning(nextId || '分类不存在')
     return
   }
+  if (!await flushChanges()) return
   reveal(nextId)
   selected.value = nextId
   ElMessage.success('已复制分类')
@@ -620,6 +637,7 @@ async function remove(id: string) {
   const message = store.removeCategory(id)
   if (message) ElMessage.warning(message)
   else {
+    if (!await flushChanges()) return
     if (selected.value === id) selected.value = parentId
     ElMessage.success('已删除')
   }
@@ -663,7 +681,7 @@ function onDragOver(row: CategoryRow, event: DragEvent) {
   dropState.value = { id: row.id, position, blocked: Boolean(message) }
   if (event.dataTransfer) event.dataTransfer.dropEffect = message ? 'none' : 'move'
 }
-function onDrop(row: CategoryRow) {
+async function onDrop(row: CategoryRow) {
   if (!editing.value) return
   const id = dragId.value
   const state = dropState.value
@@ -674,6 +692,7 @@ function onDrop(row: CategoryRow) {
     ElMessage.warning(message)
     return
   }
+  if (!await flushChanges()) return
   const nextParent = store.data.categories.find((item) => item.id === id)?.parentId ?? null
   if (state.position === 'inner' || previousParent !== nextParent) reveal(id)
   ElMessage.success(previousParent !== nextParent ? '已移动分类' : '已更新排序')

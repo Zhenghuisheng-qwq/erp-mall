@@ -93,6 +93,8 @@ export interface BenefitIssue {
   structural?: boolean
   skuId?: string
   groupId?: string
+  serviceId?: string
+  field?: string
   confirmationKey?: string
 }
 export interface BenefitValidation {

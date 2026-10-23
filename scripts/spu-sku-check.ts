@@ -1,3 +1,5 @@
+import { installCatalogTestLocks } from './catalog-storage-test-env'
+installCatalogTestLocks()
 import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
@@ -159,15 +161,15 @@ await nextTick()
 assert.ok(JSON.parse(storage.get(STORAGE_KEY)!).data.families.some((item: { id: string }) => item.id === 'empty'))
 pass('真实 store 删除最后 SKU 保留 SPU，带物料主体拒删，空主体可删并持久化')
 const storeBefore = clone(store.data)
-assert.equal(store.saveBundle({ ...store.data.families.find(item => item.id === family.id)!, name: '兼容入口改名' }, []).ok, true)
+assert.equal((await store.saveBundle({ ...store.data.families.find(item => item.id === family.id)!, name: '兼容入口改名' }, [])).ok, true)
 assert.deepEqual(store.data.skus, storeBefore.skus)
 const foreign = clone(store.data.skus.find(item => item.familyId !== family.id && isRealSku(store.data, item))!)
 const afterName = clone(store.data)
-assert.equal(store.saveBundle(store.data.families.find(item => item.id === family.id)!, [foreign]).ok, false)
+assert.equal((await store.saveBundle(store.data.families.find(item => item.id === family.id)!, [foreign])).ok, false)
 assert.deepEqual(store.data, afterName)
 pass('旧 saveBundle 不再整体替换子记录；跨主体记录整批拒绝')
 const beforeStale = clone(store.data)
-assert.equal(store.saveSpu({ ...empty, id: 'deleted-spu-id' }).ok, false)
+assert.equal((await store.saveSpu({ ...empty, id: 'deleted-spu-id' })).ok, false)
 assert.deepEqual(store.data, beforeStale)
 const realNow = Date.now
 try {
@@ -175,14 +177,14 @@ try {
   const stamp = Date.now().toString(36)
   const occupied = Array.from({ length: 20 }, (_, index) => `fam-${stamp}-${index + 1}`)
   store.data.families.push(...occupied.map(id => ({ ...empty, id })))
-  const result = store.saveSpu({ ...empty, id: '', name: '碰撞后新 SPU' })
+  const result = (await store.saveSpu({ ...empty, id: '', name: '碰撞后新 SPU' }))
   assert.ok(result.ok && !occupied.includes(result.id))
   assert.equal(store.data.families.filter(item => occupied.includes(item.id)).length, occupied.length)
   const tombstones = Array.from({ length: 40 }, (_, index) => `sku-${stamp}-${index + 1}`)
   store.data.materialReceipts.push(...tombstones.map(skuId => ({ requestId: `deleted-${skuId}`, skuId, planningId: '', materialCode: '', createdTime: FIXED_NOW, lifecycle: 'deleted' as const })))
   const generation = manual('橙色')
   const candidate = previewSkuAppend(store.data, family.id, generation)
-  const appended = store.appendSkus(family.id, generation, candidate.rows.map(row => row.key))
+  const appended = (await store.appendSkus(family.id, generation, candidate.rows.map(row => row.key)))
   assert.ok(appended.ok && appended.ids.length === 1 && !tombstones.includes(appended.ids[0]!))
 } finally { Date.now = realNow }
 pass('固定时钟 ID 碰撞及删除回执 ID 均避让；失效 SPU 编辑不重建主体')

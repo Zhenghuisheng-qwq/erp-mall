@@ -1,3 +1,5 @@
+import { installCatalogTestLocks } from '../../scripts/catalog-storage-test-env'
+installCatalogTestLocks()
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import { listHostModels } from './compatibility'
@@ -32,7 +34,7 @@ export async function runRound2Checks() {
   const plansBefore = store.data.productPlans.map((item) => item.id).join()
   const v2Sku = store.data.skus.find((item) => item.id === 's-iphone-blue')
   const dictBefore = store.data.params.map((item) => `${item.id}:${item.values.join(',')}`).join('|')
-  const published = store.publishSpecModel('t-phone')
+  const published = (await store.publishSpecModel('t-phone'))
   const apple = store.data.planningRecords.find((item) => item.productModelId === 't-phone' && item.status === 'active' && item.steps.some((step) => step.valueId === 'Apple') && item.steps.some((step) => step.valueId === '黑色'))
   const huawei = store.data.planningRecords.find((item) => item.productModelId === 't-phone' && item.status === 'active' && item.steps.some((step) => step.valueId === '华为'))
   let seq = 0

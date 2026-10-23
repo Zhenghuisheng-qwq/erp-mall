@@ -54,17 +54,20 @@ function edit(id: string) {
   Object.assign(editing, row)
   open.value = true
 }
-function save() {
+async function save() {
   const name = editing.name.trim()
   if (!name) return
   if (editing.id) {
     const row = store.data.brands.find((item) => item.id === editing.id)
     if (row) Object.assign(row, { name, logo: editing.logo.trim(), description: editing.description.trim() })
   } else {
-    store.data.brands.push({ id: uid('brand'), name, logo: editing.logo.trim(), description: editing.description.trim(), status: 'enabled' })
+    editing.id = uid('brand')
+    store.data.brands.push({ id: editing.id, name, logo: editing.logo.trim(), description: editing.description.trim(), status: 'enabled' })
   }
   const param = store.data.params.find((item) => item.name === '品牌')
   if (param && !param.values.includes(name)) param.values.push(name)
+  const saved = await store.flushPersistence()
+  if (!saved.ok) { ElMessage.error(store.persistenceState.message || '品牌尚未保存，当前输入已保留。'); return }
   open.value = false
   ElMessage.success('品牌已保存。历史商品里的品牌文字不会被改写。')
 }

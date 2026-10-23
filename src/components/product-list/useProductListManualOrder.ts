@@ -3,8 +3,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 type OrderResult = { ok: true } | { ok: false; message: string }
 interface ManualOrderActions {
-  move: (dragId: string, targetId: string, place: 'before' | 'after') => OrderResult
-  insert: (stagedIds: string[], targetId: string, place: 'before' | 'after') => OrderResult
+  move: (dragId: string, targetId: string, place: 'before' | 'after') => OrderResult | Promise<OrderResult>
+  insert: (stagedIds: string[], targetId: string, place: 'before' | 'after') => OrderResult | Promise<OrderResult>
   hasFilters: () => boolean
 }
 
@@ -32,9 +32,9 @@ export function useProductListManualOrder(actions: ManualOrderActions) {
   function onRowDrag(id: string) {
     dragId.value = id
   }
-  function onRowDrop(id: string) {
+  async function onRowDrop(id: string) {
     if (!dragId.value) return
-    const result = actions.move(dragId.value, id, 'before')
+    const result = await actions.move(dragId.value, id, 'before')
     dragId.value = ''
     if (!result.ok) ElMessage.warning(result.message)
   }
@@ -63,7 +63,7 @@ export function useProductListManualOrder(actions: ManualOrderActions) {
     } catch {
       return
     }
-    const result = actions.insert(stageIds.value, id, place)
+    const result = await actions.insert(stageIds.value, id, place)
     if (!result.ok) {
       ElMessage.warning(result.message)
       return

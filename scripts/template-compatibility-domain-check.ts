@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { platform, arch, cpus } from 'node:os'
-import { applyLegacyTemplateCompatibilityConversion, cloneTemplateCompatibility, createEmptyTemplateCompatibilityConfig, createTemplateCompatibilityContext, freezeTemplateCompatibility, mapTemplateCombination, previewLegacyTemplateCompatibilityConversion, resolveTemplateCompatibility, selectorForCombination, selectorForNode, templateClaimContentSignature, templateCompatibilityContentSignature, templateCompatibilityImportProblems, validateTemplateCompatibilityConfig } from '../src/domain/templateCompatibility'
+import { resolve } from 'node:path'
+import { computed, reactive, ref } from 'vue'
+import { applyLegacyTemplateCompatibilityConversion, cloneTemplateCompatibility, createEmptyTemplateCompatibilityConfig, createTemplateCompatibilityContext, freezeTemplateCompatibility, mapTemplateCombination, prepareTemplateCompatibilityConfig, previewLegacyTemplateCompatibilityConversion, resolveTemplateCompatibility, selectorForCombination, selectorForNode, templateClaimContentSignature, templateCompatibilityContentSignature, templateCompatibilityImportProblems, validateTemplateCompatibilityConfig } from '../src/domain/templateCompatibility'
 import { legalPlanningCombinations, planningIdentityKey } from '../src/domain/planning'
 import { createCatalogIdentityContext, isMaterialArchive, isRealSku } from '../src/domain/catalogIdentity'
 import { createTemplateCompatibilityFixture, TEMPLATE_COMPATIBILITY_TIME } from './template-compatibility-fixtures'
@@ -206,6 +208,49 @@ check('an incomplete exception keeps actual structure available to repair scope 
   previewLegacyTemplateCompatibilityConversion(data, modelId, config, context)
   assert.equal(context.stats.combinationExpansions, 1)
 })
-mkdirSync('work/template-compatibility', { recursive: true })
-writeFileSync('work/template-compatibility/domain-evidence.json', JSON.stringify({ executedAt: new Date().toISOString(), runtime: { node: process.version, platform: platform(), arch: arch(), cpu: cpus()[0]?.model }, fixedBusinessTime: TEMPLATE_COMPATIBILITY_TIME, checks: evidence.length, results: evidence }, null, 2))
+check('draft-only edits reuse structural indexes without changing effective results or input', () => {
+  const { data, modelId, config } = createTemplateCompatibilityFixture(), before = JSON.stringify(data)
+  const structure = createTemplateCompatibilityContext(data, { modelId, config: createEmptyTemplateCompatibilityConfig(modelId) })
+  for (let edit = 0; edit < 12; edit++) {
+    const draft = cloneTemplateCompatibility(config); draft.defaultRule.claims[0]!.note = `独立草稿编辑 ${edit}`
+    const prepared = prepareTemplateCompatibilityConfig(data, structure, draft), direct = createTemplateCompatibilityContext(data, { modelId, config: draft })
+    assert.equal(prepared.stats.combinationExpansions, 0); assert.equal(prepared.combinations, structure.combinations); assert.equal(prepared.terms, structure.terms); assert.equal(prepared.rowsByValueNode, structure.rowsByValueNode)
+    assert.deepEqual(prepared.combinations.map(combo => resolveTemplateCompatibility(prepared, combo)), direct.combinations.map(combo => resolveTemplateCompatibility(direct, combo)))
+    assert.deepEqual(validateTemplateCompatibilityConfig(data, draft, prepared), validateTemplateCompatibilityConfig(data, draft, direct))
+  }
+  assert.equal(structure.stats.combinationExpansions, 1); assert.equal(JSON.stringify(data), before)
+})
+check('prepared incomplete drafts expose field locations and recover on correction', () => {
+  const { data, modelId, config } = createTemplateCompatibilityFixture(), draft = cloneTemplateCompatibility(config)
+  const structure = createTemplateCompatibilityContext(data, { modelId, config: createEmptyTemplateCompatibilityConfig(modelId) })
+  draft.defaultRule.claims[0]!.source = ''
+  let prepared = prepareTemplateCompatibilityConfig(data, structure, draft), issues = validateTemplateCompatibilityConfig(data, draft, prepared)
+  assert(issues.some(issue => issue.claimId === draft.defaultRule.claims[0]!.id && issue.field === 'source'))
+  assert(prepared.combinations.some(combo => resolveTemplateCompatibility(prepared, combo).state === 'invalid'))
+  draft.defaultRule.claims[0]!.source = '独立测试已补齐依据'; draft.defaultRule.claims[0]!.conclusion = 'conditional'
+  prepared = prepareTemplateCompatibilityConfig(data, structure, draft); issues = validateTemplateCompatibilityConfig(data, draft, prepared)
+  assert(issues.some(issue => issue.claimId === draft.defaultRule.claims[0]!.id && issue.field === 'conditions'))
+  draft.defaultRule.claims[0]!.conditions = [{ kind: 'equipment', text: '使用独立测试转换器' }]
+  prepared = prepareTemplateCompatibilityConfig(data, structure, draft)
+  assert.deepEqual(validateTemplateCompatibilityConfig(data, draft, prepared), [])
+  assert.equal(prepared.stats.combinationExpansions, 0); assert.equal(structure.issues.length, 0)
+})
+check('Vue structural dependencies invalidate indexes while text edits only revalidate rules', () => {
+  const fixture = createTemplateCompatibilityFixture(), data = reactive(fixture.data), modelId = fixture.modelId, draft = ref(cloneTemplateCompatibility(fixture.config))
+  let builds = 0
+  const structure = computed(() => { builds++; return createTemplateCompatibilityContext(data, { modelId, config: createEmptyTemplateCompatibilityConfig(modelId) }) })
+  const prepared = computed(() => prepareTemplateCompatibilityConfig(data, structure.value, draft.value))
+  const first = prepared.value, firstStructure = structure.value
+  assert.equal(builds, 1)
+  draft.value.defaultRule.claims[0]!.note += ' 编辑'
+  assert.notEqual(prepared.value, first); assert.equal(structure.value, firstStructure); assert.equal(builds, 1); assert.equal(prepared.value.stats.combinationExpansions, 0)
+  data.productSpecNodes.find(node => node.id === 'compat-color-0-0')!.valueId = '独立新颜色'
+  assert.notEqual(structure.value, firstStructure); assert.equal(builds, 2)
+  const direct = createTemplateCompatibilityContext(data, { modelId, config: draft.value })
+  assert.deepEqual(prepared.value.combinations.map(combo => resolveTemplateCompatibility(prepared.value, combo)), direct.combinations.map(combo => resolveTemplateCompatibility(direct, combo)))
+  assert.equal(prepared.value.stats.combinationExpansions, 0)
+})
+const output = resolve(process.env.TEMPLATE_COMPATIBILITY_OUTPUT_DIR || 'work/template-compatibility')
+mkdirSync(output, { recursive: true })
+writeFileSync(resolve(output, 'domain-evidence.json'), JSON.stringify({ executedAt: new Date().toISOString(), runtime: { node: process.version, platform: platform(), arch: arch(), cpu: cpus()[0]?.model }, fixedBusinessTime: TEMPLATE_COMPATIBILITY_TIME, checks: evidence.length, results: evidence }, null, 2))
 console.log(`Template compatibility domain: ${evidence.length} checks passed`)

@@ -1,3 +1,5 @@
+import { installCatalogTestLocks } from './catalog-storage-test-env'
+installCatalogTestLocks()
 import assert from 'node:assert/strict'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -54,7 +56,7 @@ function fixture(): AppData {
 }
 try {
   let store = mount(fixture())
-  await nextTick()
+  await nextTick(); await store.waitForPersistence()
   const host = listDeviceModels(store.data).find(model => model.host.productModelId === 'device:state-model-a')?.host
   const otherHost = listDeviceModels(store.data).find(model => model.host.productModelId === 'device:state-model-b')?.host
   assert.ok(host && otherHost)
@@ -72,45 +74,45 @@ try {
   mark('preview-cancel-purity', 'real batch/copy previews allocate no identity and write no data')
 
   failNext = true
-  const failed = store.commitCompatibilityChanges(add)
-  await nextTick()
+  const failed = (await store.commitCompatibilityChanges(add))
+  await nextTick(); await store.waitForPersistence()
   assert.equal(failed.ok, false); assert.match(failed.message || '', /当前数据未改变.*草稿已保留/)
   assert.equal(JSON.stringify(store.data), initial); assert.equal(stored(), initialDisk); assert.equal(writes, initialWrites)
-  const retry = store.commitCompatibilityChanges(add)
-  await nextTick()
+  const retry = (await store.commitCompatibilityChanges(add))
+  await nextTick(); await store.waitForPersistence()
   assert.equal(retry.ok, true); assert.equal(writes - initialWrites, 1, 'One successful transaction must not trigger a second deep-watch write')
   const createdId = retry.createdIds?.[0]
   assert.ok(createdId)
   assert.equal(store.data.compatibilities.filter(link => link.targetId === 'state-sales-a').length, 1)
   const beforeDuplicate = writes
-  assert.equal(store.commitCompatibilityChanges(add).preview?.skipped, 1)
-  await nextTick(); assert.equal(writes, beforeDuplicate)
+  assert.equal((await store.commitCompatibilityChanges(add)).preview?.skipped, 1)
+  await nextTick(); await store.waitForPersistence(); assert.equal(writes, beforeDuplicate)
   mark('actual-storage-failure-retry-idempotency', 'next real setItem fails; memory/disk stay identical; retry commits once; duplicate commits zero times')
 
   const conflict: CompatibilityChange[] = [{ kind: 'add', draft: { ...draft('state-sales-a'), conclusion: 'incompatible' } }]
   const conflictPreview = previewCompatibilityChanges(store.data, conflict)
   assert.equal(conflictPreview.conflicts, 1); assert.equal(conflictPreview.canCommit, false)
   const beforeConflict = JSON.stringify(store.data), beforeConflictDisk = stored()
-  assert.equal(store.commitCompatibilityChanges([...add, ...conflict]).ok, false)
+  assert.equal((await store.commitCompatibilityChanges([...add, ...conflict])).ok, false)
   assert.equal(JSON.stringify(store.data), beforeConflict); assert.equal(stored(), beforeConflictDisk)
   const edited = store.data.compatibilities.find(link => link.id === createdId)
   assert.ok(edited)
-  assert.equal(store.commitCompatibilityChanges([{ kind: 'edit', id: createdId, draft: { ...declarationDraft(edited), conclusion: 'incompatible', verification: 'pending', note: '明确编辑当前声明' } }]).ok, true)
+  assert.equal((await store.commitCompatibilityChanges([{ kind: 'edit', id: createdId, draft: { ...declarationDraft(edited), conclusion: 'incompatible', verification: 'pending', note: '明确编辑当前声明' } }])).ok, true)
   assert.equal(store.data.compatibilities.find(link => link.id === createdId)?.verification, 'pending')
   assert.equal(store.data.compatibilities.find(link => link.id === createdId)?.createdAt, fixed)
-  assert.equal(store.commitCompatibilityChanges([{ kind: 'add', draft: { ...draft('state-sales-b'), conclusion: 'conditional', conditions: [] } }]).ok, false)
-  assert.equal(store.commitCompatibilityChanges([{ kind: 'add', draft: { ...draft('state-sales-b'), target: { kind: 'material', id: 'state-sales-b' } } }]).ok, false)
+  assert.equal((await store.commitCompatibilityChanges([{ kind: 'add', draft: { ...draft('state-sales-b'), conclusion: 'conditional', conditions: [] } }])).ok, false)
+  assert.equal((await store.commitCompatibilityChanges([{ kind: 'add', draft: { ...draft('state-sales-b'), target: { kind: 'material', id: 'state-sales-b' } } }])).ok, false)
   mark('conflict-edit-and-target-validation', 'opposite same-range claims do not overwrite; explicit edit preserves id/time; conditional-without-prerequisite and wrong SKU/MAT rejected')
 
   const copyPreview = previewMaterialCopy(store.data, 'state-material', 'state-sales-copy')
   const sourceBefore = cloneCompatibility(store.data.compatibilities.find(link => link.id === 'state-legacy-material'))
-  assert.equal(store.commitCompatibilityChanges(copyPreview.changes).ok, true)
+  assert.equal((await store.commitCompatibilityChanges(copyPreview.changes)).ok, true)
   const copied = store.data.compatibilities.find(link => link.targetId === 'state-sales-copy')
   assert.ok(copied?.provenance?.declarationSnapshot)
   assert.equal(copied.provenance.materialSnapshot?.code, 'MAT-STATE-TEST')
   assert.equal(copied.provenance.declarationId, 'state-legacy-material')
   const copiedSnapshot = cloneCompatibility(copied)
-  assert.equal(store.commitCompatibilityChanges([{ kind: 'edit', id: 'state-legacy-material', draft: { ...declarationDraft(legacy), note: '源物料后来明确编辑', conclusion: 'incompatible' } }]).ok, true)
+  assert.equal((await store.commitCompatibilityChanges([{ kind: 'edit', id: 'state-legacy-material', draft: { ...declarationDraft(legacy), note: '源物料后来明确编辑', conclusion: 'incompatible' } }])).ok, true)
   assert.deepEqual(store.data.compatibilities.find(link => link.id === copied.id), copiedSnapshot)
   assert.equal(copied.provenance.declarationSnapshot.note, sourceBefore?.note)
   assert.equal(previewMaterialCopy(store.data, 'state-material', 'state-sales-copy').conflicts, 1)
@@ -123,60 +125,60 @@ try {
   const sourceStamp = deviceSourceStamp(store.data, 'state-phone')
   const foreignHost = listDeviceModels(store.data).find(model => model.host.productModelId === 'device:state-foreign-model')?.host
   assert.ok(foreignHost)
-  assert.equal(store.commitDeviceBinding({ skuId: 'state-phone', host: foreignHost, expectedSourceStamp: sourceStamp }).ok, false, 'Phone cannot be bound to a model of another host product type')
+  assert.equal((await store.commitDeviceBinding({ skuId: 'state-phone', host: foreignHost, expectedSourceStamp: sourceStamp })).ok, false, 'Phone cannot be bound to a model of another host product type')
   assert.equal(JSON.stringify(store.data), beforeBinding); assert.equal(stored(), diskBeforeBinding)
   failNext = true
-  assert.equal(store.commitDeviceBinding({ skuId: 'state-phone', host, expectedSourceStamp: sourceStamp }).ok, false)
+  assert.equal((await store.commitDeviceBinding({ skuId: 'state-phone', host, expectedSourceStamp: sourceStamp })).ok, false)
   assert.equal(JSON.stringify(store.data), beforeBinding); assert.equal(stored(), diskBeforeBinding)
-  assert.equal(store.commitDeviceBinding({ skuId: 'state-phone', host, expectedSourceStamp: sourceStamp }).ok, true)
-  await nextTick()
+  assert.equal((await store.commitDeviceBinding({ skuId: 'state-phone', host, expectedSourceStamp: sourceStamp })).ok, true)
+  await nextTick(); await store.waitForPersistence()
   assert.equal(resolveDeviceSku(store.data, 'state-phone').status, 'resolved')
-  assert.equal(store.commitDeviceBinding({ skuId: 'state-phone', host: otherHost }).ok, false)
-  assert.equal(store.commitDeviceBinding({ skuId: 'state-phone', host: otherHost, replaceExisting: true, expectedSourceStamp: 'stale-source' }).ok, false)
-  assert.equal(store.commitDeviceBinding({ skuId: 'state-phone', host: otherHost, replaceExisting: true, expectedSourceStamp: sourceStamp }).ok, true)
+  assert.equal((await store.commitDeviceBinding({ skuId: 'state-phone', host: otherHost })).ok, false)
+  assert.equal((await store.commitDeviceBinding({ skuId: 'state-phone', host: otherHost, replaceExisting: true, expectedSourceStamp: 'stale-source' })).ok, false)
+  assert.equal((await store.commitDeviceBinding({ skuId: 'state-phone', host: otherHost, replaceExisting: true, expectedSourceStamp: sourceStamp })).ok, true)
   assert.equal(resolveDeviceSku(store.data, 'state-phone').host?.productModelId, otherHost.productModelId)
   assert.ok(compatibilitySkuBlock(store.data, 'state-phone'))
   assert.ok(compatibilityModelBlock(store.data, [otherHost.productModelId]))
-  assert.equal(store.removeDeviceModel('state-model-b').ok, false)
-  assert.equal(store.clearDeviceBinding('state-phone').ok, true)
-  assert.equal(store.commitDeviceBinding({ skuId: 'state-phone', host }).ok, true)
+  assert.equal((await store.removeDeviceModel('state-model-b')).ok, false)
+  assert.equal((await store.clearDeviceBinding('state-phone')).ok, true)
+  assert.equal((await store.commitDeviceBinding({ skuId: 'state-phone', host })).ok, true)
   mark('binding-confirm-source-and-protection', 'binding failure retains memory/disk; rebind requires acknowledgement/current source; model and SKU references protected')
 
   const noModel = JSON.stringify(store.data), noModelDisk = stored()
   failNext = true
   const input = { name: '【隔离测试】无 SKU 型号', productTypeId: 'state-independent-type', attributes: {} }
-  assert.equal(store.saveDeviceModel(input).ok, false)
+  assert.equal((await store.saveDeviceModel(input)).ok, false)
   assert.equal(JSON.stringify(store.data), noModel); assert.equal(stored(), noModelDisk)
-  const modelSaved = store.saveDeviceModel(input)
+  const modelSaved = (await store.saveDeviceModel(input))
   assert.equal(modelSaved.ok, true); assert.ok(modelSaved.id)
   assert.match(store.removeProductType('state-independent-type'), /不能删除/)
   const emptyHost = listDeviceModels(store.data).find(model => model.host.productModelId === `device:${modelSaved.id}`)?.host
   assert.ok(emptyHost)
-  assert.equal(store.commitCompatibilityChanges([{ kind: 'add', draft: { ...draft('state-sales-b'), host: emptyHost } }]).ok, true)
-  assert.equal(store.removeDeviceModel(modelSaved.id).ok, false)
+  assert.equal((await store.commitCompatibilityChanges([{ kind: 'add', draft: { ...draft('state-sales-b'), host: emptyHost } }])).ok, true)
+  assert.equal((await store.removeDeviceModel(modelSaved.id)).ok, false)
   mark('independent-device-no-material-required', 'can explicitly maintain a model and declaration without device MAT/SKU/planning; quota failure does not create model')
 
-  await nextTick()
+  await nextTick(); await store.waitForPersistence()
   const exported = store.exportJson(), businessBeforeImport = JSON.stringify([store.data.families, store.data.skus, store.data.planningRecords, store.data.specModelVersions, store.data.nodeCompatibilityRules, store.data.productListPages])
   assert.equal(businessBeforeImport, frozenBusiness)
   const beforeImport = JSON.stringify(store.data), beforeImportDisk = stored()
   const imported = JSON.parse(exported) as { version: number; data: AppData }
   imported.data.compatibilities.find(link => link.id === createdId)!.note = '导入明确变更'
   failNext = true
-  assert.throws(() => store.importJson(JSON.stringify(imported)), /当前数据和原存储未改变/)
+  await assert.rejects(async () => (await store.importJson(JSON.stringify(imported))), /当前数据和原存储未改变/)
   assert.equal(JSON.stringify(store.data), beforeImport); assert.equal(stored(), beforeImportDisk)
-  store.importJson(JSON.stringify(imported)); await nextTick()
+  ;(await store.importJson(JSON.stringify(imported))); await nextTick(); await store.waitForPersistence()
   const importedAfter = JSON.stringify(store.data)
-  store.importJson(JSON.stringify(imported)); await nextTick()
+  ;(await store.importJson(JSON.stringify(imported))); await nextTick(); await store.waitForPersistence()
   assert.equal(JSON.stringify(store.data), importedAfter)
   assert.equal(store.data.compatibilities.filter(link => link.id === createdId).length, 1)
   const reordered = JSON.parse(store.exportJson()) as { version: number; data: AppData }
   reordered.data = Object.fromEntries(Object.entries(reordered.data).reverse()) as unknown as AppData
   const writesBeforeReorderedImport = writes
-  store.importJson(JSON.stringify(reordered)); await nextTick()
+  ;(await store.importJson(JSON.stringify(reordered))); await nextTick(); await store.waitForPersistence()
   assert.equal(writes - writesBeforeReorderedImport, 1, 'Import with a different property order must not write twice through the deep watcher')
   assert.deepEqual(JSON.parse(stored() || '{}').data, cloneCompatibility(store.data), 'Successful import keeps every persisted field equal to live data independent of object-key order')
-  store = mount(); await nextTick()
+  store = mount(); await nextTick(); await store.waitForPersistence()
   assert.equal(resolveDeviceSku(store.data, 'state-phone').status, 'resolved')
   assert.equal(store.data.compatibilities.find(link => link.targetId === 'state-sales-copy')?.provenance?.declarationSnapshot?.note, '原始物料备注')
   assert.equal(store.data.compatibilities.find(link => link.id === createdId)?.note, '导入明确变更')
@@ -186,11 +188,11 @@ try {
   const invalidImport = JSON.parse(store.exportJson()) as { version: number; data: AppData }
   invalidImport.data.compatibilities.find(link => link.targetId === 'state-sales-copy')!.targetKind = 'material'
   const validDisk = stored(), validMemory = JSON.stringify(store.data)
-  assert.throws(() => store.importJson(JSON.stringify(invalidImport)), /类型不符/)
+  await assert.rejects(async () => (await store.importJson(JSON.stringify(invalidImport))), /类型不符/)
   assert.equal(stored(), validDisk); assert.equal(JSON.stringify(store.data), validMemory)
   const dangling = JSON.parse(store.exportJson()) as { version: number; data: AppData }
   dangling.data.skus = dangling.data.skus.filter(sku => sku.id !== 'state-sales-copy')
-  store.importJson(JSON.stringify(dangling)); await nextTick()
+  ;(await store.importJson(JSON.stringify(dangling))); await nextTick(); await store.waitForPersistence()
   assert.ok(store.data.compatibilities.some(link => link.id === copied.id))
   assert.ok(queryDeviceAccessories(store.data, 'state-phone').issues.some(issue => issue.declarationId === copied.id))
   const old = fixture(), originalLegacy = cloneCompatibility(old.compatibilities)
@@ -201,17 +203,17 @@ try {
   assert.deepEqual(normalizeStored({ version: DATA_VERSION, data: cloneCompatibility(normalized) }), normalized)
   mark('legacy-import-and-dangling-reference', 'old MAT records retain exact id/range/note/time; repeated normalization stable; dangling declaration retained as issue; wrong object kind rejected before write')
 
-  store = mount(fixture()); await nextTick()
-  store.data.activeRole = 'operator'; await nextTick()
+  store = mount(fixture()); await nextTick(); await store.waitForPersistence()
+  store.data.activeRole = 'operator'; await nextTick(); await store.waitForPersistence()
   const readOnlyBefore = JSON.stringify(store.data), readOnlyDisk = stored(), readOnlyWrites = writes
-  assert.equal(store.commitCompatibilityChanges(add).ok, false)
-  assert.equal(store.commitDeviceBinding({ skuId: 'state-phone', host }).ok, false)
-  assert.equal(store.clearDeviceBinding('state-phone').ok, false)
-  assert.equal(store.saveDeviceModel(input).ok, false)
-  assert.equal(store.removeDeviceModel('state-model-a').ok, false)
+  assert.equal((await store.commitCompatibilityChanges(add)).ok, false)
+  assert.equal((await store.commitDeviceBinding({ skuId: 'state-phone', host })).ok, false)
+  assert.equal((await store.clearDeviceBinding('state-phone')).ok, false)
+  assert.equal((await store.saveDeviceModel(input)).ok, false)
+  assert.equal((await store.removeDeviceModel('state-model-a')).ok, false)
   const readOnlyImport = JSON.parse(store.exportJson()) as { version: number; data: AppData }
   readOnlyImport.data.compatibilities[0]!.note = '运营角色不应通过导入维护关系'
-  assert.throws(() => store.importJson(JSON.stringify(readOnlyImport)), /不能通过导入修改/)
+  await assert.rejects(async () => (await store.importJson(JSON.stringify(readOnlyImport))), /不能通过导入修改/)
   assert.equal(JSON.stringify(store.data), readOnlyBefore); assert.equal(stored(), readOnlyDisk); assert.equal(writes, readOnlyWrites)
   mark('maintenance-permission-at-store-boundary', 'operator may query but all five maintenance commands reject without writes')
 
@@ -220,7 +222,7 @@ try {
   const historical = fixture()
   disk.set(STORAGE_KEY, JSON.stringify({ version: 14, data: historical }))
   failNext = true
-  store = mount(); await nextTick()
+  store = mount(); await nextTick(); await store.waitForPersistence()
   assert.ok(store.data.skus.some(sku => sku.id === 'state-material'))
   assert.ok(store.data.compatibilities.some(link => link.id === 'state-legacy-material'))
   assert.match(catalogMigrationError(), /无法写入本机/)

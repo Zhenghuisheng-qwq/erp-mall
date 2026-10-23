@@ -1,14 +1,12 @@
 <template>
-  <el-dialog :model-value="modelValue" :title="skuId ? '配置设备型号' : '维护独立设备型号'" width="min(600px, 94vw)" :close-on-click-modal="false" @update:model-value="emit('update:modelValue', $event)" data-device-binding>
+  <el-dialog :model-value="modelValue" :title="skuId ? '配置设备型号' : '维护独立设备型号'" width="min(600px, 94vw)" :close-on-click-modal="false" :close-on-press-escape="!saving" :show-close="!saving" @update:model-value="!saving && emit('update:modelValue', $event)" data-device-binding>
     <template v-if="skuId">
       <p><strong>{{ sku?.skuName || family?.name || skuId }}</strong> · {{ sku?.code }}</p>
       <el-alert :title="resolution.message" :type="resolution.status === 'resolved' ? 'info' : 'warning'" :closable="false" />
       <p v-if="activeBinding" class="muted">原显式绑定：{{ hostText(activeBinding.host) }}。重新绑定会改变这条 SKU 的适配查询；已有兼容声明不会被修改。</p>
-      <el-form label-position="top" style="margin-top:16px">
+      <el-form label-position="top" :disabled="saving" style="margin-top:16px">
         <el-form-item label="明确选择已有设备型号">
-          <el-select v-model="selectedKey" filterable placeholder="选择型号及其来源" style="width:100%" data-binding-host>
-            <el-option v-for="item in options" :key="item.key" :value="item.key" :label="`${item.label} · ${item.productTypeName} · ${modelSource(item.host.productModelId)}`" />
-          </el-select>
+          <DeviceModelPicker :model-value="selectedKey" :disabled="saving" :options="options" placeholder="选择型号及其来源" data-binding-host @update:model-value="selectedKey = typeof $event === 'string' ? $event : ''" />
         </el-form-item>
       </el-form>
       <p class="muted">同名型号按来源分别保留。绑定不改 SKU 规格，也不创建 MAT 或 PLN。</p>
@@ -17,8 +15,8 @@
       <el-divider />
     </template>
     <template v-if="store.isAdmin">
-      <el-button v-if="!creating" @click="creating = true">新建独立型号</el-button>
-      <el-form v-if="creating" label-position="top" class="model-form" @submit.prevent="createModel">
+      <el-button v-if="!creating" :disabled="saving" @click="creating = true">新建独立型号</el-button>
+      <el-form v-if="creating" :disabled="saving" label-position="top" class="model-form" @submit.prevent="createModel">
         <h3>新建独立设备型号</h3>
         <p class="muted">没有 MAT 或在售 SKU 也能建立型号，再维护其兼容声明。</p>
         <el-form-item label="型号名称" required><el-input v-model="modelName" placeholder="填写明确设备型号" maxlength="100" data-device-model-name /></el-form-item>
@@ -30,7 +28,7 @@
     <p v-else class="muted">当前角色可以查看；型号绑定和维护需要管理员权限。</p>
     <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon style="margin-top:12px" data-binding-error />
     <p v-if="notice" role="status" class="success">{{ notice }}</p>
-    <template #footer><el-button @click="emit('update:modelValue', false)">关闭</el-button></template>
+    <template #footer><el-button :disabled="saving" @click="emit('update:modelValue', false)">关闭</el-button></template>
   </el-dialog>
 </template>
 <script setup lang="ts">
@@ -40,6 +38,7 @@ import { useCatalogStore } from '../../stores/catalog'
 import { compatibilityFamilyTypeId, listDeviceModels, resolveDeviceSku } from '../../domain/deviceResolution'
 import { roleOfType } from '../../domain/compatibility'
 import { hostKey, hostText } from './compatibilityPresentation'
+import DeviceModelPicker from './DeviceModelPicker.vue'
 
 const props = defineProps<{ modelValue: boolean; skuId?: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; saved: [] }>()
@@ -63,9 +62,6 @@ watch(() => [props.modelValue, props.skuId] as const, ([open]) => {
   error.value = ''; notice.value = ''; creating.value = !props.skuId; modelName.value = ''
   productTypeId.value = familyTypeId.value || hostTypes.value[0]?.id || ''
 }, { immediate: true })
-function modelSource(id: string) {
-  return store.data.specCanvases.find(item => item.templateId === id)?.name || store.data.templates.find(item => item.id === id)?.name || (id.startsWith('device:') ? '独立型号' : id)
-}
 async function bind() {
   if (saving.value || !store.isAdmin || !props.skuId) return
   const candidate = options.value.find(item => item.key === selectedKey.value)?.host
@@ -77,7 +73,8 @@ async function bind() {
     try { await ElMessageBox.confirm(`原型号：${hostText(activeBinding.value?.host || resolution.value.host || host)}。将改为：${hostText(host)}。适用配件结果会按新型号重新查询，原声明保持。`, '确认重新绑定型号', { confirmButtonText: '确认重新绑定', cancelButtonText: '取消' }) } catch { if (generation === contextGeneration) saving.value = false; return }
   }
   if (generation !== contextGeneration || !props.modelValue || props.skuId !== skuId || selectedKey.value !== chosenKey) { if (generation === contextGeneration) saving.value = false; return }
-  const result = store.commitDeviceBinding({ skuId, host, replaceExisting: true, expectedSourceStamp: sourceStamp })
+  const result = (await store.commitDeviceBinding({ skuId, host, replaceExisting: true, expectedSourceStamp: sourceStamp }))
+  if(generation !== contextGeneration)return
   saving.value = false
   if (!result.ok) { error.value = result.message || '型号未保存，请重试。'; return }
   error.value = ''; emit('saved'); emit('update:modelValue', false)
@@ -90,15 +87,18 @@ async function clearBinding() {
   try { await ElMessageBox.confirm(`解除与「${label}」的显式绑定？解除后会按这条 SKU 的实际来源重新解析设备型号，已有兼容声明保持不变。`, '解除显式绑定', { confirmButtonText: '确认解除绑定', cancelButtonText: '保留绑定' }) } catch { if (generation === contextGeneration) saving.value = false; return }
   if (generation !== contextGeneration || !props.modelValue || props.skuId !== skuId) { if (generation === contextGeneration) saving.value = false; return }
   if (JSON.stringify(activeBinding.value) !== bindingStamp || resolution.value.sourceStamp !== sourceStamp) { saving.value = false; error.value = '设备来源或绑定已经变更，请重新查看后操作。'; return }
-  const result = store.clearDeviceBinding(skuId)
+  const result = (await store.clearDeviceBinding(skuId))
+  if(generation !== contextGeneration)return
   saving.value = false
   if (!result.ok) { error.value = result.message || '绑定未解除，请重试。'; return }
   error.value = ''; ElMessage.success('显式绑定已解除，已按 SKU 实际来源重新解析；原声明保留。'); emit('saved'); emit('update:modelValue', false)
 }
-function createModel() {
+async function createModel() {
+  const generation=contextGeneration
   if (saving.value || !store.isAdmin) return
   saving.value = true
-  const result = store.saveDeviceModel({ name: modelName.value.trim(), productTypeId: productTypeId.value, attributes: {} })
+  const result = (await store.saveDeviceModel({ name: modelName.value.trim(), productTypeId: productTypeId.value, attributes: {} }))
+  if(generation !== contextGeneration)return
   saving.value = false
   if (!result.ok) { error.value = result.message || '型号未保存，草稿已保留。'; return }
   error.value = ''; notice.value = '独立型号已保存，可以选择它维护兼容声明。'

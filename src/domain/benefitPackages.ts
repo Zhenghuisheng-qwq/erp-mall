@@ -133,7 +133,7 @@ function compatibilitySummary(skuId: string, match: AccessoryMatch | undefined, 
 function confirmationKey(skuId: string, capability: 'basic' | 'fast-charge') { return stable([skuId, capability]) }
 function hasConfirmation(draft: BenefitPackageDraft, key: string, basis: string) { return draft.confirmations.some(item => item.key === key && item.basis === basis && item.note.trim() && Number.isFinite(Date.parse(item.confirmedAt))) }
 export function validateBenefitPackage(data: AppData, draft: BenefitPackageDraft): BenefitValidation {
-  const issues: BenefitIssue[] = [], add = (code: string, message: string, structural = false, extra: Partial<BenefitIssue> = {}) => issues.push({ code, message, severity: 'error', structural, ...extra })
+  const issues: BenefitIssue[] = benefitRuleStructureIssues(draft.groups), add = (code: string, message: string, structural = false, extra: Partial<BenefitIssue> = {}) => issues.push({ code, message, severity: 'error', structural, ...extra })
   if (!draft.name.trim()) add('name', '请填写权益包名称。')
   if (!draft.goods.length && !draft.services.length) add('empty', '请至少添加一项商品或服务权益。')
   if (!['draft', 'available', 'disabled'].includes(draft.status)) add('status', '权益包状态无效。', true)
@@ -161,26 +161,22 @@ export function validateBenefitPackage(data: AppData, draft: BenefitPackageDraft
   for (const service of draft.services) {
     if (!service.id || lineIds.has(service.id)) add('service-identity', '服务条目 ID 缺失或重复。', true)
     lineIds.add(service.id)
-    if (!service.name.trim() || !service.unit.trim()) add('service-description', '请填写服务名称和单位。')
-    if (!validBenefitQuantity(service.quantity)) add('service-quantity', '服务数量必须为正整数。', true)
+    if (!service.name.trim() || !service.unit.trim()) add('service-description', '请填写服务名称和单位。', false, { serviceId: service.id, field: !service.name.trim() ? 'name' : 'unit' })
+    if (!validBenefitQuantity(service.quantity)) add('service-quantity', '服务数量必须为正整数。', true, { serviceId: service.id, field: 'quantity' })
     else { serviceCount += service.quantity; if (!Number.isSafeInteger(serviceCount)) add('service-total', '服务汇总数量超出安全范围。', true) }
     if (!['per-package', 'per-delivery'].includes(service.measurement)) add('service-measurement', '服务计量方式无效。', true)
   }
   if (draft.includedPhoneSkuId && (!draft.goods.some(line => line.skuId === draft.includedPhoneSkuId) || compatibilityRecordRole(data, draft.includedPhoneSkuId) !== 'host')) add('included-phone', '包内手机引用失效，需明确移除或替换。')
   if (draft.rulesEnabled) {
-    const owners = new Map<string, string>(), groupIds = new Set<string>()
-    for (const group of draft.groups) {
-      if (!group.id || groupIds.has(group.id)) add('group-identity', '选配组身份重复。', true, { groupId: group.id })
-      groupIds.add(group.id)
-    }
+    const owners = new Map<string, string>()
     for (const group of draft.groups.filter(item => item.enabled)) {
       const extra = { groupId: group.id }
       if (!group.name.trim()) add('group-name', '请填写选配组名称。', false, extra)
       if (!group.candidateSkuIds.length || new Set(group.candidateSkuIds).size !== group.candidateSkuIds.length) add('group-candidates', `选配组「${group.name}」候选不能为空或重复。`, false, extra)
       const kindsInvalid = !Number.isSafeInteger(group.minKinds) || group.minKinds < 0 || !validBenefitQuantity(group.maxKinds)
-      if (kindsInvalid || group.minKinds > group.maxKinds || group.maxKinds > group.candidateSkuIds.length || group.required && group.minKinds < 1) add('group-kinds', `选配组「${group.name}」的种数范围无效。`, kindsInvalid, extra)
+      if (!kindsInvalid && (group.minKinds > group.maxKinds || group.maxKinds > group.candidateSkuIds.length || group.required && group.minKinds < 1)) add('group-kinds', `选配组「${group.name}」的种数范围无效。`, false, { ...extra, field: 'maxKinds' })
       const quantityInvalid = ![group.defaultQuantity, group.minQuantity, group.maxQuantity].every(validBenefitQuantity)
-      if (quantityInvalid || group.minQuantity > group.defaultQuantity || group.defaultQuantity > group.maxQuantity) add('group-quantity', `选配组「${group.name}」的每种件数范围无效。`, quantityInvalid, extra)
+      if (!quantityInvalid && (group.minQuantity > group.defaultQuantity || group.defaultQuantity > group.maxQuantity)) add('group-quantity', `选配组「${group.name}」的每种件数范围无效。`, false, { ...extra, field: 'defaultQuantity' })
       for (const skuId of group.candidateSkuIds) {
         const summary = benefitSkuSummary(data, skuId), family = summary && data.families.find(item => item.id === summary.familyId)
         if (!summary || summary.status !== 'on_sale' || !family || shelfOf(family) !== 'online') add('group-reference', `选配组「${group.name}」的候选 ${summary?.name || skuId}已停售或引用失效。`, false, { ...extra, skuId })
@@ -257,6 +253,29 @@ function compatibilityShape(value: unknown) { return object(value) && string(val
 function serviceShape(value: unknown) { return object(value) && ['id', 'name', 'unit', 'validity', 'description'].every(key => string(value[key])) && validBenefitQuantity(value.quantity) && ['per-package', 'per-delivery'].includes(String(value.measurement)) }
 function validDate(value: unknown) { return string(value) && Number.isFinite(Date.parse(value)) }
 function confirmationShape(value: unknown) { return object(value) && ['key', 'skuId', 'note', 'basis'].every(key => string(value[key]) && Boolean(value[key].trim())) && validDate(value.confirmedAt) && ['basic', 'fast-charge'].includes(String(value.capability)) && value.key === confirmationKey(String(value.skuId), value.capability as 'basic' | 'fast-charge') && deviceShape(value.device) && strings(value.declarationIds) && strings(value.conditionLabels) }
+/** The same persisted rule shape is required while enabled, disabled, saving or loading.
+ * Business completeness (candidate availability, ranges and selection) is checked separately. */
+export function benefitRuleStructureIssues(groups: unknown): BenefitIssue[] {
+  const issues: BenefitIssue[] = []
+  const add = (message: string, groupId?: string, field?: string) => issues.push({ code: 'group-structure', message, severity: 'error', structural: true, groupId, field })
+  if (!Array.isArray(groups)) { add('选配规则集合必须为数组。', undefined, 'groups'); return issues }
+  const ids = new Set<string>()
+  const numericFields = { minKinds: '最少选择种数', maxKinds: '最多选择种数', defaultQuantity: '每种默认件数', minQuantity: '每种最少件数', maxQuantity: '每种最多件数' }
+  for (const [index, group] of groups.entries()) {
+    if (!object(group)) { add(`第 ${index + 1} 个选配组结构无效。`, undefined, 'groups'); continue }
+    const groupId = string(group.id) ? group.id : undefined, label = string(group.name) && group.name.trim() ? `「${group.name}」` : `第 ${index + 1} 个选配组`
+    if (!groupId || ids.has(groupId)) add(`${label}身份缺失或重复。`, groupId, 'id')
+    if (groupId) ids.add(groupId)
+    if (!string(group.name)) add(`${label}名称结构无效。`, groupId, 'name')
+    for (const field of ['enabled', 'required', 'adjustable'] as const) if (typeof group[field] !== 'boolean') add(`${label}启用与选配设置结构无效。`, groupId, field)
+    if (!strings(group.candidateSkuIds)) add(`${label}候选 SKU 集合结构无效。`, groupId, 'candidateSkuIds')
+    for (const [field, title] of Object.entries(numericFields)) {
+      const value = group[field], valid = field === 'minKinds' ? typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 : validBenefitQuantity(value)
+      if (!valid) add(`${label}的${title}必须是安全范围内的${field === 'minKinds' ? '非负整数（可为 0）' : '正整数（至少 1）'}；停用时也需修正后保存。`, groupId, field)
+    }
+  }
+  return issues
+}
 /** Structural import validation intentionally retains dangling configuration references and independent history. */
 export function benefitPackageImportProblems(data: unknown): string[] {
   if (!object(data)) return ['权益包数据结构无效。']
@@ -270,7 +289,7 @@ export function benefitPackageImportProblems(data: unknown): string[] {
     if (!Array.isArray(value.goods) || value.goods.some(line => !object(line) || !string(line.id) || !line.id || !string(line.skuId) || !line.skuId || !validBenefitQuantity(line.quantity) || !summaryShape(line.snapshot) || !object(line.snapshot) || line.snapshot.skuId !== line.skuId)) problems.push('权益包实物条目结构、身份或数量无效。')
     else if (new Set(value.goods.map(line => line.skuId)).size !== value.goods.length || new Set(value.goods.map(line => line.id)).size !== value.goods.length) problems.push('权益包实物身份重复。')
     if (!Array.isArray(value.services) || !value.services.every(serviceShape) || new Set(value.services.map(line => line.id)).size !== value.services.length || value.services.some(line => !line.id || Array.isArray(value.goods) && value.goods.some(goods => object(goods) && goods.id === line.id))) problems.push('权益包服务条目无效。')
-    if (!Array.isArray(value.groups) || value.groups.some(group => !object(group) || !string(group.id) || !group.id || !string(group.name) || typeof group.enabled !== 'boolean' || !strings(group.candidateSkuIds) || typeof group.required !== 'boolean' || typeof group.adjustable !== 'boolean' || !Number.isSafeInteger(group.minKinds) || Number(group.minKinds) < 0 || ![group.maxKinds, group.defaultQuantity, group.minQuantity, group.maxQuantity].every(validBenefitQuantity)) || new Set(value.groups.map(group => group.id)).size !== value.groups.length) problems.push('权益包选配规则无效。')
+    problems.push(...benefitRuleStructureIssues(value.groups).map(issue => `权益包「${value.name || value.code}」：${issue.message}`))
     if (!object(value.quote) || value.quote.currency !== 'CNY' || value.quote.amountCents !== null && !validBenefitCents(value.quote.amountCents) || !string(value.quote.reviewedBasis)) problems.push('权益包报价无效。')
     if (!Array.isArray(value.confirmations) || !value.confirmations.every(confirmationShape) || new Set(value.confirmations.map(item => item.key)).size !== value.confirmations.length) problems.push('权益包人工条件确认结构无效。')
   }

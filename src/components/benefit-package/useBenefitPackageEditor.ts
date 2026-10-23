@@ -1,12 +1,21 @@
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { nextTick, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useCatalogStore } from '../../stores/catalog'
-import { compatibilityRecordRole, listDeviceModels } from '../../domain/deviceResolution'
+import { compatibilityRecordRole, deviceHostKey, listDeviceModels } from '../../domain/deviceResolution'
 import { isRealSku } from '../../domain/catalogIdentity'
 import { addBenefitSku, benefitSkuCandidates, benefitSkuSummary, cloneBenefit, confirmBenefitCondition, copyBenefitPackageDraft, newBenefitPackageDraft, parseBenefitAmount, previewBenefitDelivery, replaceBenefitSku, reviewBenefitQuote, setBenefitDevice, setBenefitIncludedPhone, validateBenefitPackage } from '../../domain/benefitPackages'
-import type { BenefitDeviceContext, BenefitDeliveryPreview, BenefitPackageDraft, BenefitServiceLine } from '../../domain/benefitPackageTypes'
+import type { BenefitCommandResult, BenefitDeviceContext, BenefitDeliveryPreview, BenefitIssue, BenefitPackageDraft, BenefitServiceLine } from '../../domain/benefitPackageTypes'
 import { amountInput, localBenefitRequest } from './benefitPackagePresentation'
+import { safeBenefitReturn } from './benefitNavigation'
+import BenefitServiceDialog from './BenefitServiceDialog.vue'
+import BenefitRuleEditor from './BenefitRuleEditor.vue'
+
+// A bounded in-memory return point, released when the related package is reopened.
+// Search/scroll/draft editing never writes business AppData.
+let editorReturn: { path: string; draft: BenefitPackageDraft; original: string; keyword: string; type: string; tab: 'recommended' | 'all' | 'common'; quoteText: string; quoteError: string; notes: Record<string, string>; scroll: { selector: string; top: number }[] } | undefined
+
+let previewOnArrival: { path: string; count: number } | undefined
 
 export function useBenefitPackageEditor() {
   const store = useCatalogStore(), route = useRoute(), router = useRouter()
@@ -14,7 +23,12 @@ export function useBenefitPackageEditor() {
   const error = ref(''), saving = ref(false), saveRequest = ref('')
   const keyword = ref(''), productTypeId = ref(''), candidateTab = ref<'recommended' | 'all' | 'common'>('recommended')
   const quoteText = ref(''), quoteError = ref('')
-  const serviceOpen = ref(false), editedService = ref<BenefitServiceLine>()
+  const serviceOpen = ref(false), editedService = ref<BenefitServiceLine>(), serviceDirty = ref(false)
+  const serviceDialog = ref<InstanceType<typeof BenefitServiceDialog>>()
+  const ruleEditor = ref<InstanceType<typeof BenefitRuleEditor>>()
+  const advancedOpen = ref<string[]>([]), narrowPane = ref('candidates')
+  const leaveIntent = ref<'route' | 'service'>('route')
+  let allowNextNavigation = false
   const replaceOpen = ref(false), replaceLineId = ref(''), replaceSkuId = ref('')
   const deviceSwitchOpen = ref(false), pendingDevice = ref<BenefitDeviceContext>(null)
   const conditionNotes = ref<Record<string, string>>({})
@@ -23,6 +37,8 @@ export function useBenefitPackageEditor() {
   let resolveLeave: ((value: boolean) => void) | undefined
   const validation = computed(() => validateBenefitPackage(store.data, draft.value))
   const dirty = computed(() => JSON.stringify(draft.value) !== original.value || Boolean(quoteError.value))
+  const busy = computed(() => saving.value || generating.value || leaving.value)
+  const unsaved = computed(() => dirty.value || serviceDirty.value)
   const saved = computed(() => store.data.benefitPackages?.find(item => item.id === draft.value.id))
   const stale = computed(() => Boolean(saved.value && saved.value.revision !== draft.value.revision))
   const commonPackages = computed(() => (store.data.benefitPackages || []).filter(item => item.favorite && item.status !== 'disabled'))
@@ -43,7 +59,7 @@ export function useBenefitPackageEditor() {
     return ''
   })
   const relatedDeliveries = computed(() => (store.data.benefitDeliveries || []).filter(item => item.packageId === draft.value.id))
-  const canGenerate = computed(() => Boolean(draft.value.id && !dirty.value && !stale.value && draft.value.status === 'available' && store.isAdmin))
+  const canGenerate = computed(() => Boolean(draft.value.id && !dirty.value && !stale.value && draft.value.status === 'available' && store.isAdmin && !store.persistenceState.external))
   function initialize() {
     const id = typeof route.params.id === 'string' ? route.params.id : ''
     const source = id ? store.data.benefitPackages?.find(item => item.id === id) : undefined
@@ -51,7 +67,7 @@ export function useBenefitPackageEditor() {
     const copySource = copyId ? store.data.benefitPackages?.find(item => item.id === copyId) : undefined
     missing.value = Boolean((id && !source) || (copyId && !copySource))
     const device = typeof route.query.device === 'string' ? { kind: 'sku' as const, skuId: route.query.device } : null
-    serviceOpen.value = false; editedService.value = undefined
+    serviceOpen.value = false; serviceDirty.value = false; editedService.value = undefined
     replaceOpen.value = false; replaceLineId.value = ''; replaceSkuId.value = ''
     deviceSwitchOpen.value = false; pendingDevice.value = null
     deliveryPreview.value = undefined; deliveryConfirmed.value = false; deliveryCount.value = 1
@@ -61,31 +77,43 @@ export function useBenefitPackageEditor() {
     quoteText.value = amountInput(draft.value.quote.amountCents); quoteError.value = ''; error.value = ''
     candidateTab.value = draft.value.device ? 'recommended' : 'all'
     original.value = JSON.stringify(draft.value); saveRequest.value = ''; generationRequest.value = ''; conditionNotes.value = {}
+    if (editorReturn?.path === route.fullPath) {
+      const retained = editorReturn; editorReturn = undefined
+      draft.value = retained.draft; original.value = retained.original; keyword.value = retained.keyword; productTypeId.value = retained.type; candidateTab.value = retained.tab
+      quoteText.value = retained.quoteText; quoteError.value = retained.quoteError; conditionNotes.value = retained.notes
+      void nextTick(() => { for (const entry of retained.scroll) { const element = document.querySelector(entry.selector); if (element) element.scrollTop = entry.top } })
+    }
   }
-  watch(() => route.fullPath, initialize, { immediate: true })
+  // AdminLayout keys benefit pages by fullPath, so a route change creates a new editor.
+  // Initialize once and hand only an ephemeral preview intent to that next instance.
+  initialize()
+  if (previewOnArrival?.path === route.fullPath) {
+    const arrival = previewOnArrival; previewOnArrival = undefined
+    void nextTick(async () => { deliveryCount.value = arrival.count; await nextTick(); makeDeliveryPreview(); await nextTick(); document.querySelector('[data-benefit-delivery-preview]')?.scrollIntoView({ block: 'start', behavior: 'instant' }) })
+  }
   watch(draft, () => { deliveryPreview.value = undefined; deliveryConfirmed.value = false }, { deep: true })
   watch(deliveryCount, () => { deliveryPreview.value = undefined; deliveryConfirmed.value = false; generationRequest.value = '' })
   function change(operation: () => BenefitPackageDraft) {
-    if (!store.isAdmin) return
+    if (!store.isAdmin || saving.value || generating.value) return
     try { draft.value = operation(); error.value = '' }
     catch (problem) { error.value = problem instanceof Error ? problem.message : String(problem) }
   }
   function addSku(skuId: string) { change(() => addBenefitSku(store.data, draft.value, skuId)) }
-  function quantity(lineId: string, value: number) { if (store.isAdmin) draft.value.goods = draft.value.goods.map(line => line.id === lineId ? { ...line, quantity: value } : line) }
+  function quantity(lineId: string, value: number) { if (store.isAdmin && !busy.value) draft.value.goods = draft.value.goods.map(line => line.id === lineId ? { ...line, quantity: value } : line) }
   async function removeSku(lineId: string) {
     const line = draft.value.goods.find(item => item.id === lineId)
-    if (!line || !store.isAdmin) return
+    if (!line || !store.isAdmin || busy.value) return
     if (line.skuId === draft.value.includedPhoneSkuId) { await includePhone(false); return }
     draft.value.goods = draft.value.goods.filter(item => item.id !== lineId)
   }
-  function chooseReplacement(lineId: string) { if (!store.isAdmin) return; replaceLineId.value = lineId; replaceSkuId.value = ''; replaceOpen.value = true }
+  function chooseReplacement(lineId: string) { if (!store.isAdmin || saving.value || generating.value) return; replaceLineId.value = lineId; replaceSkuId.value = ''; replaceOpen.value = true }
   function replace() {
     const before = draft.value
     change(() => replaceBenefitSku(store.data, draft.value, replaceLineId.value, replaceSkuId.value))
     if (draft.value !== before) replaceOpen.value = false
   }
   function requestDevice(value: string) {
-    if (!store.isAdmin) return
+    if (!store.isAdmin || saving.value || generating.value) return
     let next: BenefitDeviceContext = null
     if (value.startsWith('sku:')) next = { kind: 'sku', skuId: value.slice(4) }
     if (value.startsWith('model:')) {
@@ -103,22 +131,22 @@ export function useBenefitPackageEditor() {
     if (draft.value !== before) { candidateTab.value = draft.value.device ? 'recommended' : 'all'; keyword.value = ''; productTypeId.value = ''; deviceSwitchOpen.value = false }
   }
   async function includePhone(value: boolean) {
-    if (!store.isAdmin) return
+    if (!store.isAdmin || saving.value || generating.value) return
     if (!value && draft.value.includedPhoneSkuId) {
       try { await ElMessageBox.confirm(`将从实物清单移除「${includedPhone.value?.name || draft.value.includedPhoneSkuId}」。适配设备保持不变。`, '移除包内手机', { confirmButtonText: '确认移除这条手机', cancelButtonText: '保留手机' }) }
       catch { return }
     }
     change(() => setBenefitIncludedPhone(store.data, draft.value, value))
   }
-  function editService(service?: BenefitServiceLine) { editedService.value = service; serviceOpen.value = true }
+  function editService(service?: BenefitServiceLine) { if (!store.isAdmin || busy.value) return; serviceDirty.value = false; editedService.value = service; serviceOpen.value = true }
   function saveService(service: BenefitServiceLine) {
-    if (!store.isAdmin) return
+    if (!store.isAdmin || saving.value || generating.value) return
     const index = draft.value.services.findIndex(item => item.id === service.id)
     draft.value.services = index < 0 ? [...draft.value.services, cloneBenefit(service)] : draft.value.services.map(item => item.id === service.id ? cloneBenefit(service) : item)
   }
-  function removeService(id: string) { if (store.isAdmin) draft.value.services = draft.value.services.filter(item => item.id !== id) }
+  function removeService(id: string) { if (store.isAdmin && !busy.value) draft.value.services = draft.value.services.filter(item => item.id !== id) }
   function updateQuote(value: string | number) {
-    if (!store.isAdmin) return
+    if (!store.isAdmin || saving.value || generating.value) return
     quoteText.value = String(value)
     try { draft.value.quote.amountCents = parseBenefitAmount(quoteText.value); draft.value.quote.reviewedBasis = ''; quoteError.value = '' }
     catch (problem) { quoteError.value = problem instanceof Error ? problem.message : String(problem) }
@@ -127,18 +155,30 @@ export function useBenefitPackageEditor() {
   function confirmCondition(skuId: string, capability: 'basic' | 'fast-charge') { change(() => confirmBenefitCondition(store.data, draft.value, skuId, conditionNotes.value[`${skuId}:${capability}`] || '', new Date().toISOString(), capability)) }
   function isConditionConfirmed(skuId: string, capability: 'basic' | 'fast-charge') { return draft.value.confirmations.some(item => item.skuId === skuId && item.capability === capability && item.basis === validation.value.basis) }
   async function save(status: 'draft' | 'available', navigate = true) {
+    if (serviceDirty.value) { error.value = '服务弹窗还有未确认输入，请先加入服务清单或明确放弃，再保存权益包。'; return false }
     if (saving.value || !store.isAdmin) return false
     if (quoteError.value) { error.value = quoteError.value; return false }
-    if (!dirty.value && draft.value.id && draft.value.status === status) return true
+    if (!dirty.value && draft.value.id && draft.value.status === status && !store.persistenceState.external) return true
     saving.value = true
     saveRequest.value ||= localBenefitRequest('save-package')
-    const result = store.saveBenefitPackage({ draft: cloneBenefit(draft.value), status, expectedRevision: draft.value.revision, requestId: saveRequest.value })
-    saving.value = false
-    if (!result.ok || !result.package) { error.value = result.message || '保存失败，输入已保留，可直接重试。'; return false }
+    let result: BenefitCommandResult
+    try { result = await store.saveBenefitPackage({ draft: cloneBenefit(draft.value), status, expectedRevision: draft.value.revision, requestId: saveRequest.value }) }
+    catch (problem) { error.value = `保存未完成，当前输入已保留：${problem instanceof Error ? problem.message : String(problem)}`; return false }
+    finally { saving.value = false }
+    if (!result.ok || !result.package) { error.value = result.message || '保存失败，输入已保留，可直接重试。'; const first = result.validation?.issues.find(issue => issue.structural || status === 'available' && issue.severity === 'error'); if (first) void locateIssue(first); return false }
     draft.value = cloneBenefit(result.package); original.value = JSON.stringify(draft.value); saveRequest.value = ''; error.value = ''
     ElMessage.success(status === 'available' ? '权益包已保存，可继续生成交付清单' : '权益包草稿已保存')
     if (navigate && route.params.id !== draft.value.id) await router.replace({ path: `/benefit-packages/${draft.value.id}`, query: returnQuery() })
     return true
+  }
+  async function saveAndPreview() {
+    deliveryPreview.value = undefined; deliveryConfirmed.value = false; generationRequest.value = ''
+    if (!await save('available', false)) return
+    if (route.params.id !== draft.value.id) {
+      const location = { path: `/benefit-packages/${draft.value.id}`, query: returnQuery() }
+      previewOnArrival = { path: router.resolve(location).fullPath, count: deliveryCount.value }
+      await router.replace(location)
+    } else { await nextTick(); makeDeliveryPreview(); await nextTick(); document.querySelector('[data-benefit-delivery-preview]')?.scrollIntoView({ block: 'start', behavior: 'instant' }) }
   }
   function makeDeliveryPreview() {
     if (!canGenerate.value || !saved.value) { error.value = '请先保存当前完整配置，再生成交付清单。'; return }
@@ -149,39 +189,86 @@ export function useBenefitPackageEditor() {
     if (generating.value || !store.isAdmin || !deliveryPreview.value || !deliveryConfirmed.value || dirty.value) return
     generating.value = true; generationRequest.value ||= localBenefitRequest('delivery-request')
     const preview = deliveryPreview.value
-    const result = store.generateBenefitDelivery({ packageId: preview.packageId, expectedRevision: preview.sourceRevision, requestId: generationRequest.value, packageCount: preview.packageCount, expectedBasis: preview.basis })
-    generating.value = false
+    let result: BenefitCommandResult
+    try { result = await store.generateBenefitDelivery({ packageId: preview.packageId, expectedRevision: preview.sourceRevision, requestId: generationRequest.value, packageCount: preview.packageCount, expectedBasis: preview.basis }) }
+    catch (problem) { error.value = `清单生成未完成，当前请求已保留：${problem instanceof Error ? problem.message : String(problem)}`; return }
+    finally { generating.value = false }
     if (!result.ok || !result.delivery) { error.value = result.message || '清单生成失败，当前预览和请求已保留，请重试。'; return }
     error.value = ''; generationRequest.value = ''; ElMessage.success('交付清单已确认保存')
     await router.push({ path: `/benefit-packages/deliveries/${result.delivery.id}`, query: returnQuery() })
   }
-  function returnQuery() { return typeof route.query.returnTo === 'string' ? { returnTo: route.query.returnTo } : {} }
-  function back() { const target = route.query.returnTo; router.push(typeof target === 'string' && target.startsWith('/') && !target.startsWith('//') ? target : '/benefit-packages') }
+  function returnQuery() { return route.query.returnTo ? { returnTo: safeBenefitReturn(router, route.query.returnTo) } : {} }
+  function back() { void router.push(safeBenefitReturn(router, route.query.returnTo)) }
   function useCommon(id: string) { router.push({ path: '/benefit-packages/new', query: { copy: id, ...returnQuery() } }) }
   function openDelivery(id: string) { router.push({ path: `/benefit-packages/deliveries/${id}`, query: returnQuery() }) }
   async function setStatus(status: 'available' | 'disabled') {
-    if (!store.isAdmin || !draft.value.id) return
+    if (!store.isAdmin || !draft.value.id || saving.value) return
     if (dirty.value) { error.value = '请先保存或放弃当前编辑，再变更权益包状态。'; return }
     if (status === 'disabled') { try { await ElMessageBox.confirm('停用后不能生成新的交付清单，已有清单仍保留。', '停用权益包', { confirmButtonText: '确认停用', cancelButtonText: '取消' }) } catch { return } }
-    const result = store.setBenefitPackageStatus(draft.value.id, status, draft.value.revision)
+    saving.value = true
+    let result: BenefitCommandResult
+    try { result = await store.setBenefitPackageStatus(draft.value.id, status, draft.value.revision) }
+    catch (problem) { error.value = `状态未保存：${problem instanceof Error ? problem.message : String(problem)}`; return }
+    finally { saving.value = false }
     if (!result.ok || !result.package) { error.value = result.message || '状态未保存，可重试。'; return }
     draft.value = cloneBenefit(result.package); original.value = JSON.stringify(draft.value); error.value = ''
   }
   async function reload() {
-    if (dirty.value) { try { await ElMessageBox.confirm('重新读取会放弃当前未保存编辑。', '读取最新配置', { confirmButtonText: '放弃编辑并读取', cancelButtonText: '继续编辑' }) } catch { return } }
+    if (busy.value) return
+    if (unsaved.value) { try { await ElMessageBox.confirm('重新读取会放弃当前未保存的组包及服务弹窗输入。', '读取最新配置', { confirmButtonText: '放弃编辑并读取', cancelButtonText: '继续编辑' }) } catch { return } }
     initialize()
   }
+  async function locateIssue(issue: BenefitIssue) {
+    if (issue.groupId || issue.code.startsWith('group-')) {
+      advancedOpen.value = ['rules']; await nextTick(); await ruleEditor.value?.focusIssue(issue); return
+    }
+    narrowPane.value = 'contents'; await nextTick()
+    const selector = issue.skuId ? `[data-benefit-goods="${CSS.escape(issue.skuId)}"]` : issue.serviceId ? `[data-benefit-service="${CSS.escape(issue.serviceId)}"]` : issue.code.startsWith('quote') ? '.quote-panel' : issue.code.startsWith('device') ? '.device-field' : issue.code === 'name' ? '[data-benefit-name]' : '[data-benefit-contents]'
+    const target = document.querySelector<HTMLElement>(selector)
+    if (issue.code === 'condition-confirmation') { const details = target?.querySelector('details'); if (details) details.open = true }
+    target?.scrollIntoView({ block: 'center', behavior: 'instant' }); target?.querySelector<HTMLElement>('input,textarea,button')?.focus({ preventScroll: true })
+  }
+  async function manageCompatibility(skuId?: string) {
+    if (busy.value) return
+    if (serviceDirty.value) { error.value = '请先确认或放弃服务弹窗输入，再维护适用关系。'; return }
+    editorReturn = { path: route.fullPath, draft: cloneBenefit(draft.value), original: original.value, keyword: keyword.value, type: productTypeId.value, tab: candidateTab.value, quoteText: quoteText.value, quoteError: quoteError.value, notes: { ...conditionNotes.value }, scroll: ['.content', '.candidate-list'].map(selector => ({ selector, top: document.querySelector(selector)?.scrollTop || 0 })) }
+    const targetSku = skuId || validation.value.issues.find(issue => issue.skuId)?.skuId || draft.value.goods[0]?.skuId
+    allowNextNavigation = true
+    await router.push({ path: '/compatibility', query: { ...(targetSku ? { manage: targetSku } : {}), ...(draft.value.device?.kind === 'sku' ? { device: draft.value.device.skuId } : draft.value.device?.kind === 'model' ? { deviceModel: deviceHostKey(draft.value.device.host) } : {}), returnTo: route.fullPath } })
+  }
+  function requestServiceClose() {
+    if (busy.value) return
+    if (!serviceDirty.value) { serviceOpen.value = false; return }
+    leaveIntent.value = 'service'; leaveOpen.value = true
+  }
   const guard = () => {
-    if (!dirty.value || !store.isAdmin) return true
-    leaveOpen.value = true
+    if (saving.value || generating.value) return false
+    if (store.persistenceState.discardConfirmed) return true
+    if (allowNextNavigation) { allowNextNavigation = false; return true }
+    if (!unsaved.value || !store.isAdmin) return true
+    // Superseded navigation must resolve, otherwise quick back/forward can hang.
+    resolveLeave?.(false); resolveLeave = undefined
+    leaveIntent.value = 'route'; leaveOpen.value = true
     return new Promise<boolean>(resolve => { resolveLeave = resolve })
   }
   function continueEditing() { leaveOpen.value = false; resolveLeave?.(false); resolveLeave = undefined }
-  function discardAndLeave() { leaveOpen.value = false; original.value = JSON.stringify(draft.value); quoteError.value = ''; resolveLeave?.(true); resolveLeave = undefined }
-  async function saveAndLeave() { if (leaving.value) return; leaving.value = true; const ok = await save('draft', false); leaving.value = false; if (ok) { leaveOpen.value = false; resolveLeave?.(true); resolveLeave = undefined } }
+  function discardAndLeave() {
+    leaveOpen.value = false; serviceDirty.value = false; serviceOpen.value = false
+    if (leaveIntent.value === 'route') { original.value = JSON.stringify(draft.value); quoteError.value = ''; resolveLeave?.(true); resolveLeave = undefined }
+  }
+  async function saveAndLeave() {
+    if (leaving.value) return
+    if (serviceDirty.value && !serviceDialog.value?.commit()) {
+      error.value = '服务输入尚未完整，已保留。请返回弹窗补全，或明确放弃后离开。'
+      continueEditing(); return
+    }
+    if (leaveIntent.value === 'service') { leaveOpen.value = false; return }
+    leaving.value = true
+    try { if (await save('draft', false)) { leaveOpen.value = false; resolveLeave?.(true); resolveLeave = undefined } } finally { leaving.value = false }
+  }
   onBeforeRouteLeave(guard); onBeforeRouteUpdate(guard)
-  const beforeUnload = (event: BeforeUnloadEvent) => { if (dirty.value && store.isAdmin) { event.preventDefault(); event.returnValue = '' } }
+  const beforeUnload = (event: BeforeUnloadEvent) => { if (unsaved.value && store.isAdmin && !store.persistenceState.discardConfirmed) { event.preventDefault(); event.returnValue = '' } }
   onMounted(() => window.addEventListener('beforeunload', beforeUnload))
-  onBeforeUnmount(() => { window.removeEventListener('beforeunload', beforeUnload); resolveLeave?.(false) })
-  return { store, draft, missing, dirty, stale, error, saving, keyword, productTypeId, candidateTab, candidates, allCandidates, commonPackages, types, models, deviceSkus, deviceValue, currentPhone, includedPhone, currentIsIncluded, validation, quoteText, quoteError, serviceOpen, editedService, replaceOpen, replaceSkuId, deviceSwitchOpen, pendingDevice, conditionNotes, deliveryCount, deliveryPreview, deliveryConfirmed, generating, canGenerate, relatedDeliveries, leaveOpen, leaving, addSku, quantity, removeSku, chooseReplacement, replace, requestDevice, finishDeviceSwitch, includePhone, editService, saveService, removeService, updateQuote, reviewQuote, confirmCondition, isConditionConfirmed, save, makeDeliveryPreview, generate, back, useCommon, openDelivery, setStatus, reload, continueEditing, discardAndLeave, saveAndLeave }
+  onBeforeUnmount(() => { window.removeEventListener('beforeunload', beforeUnload); resolveLeave?.(false); resolveLeave = undefined })
+  return { busy, serviceDialog, serviceDirty, requestServiceClose, leaveIntent, ruleEditor, advancedOpen, narrowPane, unsaved, saveAndPreview, locateIssue, manageCompatibility, store, draft, missing, dirty, stale, error, saving, keyword, productTypeId, candidateTab, candidates, allCandidates, commonPackages, types, models, deviceSkus, deviceValue, currentPhone, includedPhone, currentIsIncluded, validation, quoteText, quoteError, serviceOpen, editedService, replaceOpen, replaceSkuId, deviceSwitchOpen, pendingDevice, conditionNotes, deliveryCount, deliveryPreview, deliveryConfirmed, generating, canGenerate, relatedDeliveries, leaveOpen, leaving, addSku, quantity, removeSku, chooseReplacement, replace, requestDevice, finishDeviceSwitch, includePhone, editService, saveService, removeService, updateQuote, reviewQuote, confirmCondition, isConditionConfirmed, save, makeDeliveryPreview, generate, back, useCommon, openDelivery, setStatus, reload, continueEditing, discardAndLeave, saveAndLeave }
 }

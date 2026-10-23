@@ -99,8 +99,9 @@ async function saveName() {
       return
     }
   }
-  if (!decision.needsConfirm && editing.value.name === nameDraft.value.trim()) return
+  if (!decision.needsConfirm && editing.value.name === nameDraft.value.trim()) { await flushChanges(); return }
   editing.value.name = nameDraft.value.trim()
+  if (!await flushChanges()) return
   ElMessage.success('已修改全局属性名称。节点引用和已发布快照没有改写。')
 }
 function openBrand() {
@@ -111,19 +112,26 @@ function openCreate() {
   store.data.params.push({ id, name: '新参数', values: [], valueGroups: [], participateInStructure: true })
   edit(id)
 }
-function addValue() {
+async function flushChanges() {
+  const result = await store.flushPersistence()
+  if (!result.ok) { ElMessage.error(store.persistenceState.message || '当前词典修改尚未保存，输入已保留。'); return false }
+  return true
+}
+async function addValue() {
   if (!editing.value || !newValue.value.trim()) return
   if (!editing.value.values.includes(newValue.value.trim())) editing.value.values.push(newValue.value.trim())
+  if (!await flushChanges()) return
   newValue.value = ''
 }
-function removeValue(value: string) {
+async function removeValue(value: string) {
   if (!editing.value) return
   const message = store.removeParamValue(editing.value.id, value)
   if (message) ElMessage.warning(message)
+  else await flushChanges()
 }
-function remove(id: string) {
+async function remove(id: string) {
   const message = store.removeParam(id)
   if (message) ElMessage.warning(message)
-  else ElMessage.success('已删除')
+  else if (await flushChanges()) ElMessage.success('已删除')
 }
 </script>

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { computed, reactive, watch } from 'vue'
+import { computed, onScopeDispose, reactive, watch } from 'vue'
+import { createCatalogPersistence } from './catalogPersistence'
 import {
   blockChildOfTypedCategory,
   blockTypeOnNonLeaf,
@@ -18,7 +19,6 @@ import { blankVariantAttrs, categoryPath, descendantIds, familySkus, sameSpecSna
 import { reconcilePlanningRecords } from '../domain/planning'
 import { compatibilityModelBlock, compatibilitySkuBlock } from '../domain/compatibility'
 import { ensureProductListPages } from '../domain/productListPages'
-import { persistSkuPage } from '../domain/skuWorkbenchState'
 import type { ProductListPageState } from '../domain/types'
 import { isRealSku } from '../domain/catalogIdentity'
 import { applyCompatibilityChanges, cloneCompatibility, compatibilityImportProblems, deviceModelProblem } from '../domain/accessoryCompatibilityCommands'
@@ -44,6 +44,7 @@ import { DATA_VERSION, STORAGE_KEY, type AppData, type Category, type ColumnPref
 
 type ModuleName = 'products' | 'categories' | 'templates' | 'params' | 'rules' | 'groups' | 'system'
 type StoredPayload = { version?: number; data?: AppData }
+type CommandFailure = { ok: false; message: string; package?: undefined; delivery?: undefined; validation?: undefined; preview?: undefined; id?: undefined; choices?: MaterialChoice[]; reason?: 'material-deleted' }
 let migrationStorageError = ''
 export function catalogMigrationError() { return migrationStorageError }
 
@@ -58,6 +59,9 @@ function renameSchemeColumn(columns: ColumnPref[] | undefined, mark: { changed: 
 
 /** 版本 1 没有分类启用状态。缺省视为启用，并写回版本 2。商品、方案、映射原样保留。 */
 export function normalizeStored(parsed: StoredPayload, options: { persist?: boolean } = {}): AppData | null {
+  // Compatibility option retained for callers; normalization never writes. The
+  // store commits migrations under the same lock as every other business write.
+  void options
   migrationStorageError = ''
   const data = parsed.data
   if (!data?.families || !data.skus || !data.categories || !data.templates || !data.mappings || !data.templateParams) return null
@@ -203,26 +207,18 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   if (ensureProductListPages(data)) mark.changed = true
   const compatibilityProblems = compatibilityImportProblems(data)
   if (compatibilityProblems.length) migrationStorageError = `适用关系配置有待处理项：${compatibilityProblems.join(' ')} 原始记录已保留，请修复或导出备份。`
-  if (mark.changed && !compatibilityProblems.length && options.persist !== false && typeof localStorage !== 'undefined') {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data })); migrationStorageError = '' }
-    catch (error) { migrationStorageError = `旧配置已在内存中兼容读取，但无法写入本机：${error instanceof Error ? error.message : String(error)}。原存储未被清空，可在解除存储限制后重试保存。` }
-  }
   return data
 }
 
-function loadData(): AppData {
+function loadData(raw: string | null): AppData {
   let loaded: AppData | undefined
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
     if (raw === null) return createSeed()
     const parsed = JSON.parse(raw) as StoredPayload
-    const data = normalizeStored(parsed)
+    const data = normalizeStored(parsed, { persist: false })
     if (!data) throw new Error('已有数据的基础结构或版本无法读取。')
     loaded = data
-    const fix = applyAccessoryCategoryFix(data, PHONE_CASE_CATEGORY_FIX)
-    if (fix.changed && typeof localStorage !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data }))
-    }
+    applyAccessoryCategoryFix(data, PHONE_CASE_CATEGORY_FIX)
     return data
   } catch (error) {
     if (loaded) {
@@ -240,34 +236,52 @@ export function uid(prefix: string) {
 }
 
 export const useCatalogStore = defineStore('catalog', () => {
-  const data = reactive<AppData>(loadData())
+  const originalRaw = localStorage.getItem(STORAGE_KEY)
+  const data = reactive<AppData>(loadData(originalRaw))
+  const persistence = createCatalogPersistence(originalRaw)
+  onScopeDispose(persistence.dispose)
   ensureProductListPages(data)
-  let explicitlyPersisted = ''
+  let explicitlyPersisted = JSON.stringify(data)
+  function persistLive() {
+    return persistence.run(() => {
+      const encoded = JSON.stringify(data)
+      if (encoded === explicitlyPersisted) return { ok: true }
+      persistence.write(data)
+      explicitlyPersisted = encoded
+      return { ok: true }
+    }, message => { migrationStorageError = `当前内容无法写入本机：${message}。原始数据未被清空。`; return { ok: false, message } })
+  }
 
   watch(
     data,
     () => {
-      const encoded = JSON.stringify({ version: DATA_VERSION, data })
-      if (encoded === explicitlyPersisted) return
-      localStorage.setItem(STORAGE_KEY, encoded)
-      explicitlyPersisted = encoded
+      if (JSON.stringify(data) !== explicitlyPersisted) void persistLive()
     },
     { deep: true },
   )
 
   const isAdmin = computed(() => data.activeRole === 'admin')
+  // Seed and migration writes use the very same protected path, never a startup
+  // overwrite. Existing unmodified payloads acquire identity on their first edit.
+  if (!originalRaw || JSON.stringify(JSON.parse(originalRaw).data) !== explicitlyPersisted || JSON.parse(originalRaw).version !== DATA_VERSION) {
+    explicitlyPersisted = ''
+    void persistLive()
+  }
+  function command<T extends { ok: boolean; message?: string }>(operation: () => T): Promise<T | CommandFailure> {
+    return persistence.run<T | CommandFailure>(operation, message => ({ ok: false as const, message }))
+  }
 
   /** Persist the whole candidate once, then expose only this command's owned fields. */
   function commitCandidate<T extends { ok: boolean; message?: string }>(next: AppData, result: T, keys: (keyof AppData)[]): T | { ok: false; message: string; choices?: MaterialChoice[]; reason?: 'material-deleted' } {
     if (!result.ok) return result
     if (JSON.stringify(keys.map(key => data[key])) === JSON.stringify(keys.map(key => next[key]))) return result
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data: next }))
+      persistence.write(next)
       for (const key of keys) {
         if (next[key] === undefined) delete data[key]
         else Object.assign(data, { [key]: next[key] })
       }
-      explicitlyPersisted = JSON.stringify({ version: DATA_VERSION, data })
+      explicitlyPersisted = JSON.stringify(data)
       migrationStorageError = ''
       return result
     } catch (error) { return { ok: false, message: `无法保存到本机：${error instanceof Error ? error.message : String(error)}。当前数据未改变，操作草稿已保留，请重试。` } }
@@ -311,10 +325,10 @@ export const useCatalogStore = defineStore('catalog', () => {
     const next = cloneCompatibility(data), canvas = next.specCanvases.find(item => item.templateId === templateId)
     if (canvas) canvas.updatedAt = new Date().toISOString()
     // The canvas may already be dirty in memory. Explicit save must still probe storage.
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data: next })) }
+    try { persistence.write(next) }
     catch (error) { return { ok: false, message: `无法保存到本机：${error instanceof Error ? error.message : String(error)}。画布草稿保留，请重试。` } }
     if (canvas) data.specCanvases = next.specCanvases
-    explicitlyPersisted = JSON.stringify({ version: DATA_VERSION, data })
+    explicitlyPersisted = JSON.stringify(data)
     return { ok: true, message: '已保存模型草稿。' }
   }
   function materialImportBasis() {
@@ -339,13 +353,12 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (!result.ok) return result
     if (JSON.stringify([data.benefitPackages, data.benefitDeliveries]) === JSON.stringify([next.benefitPackages, next.benefitDeliveries])) return result
     try {
-      const encoded = JSON.stringify({ version: DATA_VERSION, data: next })
-      localStorage.setItem(STORAGE_KEY, encoded)
+      persistence.write(next)
       if (next.benefitPackages !== undefined) data.benefitPackages = next.benefitPackages
       else delete data.benefitPackages
       if (next.benefitDeliveries !== undefined) data.benefitDeliveries = next.benefitDeliveries
       else delete data.benefitDeliveries
-      explicitlyPersisted = JSON.stringify({ version: DATA_VERSION, data })
+      explicitlyPersisted = JSON.stringify(data)
       migrationStorageError = ''
       return result
     } catch (error) {
@@ -448,9 +461,9 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function commitSkuPage(next: ProductListPageState) {
-    const result = persistSkuPage(data, next, text => localStorage.setItem(STORAGE_KEY, text), DATA_VERSION)
-    if (result.ok) { explicitlyPersisted = result.encoded; migrationStorageError = '' }
-    return result
+    if (!data.productListPages) return { ok: false as const, message: 'SKU 页面配置尚未初始化。' }
+    const candidate = { ...data, productListPages: { ...data.productListPages, sku: next } }
+    return commitCandidate(candidate, { ok: true as const }, ['productListPages'])
   }
 
   function compatibilityPermission(): CompatibilityCommandResult | undefined {
@@ -463,9 +476,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     const before = JSON.stringify([data.compatibilities, data.deviceModels, data.deviceBindings, data.templateCompatibilityOrigins])
     if (before === JSON.stringify([next.compatibilities, next.deviceModels, next.deviceBindings, next.templateCompatibilityOrigins])) return result
     try {
-      const encoded = JSON.stringify({ version: DATA_VERSION, data: next })
-      localStorage.setItem(STORAGE_KEY, encoded)
-      explicitlyPersisted = encoded
+      persistence.write(next)
       data.compatibilities = next.compatibilities
       if (next.deviceModels !== undefined) data.deviceModels = next.deviceModels
       else delete data.deviceModels
@@ -473,7 +484,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       else delete data.deviceBindings
       if (next.templateCompatibilityOrigins !== undefined) data.templateCompatibilityOrigins = next.templateCompatibilityOrigins
       else delete data.templateCompatibilityOrigins
-      explicitlyPersisted = JSON.stringify({ version: DATA_VERSION, data })
+      explicitlyPersisted = JSON.stringify(data)
       migrationStorageError = ''
       return result
     } catch (error) {
@@ -567,37 +578,46 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function resetAll() {
-    replaceAll(createSeed())
+    const next = createSeed()
+    persistence.write(next, true)
+    replaceAll(next)
+    explicitlyPersisted = JSON.stringify(data)
+    return { ok: true as const }
   }
 
   function resetModule(name: ModuleName) {
+    const next = cloneCompatibility(data)
     const fresh = createSeed()
     if (name === 'products') {
-      data.families = fresh.families
-      data.skus = fresh.skus
+      next.families = fresh.families
+      next.skus = fresh.skus
     } else if (name === 'categories') {
-      data.categories = fresh.categories
-      data.mappings = fresh.mappings
-      data.productTypes = fresh.productTypes
+      next.categories = fresh.categories
+      next.mappings = fresh.mappings
+      next.productTypes = fresh.productTypes
     } else if (name === 'templates') {
-      data.templates = fresh.templates
-      data.templateParams = fresh.templateParams
-      data.mappings = fresh.mappings
-      data.productSpecNodes = fresh.productSpecNodes
-      data.specCanvases = fresh.specCanvases
-      data.specModelVersions = fresh.specModelVersions
+      next.templates = fresh.templates
+      next.templateParams = fresh.templateParams
+      next.mappings = fresh.mappings
+      next.productSpecNodes = fresh.productSpecNodes
+      next.specCanvases = fresh.specCanvases
+      next.specModelVersions = fresh.specModelVersions
     } else if (name === 'params') {
-      data.params = fresh.params
-      data.templateParams = fresh.templateParams
+      next.params = fresh.params
+      next.templateParams = fresh.templateParams
     } else if (name === 'rules') {
-      data.rules = fresh.rules
+      next.rules = fresh.rules
     } else if (name === 'groups') {
-      data.productGroups = fresh.productGroups
+      next.productGroups = fresh.productGroups
     } else {
-      data.users = fresh.users
-      data.feedbacks = fresh.feedbacks
-      data.profile = fresh.profile
+      next.users = fresh.users
+      next.feedbacks = fresh.feedbacks
+      next.profile = fresh.profile
     }
+    persistence.write(next, true)
+    replaceAll(next)
+    explicitlyPersisted = JSON.stringify(data)
+    return { ok: true as const }
   }
 
   function exportJson() {
@@ -620,14 +640,13 @@ export const useCatalogStore = defineStore('catalog', () => {
     const next = normalizeStored(parsed, { persist: false })
     if (!next?.params) throw new Error('演示数据版本不匹配，当前数据没有被替换')
     if (migrationStorageError) throw new Error(migrationStorageError)
-    const encoded = JSON.stringify({ version: DATA_VERSION, data: next })
-    try { localStorage.setItem(STORAGE_KEY, encoded) }
+    try { persistence.write(next, true) }
     catch (error) { throw new Error(`无法写入本机：${error instanceof Error ? error.message : String(error)}。当前数据和原存储未改变，可重试导入。`) }
     replaceAll(next)
     // Object.assign preserves the live object's key order. The imported payload
     // may have a different order while containing identical data; suppress only
     // the immediate watch echo of the successfully committed live state.
-    explicitlyPersisted = JSON.stringify({ version: DATA_VERSION, data })
+    explicitlyPersisted = JSON.stringify(data)
   }
 
   function skusOf(familyId: string) {
@@ -809,9 +828,10 @@ export const useCatalogStore = defineStore('catalog', () => {
     const name = input.name.trim()
     if (!productType) return { ok: false, message: '请选择产品类型。', templateId: '' }
     if (!name) return { ok: false, message: '请填写模型名称。', templateId: '' }
+    const next = cloneCompatibility(data)
     const templateId = uid('tpl')
-    data.templates.push({ id: templateId, name, parentId: null, enabled: true, structureOrder: [] })
-    data.specCanvases.push({
+    next.templates.push({ id: templateId, name, parentId: null, enabled: true, structureOrder: [] })
+    next.specCanvases.push({
       templateId,
       productTypeId: productType.id,
       name,
@@ -824,7 +844,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       direction: 'ltr',
       updatedAt: new Date().toISOString(),
     })
-    return { ok: true, message: '', templateId }
+    return commitCandidate(next, { ok: true, message: '', templateId }, ['templates', 'specCanvases'])
   }
 
   function copyProductModel(id: string, options: { name?: string; productTypeId?: string; direction?: 'ltr' | 'logic' } = {}) {
@@ -1146,37 +1166,45 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   return {
     data,
-    saveTemplateCompatibility,
+    persistenceState: persistence.state,
+    waitForPersistence: persistence.idle,
+    flushPersistence: persistLive,
+    saveTemplateCompatibility: (...args: Parameters<typeof saveTemplateCompatibility>) => command(() => saveTemplateCompatibility(...args)),
     previewTemplateCompatibilitySync: (input: { modelId: string; targetVersionId: string; targetIds?: string[] }) => previewTemplateCompatibilitySync(data, input),
-    applyTemplateCompatibilitySync: applyTemplateSync,
-    saveModelDraft,
+    applyTemplateCompatibilitySync: (...args: Parameters<typeof applyTemplateSync>) => command(() => applyTemplateSync(...args)),
+    saveModelDraft: (...args: Parameters<typeof saveModelDraft>) => command(() => saveModelDraft(...args)),
     materialImportBasis,
-    commitMaterialImport,
-    copyProductModel,
-    commitSkuPage,
-    saveBenefitPackage,
-    setBenefitPackageStatus,
-    setBenefitPackageFavorite,
-    generateBenefitDelivery,
-    commitCompatibilityChanges,
-    commitDeviceBinding,
-    clearDeviceBinding,
-    saveDeviceModel,
-    removeDeviceModel,
+    commitMaterialImport: (...args: Parameters<typeof commitMaterialImport>) => command(() => commitMaterialImport(...args)),
+    copyProductModel: (...args: Parameters<typeof copyProductModel>) => command(() => copyProductModel(...args)),
+    commitSkuPage: (next: ProductListPageState) => {
+      const expectedPage = JSON.stringify(data.productListPages?.sku)
+      return command(() => JSON.stringify(data.productListPages?.sku) === expectedPage
+        ? commitSkuPage(next)
+        : { ok: false, message: 'SKU 页面设置已由上一个操作更新，本次未覆盖；当前工作配置已保留，请重新核对后保存。' })
+    },
+    saveBenefitPackage: (...args: Parameters<typeof saveBenefitPackage>) => command<BenefitCommandResult>(() => saveBenefitPackage(...args)),
+    setBenefitPackageStatus: (...args: Parameters<typeof setBenefitPackageStatus>) => command<BenefitCommandResult>(() => setBenefitPackageStatus(...args)),
+    setBenefitPackageFavorite: (...args: Parameters<typeof setBenefitPackageFavorite>) => command<BenefitCommandResult>(() => setBenefitPackageFavorite(...args)),
+    generateBenefitDelivery: (...args: Parameters<typeof generateBenefitDelivery>) => command<BenefitCommandResult>(() => generateBenefitDelivery(...args)),
+    commitCompatibilityChanges: (...args: Parameters<typeof commitCompatibilityChanges>) => command<CompatibilityCommandResult>(() => commitCompatibilityChanges(...args)),
+    commitDeviceBinding: (...args: Parameters<typeof commitDeviceBinding>) => command<CompatibilityCommandResult>(() => commitDeviceBinding(...args)),
+    clearDeviceBinding: (...args: Parameters<typeof clearDeviceBinding>) => command<CompatibilityCommandResult>(() => clearDeviceBinding(...args)),
+    saveDeviceModel: (...args: Parameters<typeof saveDeviceModel>) => command<CompatibilityCommandResult>(() => saveDeviceModel(...args)),
+    removeDeviceModel: (...args: Parameters<typeof removeDeviceModel>) => command<CompatibilityCommandResult>(() => removeDeviceModel(...args)),
     isAdmin,
-    resetAll,
-    resetModule,
+    resetAll: () => command(resetAll),
+    resetModule: (...args: Parameters<typeof resetModule>) => command(() => resetModule(...args)),
     exportJson,
-    importJson,
+    importJson: (text: string) => persistence.run(() => importJson(text), message => { throw new Error(message) }),
     skusOf,
-    saveBundle,
-    saveSpu: (family: ProductFamily) => {
+    saveBundle: (...args: Parameters<typeof saveBundle>) => command(() => saveBundle(...args)),
+    saveSpu: (family: ProductFamily) => command(() => {
       if (family.id && !data.families.some(item => item.id === family.id)) return { ok: false as const, message: 'SPU 已不存在，请重新打开列表；未重新创建已删除的记录。' }
       const next = cloneCompatibility(data), result = saveSpu(next, { ...family, id: family.id || unusedCatalogId('fam') }, new Date().toISOString())
       return commitCandidate(next, result, ['families'])
-    },
-    appendSkus,
-    editSku: editSalesSku,
+    }),
+    appendSkus: (...args: Parameters<typeof appendSkus>) => command(() => appendSkus(...args)),
+    editSku: (...args: Parameters<typeof editSalesSku>) => command(() => editSalesSku(...args)),
     removeFamily,
     patchSku,
     removeSku,
@@ -1190,7 +1218,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     saveProductType,
     removeProductType,
     setProductTypeStatus,
-    createProductModel,
+    createProductModel: (...args: Parameters<typeof createProductModel>) => command(() => createProductModel(...args)),
     addCategory,
     moveCategory,
     shiftCategory,
@@ -1201,9 +1229,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     removeSpecNode,
     shiftSpecNode,
     removeTemplate,
-    publishSpecModel,
-    createMaterial,
-    createTemporary,
+    publishSpecModel: (...args: Parameters<typeof publishSpecModel>) => command(() => publishSpecModel(...args)),
+    createMaterial: (...args: Parameters<typeof createMaterial>) => command(() => createMaterial(...args)),
+    createTemporary: (...args: Parameters<typeof createTemporary>) => command(() => createTemporary(...args)),
     markPlanningGrades,
     updateMaterial,
     renameProduct,

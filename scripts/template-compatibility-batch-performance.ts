@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { arch, cpus, platform } from 'node:os'
 import { performance } from 'node:perf_hooks'
+import { resolve } from 'node:path'
 import { createTemplateCompatibilityContext, freezeTemplateCompatibility } from '../src/domain/templateCompatibility'
 import { materializeTemplateCompatibility, previewTemplateCompatibilitySync } from '../src/domain/templateCompatibilitySync'
 import { createTemplateCompatibilityFixture, TEMPLATE_COMPATIBILITY_TIME } from './template-compatibility-fixtures'
@@ -67,5 +68,6 @@ for (const sample of samples) {
   const result = { ...sample, nodes: data.productSpecNodes.length, depth: 4, combinations: combinations.length, existingSkus: data.skus.length - sample.targets, actualHistoryDeclarations: data.compatibilities.length, sourceVersionCount: 1, targetVersionCount: 1, measuredRounds: 5, warmupRounds: 1, materialize: { medianMs: median(materializeMs), samplesMs: materializeMs, added: sample.targets, stats: materializeStats }, syncPreview: { medianMs: median(syncMs), samplesMs: syncMs, counts, stats: syncStats } }
   results.push(result); console.log(JSON.stringify(result))
 }
-mkdirSync('work/template-compatibility', { recursive: true })
-writeFileSync('work/template-compatibility/batch-performance.json', JSON.stringify({ executedAt: new Date().toISOString(), environment: { node: process.version, platform: platform(), arch: arch(), cpu: cpus()[0]?.model }, fixedBusinessTime: TEMPLATE_COMPATIBILITY_TIME, method: 'Real batch materialization and read-only three-way sync preview, one warmup and five measured runs. Full independent data clone occurs outside materialization timing. Every batch mixes separate SKU/MAT targets; history arrays, IDs and business time fixed. All created rows and sync update counts asserted, with untouched input and read-only preview asserted. This records the new feature cost, not a comparison to the pre-feature application.', results }, null, 2))
+const output = resolve(process.env.TEMPLATE_COMPATIBILITY_OUTPUT_DIR || 'work/template-compatibility')
+mkdirSync(output, { recursive: true })
+writeFileSync(resolve(output, 'batch-performance.json'), JSON.stringify({ executedAt: new Date().toISOString(), environment: { node: process.version, platform: platform(), arch: arch(), cpu: cpus()[0]?.model }, fixedBusinessTime: TEMPLATE_COMPATIBILITY_TIME, method: 'Real batch materialization and read-only three-way sync preview, one warmup and five measured runs. Full independent data clone occurs outside materialization timing. Every batch mixes separate SKU/MAT targets; history arrays, IDs and business time fixed. All created rows and sync update counts asserted, with untouched input and read-only preview asserted. This records the new feature cost, not a comparison to the pre-feature application.', results }, null, 2))

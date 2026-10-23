@@ -92,3 +92,5 @@ npm run build
 商品模型的“配置适用设备”维护整体默认与规格例外；节点快捷入口编辑同一套规则。保存后发布模型，从该发布版本新增销售 SKU 或 MAT 时自动生成各自的适用声明。已有商品在“适用关系”或商品兼容抽屉中“检查模板更新”，先预览再确认，人工修改与取消记录默认受到保护。
 
 实现、全部实际创建入口、数据保护和验收范围见 [模板兼容工作台报告](docs/template-compatibility-workbench.md)。核心检查运行 `npm run check:template-compatibility`，性能运行 `npm run check:template-compatibility:performance`。浏览器使用独立上下文及已安装的 Chrome，可配置 `BROWSER_CHANNEL`；视觉对照运行 `npm run check:template-compatibility:visual`，需要本轮开始前的完整源码快照（`TEMPLATE_COMPATIBILITY_BASELINE`）。缺失环境或基线会明确失败。
+
+兼容关系与权益包的可靠性修复、共享存储保护及新交互见 [本轮实现报告](docs/compatibility-benefit-refinement.md)。专项入口为 `npm run check:compatibility-refinement:domain`、`npm run check:compatibility-refinement:browser` 和 `npm run check:compatibility-refinement:performance`。前后视觉与性能需要实际开工快照，可用 `REFINEMENT_BASELINE` 指定；权益包基线截图使用 `REFINEMENT_BASELINE_ROOT`。浏览器并发中的真实 HTTPS 验证需按报告配置临时测试证书，缺少证书会明确记录该项未验证。

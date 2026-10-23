@@ -42,6 +42,16 @@ export interface TemplateSyncItem {
   origin?: TemplateCompatibilityOrigin
   blockingIds?: string[]
   duplicateManual?: boolean
+  /** A connected provenance component is selected and committed as one unit. */
+  group?: TemplateSyncGroup
+}
+export interface TemplateSyncGroup {
+  kind: 'many-to-one' | 'one-to-many' | 'many-to-many'
+  before: { origin: TemplateCompatibilityOrigin; declaration?: TemplateCompatibilityClaim }[]
+  after: { origin: TemplateCompatibilityOrigin }[]
+  operations: { id: string; kind: 'add' | 'remove'; originKey: string; declarationId?: string }[]
+  canAdopt: boolean
+  blockedReasons: string[]
 }
 export interface TemplateSyncPreview {
   modelId: string
@@ -66,7 +76,7 @@ function indexRow<T>(index: Map<string, T[]>, key: string, row: T) {
   else index.set(key, [row])
 }
 const linkTarget = (link: CompatibilityLink): AccessoryTarget => ({ kind: link.targetKind || 'material', id: link.targetId || link.accessorySkuId })
-const originKey = (target: AccessoryTarget, modelId: string, claim: EffectiveTemplateClaim) => stable([targetKey(target), modelId, claim.ruleIds.slice().sort(), claim.claimIds.slice().sort()])
+const originKey = (target: AccessoryTarget, modelId: string, claim: EffectiveTemplateClaim) => stable([targetKey(target), modelId, claim.origins.map(pair => [pair.ruleId, pair.claimId]).sort((a, b) => stable(a).localeCompare(stable(b)))])
 const content = templateClaimContentSignature
 function claimOf(link: CompatibilityLink): TemplateCompatibilityClaim {
   const draft = declarationDraft(link)
@@ -128,6 +138,31 @@ function linkFrom(origin: TemplateCompatibilityOrigin, id: string, now: string, 
 }
 function expectedOrigin(target: AccessoryTarget, sku: Sku, family: ProductFamily, versionId: string, combo: Context['combinations'][number], expected: EffectiveTemplateClaim, now: string): TemplateCompatibilityOrigin {
   return { key: originKey(target, family.templateId, expected), target, modelId: family.templateId, sourceVersionId: versionId, ruleIds: [...expected.ruleIds], claimIds: [...expected.claimIds], lineage: cloneCompatibility(expected.origins), identityKey: combo.identityKey, steps: cloneCompatibility(combo.steps), sourceStamp: templateCompatibilitySourceStamp(sku, family), baseline: cloneCompatibility(expected.claim), state: 'managed', updatedAt: now }
+}
+
+/** Old snapshots without exact lineage retain their original cross-product fallback. */
+function lineageKeys(origin: TemplateCompatibilityOrigin): string[] {
+  return origin.lineage
+    ? origin.lineage.map(pair => stable([pair.ruleId, pair.claimId]))
+    : origin.ruleIds.flatMap(ruleId => origin.claimIds.map(claimId => stable([ruleId, claimId])))
+}
+/** Index once, then plan connected components instead of greedily claiming one old row per result. */
+function originComponents(previous: TemplateCompatibilityOrigin[], expected: TemplateCompatibilityOrigin[]) {
+  const parent = Array.from({ length: previous.length + expected.length }, (_, index) => index)
+  const root = (index: number): number => { while (parent[index] !== index) { parent[index] = parent[parent[index]!]!; index = parent[index]! }; return index }
+  const join = (a: number, b: number) => { const first = root(a), second = root(b); if (first !== second) parent[second] = first }
+  const byKey = new Map<string, number>(), byLineage = new Map<string, number[]>()
+  previous.forEach((origin, index) => { byKey.set(origin.key, index); lineageKeys(origin).forEach(key => indexRow(byLineage, key, index)) })
+  expected.forEach((origin, index) => {
+    const node = previous.length + index, exact = byKey.get(origin.key)
+    if (exact !== undefined) join(node, exact)
+    for (const key of lineageKeys(origin)) for (const prior of byLineage.get(key) || []) join(node, prior)
+  })
+  const groups = new Map<number, { previous: TemplateCompatibilityOrigin[]; expected: TemplateCompatibilityOrigin[] }>()
+  // New-result order remains the resolver order; old-only removals remain in stored order.
+  expected.forEach((origin, index) => { const id = root(previous.length + index); let group = groups.get(id); if (!group) { group = { previous: [], expected: [] }; groups.set(id, group) }; group.expected.push(origin) })
+  previous.forEach((origin, index) => { const id = root(index); let group = groups.get(id); if (!group) { group = { previous: [], expected: [] }; groups.set(id, group) }; group.previous.push(origin) })
+  return [...groups.values()]
 }
 
 /** Reuses one expanded/indexed published version per batch; previews never allocate official ids. */
@@ -218,6 +253,7 @@ export function previewTemplateCompatibilitySync(data: AppData, input: { modelId
   const stats: TemplateCompatibilityStats = { contextBuilds: 1, combinationExpansions: targetContext.stats.combinationExpansions, declarationScans: data.compatibilities.length, originScans: (data.templateCompatibilityOrigins || []).length }
   const families = new Map(data.families.map(item => [item.id, item])), targets = input.targetIds ? new Set(input.targetIds) : undefined
   const originsByTarget = new Map<string, TemplateCompatibilityOrigin[]>(), linksByTarget = new Map<string, CompatibilityLink[]>(), sourceContexts = new Map<string, { context: Context; index: ReturnType<typeof lookup> }>()
+  const allocatedOriginKeys = new Set((data.templateCompatibilityOrigins || []).map(origin => origin.key))
   for (const origin of data.templateCompatibilityOrigins || []) if (origin.modelId === input.modelId) indexRow(originsByTarget, targetKey(origin.target), origin)
   for (const link of data.compatibilities) indexRow(linksByTarget, targetKey(linkTarget(link)), link)
   const affected: Sku[] = []
@@ -228,7 +264,8 @@ export function previewTemplateCompatibilitySync(data: AppData, input: { modelId
     if (!roles.has(family.id)) roles.set(family.id, compatibilityFamilyRole(data, family.id) === 'accessory')
     if (!roles.get(family.id)) continue
     affected.push(sku)
-    const target: AccessoryTarget = { kind: identity.isMaterialArchive(sku) ? 'material' : 'sku', id: sku.id }, key = targetKey(target), origins = originsByTarget.get(key) || [], links = linksByTarget.get(key) || [], versionId = boundVersion(sku, family, target.kind === 'material')
+    const target: AccessoryTarget = { kind: identity.isMaterialArchive(sku) ? 'material' : 'sku', id: sku.id }, key = targetKey(target), origins = (originsByTarget.get(key) || []).filter(origin => origin.state !== 'obsolete'), links = linksByTarget.get(key) || [], versionId = boundVersion(sku, family, target.kind === 'material')
+    const linksById = new Map(links.map(link => [link.id, link])), manual = links.filter(link => link.provenance?.kind !== 'template')
     const append = (item: Omit<TemplateSyncItem, 'id' | 'target' | 'targetName' | 'defaultSelected'> & { defaultSelected?: boolean }) => items.push({ ...item, id: `${key}:${item.originKey}`, target, targetName: sku.skuName || sku.code || sku.id, defaultSelected: item.defaultSelected ?? ['add', 'update', 'remove'].includes(item.state) })
     let entry = sourceContexts.get(versionId)
     if (!entry) { const context = versionId === input.targetVersionId ? targetContext : createTemplateCompatibilityContext(data, { modelId: input.modelId, versionId }); entry = { context, index: lookup(context, data) }; sourceContexts.set(versionId, entry); if (context !== targetContext) { stats.contextBuilds++; stats.combinationExpansions += context.stats.combinationExpansions } }
@@ -241,31 +278,65 @@ export function previewTemplateCompatibilitySync(data: AppData, input: { modelId
     if (expected.state === 'invalid' || expected.state === 'conflict' || expected.state === 'unconfigured') {
       append({ state: expected.state === 'conflict' ? 'conflict' : 'invalid', originKey: 'invalid', ruleIds: expected.ruleIds, claimIds: [], message: expected.state === 'unconfigured' ? '目标版本未配置，不能据此清空已有声明。' : expected.message }); continue
     }
-    const desired = new Set<string>()
-    for (const effective of expected.claims) {
-      const origin = expectedOrigin(target, sku, family, input.targetVersionId, mapping.combination, effective, '')
-      const related = origins.filter(item => item.key === origin.key || effective.origins.some(pair => item.lineage ? item.lineage.some(prior => prior.ruleId === pair.ruleId && prior.claimId === pair.claimId) : item.ruleIds.includes(pair.ruleId) && item.claimIds.includes(pair.claimId)))
-      const previous = related.find(item => item.key === origin.key) || (related.length === 1 ? related[0] : undefined)
-      if (previous) origin.key = previous.key
-      const link = previous?.declarationId ? links.find(item => item.id === previous.declarationId) : undefined
-      desired.add(origin.key)
-      const manual = links.filter(item => item.id !== link?.id && item.provenance?.kind !== 'template'), sameManual = manual.some(item => sameContent(claimOf(item), effective.claim))
-      const blockers = manual.filter(item => overlaps(claimOf(item), effective.claim) && (claimOf(item).conclusion === 'incompatible') !== (effective.claim.conclusion === 'incompatible'))
-      const suppressed = previous && ['deleted', 'kept', 'modified', 'stale'].includes(previous.state)
-      const base = { originKey: origin.key, declarationId: previous?.declarationId, before: link ? claimOf(link) : undefined, after: effective.claim, sourceVersionId: previous?.sourceVersionId, ruleIds: effective.ruleIds, claimIds: effective.claimIds, origin, blockingIds: blockers.map(item => item.id), duplicateManual: sameManual }
-      if (sameManual) append({ ...base, state: 'protected', message: '相同内容的人工/历史/物料复制声明已存在，跳过且不认领为模板来源。' })
-      else if (related.length > 1) append({ ...base, state: 'conflict', message: '多个历史模板来源映射到同一声明，需先处理来源歧义；不自动合并或删除。' })
-      else if (blockers.length || suppressed || previous && previous.state !== 'managed' && previous.state !== 'obsolete' || link && previous && !sameContent(claimOf(link), previous.baseline) || previous?.state === 'managed' && !link || previous && previous.sourceStamp !== templateCompatibilitySourceStamp(sku, family)) append({ ...base, state: 'protected', message: '存在人工维护、规格变化、手动删除或明确不兼容保护；默认保留，只有明确采用模板才替换对应项。' })
-      else if (!link) append({ ...base, state: 'add', message: '新增模板声明，不改商品来源或规格。' })
-      else if (!sameContent(claimOf(link), effective.claim) || previous?.sourceVersionId !== input.targetVersionId) append({ ...base, state: 'update', message: '当前声明仍等于上次模板基线，可安全更新兼容内容与来源版本。' })
-      else append({ ...base, state: 'unchanged', message: '兼容内容和来源版本未变化。' })
+    const declared = origins.flatMap(origin => origin.declarationId ? [origin.declarationId] : [])
+    if (new Set(origins.map(origin => origin.key)).size !== origins.length || new Set(declared).size !== declared.length) {
+      append({ state: 'invalid', originKey: 'invalid', ruleIds: [], claimIds: [], message: '活跃模板来源或正式声明身份重复，无法安全制定更新计划；请先在兼容关系维护中检查来源。' }); continue
     }
-    for (const previous of origins) {
-      if (desired.has(previous.key) || previous.state === 'obsolete') continue
-      const link = links.find(item => item.id === previous.declarationId)
-      if (!link && previous.state === 'deleted') continue
-      const safe = previous.state === 'managed' && link && sameContent(claimOf(link), previous.baseline)
-      append({ state: safe ? 'remove' : 'protected', originKey: previous.key, declarationId: previous.declarationId, before: link ? claimOf(link) : undefined, sourceVersionId: previous.sourceVersionId, ruleIds: previous.ruleIds, claimIds: previous.claimIds, origin: cloneCompatibility(previous), message: safe ? '目标版本已移除此模板声明，安全取消该模板管理项。' : '目标版本不再需要，但当前声明已人工维护；默认保留。' })
+    const desired = expected.claims.map(effective => expectedOrigin(target, sku, family, input.targetVersionId, mapping.combination!, effective, ''))
+    const sourceStamp = templateCompatibilitySourceStamp(sku, family)
+    const safeOrigin = (origin: TemplateCompatibilityOrigin, link: CompatibilityLink | undefined) => origin.state === 'managed' && link && link.provenance?.template?.originKey === origin.key && sameContent(claimOf(link), origin.baseline) && origin.sourceStamp === sourceStamp
+    for (const component of originComponents(origins, desired)) {
+      if (component.previous.length > 1 || component.expected.length > 1) {
+        const groupKey = `group:${stable([component.previous.map(origin => origin.key).sort(), component.expected.map(origin => origin.key).sort(), input.targetVersionId])}`
+        const blockedReasons: string[] = [], blockingIds = new Set<string>()
+        const before = component.previous.map(origin => ({ origin: cloneCompatibility(origin), declaration: origin.declarationId && linksById.has(origin.declarationId) ? claimOf(linksById.get(origin.declarationId)!) : undefined }))
+        if (component.previous.some(origin => !safeOrigin(origin, linksById.get(origin.declarationId || '')))) blockedReasons.push('这组来源包含人工维护、人工保留、已删除或规格变化的声明。请先在兼容关系维护中逐条核实，不支持整组覆盖。')
+        for (const origin of component.expected) for (const link of manual) {
+          if (sameContent(claimOf(link), origin.baseline)) blockedReasons.push('目标结果已有独立人工声明。请先在兼容关系维护中核实，模板不会认领该声明。')
+          if (overlaps(claimOf(link), origin.baseline) && (claimOf(link).conclusion === 'incompatible') !== (origin.baseline.conclusion === 'incompatible')) { blockingIds.add(link.id); blockedReasons.push('存在与这组结果相反的人工兼容结论，请先在兼容关系维护中核实。') }
+        }
+        const after = component.expected.map(origin => {
+          // Archive each old baseline rather than reusing its key for a different lineage set.
+          const baseKey = stable([origin.key, 'sync-group', input.targetVersionId])
+          let key = baseKey, generation = 1
+          while (allocatedOriginKeys.has(key)) key = stable([baseKey, ++generation])
+          allocatedOriginKeys.add(key)
+          return { origin: { ...origin, key } }
+        })
+        const group: TemplateSyncGroup = {
+          kind: component.previous.length === 1 ? 'one-to-many' : component.expected.length === 1 ? 'many-to-one' : 'many-to-many', before, after,
+          operations: [
+            ...before.filter(row => row.declaration).map(row => ({ id: `${key}:${groupKey}:remove:${row.origin.key}`, kind: 'remove' as const, originKey: row.origin.key, declarationId: row.origin.declarationId })),
+            ...after.map(row => ({ id: `${key}:${groupKey}:add:${row.origin.key}`, kind: 'add' as const, originKey: row.origin.key })),
+          ], canAdopt: !blockedReasons.length, blockedReasons: [...new Set(blockedReasons)],
+        }
+        append({ state: 'conflict', originKey: groupKey, group, ruleIds: [...new Set(component.expected.flatMap(origin => origin.ruleIds))], claimIds: [...new Set(component.expected.flatMap(origin => origin.claimIds))], blockingIds: [...blockingIds], defaultSelected: false, message: group.canAdopt ? `来源关系发生${group.kind === 'many-to-one' ? '合并' : group.kind === 'one-to-many' ? '拆分' : '重组'}；默认保留当前 ${before.length} 条，核对整组后可明确采用 ${after.length} 条模板结果。` : '这组来源存在人工保护，默认保留；请先处理下列具体问题，再重新预览。' })
+        continue
+      }
+      const previous = component.previous[0], origin = component.expected[0]
+      const link = previous?.declarationId ? linksById.get(previous.declarationId) : undefined
+      if (!origin) {
+        if (!previous || !link && previous.state === 'deleted') continue
+        const safe = safeOrigin(previous, link)
+        append({ state: safe ? 'remove' : 'protected', originKey: previous.key, declarationId: previous.declarationId, before: link ? claimOf(link) : undefined, sourceVersionId: previous.sourceVersionId, ruleIds: previous.ruleIds, claimIds: previous.claimIds, origin: cloneCompatibility(previous), message: safe ? '目标版本已移除此模板声明，安全取消该模板管理项。' : '目标版本不再需要，但当前声明已人工维护；默认保留。' })
+        continue
+      }
+      if (previous) origin.key = previous.key
+      else {
+        // A removed-and-later-reintroduced source gets a new baseline; obsolete history stays intact.
+        const baseKey = origin.key
+        let generation = 1
+        while (allocatedOriginKeys.has(origin.key)) origin.key = stable([baseKey, 'sync-reintroduced', input.targetVersionId, generation++])
+        allocatedOriginKeys.add(origin.key)
+      }
+      const sameManual = manual.some(item => sameContent(claimOf(item), origin.baseline))
+      const blockers = manual.filter(item => overlaps(claimOf(item), origin.baseline) && (claimOf(item).conclusion === 'incompatible') !== (origin.baseline.conclusion === 'incompatible'))
+      const base = { originKey: origin.key, declarationId: previous?.declarationId, before: link ? claimOf(link) : undefined, after: origin.baseline, sourceVersionId: previous?.sourceVersionId, ruleIds: origin.ruleIds, claimIds: origin.claimIds, origin, blockingIds: blockers.map(item => item.id), duplicateManual: sameManual }
+      if (sameManual) append({ ...base, state: 'protected', message: '相同内容的人工/历史/物料复制声明已存在，跳过且不认领为模板来源。' })
+      else if (blockers.length || previous && !safeOrigin(previous, link)) append({ ...base, state: 'protected', message: '存在人工维护、规格变化、手动删除或明确不兼容保护；默认保留，只有明确采用模板才替换对应项。' })
+      else if (!link) append({ ...base, state: 'add', message: '新增模板声明，不改商品来源或规格。' })
+      else if (!sameContent(claimOf(link), origin.baseline) || previous?.sourceVersionId !== input.targetVersionId) append({ ...base, state: 'update', message: '当前声明仍等于上次模板基线，可安全更新兼容内容与来源版本。' })
+      else append({ ...base, state: 'unchanged', message: '兼容内容和来源版本未变化。' })
     }
   }
   const counts: TemplateSyncPreview['counts'] = { add: 0, update: 0, remove: 0, protected: 0, conflict: 0, invalid: 0, unchanged: 0 }
@@ -278,33 +349,55 @@ export function previewTemplateCompatibilitySync(data: AppData, input: { modelId
 export function applyTemplateCompatibilitySync(data: AppData, preview: TemplateSyncPreview, decisions: Record<string, 'take-template' | 'keep'>, nextId: () => string, now: string): TemplateSyncResult {
   const current = previewTemplateCompatibilitySync(data, { modelId: preview.modelId, targetVersionId: preview.targetVersionId, targetIds: preview.targetIds })
   if (current.basis !== preview.basis || stable(current.items) !== stable(preview.items)) return { ok: false, message: '预览后商品、声明或版本已变化，请重新预览；未写入任何内容。' }
+  if (current.items.some(item => item.group && !item.group.canAdopt && decisions[item.id] === 'take-template')) return { ok: false, message: '所选整组含人工修改、删除或相反结论保护，不能整组覆盖；请先维护对应声明并重新预览。' }
   const result = { ok: true, added: 0, updated: 0, removed: 0, protected: 0 }, used = new Set(data.compatibilities.map(item => item.id))
+  const originsByKey = new Map((data.templateCompatibilityOrigins || []).map(origin => [origin.key, origin])), linksById = new Map(data.compatibilities.map(link => [link.id, link]))
+  const removed = new Set<string>(), replacements = new Map<string, CompatibilityLink>(), additions: CompatibilityLink[] = []
+  function remove(id: string | undefined) { if (id && linksById.has(id) && !removed.has(id)) { removed.add(id); result.removed++ } }
+  function add(origin: TemplateCompatibilityOrigin) {
+    let id = nextId(); while (used.has(id)) id = nextId(); used.add(id)
+    origin.declarationId = id; origin.updatedAt = now; origin.state = 'managed'
+    additions.push(linkFrom(origin, id, now)); (data.templateCompatibilityOrigins ||= []).push(origin); originsByKey.set(origin.key, origin); result.added++
+  }
   for (const item of current.items) {
     const decision = decisions[item.id] || (item.defaultSelected ? 'take-template' : 'keep')
+    if (item.group) {
+      if (decision === 'keep') { result.protected += item.group.before.length; continue }
+      // The complete connected component is safe and explicit: no per-row choices can partially split it.
+      for (const row of item.group.before) {
+        remove(row.origin.declarationId)
+        const origin = originsByKey.get(row.origin.key)!
+        origin.state = 'obsolete'; origin.updatedAt = now
+        // Retain its old declaration identity, lineage and frozen baseline for historical tracing.
+      }
+      for (const row of item.group.after) add(cloneCompatibility(row.origin))
+      continue
+    }
     if (item.state === 'invalid' || item.state === 'conflict' || item.state === 'unchanged' || item.duplicateManual) continue
-    const existing = data.templateCompatibilityOrigins?.find(origin => origin.key === item.originKey)
+    const existing = originsByKey.get(item.originKey)
     if (decision === 'keep') {
-      if (existing && existing.state !== 'kept') { existing.state = 'kept'; existing.updatedAt = now }
-      else if (!existing && item.origin) { (data.templateCompatibilityOrigins ||= []).push({ ...cloneCompatibility(item.origin), state: 'kept', updatedAt: now }) }
+      if (existing?.state === 'managed') { existing.state = 'kept'; existing.updatedAt = now }
+      else if (!existing && item.origin) { const origin = { ...cloneCompatibility(item.origin), state: 'kept' as const, updatedAt: now }; (data.templateCompatibilityOrigins ||= []).push(origin); originsByKey.set(origin.key, origin) }
       result.protected++; continue
     }
     if (!item.after) {
-      if (item.declarationId) { data.compatibilities = data.compatibilities.filter(link => link.id !== item.declarationId); result.removed++ }
-      if (existing) { existing.state = 'obsolete'; existing.declarationId = undefined; existing.updatedAt = now }
+      remove(item.declarationId)
+      if (existing) { existing.state = 'obsolete'; existing.updatedAt = now }
       continue
     }
     if (!item.origin) continue
-    const origin = cloneCompatibility(item.origin), original = data.compatibilities.find(link => link.id === item.declarationId)
+    const origin = cloneCompatibility(item.origin), original = linksById.get(item.declarationId || '')
     // Re-preview has validated both the exact target and this frozen claim before mutation.
-    if (item.blockingIds?.length) data.compatibilities = data.compatibilities.filter(link => !item.blockingIds?.includes(link.id))
+    item.blockingIds?.forEach(remove)
     let id = original?.id || nextId(); while (!original && used.has(id)) id = nextId(); used.add(id)
     origin.declarationId = id; origin.updatedAt = now; origin.state = 'managed'
     const link = linkFrom(origin, id, now, original?.createdAt)
-    if (original) { data.compatibilities[data.compatibilities.findIndex(record => record.id === original.id)] = link; result.updated++ }
-    else { data.compatibilities.push(link); result.added++ }
+    if (original) { replacements.set(original.id, link); result.updated++ }
+    else { additions.push(link); result.added++ }
     if (existing) Object.assign(existing, origin)
-    else (data.templateCompatibilityOrigins ||= []).push(origin)
+    else { (data.templateCompatibilityOrigins ||= []).push(origin); originsByKey.set(origin.key, origin) }
   }
+  if (removed.size || replacements.size || additions.length) data.compatibilities = data.compatibilities.filter(link => !removed.has(link.id)).map(link => replacements.get(link.id) || link).concat(additions)
   return result
 }
 

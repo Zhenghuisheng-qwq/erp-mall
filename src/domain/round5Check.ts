@@ -1,3 +1,5 @@
+import { installCatalogTestLocks } from '../../scripts/catalog-storage-test-env'
+installCatalogTestLocks()
 import { createPinia, setActivePinia } from 'pinia'
 import { addCompatibility, linksOfHost } from './compatibility'
 import { installCompatibilitySamples } from './compatibilitySamples'
@@ -26,7 +28,7 @@ function boot() {
   return useCatalogStore()
 }
 
-export function runRound5Checks() {
+export async function runRound5Checks() {
   const results: { group: string; id: string; ok: boolean; detail: string }[] = []
   const check = (group: string, id: string, ok: boolean, detail: string) => results.push({ group, id, ok, detail })
   const store = boot()
@@ -82,7 +84,7 @@ export function runRound5Checks() {
   if (hostA && hostB) addDraftNodeHosts(data, { templateId: 't-phone', nodeId: phoneNode, hosts: [hostA.host, hostB.host], nextId: (prefix) => `${prefix}-phone`, now: '2026-10-16T10:02:00.000Z' })
   data.productSpecNodes = data.productSpecNodes.filter((item) => item.id !== 'sn-extra-brand')
   const phoneSnapshot = JSON.stringify(data.specModelVersions.find((item) => item.id === 'phone-model-v1')?.nodesSnapshot)
-  const published = store.publishSpecModel('t-phone')
+  const published = (await store.publishSpecModel('t-phone'))
   const phoneVersion = data.specModelVersions.filter((item) => item.templateId === 't-phone').slice().sort((a, b) => a.version - b.version).at(-1)
   const phoneFrozen = phoneVersion ? readVersionNodeHosts(data, phoneVersion.id, phoneNode) : []
   freezeDraftNodeHosts(data, 't-compat-sample', 't-compat-sample-v2', '2026-10-16T10:03:00.000Z', (prefix) => `${prefix}-freeze`)

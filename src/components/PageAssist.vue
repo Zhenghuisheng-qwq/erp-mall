@@ -64,7 +64,7 @@ import { ElMessage } from 'element-plus'
 import { computed, reactive, ref, watch } from 'vue'
 import { checkAttachment, fileSize, saveAttachment } from '../domain/feedbackFiles'
 import { featureSheet, featureStatusText, type PageFeature } from '../domain/pageFeatures'
-import type { FeedbackKind } from '../domain/types'
+import type { FeedbackItem, FeedbackKind } from '../domain/types'
 import { uid, useCatalogStore } from '../stores/catalog'
 
 const props = defineProps<{ path: string; queryPanel?: unknown }>()
@@ -81,11 +81,13 @@ const sourceTitle = ref('')
 const sourceKey = ref('')
 const form = reactive({ kind: 'bug' as FeedbackKind, title: '', content: '', featureId: '', featureName: '' })
 const pending = ref<Array<{ id: string; name: string; type: string; size: number; file: File; url: string }>>([])
+let pendingFeedbackId = ''
 
 function featuresIn(group: string) {
   return (sheet.value?.features || []).filter((item) => item.group === group)
 }
 function resetForm() {
+  pendingFeedbackId = ''
   form.kind = 'bug'
   form.title = ''
   form.content = ''
@@ -133,6 +135,7 @@ function dropPending(id: string) {
   pending.value = pending.value.filter((item) => item.id !== id)
 }
 async function save() {
+  if (saving.value) return
   if (!form.kind || !form.title.trim() || !form.content.trim()) {
     ElMessage.warning('请选择类型，并填写标题和说明')
     return
@@ -141,19 +144,25 @@ async function save() {
   try {
     const refs = []
     for (const file of pending.value) refs.push(await saveAttachment(file.id, file.file))
-    store.data.feedbacks.unshift({
-      id: uid('fb'),
+    const existing = store.data.feedbacks.find(item => item.id === pendingFeedbackId)
+    const record: FeedbackItem = {
+      id: existing?.id || uid('fb'),
       title: form.title.trim(),
       content: form.content.trim(),
       status: 'open',
       page: sourceTitle.value,
-      createdAt: new Date().toISOString(),
+      createdAt: existing?.createdAt || new Date().toISOString(),
       kind: form.kind,
       route: sourceKey.value,
       featureId: form.featureId,
       featureName: form.featureName,
       attachmentRefs: refs,
-    })
+    }
+    pendingFeedbackId = record.id
+    if (existing) Object.assign(existing, record)
+    else store.data.feedbacks.unshift(record)
+    const saved = await store.flushPersistence()
+    if (!saved.ok) { ElMessage.error(store.persistenceState.message || '反馈尚未保存，当前输入和附件已保留。'); return }
     formOpen.value = false
     ElMessage.success('已保存到本机。导出反馈包后，可发送给开发人员')
   } catch {

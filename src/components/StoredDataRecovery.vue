@@ -8,13 +8,14 @@
       <label class="file-choice">选择备份或已修复的 JSON<input type="file" accept=".json,application/json" data-recovery-file @change="prepare" /></label>
       <p v-if="candidate" role="status">已校验：{{ candidate.families.length }} 款 SPU、{{ candidate.skus.length }} 条 SKU / MAT、{{ candidate.compatibilities.length }} 条适用声明。确认后替换本机数据并重新打开。</p>
       <el-alert v-if="error" :title="error" type="error" :closable="false" data-recovery-error />
-      <el-button type="primary" :disabled="!candidate" @click="restore">确认导入并重新打开</el-button>
+      <el-button type="primary" :disabled="!candidate" :loading="saving" @click="restore">确认导入并重新打开</el-button>
     </section>
   </main>
 </template>
 <script setup lang="ts">
 import { ref, shallowRef } from 'vue'
-import { DATA_VERSION, STORAGE_KEY } from '../domain/types'
+import { STORAGE_KEY } from '../domain/types'
+import { restoreCatalogData } from '../stores/catalogPersistence'
 import type { AppData } from '../domain/types'
 import { compatibilityImportProblems } from '../domain/accessoryCompatibilityCommands'
 import { benefitPackageImportProblems } from '../domain/benefitPackages'
@@ -24,8 +25,9 @@ import { normalizeStored } from '../stores/catalog'
 
 defineProps<{ message: string }>()
 let original = ''
-try { original = localStorage.getItem(STORAGE_KEY) || '' } catch { /* The startup message explains inaccessible storage. */ }
-const candidate = shallowRef<AppData>(), error = ref('')
+let originalRaw: string | null = null
+try { originalRaw = localStorage.getItem(STORAGE_KEY); original = originalRaw || '' } catch { /* The startup message explains inaccessible storage. */ }
+const candidate = shallowRef<AppData>(), error = ref(''), saving = ref(false)
 let generation = 0
 function downloadOriginal() {
   const url = URL.createObjectURL(new Blob([original], { type: 'text/plain;charset=utf-8' }))
@@ -51,13 +53,15 @@ async function prepare(event: Event) {
     candidate.value = normalized
   } catch (cause) { if (current === generation) error.value = `未能校验文件：${cause instanceof Error ? cause.message : String(cause)}。原存储保持。` }
 }
-function restore() {
-  if (!candidate.value) return
+async function restore() {
+  if (!candidate.value || saving.value) return
+  saving.value = true
   try {
-    const encoded = JSON.stringify({ version: DATA_VERSION, data: candidate.value })
-    localStorage.setItem(STORAGE_KEY, encoded)
+    const result = await restoreCatalogData(originalRaw, candidate.value)
+    if (!result.ok) { error.value = result.message; return }
     window.location.reload()
   } catch (cause) { error.value = `无法保存到本机：${cause instanceof Error ? cause.message : String(cause)}。原存储和已选文件保留，可以重试。` }
+  finally { saving.value = false }
 }
 </script>
 <style scoped>

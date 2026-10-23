@@ -239,7 +239,7 @@ function openEdit(id: string) {
   open.value = true
 }
 
-function save() {
+async function save() {
   const message = store.saveProductType({
     id: editing.id,
     name: editing.name,
@@ -252,6 +252,12 @@ function save() {
     ElMessage.warning(message)
     return
   }
+  if (!editing.id) {
+    const created = store.productTypesOf(categoryId.value).find(item => item.name === editing.name.trim())
+    if (created) { editing.id = created.id; targetCategoryId.value = created.categoryId }
+  }
+  const saved = await store.flushPersistence()
+  if (!saved.ok) { ElMessage.error(store.persistenceState.message || '产品类型尚未保存，当前输入已保留。'); return }
   open.value = false
   ElMessage.success('产品类型已保存')
 }
@@ -273,6 +279,8 @@ async function onRemove(id: string) {
     ElMessage.warning(message)
     return
   }
+  const saved = await store.flushPersistence()
+  if (!saved.ok) { ElMessage.error(store.persistenceState.message || '删除尚未保存，请处理保存提示。'); return }
   ElMessage.success('已删除')
 }
 </script>

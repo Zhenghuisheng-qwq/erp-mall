@@ -59,7 +59,7 @@ export interface EffectiveTemplateClaim {
   claimIds: string[]
   origins: { ruleId: string; claimId: string }[]
 }
-export interface TemplateCompatibilityIssue { ruleId?: string; claimId?: string; message: string }
+export interface TemplateCompatibilityIssue { ruleId?: string; claimId?: string; field?: 'host' | 'capability' | 'conclusion' | 'verification' | 'conditions' | 'source' | 'note' | 'selector'; message: string }
 export interface EffectiveTemplateCompatibility {
   state: 'unconfigured' | 'configured' | 'empty' | 'invalid' | 'conflict'
   origin: 'default' | 'exception' | 'none'

@@ -11,7 +11,7 @@
         <article v-for="row in rows" :key="row.item.id" class="package-card" :data-benefit-package="row.item.id">
           <div class="card-main"><div class="card-heading"><h2><button class="linkish" @click="edit(row.item.id)">{{ row.item.name || '未命名草稿' }}</button></h2><el-tag size="small" :type="row.item.status === 'disabled' ? 'info' : row.needsAttention ? 'warning' : row.item.status === 'available' ? 'success' : 'info'">{{ row.needsAttention ? '需处理' : packageStatusLabels[row.item.status] }}</el-tag><el-tag v-if="row.item.favorite" size="small" effect="plain">常用</el-tag></div><p class="muted">{{ row.item.code }} · 修订 {{ row.item.revision }} · {{ row.item.goods.length }} 种商品 / {{ row.item.services.length }} 项服务</p><p class="device-line">{{ row.validation.deviceLabel || '普通组合包 · 未做设备适配校验' }}</p><p v-if="row.needsAttention" class="issue-warn attention">{{ row.validation.issues.find(issue => issue.severity === 'error')?.message }}</p></div>
           <div class="card-price"><strong>{{ formatBenefitCents(row.item.quote.amountCents) }}</strong><span>每包 · 人民币 CNY</span></div>
-          <div class="card-actions"><el-button @click="edit(row.item.id)">{{ store.isAdmin ? '打开权益包' : '查看权益包' }}</el-button><el-button v-if="store.isAdmin" @click="copy(row.item.id)" :data-copy-benefit-package="row.item.id">复制组包</el-button><el-button v-if="store.isAdmin" link @click="favorite(row.item.id)">{{ row.item.favorite ? '取消常用' : '设为常用' }}</el-button><el-button v-if="store.isAdmin" link :type="row.item.status === 'disabled' ? 'primary' : 'danger'" @click="setStatus(row.item.id)">{{ row.item.status === 'disabled' ? '启用' : '停用' }}</el-button></div>
+          <div class="card-actions"><el-button @click="edit(row.item.id)">{{ store.isAdmin ? '打开权益包' : '查看权益包' }}</el-button><el-button v-if="store.isAdmin" @click="copy(row.item.id)" :data-copy-benefit-package="row.item.id">复制组包</el-button><el-button v-if="store.isAdmin" link :loading="pendingId === row.item.id" :disabled="Boolean(pendingId)" @click="favorite(row.item.id)">{{ row.item.favorite ? '取消常用' : '设为常用' }}</el-button><el-button v-if="store.isAdmin" link :disabled="Boolean(pendingId)" :type="row.item.status === 'disabled' ? 'primary' : 'danger'" @click="setStatus(row.item.id)">{{ row.item.status === 'disabled' ? '启用' : '停用' }}</el-button></div>
         </article>
       </template>
       <template v-else><el-empty v-if="!deliveries.length" description="还没有匹配的交付清单。先保存权益包，再明确发起一次清单生成。" /><article v-for="item in deliveries" :key="item.id" class="package-card" :data-benefit-delivery="item.id"><div class="card-main"><h2>{{ item.packageName }}</h2><p class="muted">{{ item.code }} · 来源 {{ item.packageCode }} / 修订 {{ item.sourceRevision }}</p><p class="device-line">{{ item.packageCount }} 包 · {{ item.generatedAt }}</p></div><div class="card-price"><strong>{{ formatBenefitCents(item.quote.totalCents) }}</strong><span>本次总报价</span></div><el-button @click="router.push(`/benefit-packages/deliveries/${encodeURIComponent(item.id)}`)">查看清单</el-button></article></template>
@@ -27,7 +27,7 @@ import { useCatalogStore } from '../stores/catalog'
 import { validateBenefitPackage } from '../domain/benefitPackages'
 import { formatBenefitCents, packageStatusLabels } from '../components/benefit-package/benefitPackagePresentation'
 const store = useCatalogStore(), router = useRouter()
-const tab = ref('packages'), keyword = ref(''), status = ref(''), favoritesOnly = ref(false), error = ref('')
+const tab = ref('packages'), keyword = ref(''), status = ref(''), favoritesOnly = ref(false), error = ref(''), pendingId = ref('')
 const rows = computed(() => (store.data.benefitPackages || []).map(item => { const validation = validateBenefitPackage(store.data, item); return { item, validation, needsAttention: item.status !== 'disabled' && !validation.canSaveAvailable } }).filter(row => {
   const text = keyword.value.trim().toLocaleLowerCase()
   return (!text || `${row.item.name} ${row.item.code}`.toLocaleLowerCase().includes(text)) && (!favoritesOnly.value || row.item.favorite) && (!status.value || (status.value === 'issues' ? row.needsAttention : row.item.status === status.value))
@@ -35,13 +35,21 @@ const rows = computed(() => (store.data.benefitPackages || []).map(item => { con
 const deliveries = computed(() => (store.data.benefitDeliveries || []).filter(item => !keyword.value.trim() || `${item.packageName} ${item.packageCode} ${item.code}`.toLocaleLowerCase().includes(keyword.value.trim().toLocaleLowerCase())).slice().reverse())
 function edit(id: string) { router.push(`/benefit-packages/${encodeURIComponent(id)}`) }
 function copy(id: string) { router.push({ path: '/benefit-packages/new', query: { copy: id } }) }
-function favorite(id: string) { const item = store.data.benefitPackages?.find(value => value.id === id); if (!store.isAdmin || !item) return; const result = store.setBenefitPackageFavorite(id, !item.favorite, item.revision); error.value = result.ok ? '' : result.message || '常用设置未保存，请重试。' }
+async function favorite(id: string) {
+  const item = store.data.benefitPackages?.find(value => value.id === id); if (!store.isAdmin || !item || pendingId.value) return
+  pendingId.value = id
+  try { const result = await store.setBenefitPackageFavorite(id, !item.favorite, item.revision); error.value = result.ok ? '' : result.message || '常用设置未保存，请重试。' }
+  catch (problem) { error.value = `常用设置未保存：${problem instanceof Error ? problem.message : String(problem)}` }
+  finally { pendingId.value = '' }
+}
 async function setStatus(id: string) {
   const item = store.data.benefitPackages?.find(value => value.id === id)
-  if (!store.isAdmin || !item) return
+  if (!store.isAdmin || !item || pendingId.value) return
   if (item.status !== 'disabled') { try { await ElMessageBox.confirm(`停用「${item.name || item.code}」后不能生成新清单，历史清单继续保留。`, '停用权益包', { confirmButtonText: '确认停用', cancelButtonText: '取消' }) } catch { return } }
-  const result = store.setBenefitPackageStatus(id, item.status === 'disabled' ? 'available' : 'disabled', item.revision)
-  error.value = result.ok ? '' : result.message || '状态未保存，请重试。'
+  pendingId.value = id
+  try { const result = await store.setBenefitPackageStatus(id, item.status === 'disabled' ? 'available' : 'disabled', item.revision); error.value = result.ok ? '' : result.message || '状态未保存，请重试。' }
+  catch (problem) { error.value = `状态未保存：${problem instanceof Error ? problem.message : String(problem)}` }
+  finally { pendingId.value = '' }
 }
 </script>
 <style scoped>

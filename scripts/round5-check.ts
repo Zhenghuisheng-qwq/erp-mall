@@ -1,6 +1,6 @@
 import { runRound5Checks } from '../src/domain/round5Check'
 
-const results = runRound5Checks()
+const results = await runRound5Checks()
 results.forEach((item) => console.log(`${item.ok ? 'PASS' : 'FAIL'} ${item.group} ${item.id} ${item.detail}`))
 const groups = ['R5-A', 'R5-B'] as const
 groups.forEach((group) => {

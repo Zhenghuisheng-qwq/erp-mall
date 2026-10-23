@@ -20,7 +20,10 @@
     "check:benefit-packages": "node scripts/run-domain-check.mjs scripts/benefit-package-domain-check.ts && node scripts/run-domain-check.mjs scripts/benefit-package-state-check.ts && node scripts/run-domain-check.mjs scripts/benefit-package-export-check.ts && node scripts/browser-benefit-packages.mjs",
     "check:template-compatibility": "node scripts/run-domain-check.mjs scripts/template-compatibility-domain-check.ts && node scripts/run-domain-check.mjs scripts/template-compatibility-state-check.ts && node scripts/browser-template-compatibility.mjs && node scripts/browser-template-compatibility-import.mjs",
     "check:template-compatibility:performance": "node scripts/run-domain-check.mjs scripts/template-compatibility-performance.ts && node scripts/run-domain-check.mjs scripts/template-compatibility-batch-performance.ts",
-    "check:template-compatibility:visual": "node scripts/template-compatibility-visual-check.mjs"
+    "check:template-compatibility:visual": "node scripts/template-compatibility-visual-check.mjs",
+    "check:compatibility-refinement:domain": "node scripts/run-domain-check.mjs scripts/compatibility-refinement-sync-check.ts && node scripts/run-domain-check.mjs scripts/benefit-package-refinement-check.ts && node scripts/run-domain-check.mjs scripts/compatibility-benefit-storage-check.ts && node scripts/run-domain-check.mjs scripts/catalog-async-save-check.ts",
+    "check:compatibility-refinement:performance": "node scripts/template-compatibility-edit-performance.mjs",
+    "check:compatibility-refinement:browser": "node scripts/browser-compatibility-benefit-concurrency.mjs && node scripts/browser-catalog-async-save-check.mjs && node scripts/browser-compatibility-refinement.mjs && node scripts/browser-benefit-refinement.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",

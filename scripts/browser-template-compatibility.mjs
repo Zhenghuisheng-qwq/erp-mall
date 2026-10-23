@@ -50,7 +50,8 @@ try {
   async function navigate(path){await page.evaluate(async path=>(await import('/src/router/index.ts')).default.push(path),path);await page.waitForURL(base+path);await flush()}
   async function settled(){await page.waitForFunction(()=>!document.getAnimations().some(animation=>(animation.playState==='running'||animation.pending)&&Number.isFinite(animation.effect?.getComputedTiming().iterations)))}
   async function option(field,text,multiple=false){await settled();await field.locator('.el-select__suffix').click();await page.locator('.el-select-dropdown:visible [role="option"]').filter({hasText:text}).first().click();if(multiple)await field.locator('input').first().press('Escape');await page.locator('.el-select-dropdown:visible').waitFor({state:'hidden'});await settled();await flush()}
-  async function openConfig(){await page.locator('[data-open-template-compatibility]').click();await dialog().waitFor()}
+  async function openConfig(){await page.locator('[data-open-template-compatibility]').click();await dialog().waitFor();const row=dialog().locator('[data-template-claim]:visible').first();if(await row.count()&&!(await row.locator('input[placeholder="填写真实依据；缺少核验时保留待确认"]').count()))await row.locator('[data-template-expand]').click()}
+  async function exceptionAction(label){await dialog().getByRole('button',{name:'更多操作',exact:false}).click();await page.getByRole('menuitem',{name:label,exact:true}).click();await page.getByRole('button',{name:'确认修改草稿',exact:true}).click()}
   async function tab(name){await dialog().getByRole('tab',{name,exact:true}).click();await flush()}
   async function addHost(name,source){await option(dialog().locator('[data-template-hosts]:visible'),name,true);await dialog().locator('[data-template-add-hosts]:visible').click();const row=dialog().locator('[data-template-claim]:visible').last();await option(row.locator('.claim-grid').first().locator('.el-select').nth(2),'已确认');await row.getByPlaceholder('填写真实依据；缺少核验时保留待确认').fill(source);return row}
   async function closeConfig(){await dialog().getByRole('button',{name:'取消',exact:true}).click();if(await page.getByRole('dialog',{name:'未保存配置',exact:true}).isVisible())await page.getByRole('button',{name:'放弃修改',exact:true}).click();await dialog().waitFor({state:'hidden'})}
@@ -77,7 +78,7 @@ try {
   await dialog().getByPlaceholder('搜索组合规格或适用设备型号').fill('Orion A');assert.equal(await dialog().locator('[data-template-preview-row]').count(),4)
   await capture('effective-preview-default')
   assert.deepEqual(await read(),beforePreview);assert.equal(await disk(),previewDisk);assert.equal(await writes(),previewWrites);assert.equal((await read()).planningRecords.length,0)
-  await tab('旧节点配置 1');await dialog().locator('[data-template-legacy-rule] .el-checkbox').click();await dialog().locator('[data-template-convert-legacy]').click()
+  await tab('旧节点工具 1');await dialog().locator('.legacy-summary').click();await dialog().locator('[data-template-legacy-rule] .el-checkbox').click();await dialog().locator('[data-template-convert-legacy]').click()
   assert.match(await dialog().innerText(),/尚未保存|已转换/);await tab('规格例外 1');assert.match(await dialog().innerText(),/待确认/)
   assert.deepEqual(await read(),beforePreview);await closeConfig();assert.deepEqual(await read(),beforePreview)
   await check('readonly-preview-search-no-number-no-record-writes-and-legacy-pending-conversion-cancel')
@@ -93,8 +94,8 @@ try {
   await dialog().getByRole('button',{name:'使用所选范围',exact:true}).click();await addHost('Orion A','【独立浏览器测试】仅用于冲突预览，不保存')
   await tab('生效预览');assert.equal(await dialog().locator('[data-template-preview-state="conflict"]').count(),1)
   await capture('exception-conflict-preview')
-  await tab('规格例外 2');await dialog().getByRole('button',{name:'移除此例外，恢复继承默认',exact:true}).click();await saveConfig(0)
-  const beforeEmpty=await read();await dialog().getByRole('button',{name:'设为空结果',exact:true}).click();await tab('生效预览');assert.equal(await dialog().locator('[data-template-preview-state="empty"]').count(),2);assert.deepEqual(await read(),beforeEmpty);await closeConfig()
+  await tab('规格例外 2');await exceptionAction('删除例外并恢复默认');await saveConfig(0)
+  const beforeEmpty=await read();await exceptionAction('这些规格不产生适用声明');await tab('生效预览');assert.equal(await dialog().locator('[data-template-preview-state="empty"]').count(),2);assert.deepEqual(await read(),beforeEmpty);await closeConfig()
   assert.equal((await read()).nodeCompatibilityRules.length,1)
   await check('node-shortcut-shared-editor-structural-range-full-replacement-conflict-no-priority-resolution')
 

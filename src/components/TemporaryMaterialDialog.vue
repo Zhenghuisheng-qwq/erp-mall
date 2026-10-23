@@ -1,6 +1,6 @@
 <template>
-  <el-dialog :model-value="open" class="v3-material-dialog" title="创建临时物料" width="560px" :close-on-click-modal="false" @close="emit('close')">
-    <div @keydown.tab.stop>
+  <el-dialog :model-value="open" class="v3-material-dialog" title="创建临时物料" width="560px" :close-on-click-modal="false" :close-on-press-escape="!saving" :show-close="!saving" @close="emit('close')">
+    <div :inert="saving" @keydown.tab.stop>
       <h3>商品归属</h3>
       <p>{{ categoryName }} · {{ typeName }}<template v-if="modelName"> · {{ modelName }}</template></p>
       <p class="muted">已经确定的分类和类型不用再填。手工填写的值只属于这一条物料。</p>
@@ -27,7 +27,7 @@
       <p v-if="lastCode" class="muted">刚创建 {{ lastCode }}。可以继续填写下一条，或打开刚创建的物料。</p>
     </div>
     <template #footer>
-      <el-button v-if="lastFamilyId" @click="emit('open', lastFamilyId, lastSkuId)">查看刚创建的物料</el-button>
+      <el-button v-if="lastFamilyId" :disabled="saving" @click="emit('open', lastFamilyId, lastSkuId)">查看刚创建的物料</el-button>
       <el-button :disabled="saving" @click="emit('close')">关闭</el-button>
       <el-button type="primary" :loading="saving" :disabled="!store.isAdmin" @click="save">保存临时物料</el-button>
     </template>
@@ -103,10 +103,10 @@ function toggle(row: { mode: 'dictionary' | 'manual'; value: string }) {
   row.mode = row.mode === 'dictionary' ? 'manual' : 'dictionary'
   row.value = ''
 }
-function save() {
+async function save() {
   if (saving.value) return
   saving.value = true
-  const result = store.createTemporary({
+  const result = (await store.createTemporary({
     requestId: requestId.value,
     categoryId: props.categoryId,
     productTypeId: props.productTypeId,
@@ -117,7 +117,7 @@ function save() {
     skuName: skuName.value,
     supplierCode: supplierCode.value,
     materialDescription: materialDescription.value,
-  })
+  }))
   saving.value = false
   if (!result.ok) {
     errorText.value = result.message

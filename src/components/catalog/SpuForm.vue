@@ -1,5 +1,5 @@
 <template>
-  <el-form label-width="112px" class="spu-form" @submit.prevent>
+  <el-form label-width="112px" class="spu-form" :disabled="saving" @submit.prevent>
     <el-alert v-if="locked" title="已有 SKU、物料或历史关联，身份信息已锁定；名称、编号和状态仍可维护。" type="info" :closable="false" />
     <el-form-item label="SPU 名称" required><el-input v-model="draft.name" placeholder="填写商品主体名称" data-spu-name /></el-form-item>
     <el-form-item label="OA_ProductID"><el-input v-model="draft.oaProductId" placeholder="可空，沿用已有编号" /></el-form-item>
@@ -61,11 +61,11 @@ function templateChanged() {
   draft.productModelId = draft.modelVersionId ? draft.templateId : undefined
   draft.commonAttrs = {}
 }
-function save(addSku: boolean) {
+async function save(addSku: boolean) {
   if (saving.value) return
   saving.value = true
   const now = new Date().toISOString()
-  const result = store.saveSpu({ ...draft, createdAt: draft.createdAt || now, lifecycle: draft.shelfStatus === 'online' ? 'ready' : 'draft' })
+  const result = (await store.saveSpu({ ...draft, createdAt: draft.createdAt || now, lifecycle: draft.shelfStatus === 'online' ? 'ready' : 'draft' }))
   if (!result.ok) { error.value = result.message; saving.value = false; return }
   draft.id = result.id
   original = JSON.stringify(draft)

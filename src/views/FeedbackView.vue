@@ -128,7 +128,12 @@ function openEdit(row: FeedbackItem) {
   editContent.value = row.content
   editOpen.value = true
 }
-function saveEdit() {
+async function flushChanges() {
+  const result = await store.flushPersistence()
+  if (!result.ok) { ElMessage.error(store.persistenceState.message || '反馈修改尚未保存，当前输入已保留。'); return false }
+  return true
+}
+async function saveEdit() {
   const row = store.data.feedbacks.find((item) => item.id === editId.value)
   if (!row || row.exportedAt) return
   if (!editTitle.value.trim() || !editContent.value.trim()) {
@@ -137,6 +142,7 @@ function saveEdit() {
   }
   row.title = editTitle.value.trim()
   row.content = editContent.value.trim()
+  if (!await flushChanges()) return
   editOpen.value = false
   ElMessage.success('已保存到本机')
 }
@@ -146,8 +152,9 @@ async function remove(row: FeedbackItem) {
   } catch {
     return
   }
-  await deleteAttachments((row.attachmentRefs || []).map((item) => item.id))
   store.data.feedbacks = store.data.feedbacks.filter((item) => item.id !== row.id)
+  if (!await flushChanges()) return
+  await deleteAttachments((row.attachmentRefs || []).map((item) => item.id))
   ElMessage.success('已从本机删除')
 }
 async function exportAll() {
@@ -161,6 +168,7 @@ async function exportAll() {
     URL.revokeObjectURL(url)
     const now = new Date().toISOString()
     store.data.feedbacks.forEach((item) => { item.exportedAt = now })
+    if (!await flushChanges()) return
     ElMessage.success('已导出反馈包。可发送给开发人员，不代表对方已经收到')
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '导出失败')
@@ -178,6 +186,7 @@ async function onImport(event: Event) {
     const known = new Set(store.data.feedbacks.map((item) => item.id))
     const fresh = incoming.filter((item) => !known.has(item.id))
     store.data.feedbacks.unshift(...fresh)
+    if (!await flushChanges()) return
     ElMessage.success(`已导入 ${fresh.length} 条本机反馈，没有改商品数据`)
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '导入失败')

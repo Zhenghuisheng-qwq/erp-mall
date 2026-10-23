@@ -1,5 +1,5 @@
 <template>
-  <div class="designer">
+  <div class="designer" :aria-busy="modelSaving || copying || publishing">
     <div class="studio-switch">
       <el-radio-group :model-value="surface" size="small" @change="setSurface">
         <el-radio-button value="overview">全局总览</el-radio-button>
@@ -66,8 +66,8 @@
           <div class="studio-actions">
             <el-button v-if="fromOverview" @click="backToOverview">返回总览</el-button>
             <el-button v-if="viewing" type="primary" @click="enterEdit">进入编辑</el-button>
-            <el-button v-if="!viewing" :disabled="!store.isAdmin" @click="saveModel">保存模型</el-button>
-            <el-button v-if="!viewing" :disabled="publishing || !store.isAdmin" type="primary" @click="publish">发布模型</el-button>
+            <el-button v-if="!viewing" :disabled="modelSaving || publishing || copying || !store.isAdmin" :loading="modelSaving" @click="saveModel">保存模型</el-button>
+            <el-button v-if="!viewing" :disabled="modelSaving || publishing || copying || !store.isAdmin" :loading="publishing" type="primary" @click="publish">发布模型</el-button>
           </div>
         </header>
         <div v-if="templateId" class="head-tools">
@@ -475,19 +475,19 @@
       :initial-node-id="compatibilityNodeId || undefined"
       :readonly="viewing || !store.isAdmin"
     />
-    <el-dialog v-model="copyOpen" title="复制模型" width="440px">
+    <el-dialog v-model="copyOpen" title="复制模型" width="440px" :show-close="!copying" :close-on-click-modal="!copying" :close-on-press-escape="!copying">
       <p class="copy-label">原模型</p>
       <strong v-if="!copyPick" class="copy-source">{{ copySourceName }}</strong>
-      <el-select v-else v-model="copySourceId" placeholder="选择已有模型" style="width: 100%">
+      <el-select v-else :disabled="copying" v-model="copySourceId" placeholder="选择已有模型" style="width: 100%">
         <el-option v-for="item in copyChoices" :key="item.id" :label="item.label" :value="item.id" />
       </el-select>
       <p v-if="copyPick && copyChoices.length === 0" class="muted">还没有可复制的模型。</p>
       <p class="copy-label">新模型名称</p>
-      <el-input v-model="copyName" placeholder="例如：二手机模型" @keydown.enter.prevent="confirmCopy" />
+      <el-input :disabled="copying" v-model="copyName" placeholder="例如：二手机模型" @keydown.enter.prevent="confirmCopy" />
       <p class="muted">复制节点树、属性引用和当前草稿的适用设备配置。新模型从草稿开始，发布记录和商品仍属于原模型。</p>
       <template #footer>
-        <el-button @click="copyOpen = false">取消</el-button>
-        <el-button type="primary" @click="confirmCopy">确认复制</el-button>
+        <el-button :disabled="copying" @click="copyOpen = false">取消</el-button>
+        <el-button type="primary" :loading="copying" @click="confirmCopy">确认复制</el-button>
       </template>
     </el-dialog>
   </div>
@@ -651,7 +651,7 @@ async function createModelFor(typeId: string) {
   activeTypeId.value = typeId
   try {
     const result = await ElMessageBox.prompt('模型名称', '创建空白模型', { inputValue: `${type.name}模型` })
-    const created = store.createProductModel({ productTypeId: type.id, name: result.value })
+    const created = await store.createProductModel({ productTypeId: type.id, name: result.value })
     if (!created.ok) {
       ElMessage.warning(created.message)
       return
@@ -728,6 +728,7 @@ function onDictEsc(event: KeyboardEvent) {
   else attributeOpen.value = false
 }
 const copyOpen = ref(false)
+const copying = ref(false), modelSaving = ref(false)
 const templateCompatibilityOpen = ref(false)
 const compatibilityNodeId = ref('')
 const namingOpen = ref(false)
@@ -2161,7 +2162,8 @@ function enterEdit() {
   delete next.mode
   router.replace({ path: '/specs', query: next })
 }
-function saveModel() {
+async function saveModel() {
+  if (modelSaving.value || publishing.value || copying.value) return
   const problems = illegalStructure()
   if (problems.length) {
     ElMessage.warning(problems[0])
@@ -2173,17 +2175,20 @@ function saveModel() {
     ElMessage.success('当前内容和已发布版本一致。')
     return
   }
-  const result = store.saveModelDraft(templateId.value)
+  modelSaving.value = true
+  try {
+  const result = (await store.saveModelDraft(templateId.value))
   if (!result.ok) { ElMessage.error(result.message || '保存失败，画布草稿已保留。'); return }
   const published = store.data.specModelVersions.some((item) => item.templateId === templateId.value && item.status === 'published')
   ElMessage.success(published ? '已保存草稿，尚未发布。新商品仍使用最近一次发布的版本。' : '已保存草稿，尚未发布。')
+  } finally { modelSaving.value = false }
 }
 const publishing = ref(false)
-function publish() {
-  if (publishing.value) return
+async function publish() {
+  if (publishing.value || modelSaving.value || copying.value) return
   publishing.value = true
   try {
-    const result = store.publishSpecModel(templateId.value)
+    const result = (await store.publishSpecModel(templateId.value))
     if (result.ok) ElMessage.success(result.message)
     else ElMessage.warning(result.message)
   } finally {
@@ -2500,7 +2505,8 @@ function openCopyPicker() {
   copyName.value = ''
   copyOpen.value = true
 }
-function confirmCopy() {
+async function confirmCopy() {
+  if (copying.value || modelSaving.value || publishing.value) return
   const name = copyName.value.trim()
   const sourceId = copySourceId.value
   const productTypeId = copyTargetTypeId.value
@@ -2521,7 +2527,9 @@ function confirmCopy() {
     ElMessage.warning('这个产品类型下已有同名模型')
     return
   }
-  const result = store.copyProductModel(sourceId, { name, productTypeId, direction: 'logic' })
+  copying.value = true
+  try {
+  const result = (await store.copyProductModel(sourceId, { name, productTypeId, direction: 'logic' }))
   if (!result.ok || !('templateId' in result)) {
     ElMessage.warning(result.message || '复制失败，原模型和输入均已保留。')
     return
@@ -2530,6 +2538,7 @@ function confirmCopy() {
   activeTypeId.value = productTypeId
   openModel(result.templateId)
   ElMessage.success('已复制为新模型，可以继续编辑。')
+  } finally { copying.value = false }
 }
 function pickNode(id: string) {
   selected.value = id
@@ -2567,7 +2576,7 @@ function invertComboSelection() {
 function openComboMaterial(row: { key: string }, mode: MaterialLaunchMode) {
   materialLaunch.value = { token: materialLaunch.value.token + 1, key: row.key, mode }
 }
-function batchCreateMaterials() {
+async function batchCreateMaterials() {
   if (!checkedIds.value.length) {
     ElMessage.warning('请先选择组合')
     return
@@ -2582,23 +2591,23 @@ function batchCreateMaterials() {
   let created = 0
   let skipped = 0
   const failed: string[] = []
-  rows.forEach((row) => {
+  for (const row of rows) {
     if (store.data.skus.some((item) => item.planningId === row.planningId)) {
       skipped += 1
-      return
+      continue
     }
-    const result = store.createMaterial({
+    const result = (await store.createMaterial({
       productModelId: templateId.value,
       modelVersionId: row.modelVersionId,
       planningId: row.planningId,
       requestId: uid('req'),
       categoryId: context.categoryId,
       productTypeId: context.productTypeId,
-    })
+    }))
     if (!result.ok) failed.push(`${row.label}：${result.message}`)
     else if (result.created) created += 1
     else skipped += 1
-  })
+  }
   if (failed.length && !created) {
     ElMessage.warning(failed.length === 1 ? failed[0] : `${failed.length} 条没有创建。${failed[0]}`)
     return
@@ -2611,12 +2620,14 @@ function batchCreateMaterials() {
   const skipText = skipped ? `，跳过已有物料 ${skipped} 条` : ''
   ElMessage.success(`已创建 ${created} 条物料${skipText}${extra}`)
 }
-function markGrade(grade: ProductGrade) {
+async function markGrade(grade: ProductGrade) {
   if (!checkedIds.value.length) {
     ElMessage.warning('请先选择组合')
     return
   }
   const count = store.markPlanningGrades(checkedIds.value, grade)
+  const saved = await store.flushPersistence()
+  if (!saved.ok) { ElMessage.error(store.persistenceState.message || '规划标记尚未保存，当前选择已保留。'); return }
   clearComboSelection()
   ElMessage.success(`已标记 ${count} 条规划，没有新建物料。`)
 }
@@ -2631,6 +2642,7 @@ function visibleOverlay(selector: string) {
   })
 }
 function shortcutBlocked() {
+  if (modelSaving.value || copying.value || publishing.value) return true
   if (attributeOpen.value || valueOpen.value || copyOpen.value || nodeDraftOpen.value || editingId.value || namingOpen.value || temporaryOpen.value || templateCompatibilityOpen.value || comboManageOpen.value) return true
   if (document.querySelector('.v3-material-dialog')) return true
   return visibleOverlay('.el-overlay-dialog, .el-message-box')

@@ -137,13 +137,15 @@ watch(family, (row) => {
   productName.value = row?.name || ''
   nameError.value = ''
 }, { immediate: true })
-function saveProductName() {
+async function saveProductName() {
   if (!family.value) return
   const result = store.renameProduct(family.value.id, productName.value)
   if (!result.ok) {
     nameError.value = result.message
     return
   }
+  const saved = await store.flushPersistence()
+  if (!saved.ok) { nameError.value = store.persistenceState.message || '商品名称尚未保存，当前输入已保留。'; return }
   nameError.value = ''
   productName.value = family.value.name
   ElMessage.success('商品名称已保存')
@@ -212,7 +214,7 @@ async function copyMaterialCode() {
     ElMessage.warning('没能复制，请选中编号后手动复制')
   }
 }
-function save() {
+async function save() {
   if (!active.value) return
   const result = store.updateMaterial({
     skuId: active.value.id,
@@ -226,6 +228,8 @@ function save() {
     errorText.value = result.message
     return
   }
+  const saved = await store.flushPersistence()
+  if (!saved.ok) { errorText.value = store.persistenceState.message || '物料尚未保存，当前输入已保留。'; return }
   errorText.value = ''
   ElMessage.success('物料已保存')
 }

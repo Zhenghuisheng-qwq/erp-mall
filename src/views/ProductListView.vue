@@ -325,6 +325,7 @@ async function removeSkuMany() {
   if (blocked) { ElMessage.warning(blocked); return }
   try { await ElMessageBox.confirm(`删除选中的 ${skuIds.value.length} 条 SKU？SPU 会保留。`, '批量删除 SKU') } catch { return }
   skuIds.value.forEach(id => store.removeSku(id))
+  if (!await flushListChanges()) return
   Object.keys(skuSelections).forEach(key => delete skuSelections[key])
 }
 function applyPreset(id: string) {
@@ -669,18 +670,25 @@ async function removeFamily(id: string, name: string) {
     ElMessage.warning(blocked)
     return
   }
+  if (!await flushListChanges()) return
   ElMessage.success('已删除')
 }
 function onFamilySelect(rows: ProductFamily[]) {
   familyIds.value = rows.map((item) => item.id)
 }
-function setShelfMany(status: 'online' | 'offline') {
+async function flushListChanges() {
+  const result = await store.flushPersistence()
+  if (!result.ok) { ElMessage.error(store.persistenceState.message || '当前修改尚未保存，本页内容保留。'); return false }
+  return true
+}
+async function setShelfMany(status: 'online' | 'offline') {
   familyIds.value.forEach((id) => {
     const family = store.data.families.find((item) => item.id === id)
     if (!family) return
     family.shelfStatus = status
     if (status === 'online') family.lifecycle = 'ready'
   })
+  if (!await flushListChanges()) return
   ElMessage.success(status === 'online' ? '已批量发布' : '已批量下架')
 }
 async function removeMany() {
@@ -699,13 +707,15 @@ async function removeMany() {
     return
   }
   familyIds.value.forEach((id) => store.removeFamily(id))
+  if (!await flushListChanges()) return
   familyIds.value = []
   ElMessage.success('已删除')
 }
 async function removeSku(id: string) {
   await ElMessageBox.confirm('删除这条 SKU？所属 SPU 会保留。', '删除规格')
   const blocked = store.removeSku(id)
-  if (blocked) ElMessage.warning(blocked)
+  if (blocked) { ElMessage.warning(blocked); return }
+  await flushListChanges()
 }
 function copySku(familyId: string, skuId: string) {
   router.push({ path: '/skus/new', query: { spu: familyId, copy: skuId } })
@@ -713,8 +723,9 @@ function copySku(familyId: string, skuId: string) {
 function onSelect(familyId: string, rows: Sku[]) {
   selected[familyId] = rows.map((item) => item.id)
 }
-function batchStatus(familyId: string, status: Sku['status']) {
+async function batchStatus(familyId: string, status: Sku['status']) {
   store.setSkuStatus(selected[familyId] || [], status)
+  if (!await flushListChanges()) return
   ElMessage.success('状态已更新')
 }
 

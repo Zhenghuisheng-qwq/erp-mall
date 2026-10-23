@@ -1,8 +1,9 @@
 <template>
-  <div>
+  <div :inert="saving" :aria-busy="saving">
     <PageHead :title="pageTitle" :desc="pageDesc">
       <el-tag v-if="draft.origin === 'sample'" type="info">预设演示</el-tag>
     </PageHead>
+    <el-alert v-if="saveError" :title="saveError" type="error" :closable="false" />
 
     <V3FamilyBoard v-if="v3View" :family-id="familyRouteId" :sku-id="skuQuery" />
     <template v-else>
@@ -178,32 +179,32 @@
         <button class="linkish summary" @click="locate(firstIssue)">{{ summary }}</button>
       </div>
       <div class="row-actions">
-        <el-button @click="cancel">取消</el-button>
-        <el-button v-if="shelf === 'online'" @click="setShelf('offline')">下架</el-button>
-        <el-button @click="save(false)">保存草稿</el-button>
-        <el-button type="primary" @click="save(true)">{{ shelf === 'online' ? '保存' : '发布商品' }}</el-button>
+        <el-button :disabled="saving" @click="cancel">取消</el-button>
+        <el-button v-if="shelf === 'online'" :loading="saving" @click="setShelf('offline')">下架</el-button>
+        <el-button :loading="saving" @click="save(false)">保存草稿</el-button>
+        <el-button type="primary" :loading="saving" @click="save(true)">{{ shelf === 'online' ? '保存' : '发布商品' }}</el-button>
       </div>
     </div>
 
-    <el-dialog v-model="valueOpen" :title="`新增${valueParamName}`" width="420px">
-      <el-input v-model="valueText" :placeholder="`新的${valueParamName}`" />
+    <el-dialog v-model="valueOpen" :title="`新增${valueParamName}`" width="420px" :close-on-press-escape="!saving" :close-on-click-modal="!saving" :show-close="!saving">
+      <el-input v-model="valueText" :disabled="saving" :placeholder="`新的${valueParamName}`" />
       <p class="muted" style="margin-top: 8px">确认后写入属性词典，其他用到这个属性的分类也能选到。</p>
       <template #footer>
-        <el-button @click="valueOpen = false">取消</el-button>
-        <el-button type="primary" @click="confirmValue">确认并选中</el-button>
+        <el-button :disabled="saving" @click="valueOpen = false">取消</el-button>
+        <el-button type="primary" :disabled="saving" @click="confirmValue">确认并选中</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="batchOpen" title="批量添加规格" width="560px">
+    <el-dialog v-model="batchOpen" title="批量添加规格" width="560px" :close-on-press-escape="!saving" :close-on-click-modal="!saving" :show-close="!saving">
       <div v-for="item in variants" :key="item.paramId" style="margin-bottom: 10px">
         <div>{{ item.param.name }}</div>
-        <el-select v-model="batchPick[item.param.name]" multiple style="width: 100%">
+        <el-select v-model="batchPick[item.param.name]" :disabled="saving" multiple style="width: 100%">
           <el-option v-for="value in item.param.values" :key="value" :label="value" :value="value" />
         </el-select>
       </div>
       <template #footer>
-        <el-button @click="batchOpen = false">取消</el-button>
-        <el-button type="primary" @click="applyBatch">生成</el-button>
+        <el-button :disabled="saving" @click="batchOpen = false">取消</el-button>
+        <el-button type="primary" :disabled="saving" @click="applyBatch">生成</el-button>
       </template>
     </el-dialog>
     </template>
@@ -212,8 +213,8 @@
 
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import CategoryTreeSelect from '../components/CategoryTreeSelect.vue'
 import PageHead from '../components/PageHead.vue'
 import ProductModelSelector from '../components/ProductModelSelector.vue'
@@ -230,6 +231,7 @@ const store = useCatalogStore()
 const route = useRoute()
 const router = useRouter()
 const saved = ref(false)
+const saving = ref(false), saveError = ref('')
 const temporaryOpen = ref(false)
 const temporaryTypeId = ref('')
 const nameTouched = ref(false)
@@ -631,22 +633,28 @@ function locate(issue?: FieldIssue) {
   const key = issue.skuId ? `${issue.skuId}-${issue.paramId}` : `common-${issue.paramId}`
   requestAnimationFrame(() => document.querySelector(`[data-field="${key}"]`)?.scrollIntoView({ block: 'center' }))
 }
-function setShelf(status: 'draft' | 'online' | 'offline') {
+async function setShelf(status: 'draft' | 'online' | 'offline') {
+  if (saving.value) return
   if (status === 'online') {
     draft.shelfStatus = 'online'
-    save(true)
+    await save(true)
     return
   }
   draft.shelfStatus = status
   if (status === 'draft') draft.lifecycle = 'draft'
   draft.createdAt = draft.createdAt || new Date().toISOString()
-  const result = store.saveBundle({ ...draft }, draftSkus.value.map((item) => ({ ...item, variantAttrs: { ...item.variantAttrs } })))
-  if (!result.ok) { ElMessage.warning(result.message); return }
-  saved.value = true
-  ElMessage.success(status === 'offline' ? '已下架，原有规格还在' : '已存为草稿')
-  router.push('/products')
+  saving.value = true; saveError.value = ''
+  try {
+    const result = await store.saveBundle({ ...draft }, draftSkus.value.map((item) => ({ ...item, variantAttrs: { ...item.variantAttrs } })))
+    if (!result.ok) { saveError.value = result.message || '保存未完成，当前输入已保留。'; return }
+    saved.value = true; saving.value = false
+    ElMessage.success(status === 'offline' ? '已下架，原有规格还在' : '已存为草稿')
+    await router.push('/products')
+  } catch (cause) { saveError.value = cause instanceof Error ? cause.message : '保存未完成，当前输入已保留。' }
+  finally { saving.value = false }
 }
-function save(formal: boolean) {
+async function save(formal: boolean) {
+  if (saving.value) return
   if (!draft.templateId) {
     ElMessage.error('请先选择可以录入的商品分类')
     return
@@ -660,13 +668,18 @@ function save(formal: boolean) {
   if (formal) draft.shelfStatus = 'online'
   else if (draft.shelfStatus !== 'offline') draft.shelfStatus = 'draft'
   draft.lifecycle = formal && errors.value.length === 0 ? 'ready' : 'draft'
-  const result = store.saveBundle({ ...draft }, draftSkus.value.map((item) => ({ ...item, variantAttrs: { ...item.variantAttrs } })))
-  if (!result.ok) { ElMessage.warning(result.message); return }
-  saved.value = true
-  ElMessage.success(formal ? '商品已保存' : '草稿已保存')
-  router.push('/products')
+  saving.value = true; saveError.value = ''
+  try {
+    const result = await store.saveBundle({ ...draft }, draftSkus.value.map((item) => ({ ...item, variantAttrs: { ...item.variantAttrs } })))
+    if (!result.ok) { saveError.value = result.message || '保存未完成，当前输入已保留。'; return }
+    saved.value = true; saving.value = false
+    ElMessage.success(formal ? '商品已保存' : '草稿已保存')
+    await router.push('/products')
+  } catch (cause) { saveError.value = cause instanceof Error ? cause.message : '保存未完成，当前输入已保留。' }
+  finally { saving.value = false }
 }
 async function cancel() {
+  if (saving.value) return
   await ElMessageBox.confirm('离开后，这次还没保存的修改会丢掉。', '取消编辑')
   saved.value = true
   router.push('/products')
@@ -712,6 +725,7 @@ onMounted(loadRoutedFamily)
 watch(() => [route.params.id, route.query.from, route.query.sku], loadRoutedFamily)
 
 onBeforeRouteLeave(async () => {
+  if (saving.value) return false
   if (saved.value) return true
   try {
     await ElMessageBox.confirm('还有未保存的修改，离开后会丢掉。', '离开编辑')
@@ -720,6 +734,10 @@ onBeforeRouteLeave(async () => {
     return false
   }
 })
+onBeforeRouteUpdate(() => !saving.value)
+const beforeUnload = (event: BeforeUnloadEvent) => { if (saving.value) { event.preventDefault(); event.returnValue = '' } }
+onMounted(() => window.addEventListener('beforeunload', beforeUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 </script>
 
 <style scoped>

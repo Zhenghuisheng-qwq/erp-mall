@@ -1,7 +1,7 @@
 <template>
-  <div>
+  <div :inert="saving" :aria-busy="saving">
     <PageHead title="适用关系" desc="已建物料适用关系。这里关联的是物料和主机，不是模型节点上的草稿配置。">
-      <el-button v-if="store.isAdmin" @click="loadSamples">放入测试样例</el-button>
+      <el-button v-if="store.isAdmin" :loading="saving" @click="loadSamples">放入测试样例</el-button>
     </PageHead>
     <p v-if="sampleNote" class="panel muted">{{ sampleNote }}</p>
     <p v-if="unconfiguredNote" class="panel muted">{{ unconfiguredNote }}</p>
@@ -20,7 +20,7 @@
           </span>
         </label>
         <div class="row-actions">
-          <el-button v-if="store.isAdmin" type="primary" :disabled="pickedHosts.length === 0" @click="linkHosts">关联到 {{ pickedHosts.length }} 款主机</el-button>
+          <el-button v-if="store.isAdmin" type="primary" :loading="saving" :disabled="pickedHosts.length === 0" @click="linkHosts">关联到 {{ pickedHosts.length }} 款主机</el-button>
         </div>
         <p v-if="resultText">{{ resultText }}</p>
       </section>
@@ -31,8 +31,8 @@
           <div>
             <strong>{{ item.label }}</strong>
             <p class="muted">{{ item.scopeText }}</p>
-            <el-input :model-value="noteDrafts[item.id] ?? item.note" :readonly="!store.isAdmin" placeholder="补充说明，可留空" @input="noteDrafts[item.id] = String($event)" />
-            <el-button v-if="store.isAdmin && Object.hasOwn(noteDrafts, item.id)" size="small" type="primary" style="margin-top:8px" @click="saveNote(item.id, noteDrafts[item.id] ?? item.note)">保存说明</el-button>
+            <el-input :model-value="noteDrafts[item.id] ?? item.note" :disabled="saving" :readonly="!store.isAdmin" placeholder="补充说明，可留空" @input="noteDrafts[item.id] = String($event)" />
+            <el-button v-if="store.isAdmin && Object.hasOwn(noteDrafts, item.id)" size="small" type="primary" :loading="saving" style="margin-top:8px" @click="saveNote(item.id, noteDrafts[item.id] ?? item.note)">保存说明</el-button>
           </div>
           <el-button v-if="store.isAdmin" link type="danger" @click="removeOne(item.id)">取消关联</el-button>
         </article>
@@ -74,7 +74,8 @@
       </section>
       <section v-else class="panel"><p class="muted">先在左边选一款主机型号。</p></section>
     </div>
-    <el-drawer v-model="pickerOpen" title="添加适用配件" size="460px">
+    <el-drawer v-model="pickerOpen" title="添加适用配件" size="460px" :close-on-press-escape="!saving" :close-on-click-modal="!saving" :show-close="!saving">
+      <div :inert="saving">
       <p class="muted">当前主机保持为「{{ selected?.label || '未选择' }}」。勾选的是已有物料，不是新建物料。</p>
       <div class="row-actions">
         <button v-for="item in typeOptions" :key="item.id" type="button" @click="pickerType = item.id">{{ item.name }}</button>
@@ -92,15 +93,16 @@
           <em>{{ item.productTypeName }} · {{ item.spec || '无规格摘要' }} · 已关联 {{ item.hostCount }} 款主机{{ item.linked ? ' · 已经关联' : '' }}<template v-if="item.supplierCode"> · {{ item.supplierCode }}</template></em>
         </span>
       </label>
-      <el-button v-if="store.isAdmin" type="primary" :disabled="pickedSkus.length === 0" @click="linkSkus">确认关联 {{ pickedSkus.length }} 条</el-button>
+      <el-button v-if="store.isAdmin" type="primary" :loading="saving" :disabled="pickedSkus.length === 0" @click="linkSkus">确认关联 {{ pickedSkus.length }} 条</el-button>
+      </div>
     </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import PageHead from '../PageHead.vue'
 import { accessoryCandidates, accessoryTypes, hostFrom, hostLabel, linksOfSku, listHostModels, unconfiguredHostPlans, type HostModelOption } from '../../domain/compatibility'
 import { installCompatibilitySamples } from '../../domain/compatibilitySamples'
@@ -112,6 +114,7 @@ import { DATA_VERSION } from '../../domain/types'
 import { isMaterialArchive } from '../../domain/catalogIdentity'
 
 const store = useCatalogStore()
+const saving = ref(false)
 const unconfiguredNote = computed(() => {
   const rows = unconfiguredHostPlans(store.data)
   if (!rows.length) return ''
@@ -192,6 +195,7 @@ watch(hosts, (rows) => {
 }, { immediate: true })
 
 function selectHost(item: HostModelOption) {
+  if (saving.value) return
   selectedKey.value = item.key
   pickedLinks.value = []
   resultText.value = ''
@@ -202,12 +206,15 @@ function currentHost() {
   return hostFrom(selected.value.host.productTypeId, selected.value.host.productModelId, selected.value.host.steps, scopePlanning.value)
 }
 function toggleSku(id: string) {
+  if (saving.value) return
   pickedSkus.value = pickedSkus.value.includes(id) ? pickedSkus.value.filter((item) => item !== id) : pickedSkus.value.concat(id)
 }
 function toggleHost(key: string) {
+  if (saving.value) return
   pickedHosts.value = pickedHosts.value.includes(key) ? pickedHosts.value.filter((item) => item !== key) : pickedHosts.value.concat(key)
 }
 function toggleLink(id: string) {
+  if (saving.value) return
   pickedLinks.value = pickedLinks.value.includes(id) ? pickedLinks.value.filter((item) => item !== id) : pickedLinks.value.concat(id)
 }
 function report(result: CompatibilityCommandResult) {
@@ -219,53 +226,75 @@ function report(result: CompatibilityCommandResult) {
 function additions(ids: string[], hosts: CompatibilityHost[]): CompatibilityChange[] {
   return ids.flatMap(id => hosts.map(host => ({ kind: 'add' as const, draft: { target: { kind: 'material' as const, id }, host, conclusion: 'compatible' as const, verification: 'confirmed' as const, capability: 'basic' as const, conditions: [], source: '人工维护的物料适用关系；核验资料未记录', note: '' } })))
 }
-function linkSkus() {
-  if (!store.isAdmin) return
+async function linkSkus() {
+  if (!store.isAdmin || saving.value) return
   const host = currentHost()
   if (!host) return
-  const result = store.commitCompatibilityChanges(additions(pickedSkus.value, [host]))
-  if (!report(result)) return
-  pickedSkus.value = []
-  pickerOpen.value = false
+  saving.value = true
+  try {
+    const result = await store.commitCompatibilityChanges(additions([...pickedSkus.value], [host]))
+    if (!report(result)) return
+    pickedSkus.value = []; pickerOpen.value = false
+  } catch (cause) { resultText.value = cause instanceof Error ? cause.message : '关联未完成，当前选择已保留。' }
+  finally { saving.value = false }
 }
-function linkHosts() {
-  if (!store.isAdmin || !skuMode.value) return
+async function linkHosts() {
+  if (!store.isAdmin || !skuMode.value || saving.value) return
   const chosen = hosts.value.filter((item) => pickedHosts.value.includes(item.key)).map((item) => item.host)
-  const result = store.commitCompatibilityChanges(additions([skuMode.value.id], chosen))
-  if (!report(result)) return
-  pickedHosts.value = []
+  saving.value = true
+  try {
+    const result = await store.commitCompatibilityChanges(additions([skuMode.value.id], chosen))
+    if (!report(result)) return
+    pickedHosts.value = []
+  } catch (cause) { resultText.value = cause instanceof Error ? cause.message : '关联未完成，当前选择已保留。' }
+  finally { saving.value = false }
 }
 async function cancel(ids: string[]) {
-  if (!store.isAdmin) return false
-  try { await ElMessageBox.confirm(`取消 ${ids.length} 条物料适用声明？物料和主机仍保留。`, '取消关联', { confirmButtonText: '确认取消声明', cancelButtonText: '保留' }) } catch { return false }
-  const result = store.commitCompatibilityChanges(ids.map(id => ({ kind: 'remove', id })))
-  if (!result.ok) { resultText.value = result.message || '取消失败，选择已保留，请重试。'; return false }
-  resultText.value = `取消了 ${result.preview?.removed || 0} 条关联，物料和主机都还在。`
-  return true
+  if (!store.isAdmin || saving.value) return false
+  saving.value = true
+  try {
+    try { await ElMessageBox.confirm(`取消 ${ids.length} 条物料适用声明？物料和主机仍保留。`, '取消关联', { confirmButtonText: '确认取消声明', cancelButtonText: '保留' }) } catch { return false }
+    const result = await store.commitCompatibilityChanges(ids.map(id => ({ kind: 'remove', id })))
+    if (!result.ok) { resultText.value = result.message || '取消失败，选择已保留，请重试。'; return false }
+    resultText.value = `取消了 ${result.preview?.removed || 0} 条关联，物料和主机都还在。`
+    return true
+  } catch (cause) { resultText.value = cause instanceof Error ? cause.message : '取消未完成，当前选择已保留。'; return false }
+  finally { saving.value = false }
 }
 async function removeOne(id: string) { await cancel([id]) }
 async function removeMany() {
   if (await cancel([...pickedLinks.value])) pickedLinks.value = []
 }
-function saveNote(id: string, note: string) {
-  if (!store.isAdmin) return
+async function saveNote(id: string, note: string) {
+  if (!store.isAdmin || saving.value) return
   const link = store.data.compatibilities.find(item => item.id === id)
   if (!link) return
-  const result = store.commitCompatibilityChanges([{ kind: 'edit', id, draft: { ...declarationDraft(link), note } }])
-  if (!result.ok) resultText.value = result.message || '备注没有保存，请重试。'
-  else delete noteDrafts.value[id]
+  saving.value = true
+  try {
+    const result = await store.commitCompatibilityChanges([{ kind: 'edit', id, draft: { ...declarationDraft(link), note } }])
+    if (!result.ok) resultText.value = result.message || '备注没有保存，请重试。'
+    else delete noteDrafts.value[id]
+  } catch (cause) { resultText.value = cause instanceof Error ? cause.message : '备注未保存，当前输入已保留。' }
+  finally { saving.value = false }
 }
-function loadSamples() {
-  if (!store.isAdmin) return
+async function loadSamples() {
+  if (!store.isAdmin || saving.value) return
   const candidate = cloneCompatibility(store.data)
   const result = installCompatibilitySamples(candidate, uid)
   if (!result.filmA) { sampleNote.value = '测试样例没有放进去。请先确认手机分类还在。'; return }
+  saving.value = true
   try {
-    store.importJson(JSON.stringify({ version: DATA_VERSION, data: candidate }))
+    ;(await store.importJson(JSON.stringify({ version: DATA_VERSION, data: candidate })))
     sampleNote.value = '已放入测试样例主机和屏幕膜。它们不是 Excel 里已经正式导入的物料。'
     ElMessage.success(sampleNote.value)
   } catch (error) { sampleNote.value = `测试样例未保存：${error instanceof Error ? error.message : String(error)}。原数据保留，可重试。` }
+  finally { saving.value = false }
 }
+onBeforeRouteLeave(() => !saving.value)
+onBeforeRouteUpdate(() => !saving.value)
+const beforeUnload = (event: BeforeUnloadEvent) => { if (saving.value) { event.preventDefault(); event.returnValue = '' } }
+onMounted(() => window.addEventListener('beforeunload', beforeUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 </script>
 
 <style scoped>

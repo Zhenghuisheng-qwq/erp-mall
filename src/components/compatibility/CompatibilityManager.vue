@@ -40,23 +40,23 @@
     <DeviceBindingDialog v-model="bindingOpen" :sku-id="bindingSkuId" @saved="emit('updated')" />
     <TemplateCompatibilitySyncDialog v-model="syncOpen" :target="target" @updated="emit('updated')" />
 
-    <el-dialog v-model="formOpen" :title="formTitle" width="min(820px, 96vw)" :close-on-click-modal="false" data-declaration-editor>
+    <el-dialog v-model="formOpen" :title="formTitle" width="min(820px, 96vw)" :close-on-click-modal="false" :close-on-press-escape="!saving" :show-close="!saving" data-declaration-editor>
       <template v-if="mode === 'copy'">
         <el-alert title="明确选择一个源物料和一个销售 SKU。确认后形成独立声明；源物料后续修改不会联动副本。" type="info" :closable="false" />
-        <el-form label-position="top" class="declaration-form">
+        <el-form label-position="top" :disabled="saving" class="declaration-form">
           <el-form-item label="源物料 MAT" required><el-select v-model="sourceMaterialId" filterable placeholder="选择源物料" style="width:100%" data-copy-source><el-option v-for="item in materialObjects" :key="item.id" :value="item.id" :label="targetText(store.data, {kind:'material', id:item.id})" /></el-select></el-form-item>
           <div v-if="sourceMaterialId" class="copy-source"><strong>{{ targetText(store.data, {kind:'material', id:sourceMaterialId}) }}</strong><p v-for="item in sourceLinks" :key="item.id" class="muted">{{ declarationText(store.data, item) }}</p><p v-if="!sourceLinks.length" class="muted">该物料尚无正式适用声明。</p></div>
           <el-form-item label="复制到销售 SKU" required><el-select v-model="copySkuId" filterable placeholder="选择目标销售 SKU" style="width:100%" data-copy-target><el-option v-for="item in salesObjects" :key="item.id" :value="item.id" :label="targetText(store.data, {kind:'sku', id:item.id})" /></el-select></el-form-item>
         </el-form>
       </template>
-      <el-form v-else-if="mode !== 'batch'" label-position="top" class="declaration-form">
+      <el-form v-else-if="mode !== 'batch'" label-position="top" :disabled="saving" class="declaration-form">
         <p v-if="mode === 'edit'" class="muted">本次明确修改声明 {{ editId }}，不会覆盖其他声明。</p>
         <div class="form-grid">
           <el-form-item label="配件对象类型"><el-select v-model="objectKind" data-declaration-kind @change="targetIds = []"><el-option label="销售 SKU" value="sku" /><el-option label="物料 MAT" value="material" /></el-select></el-form-item>
           <el-form-item label="兼容能力"><el-select v-model="capability" data-declaration-capability><el-option v-for="(label, value) in capabilityLabels" :key="value" :label="label" :value="value" /></el-select></el-form-item>
         </div>
         <el-form-item label="实际配件对象" required><el-select v-model="targetIds" multiple filterable :multiple-limit="mode === 'edit' ? 1 : 0" placeholder="选择配件对象，可批量" style="width:100%" data-declaration-targets><el-option v-for="item in objectOptions" :key="item.id" :value="item.id" :label="targetText(store.data, {kind:objectKind, id:item.id})" /></el-select></el-form-item>
-        <el-form-item label="主机型号" required><el-select v-model="hostKeys" multiple filterable :multiple-limit="mode === 'edit' || scope === 'planning' ? 1 : 0" placeholder="明确选择型号及来源，可批量" style="width:100%" data-declaration-hosts><el-option v-for="item in hostOptions" :key="item.key" :value="item.key" :label="`${item.label} · ${item.productTypeName} · ${hostOrigin(item.host.productModelId)}`" /></el-select></el-form-item>
+        <el-form-item label="主机型号" required><DeviceModelPicker :model-value="hostKeys" :options="hostOptions" multiple :multiple-limit="mode === 'edit' || scope === 'planning' ? 1 : 0" placeholder="明确选择型号及来源，可批量" data-declaration-hosts @update:model-value="hostKeys = Array.isArray($event) ? $event : []" /></el-form-item>
         <div class="form-grid">
           <el-form-item label="适用范围"><el-select v-model="scope"><el-option label="整款型号，全部容量和颜色" value="model" /><el-option label="仅明确的规划规格" value="planning" /></el-select></el-form-item>
           <el-form-item v-if="scope === 'planning'" label="指定规划规格" required><el-select v-model="planningId" filterable placeholder="选择同型号 PLN" data-declaration-planning><el-option v-for="item in planningOptions" :key="item.planningId" :value="item.planningId" :label="`${item.planningId} · ${item.steps.map(step => step.valueId).join(' · ')}`" /></el-select></el-form-item>
@@ -83,7 +83,7 @@
         <article v-for="(item, index) in preview.items" :key="index" class="preview-item" :class="item.state"><strong>{{ previewState[item.state] }}</strong><p>{{ item.change.kind === 'remove' ? `声明 ${item.change.id}` : `${targetText(store.data, item.change.draft.target)} → ${hostText(item.change.draft.host)} · ${scopeText(item.change.draft.host)} · ${capabilityLabels[item.change.draft.capability]}` }}</p><p>{{ item.message }}</p></article>
       </section>
       <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon data-declaration-error />
-      <template #footer><el-button @click="formOpen = false">取消</el-button><el-button v-if="mode !== 'batch'" :disabled="!store.isAdmin" data-preview-compatibility @click="makePreview">预览变更</el-button><el-button type="primary" :disabled="!store.isAdmin || !preview?.canCommit || !preview.items.length" :loading="saving" data-confirm-compatibility @click="commit">确认保存</el-button></template>
+      <template #footer><el-button :disabled="saving" @click="formOpen = false">取消</el-button><el-button v-if="mode !== 'batch'" :disabled="saving || !store.isAdmin" data-preview-compatibility @click="makePreview">预览变更</el-button><el-button type="primary" :disabled="!store.isAdmin || !preview?.canCommit || !preview.items.length" :loading="saving" data-confirm-compatibility @click="commit">确认保存</el-button></template>
     </el-dialog>
   </section>
 </template>
@@ -91,6 +91,7 @@
 import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useCatalogStore } from '../../stores/catalog'
+import { onBeforeRouteLeave } from 'vue-router'
 import { isMaterialArchive, isRealSku } from '../../domain/catalogIdentity'
 import { compatibilityFamilyRole, compatibilityRecordRole, listDeviceModels, validateCompatibilityHost } from '../../domain/deviceResolution'
 import { compatibilityTarget, declarationDefaults } from '../../domain/accessoryCompatibilityQuery'
@@ -100,6 +101,7 @@ import type { CompatibilityHost, CompatibilityLink } from '../../domain/types'
 import type { AccessoryTarget, AccessoryTargetKind, CompatibilityCapability, CompatibilityConclusion, CompatibilityCondition, CompatibilityVerification } from '../../domain/accessoryCompatibilityTypes'
 import { capabilityLabels, conclusionLabels, verificationLabels, hostText, hostKey, scopeText, targetText, conditionText, declarationText } from './compatibilityPresentation'
 import DeviceBindingDialog from './DeviceBindingDialog.vue'
+import DeviceModelPicker from './DeviceModelPicker.vue'
 import TemplateCompatibilitySource from '../template-compatibility/TemplateCompatibilitySource.vue'
 import TemplateCompatibilitySyncDialog from '../template-compatibility/TemplateCompatibilitySyncDialog.vue'
 
@@ -159,10 +161,9 @@ const planningOptions = computed(() => {
 })
 const sourceLinks = computed(() => store.data.compatibilities.filter(link => { const target = compatibilityTarget(link); return target.kind === 'material' && target.id === sourceMaterialId.value }))
 watch([objectKind, targetIds, hostKeys, scope, planningId, conclusion, verification, capability, source, note, conditionRows, sourceMaterialId, copySkuId], () => { preview.value = undefined; stagedChanges.value = []; error.value = '' }, { deep: true, flush: 'sync' })
-watch(() => [props.target?.kind, props.target?.id, props.host?.productModelId, props.host?.identityKey, props.deviceSkuId], () => { showAll.value = false; selectedIds.value = []; bindingSkuId.value = props.deviceSkuId || ''; formOpen.value = false; bindingOpen.value = false; syncOpen.value = false; reset() })
+watch(() => [props.target?.kind, props.target?.id, props.host?.productModelId, props.host?.identityKey, props.deviceSkuId], () => { if(saving.value)return; showAll.value = false; selectedIds.value = []; bindingSkuId.value = props.deviceSkuId || ''; formOpen.value = false; bindingOpen.value = false; syncOpen.value = false; reset() })
 function accessory(familyId: string) { return compatibilityFamilyRole(store.data, familyId) === 'accessory' }
 function relationKey(link: CompatibilityLink) { const target = compatibilityTarget(link); return JSON.stringify([target.kind, target.id, hostKey(link.host), declarationDefaults(link).capability]) }
-function hostOrigin(id: string) { return store.data.specCanvases.find(item => item.templateId === id)?.name || store.data.templates.find(item => item.id === id)?.name || (id.startsWith('device:') ? '独立型号' : id) }
 function toggle(id: string) { selectedIds.value = selectedIds.value.includes(id) ? selectedIds.value.filter(item => item !== id) : [...selectedIds.value, id] }
 function reset() {
   editId.value = ''; objectKind.value = props.target?.kind || 'sku'; targetIds.value = props.target ? [props.target.id] : []
@@ -172,11 +173,11 @@ function reset() {
   source.value = ''; note.value = ''; conditionRows.value = []; sourceMaterialId.value = ''; copySkuId.value = props.target?.kind === 'sku' ? props.target.id : ''
   preview.value = undefined; stagedChanges.value = []; error.value = ''
 }
-function openAdd() { if (!store.isAdmin) return; reset(); mode.value = 'add'; formOpen.value = true }
-function openCopy() { if (!store.isAdmin) return; reset(); mode.value = 'copy'; formOpen.value = true }
+function openAdd() { if (saving.value || !store.isAdmin) return; reset(); mode.value = 'add'; formOpen.value = true }
+function openCopy() { if (saving.value || !store.isAdmin) return; reset(); mode.value = 'copy'; formOpen.value = true }
 function addCondition() { conditionRows.value.push({ id: ++conditionSequence, kind: 'manual', attributeId: '', operator: 'eq', value: '', text: '', protocol: '' }) }
 function openEdit(link: CompatibilityLink) {
-  if (!store.isAdmin) return
+  if (saving.value || !store.isAdmin) return
   reset(); mode.value = 'edit'; editId.value = link.id
   const draft = declarationDraft(link)
   objectKind.value = draft.target.kind; targetIds.value = [draft.target.id]
@@ -193,6 +194,7 @@ function conditions(): CompatibilityCondition[] {
       : { kind: row.kind, text: row.text.trim() })
 }
 function makePreview() {
+  if(saving.value)return
   error.value = ''
   if (mode.value === 'copy') {
     const result = previewMaterialCopy(store.data, sourceMaterialId.value, copySkuId.value)
@@ -210,16 +212,17 @@ function makePreview() {
   }))
   stagedChanges.value = cloneCompatibility(changes); preview.value = previewCompatibilityChanges(store.data, changes)
 }
-function stage(changes: CompatibilityChange[]) { if (!store.isAdmin) return; reset(); mode.value = 'batch'; stagedChanges.value = cloneCompatibility(changes); preview.value = previewCompatibilityChanges(store.data, changes); formOpen.value = true }
+function stage(changes: CompatibilityChange[]) { if (saving.value || !store.isAdmin) return; reset(); mode.value = 'batch'; stagedChanges.value = cloneCompatibility(changes); preview.value = previewCompatibilityChanges(store.data, changes); formOpen.value = true }
 function stageCancellation(ids: string[]) { stage(ids.map(id => ({ kind: 'remove', id }))) }
 function cancelMany() { stageCancellation(selectedIds.value) }
 function batch(kind: 'pending' | 'incompatible') {
   stage(store.data.compatibilities.filter(link => selectedIds.value.includes(link.id)).map(link => ({ kind: 'edit', id: link.id, draft: { ...declarationDraft(link), ...(kind === 'pending' ? { verification: 'pending' as const } : { conclusion: 'incompatible' as const, verification: 'confirmed' as const }) } })))
 }
-function commit() {
+onBeforeRouteLeave(() => !saving.value)
+async function commit() {
   if (saving.value || !store.isAdmin || !preview.value?.canCommit || !stagedChanges.value.length) return
   saving.value = true
-  const result = store.commitCompatibilityChanges(cloneCompatibility(stagedChanges.value))
+  const result = await store.commitCompatibilityChanges(cloneCompatibility(stagedChanges.value))
   saving.value = false
   if (!result.ok) { error.value = result.message || '未能保存，草稿已保留，请重试。'; if (result.preview) preview.value = result.preview; return }
   error.value = ''; formOpen.value = false; selectedIds.value = []; ElMessage.success('兼容声明已保存，查询结果已更新。'); emit('updated')

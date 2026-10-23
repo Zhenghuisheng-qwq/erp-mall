@@ -5,7 +5,7 @@
       <el-form label-width="100px">
         <el-form-item label="显示名"><el-input v-model="store.data.profile.displayName" /></el-form-item>
         <el-form-item label="账号"><el-input v-model="store.data.profile.username" /></el-form-item>
-        <el-button type="primary" @click="ElMessage.success('资料已保存在本机')">保存资料</el-button>
+        <el-button type="primary" @click="saveProfile">保存资料</el-button>
       </el-form>
     </div>
     <div class="panel" style="max-width: 560px">
@@ -33,6 +33,11 @@ import { useCatalogStore } from '../stores/catalog'
 const store = useCatalogStore()
 const password = ref('')
 const confirm = ref('')
+async function saveProfile() {
+  const result = await store.flushPersistence()
+  if (!result.ok) { ElMessage.error(store.persistenceState.message || '资料尚未保存，当前输入已保留。'); return }
+  ElMessage.success('资料已保存在本机')
+}
 function checkPassword() {
   if (password.value.length < 6) {
     ElMessage.warning('新密码至少 6 位')

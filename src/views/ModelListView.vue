@@ -1,7 +1,7 @@
 <template>
-  <div>
+  <div :aria-busy="saving">
     <PageHead title="商品模型" desc="模型挂在产品类型下面。先选分类和产品类型，再创建模型。发布会留下版本快照。">
-      <el-button type="primary" @click="openCreate">新建模型</el-button>
+      <el-button type="primary" :disabled="saving" @click="openCreate">新建模型</el-button>
     </PageHead>
     <div class="panel">
       <el-table :data="rows">
@@ -22,15 +22,15 @@
             <el-button link type="primary" @click="open(row.id, false)">编辑模型</el-button>
             <el-button link data-open-model-compatibility @click="compatibilityModelId = row.id; compatibilityOpen = true">适用设备配置</el-button>
             <el-button link @click="router.push({ path: '/skus/new', query: { template: row.id } })">创建 SKU</el-button>
-            <el-button link @click="copy(row.id)">复制模型</el-button>
-            <el-button link @click="setStatus(row.id, 'published')">发布模型</el-button>
-            <el-button link @click="setStatus(row.id, 'offline')">下线模型</el-button>
+            <el-button link :disabled="saving" @click="copy(row.id)">复制模型</el-button>
+            <el-button link :disabled="saving" @click="setStatus(row.id, 'published')">发布模型</el-button>
+            <el-button link :disabled="saving" @click="setStatus(row.id, 'offline')">下线模型</el-button>
           </template>
         </el-table-column>
       </el-table>
     </div>
-    <el-dialog v-model="createOpen" title="新建模型" width="480px">
-      <el-form label-width="88px">
+    <el-dialog v-model="createOpen" title="新建模型" width="480px" :show-close="!saving" :close-on-click-modal="!saving" :close-on-press-escape="!saving">
+      <el-form label-width="88px" :disabled="saving">
         <el-form-item label="分类">
           <CategoryTreeSelect :model-value="draft.categoryId" :categories="store.data.categories" placeholder="选择分类" style="width: 100%" @update:model-value="onCategoryValue" />
         </el-form-item>
@@ -42,8 +42,8 @@
         <el-form-item label="模型名称"><el-input v-model="draft.name" placeholder="例如：手机标准模型" /></el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createOpen = false">取消</el-button>
-        <el-button type="primary" @click="create">创建</el-button>
+        <el-button :disabled="saving" @click="createOpen = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="create">创建</el-button>
       </template>
     </el-dialog>
     <TemplateCompatibilityDialog v-model="compatibilityOpen" :model-id="compatibilityModelId" :readonly="!store.isAdmin" />
@@ -65,6 +65,7 @@ import { useCatalogStore } from '../stores/catalog'
 const store = useCatalogStore()
 const router = useRouter()
 const createOpen = ref(false)
+const saving = ref(false)
 const compatibilityOpen = ref(false), compatibilityModelId = ref('')
 const draft = reactive({ categoryId: '', productTypeId: '', name: '' })
 const typeOptions = computed(() => store.productTypesOf(draft.categoryId))
@@ -143,18 +144,25 @@ function onCategoryValue(value: string | string[]) {
 function onCategory() {
   draft.productTypeId = typeOptions.value[0]?.id || ''
 }
-function create() {
-  const result = store.createProductModel({ productTypeId: draft.productTypeId, name: draft.name })
+async function create() {
+  if (saving.value) return
+  saving.value = true
+  try {
+  const result = await store.createProductModel({ productTypeId: draft.productTypeId, name: draft.name })
   if (!result.ok) {
     ElMessage.warning(result.message)
     return
   }
   createOpen.value = false
   router.push({ path: '/specs', query: { template: result.templateId } })
+  } finally { saving.value = false }
 }
-function setStatus(id: string, status: SpecModelStatus) {
+async function setStatus(id: string, status: SpecModelStatus) {
+  if (saving.value) return
+  saving.value = true
+  try {
   if (status === 'published') {
-    const result = store.publishSpecModel(id)
+    const result = (await store.publishSpecModel(id))
     if (result.ok) ElMessage.success(result.message)
     else ElMessage.warning(result.message)
     return
@@ -162,11 +170,18 @@ function setStatus(id: string, status: SpecModelStatus) {
   const canvas = ensure(id)
   canvas.status = status
   canvas.updatedAt = new Date().toISOString()
+  const saved = await store.flushPersistence()
+  if (!saved.ok) { ElMessage.error(store.persistenceState.message || '模型状态尚未保存，本页修改已保留。'); return }
   ElMessage.success(status === 'offline' ? '已下线，新商品不能使用，历史商品仍读取创建时的版本' : '已改为草稿，新商品继续使用最近发布版本')
+  } finally { saving.value = false }
 }
-function copy(id: string) {
-  const result = store.copyProductModel(id)
+async function copy(id: string) {
+  if (saving.value) return
+  saving.value = true
+  try {
+  const result = (await store.copyProductModel(id))
   if (!result.ok) { ElMessage.warning(result.message || '复制失败，原模型保持。'); return }
   ElMessage.success(('message' in result ? result.message : '') || '已复制模型。新模型是草稿，没有复制商品或历史版本。')
+  } finally { saving.value = false }
 }
 </script>

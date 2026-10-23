@@ -1,3 +1,5 @@
+import { installCatalogTestLocks } from '../../scripts/catalog-storage-test-env'
+installCatalogTestLocks()
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import { NON_LEAF_TYPE_BLOCK, TYPED_CATEGORY_CHILD_BLOCK } from './categoryTree'
@@ -93,7 +95,9 @@ function withTestDictionary(data: AppData) {
   add('p-cap', '1TB')
 }
 
+let mountedStore: ReturnType<typeof useCatalogStore> | undefined
 function boot(seed?: AppData) {
+  mountedStore?.$dispose()
   const memory = new Map<string, string>()
   Object.defineProperty(globalThis, 'localStorage', {
     configurable: true,
@@ -110,7 +114,8 @@ function boot(seed?: AppData) {
   })
   if (seed) memory.set(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data: seed }))
   setActivePinia(createPinia())
-  return useCatalogStore()
+  mountedStore = useCatalogStore()
+  return mountedStore
 }
 
 export async function runRound1Checks() {
@@ -179,7 +184,7 @@ export async function runRound1Checks() {
   const store = boot(storedLegacy)
   const staged = stagePhoneModelCorrection(store.data)
   const snapshotAfterStage = JSON.stringify(store.data.specModelVersions.find((item) => item.id === 'phone-model-v1')?.nodesSnapshot)
-  const publishedCorrection = store.publishSpecModel('t-phone')
+  const publishedCorrection = (await store.publishSpecModel('t-phone'))
   const v1 = store.data.specModelVersions.find((item) => item.id === 'phone-model-v1')
   const v2 = store.data.specModelVersions.filter((item) => item.templateId === 't-phone' && item.id !== 'phone-model-v1')
   const legacyPlan = store.data.planningRecords.find((item) => item.planningId === 'PLN-LEGACY')
@@ -238,7 +243,7 @@ export async function runRound1Checks() {
   check('G3', 'draft-and-dangling', blockedDraft.includes('正在编辑的商品模型') && dictionary.data.params.find((item) => item.id === 'p-round1-draft')?.values.includes('仅草稿值') === true && publishProblems.some((item) => item.includes('属性词典')), `${blockedDraft}；${publishProblems.find((item) => item.includes('属性词典')) || '未发现失效引用'}`)
 
   const materials = boot()
-  const publishedMaterial = materials.publishSpecModel('t-phone')
+  const publishedMaterial = (await materials.publishSpecModel('t-phone'))
   const plan = materials.data.planningRecords.find((item) => item.productModelId === 't-phone' && item.status === 'active')
   let sequence = 0
   const nextId = (prefix: string) => `${prefix}-${++sequence}`
@@ -270,5 +275,7 @@ export async function runRound1Checks() {
   check('G4', 'temporary-separate', Boolean(temporary.ok && temporary.created && temporary.planningId.startsWith('TMP-') && temporaryRetry.ok && !temporaryRetry.created && temporaryRetry.skuId === temporary.skuId && temporaryRemoved === '' && !temporaryAgain.ok && temporaryAgain.reason === 'material-deleted' && temporaryNew.ok && temporaryNew.skuId !== temporary.skuId && !formalIds.has(temporaryNew.skuId)), `临时 ${temporary.ok ? temporary.planningId : temporary.message}；删除后 ${temporaryAgain.ok ? '重建了' : temporaryAgain.message}`)
 
   await nextTick()
+  await materials.waitForPersistence()
+  materials.$dispose()
   return results
 }

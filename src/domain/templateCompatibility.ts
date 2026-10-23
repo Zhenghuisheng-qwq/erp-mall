@@ -35,13 +35,13 @@ export function templateCompatibilityContentSignature(input: TemplateCompatibili
   if (!config.defaultRule.configured && !config.exceptions.length) return 'unconfigured'
   return stable({ schemaVersion: config.schemaVersion, modelId: config.modelId, defaultRule: { id: config.defaultRule.id, configured: config.defaultRule.configured, claims: config.defaultRule.claims.map(claim => [claim.id, templateClaimContentSignature(claim)]).sort((a, b) => stable(a).localeCompare(stable(b))) }, exceptions: config.exceptions.map(rule => ({ id: rule.id, name: rule.name, selector: rule.selector.anyOf.map(group => group.map(stable).sort()).sort((a, b) => stable(a).localeCompare(stable(b))), claims: rule.claims.map(claim => [claim.id, templateClaimContentSignature(claim)]).sort((a, b) => stable(a).localeCompare(stable(b))) })).sort((a, b) => a.id.localeCompare(b.id)), conversions: config.conversions.map(receipt => [receipt.legacyRuleId, receipt.nodeId, receipt.exceptionId]).sort((a, b) => stable(a).localeCompare(stable(b))) })
 }
-function configShapeProblem(value: unknown, modelId: string): string {
+function configShapeProblem(value: unknown, modelId: string, draft = false): string {
   if (!object(value) || value.schemaVersion !== 1 || value.modelId !== modelId || !Number.isInteger(value.revision) || Number(value.revision) < 0 || typeof value.updatedAt !== 'string' || !object(value.defaultRule) || typeof value.defaultRule.id !== 'string' || !value.defaultRule.id || typeof value.defaultRule.configured !== 'boolean' || !Array.isArray(value.defaultRule.claims) || !Array.isArray(value.exceptions) || !Array.isArray(value.conversions)) return '模型适用配置结构无效，请先检查导入数据。'
   if (value.defaultRule.configured === false && value.defaultRule.claims.length) return '尚未启用的默认配置不能包含已生效声明。'
   const ids = new Set([value.defaultRule.id])
   const allClaims: unknown[][] = [value.defaultRule.claims]
   for (const rule of value.exceptions) {
-    if (!object(rule) || typeof rule.id !== 'string' || !rule.id || ids.has(rule.id) || typeof rule.name !== 'string' || !object(rule.selector) || !Array.isArray(rule.selector.anyOf) || !rule.selector.anyOf.length || !Array.isArray(rule.claims)) return '规格例外结构或规则标识无效。'
+    if (!object(rule) || typeof rule.id !== 'string' || !rule.id || ids.has(rule.id) || typeof rule.name !== 'string' || !object(rule.selector) || !Array.isArray(rule.selector.anyOf) || !draft && !rule.selector.anyOf.length || !Array.isArray(rule.claims)) return '规格例外结构或规则标识无效。'
     ids.add(rule.id)
     allClaims.push(rule.claims)
     for (const group of rule.selector.anyOf) {
@@ -51,7 +51,7 @@ function configShapeProblem(value: unknown, modelId: string): string {
   for (const claims of allClaims) {
     const claimIds = new Set<string>()
     for (const claim of claims) {
-      const problem = claimShapeProblem(claim)
+      const problem = draft ? '' : claimShapeProblem(claim)
       if (problem) return problem
       if (!object(claim) || typeof claim.id !== 'string') return '声明结构无效。'
       if (claimIds.has(claim.id)) return '同一规则中声明标识重复。'
@@ -143,7 +143,7 @@ export interface TemplateCompatibilityContext {
   rowsByValueNode: Map<string, Set<string>>
   stats: { combinationExpansions: number; selectorGroups: number; selectorIndexLookups: number; claimValidations: number; resolvedRows: number }
 }
-/** An operation-local context only. Never save it in a store or retain it across edits. */
+/** Operation-local indexes. An editor may reuse structure only while its reactive source dependencies remain unchanged. */
 export function createTemplateCompatibilityContext(data: AppData, input: { modelId: string; versionId?: string; config?: TemplateCompatibilityConfig }): TemplateCompatibilityContext {
   const { modelId } = input, versionId = input.versionId || ''
   const context: TemplateCompatibilityContext = { modelId, versionId, nodes: [], config: createEmptyTemplateCompatibilityConfig(modelId), hostOptions: [], combinations: [], byIdentity: new Map(), byNode: new Map(), issues: [], rules: new Map(), matches: new Map(), terms: new Map(), rowsByValueNode: new Map(), stats: { combinationExpansions: 0, selectorGroups: 0, selectorIndexLookups: 0, claimValidations: 0, resolvedRows: 0 } }
@@ -158,7 +158,7 @@ export function createTemplateCompatibilityContext(data: AppData, input: { model
   const config = versionId ? snapshot?.config : input.config || readTemplateCompatibilityConfig(data, modelId)
   context.sourceConfig = config
   if (config) {
-    const shapeError = configShapeProblem(config, modelId)
+    const shapeError = configShapeProblem(config, modelId, true)
     if (shapeError) context.issues.push({ message: shapeError })
     else context.config = config
   }
@@ -182,6 +182,26 @@ export function createTemplateCompatibilityContext(data: AppData, input: { model
       rows.add(combo.identityKey); context.rowsByValueNode.set(step.valueNodeId, rows)
     }
   }
+  return prepareContextRules(data, context)
+}
+/** Revalidate every draft edit. `structure` must come from createContext with an empty config,
+ * not from a previous prepared draft; its reactive model/version/role dependencies must still
+ * be current. The editor releases this computed context on unmount. No global cache. */
+export function prepareTemplateCompatibilityConfig(data: AppData, structure: TemplateCompatibilityContext, config: TemplateCompatibilityConfig): TemplateCompatibilityContext {
+  const context: TemplateCompatibilityContext = { ...structure, config: createEmptyTemplateCompatibilityConfig(structure.modelId), sourceConfig: config, issues: [...structure.issues], rules: new Map(), matches: new Map(), stats: { combinationExpansions: 0, selectorGroups: 0, selectorIndexLookups: 0, claimValidations: 0, resolvedRows: 0 } }
+  const shapeError = configShapeProblem(config, structure.modelId, true)
+  if (shapeError) context.issues.push({ message: shapeError })
+  else context.config = config
+  return prepareContextRules(data, context)
+}
+function issueField(claim: TemplateCompatibilityClaim, message: string): TemplateCompatibilityIssue['field'] {
+  if (message.includes('来源或依据')) return 'source'
+  if (message.includes('条件') || message.includes('前提') || message.includes('协议') || message.includes('功率')) return 'conditions'
+  if (message.includes('主机') || message.includes('PLN') || message.includes('型号')) return 'host'
+  if (message.includes('备注')) return 'note'
+  return claim?.conclusion === 'conditional' ? 'conditions' : 'conclusion'
+}
+function prepareContextRules(data: AppData, context: TemplateCompatibilityContext): TemplateCompatibilityContext {
   // Keep structure available for repairing draft ranges, without letting invalid rules take effect.
   if (context.issues.length) return context
   const hosts = listDeviceModels(data), attributes = new Set(data.params.map(param => param.id))
@@ -191,7 +211,7 @@ export function createTemplateCompatibilityContext(data: AppData, input: { model
     for (const claim of claims) {
       context.stats.claimValidations++
       const problem = claimProblem(data, claim, hosts, attributes)
-      if (problem) issues.push({ ruleId: id, claimId: claim?.id, message: problem })
+      if (problem) issues.push({ ruleId: id, claimId: claim?.id, field: issueField(claim, problem), message: problem })
       else if (ids.has(claim.id)) issues.push({ ruleId: id, claimId: claim.id, message: '同一规则中声明标识重复。' })
       ids.add(claim?.id)
     }
@@ -210,8 +230,8 @@ export function createTemplateCompatibilityContext(data: AppData, input: { model
   for (const rule of context.config.exceptions) {
     prepare(rule.id, rule.claims)
     const scope = selectorMatches(context, rule.selector)
-    if (scope.message) context.issues.push({ ruleId: rule.id, message: scope.message })
-    else if (!scope.identities.size) context.issues.push({ ruleId: rule.id, message: '规格例外未命中当前版本的任何合法组合。' })
+    if (scope.message) context.issues.push({ ruleId: rule.id, field: 'selector', message: scope.message })
+    else if (!scope.identities.size) context.issues.push({ ruleId: rule.id, field: 'selector', message: '规格例外未命中当前版本的任何合法组合。' })
     else for (const identity of scope.identities) { const rules = context.matches.get(identity) || []; rules.push(rule.id); context.matches.set(identity, rules) }
   }
   return context

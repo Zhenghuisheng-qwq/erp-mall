@@ -1,6 +1,6 @@
 <template>
-  <div class="layout" data-nav="flyout">
-    <RailNav :groups="groups" :active="active" :current-group="currentPlace.group" />
+  <div class="layout" :class="{ 'compact-workbench': temporaryCompact }" :inert="dataBusy" :aria-busy="dataBusy" data-nav="flyout">
+    <RailNav :groups="groups" :active="active" :current-group="currentPlace.group" :temporary-compact="temporaryCompact" />
     <section class="main">
       <header class="topbar">
         <div class="topbar-left">
@@ -9,21 +9,21 @@
         </div>
         <div class="row-actions">
           <PageAssist :path="route.path" :query-panel="route.query.panel" />
-          <el-select :model-value="store.data.activeRole" size="small" style="width: 130px" @change="onRole">
+          <el-select :model-value="store.data.activeRole" :disabled="dataBusy" size="small" style="width: 130px" @change="onRole">
             <el-option label="身份：管理员" value="admin" />
             <el-option label="身份：运营" value="operator" />
           </el-select>
           <button type="button" class="theme-switch" :title="themeTitle" :aria-label="themeTitle" @click="onToggleTheme">
             <el-icon :size="16"><Sunny v-if="theme === 'dark'" /><Moon v-else /></el-icon>
           </button>
-          <el-dropdown>
-            <el-button size="small">演示数据</el-button>
+          <el-dropdown :disabled="dataBusy">
+            <el-button size="small" :loading="dataBusy">演示数据</el-button>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item v-if="!route.path.startsWith('/benefit-packages')" @click="resetCurrent">重置当前模块</el-dropdown-item>
-                <el-dropdown-item @click="resetAll">重置全部演示数据</el-dropdown-item>
-                <el-dropdown-item @click="download">导出演示数据</el-dropdown-item>
-                <el-dropdown-item @click="pickFile">导入演示数据</el-dropdown-item>
+                <el-dropdown-item v-if="!route.path.startsWith('/benefit-packages')" :disabled="dataBusy" @click="resetCurrent">重置当前模块</el-dropdown-item>
+                <el-dropdown-item :disabled="dataBusy" @click="resetAll">重置全部演示数据</el-dropdown-item>
+                <el-dropdown-item :disabled="dataBusy" @click="download">导出演示数据</el-dropdown-item>
+                <el-dropdown-item :disabled="dataBusy" @click="pickFile">导入演示数据</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -41,9 +41,9 @@
 <script setup lang="ts">
 import { Goods, Moon, Setting, SetUp, Sunny } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, markRaw, ref } from 'vue'
+import { computed, markRaw, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { Component } from 'vue'
-import { useRoute } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from 'vue-router'
 import { canAccessLocation, menuRevision, railModel } from '../domain/menuConfig'
 import { useCatalogStore } from '../stores/catalog'
 import type { UserRole } from '../domain/types'
@@ -55,6 +55,13 @@ const ICONS: Record<string, Component> = { product: Goods, tools: SetUp, system:
 
 const store = useCatalogStore()
 const route = useRoute()
+const dataBusy = ref(false)
+const workbenchMedia = window.matchMedia('(max-width: 700px)')
+const narrowWorkbench = ref(workbenchMedia.matches)
+const temporaryCompact = computed(() => narrowWorkbench.value && (route.path.startsWith('/benefit-packages') || route.path === '/compatibility'))
+const updateWorkbenchMedia = (event: MediaQueryListEvent) => { narrowWorkbench.value = event.matches }
+onMounted(() => workbenchMedia.addEventListener('change', updateWorkbenchMedia))
+onBeforeUnmount(() => workbenchMedia.removeEventListener('change', updateWorkbenchMedia))
 const theme = ref<AppTheme>(readTheme())
 const themeTitle = computed(() => (theme.value === 'dark' ? '当前暗黑模式，切换为明亮模式' : '当前明亮模式，切换为暗黑模式'))
 function onToggleTheme() {
@@ -93,6 +100,7 @@ const currentPlace = computed(() => {
 })
 
 function onRole(value: string) {
+  if (dataBusy.value) return
   const role = value as UserRole
   store.setRole(role)
   if ((route.meta.admin && role !== 'admin') || !canAccessLocation(role, route.path, { panel: route.query.panel })) location.assign('/')
@@ -110,16 +118,30 @@ const moduleOf = computed(() => {
 })
 
 async function resetAll() {
-  await ElMessageBox.confirm('全部演示数据会恢复到初始样例，本机改过的内容会丢掉。', '重置全部')
-  store.resetAll()
-  ElMessage.success('已恢复预设演示数据')
+  if (dataBusy.value) return
+  dataBusy.value = true
+  try {
+    await ElMessageBox.confirm('全部演示数据会恢复到初始样例，本机改过的内容会丢掉。', '重置全部')
+    const result = await store.resetAll()
+    if (!result.ok) { ElMessage.error(result.message); return }
+    ElMessage.success('已恢复预设演示数据')
+  } catch (cause) { if (cause !== 'cancel' && cause !== 'close') ElMessage.error(cause instanceof Error ? cause.message : '重置未完成，原数据保持。') }
+  finally { dataBusy.value = false }
 }
 async function resetCurrent() {
-  await ElMessageBox.confirm('只恢复当前这一块的预设数据。', '重置当前模块')
-  store.resetModule(moduleOf.value)
-  ElMessage.success('当前模块已恢复')
+  if (dataBusy.value) return
+  const targetModule = moduleOf.value
+  dataBusy.value = true
+  try {
+    await ElMessageBox.confirm('只恢复当前这一块的预设数据。', '重置当前模块')
+    const result = await store.resetModule(targetModule)
+    if (!result.ok) { ElMessage.error(result.message); return }
+    ElMessage.success('当前模块已恢复')
+  } catch (cause) { if (cause !== 'cancel' && cause !== 'close') ElMessage.error(cause instanceof Error ? cause.message : '重置未完成，原数据保持。') }
+  finally { dataBusy.value = false }
 }
 function download() {
+  if (dataBusy.value) return
   const blob = new Blob([store.exportJson()], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -129,16 +151,32 @@ function download() {
   URL.revokeObjectURL(url)
 }
 function pickFile() {
+  if (dataBusy.value) return
   fileRef.value?.click()
 }
 async function onImport(event: Event) {
+  if (dataBusy.value) return
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
+  dataBusy.value = true
   try {
-    store.importJson(await file.text())
+    ;(await store.importJson(await file.text()))
     ElMessage.success('已导入演示数据')
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '导入失败')
-  }
+  } finally { dataBusy.value = false; (event.target as HTMLInputElement).value = '' }
 }
+onBeforeRouteLeave(() => !dataBusy.value)
+onBeforeRouteUpdate(() => !dataBusy.value)
+const beforeUnload = (event: BeforeUnloadEvent) => { if (dataBusy.value) { event.preventDefault(); event.returnValue = '' } }
+onMounted(() => window.addEventListener('beforeunload', beforeUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 </script>
+
+<style scoped>
+.compact-workbench .content { padding:12px 12px 24px; }
+.compact-workbench .topbar { height:auto; min-height:56px; flex-wrap:wrap; padding:6px 8px; gap:4px 8px; }
+.compact-workbench .topbar>.row-actions { gap:4px; justify-content:flex-end; }
+.compact-workbench .topbar-left { flex:1; }
+.compact-workbench .demo-strip { padding:8px 12px; font-size:12px; line-height:1.5; }
+</style>

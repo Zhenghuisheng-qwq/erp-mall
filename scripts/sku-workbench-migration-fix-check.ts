@@ -1,3 +1,5 @@
+import { installCatalogTestLocks } from './catalog-storage-test-env'
+installCatalogTestLocks()
 import assert from 'node:assert/strict'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -43,7 +45,7 @@ function mount() {
   const store = useCatalogStore()
   const page = () => { const value = store.data.productListPages?.sku; assert.ok(value); return value }
   const capture = (name: string) => observations.push({ name, page: cloneSku(page()), persisted: localStorage.getItem(STORAGE_KEY) })
-  const dispose = async () => { await nextTick(); scope.stop(); store.$dispose() }
+  const dispose = async () => { await nextTick(); await store.waitForPersistence(); scope.stop(); store.$dispose() }
   return { view, store, page, capture, dispose }
 }
 function validReferences(page: ProductListPageState) {
@@ -56,25 +58,26 @@ function validReferences(page: ProductListPageState) {
   for (const id of [...state.favorites, ...state.order, ...Object.keys(state.working)]) assert.ok(ids.has(id) || id.startsWith(`${SYSTEM_SKU_VIEW_ID}@spu:`), `Invalid view preference ${id}`)
 }
 disk.set(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data: fixture }))
-let running = mount()
+async function ready() { await running.store.waitForPersistence(); await nextTick(); assert.equal(running.view.pending.value, false) }
+let running = mount(); await ready()
 try {
   assert.equal(running.page().views.filter(view => view.id === deletedId).length, 1)
   assert.equal(running.page().views.filter(view => view.id === editedId).length, 1)
   assert.deepEqual(running.page().presets, originalPresets)
   assert.equal(ensureSkuWorkbench(running.store.data), false)
   running.capture('first-and-repeat-migration')
-  assert.ok(running.view.rename(editedId, '用户改名 · 不可重置').ok)
-  assert.ok(running.view.select(editedId).ok)
-  assert.ok(running.view.apply({ ...cloneSku(running.view.config.value), density: 'compact' }).ok)
-  assert.ok(running.view.save().ok)
+  assert.ok((await running.view.rename(editedId, '用户改名 · 不可重置')).ok)
+  assert.ok((await running.view.select(editedId)).ok)
+  assert.ok((await running.view.apply({ ...cloneSku(running.view.config.value), density: 'compact' })).ok)
+  assert.ok((await running.view.save()).ok)
   const editedView = cloneSku(running.page().views.find(view => view.id === editedId))
   assert.ok(editedView)
-  assert.ok(running.view.select(deletedId).ok)
-  assert.ok(running.view.favorite(deletedId).ok)
-  assert.ok(running.view.setDefault(deletedId).ok)
-  assert.ok(running.view.apply({ ...cloneSku(running.view.config.value), density: 'compact' }).ok)
+  assert.ok((await running.view.select(deletedId)).ok)
+  assert.ok((await running.view.favorite(deletedId)).ok)
+  assert.ok((await running.view.setDefault(deletedId)).ok)
+  assert.ok((await running.view.apply({ ...cloneSku(running.view.config.value), density: 'compact' })).ok)
   assert.ok(running.page().skuWorkbench?.working[deletedId])
-  assert.ok(running.view.remove(deletedId).ok)
+  assert.ok((await running.view.remove(deletedId)).ok)
   assert.equal(running.page().views.some(view => view.id === deletedId), false)
   assert.equal(running.view.activeId.value, SYSTEM_SKU_VIEW_ID)
   assert.equal(running.page().skuWorkbench?.working[deletedId], undefined)
@@ -90,14 +93,14 @@ try {
   assert.deepEqual(running.page().views.find(view => view.id === editedId), editedView)
   assert.equal(ensureSkuWorkbench(running.store.data), false)
   await running.dispose()
-  running = mount()
+  running = mount(); await ready()
   assert.equal(running.view.views.value.some(view => view.id === deletedId), false, 'Deleted migrated preset must stay deleted on page re-entry')
   await nextTick()
   running.capture('page-reentry')
   const exported = running.store.exportJson()
   await running.dispose()
   disk.set(STORAGE_KEY, exported)
-  running = mount()
+  running = mount(); await ready()
   assert.equal(running.page().views.some(view => view.id === deletedId), false, 'Disk reload must retain migration history after deletion')
   assert.ok(running.page().skuWorkbench?.migratedPresetIds?.includes('legacy-delete'))
   assert.deepEqual(running.page().views.find(view => view.id === editedId), editedView)
@@ -108,14 +111,14 @@ try {
   assert.equal(running.page().views.some(view => view.id === deletedId), false)
   assert.equal(ensureSkuWorkbench(running.store.data), false)
   const recordedMigrations = cloneSku(running.page().skuWorkbench?.migratedPresetIds)
-  const copied = running.view.copy(editedId)
+  const copied = (await running.view.copy(editedId))
   assert.ok(copied.ok && copied.id)
   assert.deepEqual(running.page().skuWorkbench?.migratedPresetIds, recordedMigrations, 'View-copy page cloning retains completed migration events')
-  assert.ok(running.view.remove(copied.id).ok)
+  assert.ok((await running.view.remove(copied.id)).ok)
   validReferences(running.page())
   running.capture('new-preset-still-migrates')
   const imported = running.store.exportJson()
-  running.store.importJson(imported)
+  await running.store.importJson(imported)
   assert.equal(running.page().views.some(view => view.id === deletedId), false)
   assert.deepEqual(running.page().views.find(view => view.id === editedId), editedView)
   assert.deepEqual(running.store.data.productListPages?.spu, originalSpu)
