@@ -1,0 +1,2758 @@
+{
+  "result": "READY",
+  "generatedAt": "2026-10-23T05:26:59.832Z",
+  "baseline": {
+    "workspace": "D:\\单子\\商城erp\\mock\\iyge-v2-mock",
+    "branch": "20261022",
+    "head": "fd5f6c8d1d899f1709a5ee58c775f8ad89a99c86",
+    "initialStatus": [
+      " M README.md",
+      "?? docs/benefit-package-workbench-evidence.json",
+      "?? docs/benefit-package-workbench.md"
+    ],
+    "sourceZip": {
+      "bytes": 1465786,
+      "sha256": "c15685f81554cb79f018505c678d0537c26c59f0d84c6dadfcb030ea158ff53a"
+    },
+    "manifest": "work/template-compatibility/baseline/manifest.json",
+    "basis": "Actual start-of-task working tree: HEAD content plus original README and two initially untracked benefit reports. Text comparisons normalize CRLF; old work files and initially untracked user reports compare raw bytes."
+  },
+  "environment": {
+    "node": "v22.18.0",
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor            ",
+    "logicalCpus": 32,
+    "totalMemoryBytes": 50524966912,
+    "npm": "10.9.3",
+    "browser": "156.0.8078.47",
+    "channel": "chrome"
+  },
+  "commands": [
+    {
+      "name": "frontend",
+      "command": "node scripts/check-frontend.mjs",
+      "exit": 0,
+      "milliseconds": 5853,
+      "phase": "baseline",
+      "path": "work/template-compatibility/baseline/frontend.log",
+      "sha256": "d449c75e97b7295af1f5d4fb988f97249eca2453d8c949f16fe20920c89d11b9",
+      "bytes": 21998
+    },
+    {
+      "name": "compatibility",
+      "command": "node scripts/run-domain-check.mjs scripts/compatibility-check.ts",
+      "exit": 0,
+      "milliseconds": 766,
+      "phase": "baseline",
+      "path": "work/template-compatibility/baseline/compatibility.log",
+      "sha256": "74c557bd4d2bfeed37e901b088131dcb0bda4253fc29dd49a4bf1f85e97f97bb",
+      "bytes": 844
+    },
+    {
+      "name": "material-archive",
+      "command": "node scripts/run-domain-check.mjs scripts/material-archive-check.ts",
+      "exit": 0,
+      "milliseconds": 564,
+      "phase": "baseline",
+      "path": "work/template-compatibility/baseline/material-archive.log",
+      "sha256": "1530e7e2242336335f02d1df81d246066f598391b9b267e822e33ee4c56c40ea",
+      "bytes": 707
+    },
+    {
+      "name": "accessory-compatibility-query",
+      "command": "node scripts/run-domain-check.mjs scripts/accessory-compatibility-query-check.ts",
+      "exit": 0,
+      "milliseconds": 440,
+      "phase": "baseline",
+      "path": "work/template-compatibility/baseline/accessory-compatibility-query.log",
+      "sha256": "a554474fb3de23ba1c038a63303f63f62f09fe1e78e79ec0e9e8aa406d06b5c2",
+      "bytes": 2452
+    },
+    {
+      "name": "accessory-compatibility-state",
+      "command": "node scripts/run-domain-check.mjs scripts/accessory-compatibility-state-check.ts",
+      "exit": 0,
+      "milliseconds": 687,
+      "phase": "baseline",
+      "path": "work/template-compatibility/baseline/accessory-compatibility-state.log",
+      "sha256": "e656d95e096cb68e991276d1d8e83fdba704dd0a28d676bf4f1610eb836dfa07",
+      "bytes": 1982
+    },
+    {
+      "name": "benefit-package-domain",
+      "command": "node scripts/run-domain-check.mjs scripts/benefit-package-domain-check.ts",
+      "exit": 0,
+      "milliseconds": 475,
+      "phase": "baseline",
+      "path": "work/template-compatibility/baseline/benefit-package-domain.log",
+      "sha256": "df0cc7b7e71c8e414dd1c6ca9f4f771ceb44cbb00d75f9bb3d60403af0c41212",
+      "bytes": 3355
+    },
+    {
+      "name": "benefit-package-state",
+      "command": "node scripts/run-domain-check.mjs scripts/benefit-package-state-check.ts",
+      "exit": 0,
+      "milliseconds": 710,
+      "phase": "baseline",
+      "path": "work/template-compatibility/baseline/benefit-package-state.log",
+      "sha256": "396f26518df73d06095560580661a19f92fa6ad92920e796fea506b573dc50fb",
+      "bytes": 2307
+    },
+    {
+      "name": "benefit-package-export",
+      "command": "node scripts/run-domain-check.mjs scripts/benefit-package-export-check.ts",
+      "exit": 0,
+      "milliseconds": 548,
+      "phase": "baseline",
+      "path": "work/template-compatibility/baseline/benefit-package-export.log",
+      "sha256": "543177e974c69eb843ef02ba5c8b74b74c0e7a70557fb533ccf59f945f3bd52e",
+      "bytes": 672
+    },
+    {
+      "name": "frontend",
+      "command": "node scripts/check-frontend.mjs",
+      "exit": 0,
+      "milliseconds": 23139,
+      "phase": "final-domain",
+      "path": "work/template-compatibility/final-domain/frontend.log",
+      "sha256": "0b6258bac490e5753616fd1f809404ad898c9ea2c1c47562ad17acebec73a883",
+      "bytes": 21998
+    },
+    {
+      "name": "compatibility",
+      "command": "node scripts/run-domain-check.mjs scripts/compatibility-check.ts",
+      "exit": 0,
+      "milliseconds": 2545,
+      "phase": "final-domain",
+      "path": "work/template-compatibility/final-domain/compatibility.log",
+      "sha256": "74c557bd4d2bfeed37e901b088131dcb0bda4253fc29dd49a4bf1f85e97f97bb",
+      "bytes": 844
+    },
+    {
+      "name": "material-archive",
+      "command": "node scripts/run-domain-check.mjs scripts/material-archive-check.ts",
+      "exit": 0,
+      "milliseconds": 2280,
+      "phase": "final-domain",
+      "path": "work/template-compatibility/final-domain/material-archive.log",
+      "sha256": "1530e7e2242336335f02d1df81d246066f598391b9b267e822e33ee4c56c40ea",
+      "bytes": 707
+    },
+    {
+      "name": "accessory-compatibility-query",
+      "command": "node scripts/run-domain-check.mjs scripts/accessory-compatibility-query-check.ts",
+      "exit": 0,
+      "milliseconds": 2169,
+      "phase": "final-domain",
+      "path": "work/template-compatibility/final-domain/accessory-compatibility-query.log",
+      "sha256": "a554474fb3de23ba1c038a63303f63f62f09fe1e78e79ec0e9e8aa406d06b5c2",
+      "bytes": 2452
+    },
+    {
+      "name": "accessory-compatibility-state",
+      "command": "node scripts/run-domain-check.mjs scripts/accessory-compatibility-state-check.ts",
+      "exit": 0,
+      "milliseconds": 2515,
+      "phase": "final-domain",
+      "path": "work/template-compatibility/final-domain/accessory-compatibility-state.log",
+      "sha256": "e656d95e096cb68e991276d1d8e83fdba704dd0a28d676bf4f1610eb836dfa07",
+      "bytes": 1982
+    },
+    {
+      "name": "benefit-package-domain",
+      "command": "node scripts/run-domain-check.mjs scripts/benefit-package-domain-check.ts",
+      "exit": 0,
+      "milliseconds": 2585,
+      "phase": "final-domain",
+      "path": "work/template-compatibility/final-domain/benefit-package-domain.log",
+      "sha256": "df0cc7b7e71c8e414dd1c6ca9f4f771ceb44cbb00d75f9bb3d60403af0c41212",
+      "bytes": 3355
+    },
+    {
+      "name": "benefit-package-state",
+      "command": "node scripts/run-domain-check.mjs scripts/benefit-package-state-check.ts",
+      "exit": 0,
+      "milliseconds": 2516,
+      "phase": "final-domain",
+      "path": "work/template-compatibility/final-domain/benefit-package-state.log",
+      "sha256": "396f26518df73d06095560580661a19f92fa6ad92920e796fea506b573dc50fb",
+      "bytes": 2307
+    },
+    {
+      "name": "benefit-package-export",
+      "command": "node scripts/run-domain-check.mjs scripts/benefit-package-export-check.ts",
+      "exit": 0,
+      "milliseconds": 2331,
+      "phase": "final-domain",
+      "path": "work/template-compatibility/final-domain/benefit-package-export.log",
+      "sha256": "543177e974c69eb843ef02ba5c8b74b74c0e7a70557fb533ccf59f945f3bd52e",
+      "bytes": 672
+    },
+    {
+      "name": "sku-workbench-query",
+      "command": "node scripts/run-domain-check.mjs scripts/sku-workbench-query-check.ts",
+      "exit": 0,
+      "milliseconds": 1998,
+      "phase": "regression-final",
+      "path": "work/template-compatibility/regression-final/sku-workbench-query.log",
+      "sha256": "7bbdd8d19eb4ce2bc45c4558e857a5eeb042cb1bb976c8c944fa507f944e85db",
+      "bytes": 1456
+    },
+    {
+      "name": "sku-workbench-state",
+      "command": "node scripts/run-domain-check.mjs scripts/sku-workbench-state-check.ts",
+      "exit": 0,
+      "milliseconds": 2256,
+      "phase": "regression-final",
+      "path": "work/template-compatibility/regression-final/sku-workbench-state.log",
+      "sha256": "8f1d93b4ca091388ca783a98f6ce619c2542894e040de290a513ec925b2d871e",
+      "bytes": 693
+    },
+    {
+      "name": "sku-workbench-grouping-fix",
+      "command": "node scripts/run-domain-check.mjs scripts/sku-workbench-grouping-fix-check.ts",
+      "exit": 0,
+      "milliseconds": 2006,
+      "phase": "regression-final",
+      "path": "work/template-compatibility/regression-final/sku-workbench-grouping-fix.log",
+      "sha256": "ffdd52861a6202548456a6cf6ea8ec6abf9aaddeb9a38e89b31c7e41a794b623",
+      "bytes": 1804
+    },
+    {
+      "name": "sku-workbench-migration-fix",
+      "command": "node scripts/run-domain-check.mjs scripts/sku-workbench-migration-fix-check.ts",
+      "exit": 0,
+      "milliseconds": 2239,
+      "phase": "regression-final",
+      "path": "work/template-compatibility/regression-final/sku-workbench-migration-fix.log",
+      "sha256": "8feb1365066d0dfb9bb3a9c2f671cf8535f1fd80c83149d62f3c2bc1b11e42cc",
+      "bytes": 151
+    },
+    {
+      "name": "sku-workbench-restore-fix",
+      "command": "node scripts/run-domain-check.mjs scripts/sku-workbench-restore-fix-check.ts",
+      "exit": 0,
+      "milliseconds": 2378,
+      "phase": "regression-final",
+      "path": "work/template-compatibility/regression-final/sku-workbench-restore-fix.log",
+      "sha256": "713871cbd3c213749165485dcd7dbb25642a6a0f1f6c8201db6c4e88f8253714",
+      "bytes": 939
+    },
+    {
+      "name": "excel-import",
+      "command": "node scripts/run-domain-check.mjs scripts/excel-import-check.ts",
+      "exit": 0,
+      "milliseconds": 3122,
+      "phase": "regression-final",
+      "path": "work/template-compatibility/regression-final/excel-import.log",
+      "sha256": "e05bb19ead745e954a19d86f1e21bef81d02db76e5e91b69231be5dae3a24a34",
+      "bytes": 2209
+    },
+    {
+      "name": "browser-spu-sku",
+      "command": "node scripts/browser-spu-sku.mjs",
+      "exit": 0,
+      "milliseconds": 34637,
+      "phase": "regression-final",
+      "path": "work/template-compatibility/regression-final/browser-spu-sku.log",
+      "sha256": "8ff7e58d07b3d4d9971dfc6f3a964ec09135ea48a3022cd33545e999a0f8c68f",
+      "bytes": 803
+    },
+    {
+      "name": "browser-sku-workbench",
+      "command": "node scripts/browser-sku-workbench.mjs",
+      "exit": 0,
+      "milliseconds": 24266,
+      "phase": "regression-final",
+      "path": "work/template-compatibility/regression-final/browser-sku-workbench.log",
+      "sha256": "192ba47e5f2266d7552ea9df9bc210e47b2030bb38d43d70ef225ff537239ecf",
+      "bytes": 4224
+    },
+    {
+      "name": "browser-sku-workbench-fixes",
+      "command": "node scripts/browser-sku-workbench-fixes.mjs",
+      "exit": 0,
+      "milliseconds": 12705,
+      "phase": "regression-final",
+      "path": "work/template-compatibility/regression-final/browser-sku-workbench-fixes.log",
+      "sha256": "d6406b5a81e53c5d3d6de71d3caaa23606ea60d9f5e8e157d5bf0b0635127015",
+      "bytes": 673
+    },
+    {
+      "name": "browser-accessory-compatibility",
+      "command": "node scripts/browser-accessory-compatibility.mjs",
+      "exit": 0,
+      "milliseconds": 61082,
+      "phase": "regression-final",
+      "path": "work/template-compatibility/regression-final/browser-accessory-compatibility.log",
+      "sha256": "04107709088af00fa4ffdc14c22f89c5296f8d5f67cdc759e743ba30ac8e0db9",
+      "bytes": 1153
+    },
+    {
+      "name": "browser-benefit-packages",
+      "command": "node scripts/browser-benefit-packages.mjs",
+      "exit": 0,
+      "milliseconds": 36816,
+      "phase": "regression-final",
+      "path": "work/template-compatibility/regression-final/browser-benefit-packages.log",
+      "sha256": "ea422f6962aec1243cea91742ea8c906d53922f5f65cc989f7e4019bcfb8811c",
+      "bytes": 1506
+    },
+    {
+      "name": "browser-navigation-filter",
+      "command": "node scripts/browser-navigation-filter.mjs",
+      "exit": 0,
+      "milliseconds": 29208,
+      "phase": "regression-final",
+      "path": "work/template-compatibility/regression-final/browser-navigation-filter.log",
+      "sha256": "7d779d74f90e107950df7491252736300bc73ffbec40c5bdb038662e62ef0ea4",
+      "bytes": 909
+    },
+    {
+      "name": "integration",
+      "command": "node scripts/browser-frontend-final.mjs --business-only",
+      "exit": 0,
+      "milliseconds": 25288,
+      "phase": "regression-final",
+      "path": "work/template-compatibility/regression-final/integration.log",
+      "sha256": "5f1076a82e2cff2cd6850b427b1a7d886a9202d79242dcfd624e095abce21910",
+      "bytes": 918
+    },
+    {
+      "name": "template-domain",
+      "command": "node scripts/run-domain-check.mjs scripts/template-compatibility-domain-check.ts",
+      "exit": 0,
+      "milliseconds": 2130,
+      "log": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-runtime-gates\\template-domain.log",
+      "sha256": "3a3ba00237ed0280ee1d19027f09809e5dd29483947da0a8932ecf98e859ca92",
+      "phase": "final-runtime-gates",
+      "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-runtime-gates\\template-domain.log",
+      "bytes": 1718
+    },
+    {
+      "name": "template-state",
+      "command": "node scripts/run-domain-check.mjs scripts/template-compatibility-state-check.ts",
+      "exit": 0,
+      "milliseconds": 2726,
+      "log": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-runtime-gates\\template-state.log",
+      "sha256": "7fdccc760a37dd5818ec21d10b85197ba0d6aeb3111ec561482ebc193876ab94",
+      "phase": "final-runtime-gates",
+      "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-runtime-gates\\template-state.log",
+      "bytes": 3434
+    },
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "exit": 0,
+      "milliseconds": 7569,
+      "log": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-runtime-gates\\typecheck.log",
+      "sha256": "8398fe4d9a671f2500c6e8e083b82ae1e6ffea184f09ced247a1144d7f69d657",
+      "phase": "final-runtime-gates",
+      "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-runtime-gates\\typecheck.log",
+      "bytes": 46
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "exit": 0,
+      "milliseconds": 8569,
+      "log": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-runtime-gates\\build.log",
+      "sha256": "84fc066a7f8f3c9369ce51d73acf89622cd0134b2d35c166675ff42db72e9e68",
+      "phase": "final-runtime-gates",
+      "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-runtime-gates\\build.log",
+      "bytes": 7369
+    },
+    {
+      "name": "diff-check",
+      "command": "git diff --check",
+      "exit": 0,
+      "milliseconds": 37,
+      "log": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-runtime-gates\\diff-check.log",
+      "sha256": "176e8fb187c01ead1c02d82147844aa9f544f4e767d393ddc974f825b0fa1c62",
+      "phase": "final-runtime-gates",
+      "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-runtime-gates\\diff-check.log",
+      "bytes": 1077
+    },
+    {
+      "name": "template-workbench",
+      "command": "npm run check:template-compatibility",
+      "exit": 0,
+      "milliseconds": 80004,
+      "log": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-ui-gates\\template-workbench.log",
+      "sha256": "0f8a73dbf55798b1970863422fbba79d6e89a9c0598b19fa91acc58bbfe73ea1",
+      "phase": "final-ui-gates",
+      "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-ui-gates\\template-workbench.log",
+      "bytes": 9866
+    },
+    {
+      "name": "template-visual",
+      "command": "npm run check:template-compatibility:visual",
+      "exit": 0,
+      "milliseconds": 12158,
+      "log": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-ui-gates\\template-visual.log",
+      "sha256": "969fb16b26273e8f281c78b1841eec793d9666e29c28cad520a2cfaf4c4be87b",
+      "phase": "final-ui-gates",
+      "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-ui-gates\\template-visual.log",
+      "bytes": 542
+    },
+    {
+      "name": "template-scope",
+      "command": "node scripts/template-compatibility-scope-audit.mjs",
+      "exit": 0,
+      "milliseconds": 1243,
+      "log": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-ui-gates\\template-scope.log",
+      "sha256": "ce10d48b1a7b05ae6d321261becd5e649070e5561a8ac4f00480eaee4502a708",
+      "phase": "final-ui-gates",
+      "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\final-ui-gates\\template-scope.log",
+      "bytes": 539
+    }
+  ],
+  "domain": {
+    "executedAt": "2026-10-23T05:22:07.361Z",
+    "runtime": {
+      "node": "v22.18.0",
+      "platform": "win32",
+      "arch": "x64",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor            "
+    },
+    "fixedBusinessTime": "2026-10-23T04:00:00.000Z",
+    "checks": 18,
+    "results": [
+      {
+        "name": "conditional branches × sibling multiplication and order match the existing planning entry",
+        "passed": true
+      },
+      {
+        "name": "unconfigured, explicit empty, inherited default and explicit negative remain distinct",
+        "passed": true
+      },
+      {
+        "name": "multiple identical full replacements deduplicate and retain exact origin pairs",
+        "passed": true
+      },
+      {
+        "name": "every result-affecting field participates in multi-exception conflict; no order/depth priority",
+        "passed": true
+      },
+      {
+        "name": "condition/value order normalization preserves full content equality",
+        "passed": true
+      },
+      {
+        "name": "selector identity uses actual node/attribute/value/ancestor scope and never display names",
+        "passed": true
+      },
+      {
+        "name": "invalid host, condition and scope references block affected output rather than falling back",
+        "passed": true
+      },
+      {
+        "name": "published snapshots are independent and preserve fallback roles/names/history",
+        "passed": true
+      },
+      {
+        "name": "compatibility-only edits are publish differences; no-op revision/timestamp edits are not",
+        "passed": true
+      },
+      {
+        "name": "old versions with only legacy metadata are unconfigured and never borrow current draft",
+        "passed": true
+      },
+      {
+        "name": "strong cross-version mapping preserves identity; recreated nodes and ambiguous subsets fail",
+        "passed": true
+      },
+      {
+        "name": "legacy conversion is explicit, provable, pending, idempotent and preserves old/history arrays",
+        "passed": true
+      },
+      {
+        "name": "save/clone/export-import round trips preserve new fields and unknown extension fields",
+        "passed": true
+      },
+      {
+        "name": "full combination selectors preserve tuple boundaries and cannot match partial OR fragments",
+        "passed": true
+      },
+      {
+        "name": "operation-local SKU/MAT identity index preserves receipt/code/explicit/legacy precedence",
+        "passed": true
+      },
+      {
+        "name": "malformed frozen configuration is reported without current-draft fallback or exceptions",
+        "passed": true
+      },
+      {
+        "name": "pure preview and validation consume no random IDs or clock values and can reuse prepared context",
+        "passed": true
+      },
+      {
+        "name": "an incomplete exception keeps actual structure available to repair scope in one context",
+        "passed": true
+      }
+    ],
+    "artifact": {
+      "path": "work/template-compatibility/domain-evidence.json",
+      "sha256": "c6332403e359639be70da4ec744cbaf96963fc9992af1f4e30a3cc3bdf5e3eca",
+      "bytes": 2779
+    }
+  },
+  "state": {
+    "time": "2026-10-23T04:00:00.000Z",
+    "checks": [
+      {
+        "name": "sales-create-actual-quota-and-retry",
+        "passed": true,
+        "detail": "real Pinia append fails at setItem without SKU/link/origin; retry writes once; repeated existing candidate writes zero times"
+      },
+      {
+        "name": "material-receipt-atomicity-independent-targets",
+        "passed": true,
+        "detail": "MAT creation/link/receipt commit together; retry returns original material; sales declaration remains a separate identity; unrelated collections remain byte equal"
+      },
+      {
+        "name": "config-save-and-publish-atomic-version-freeze",
+        "passed": true,
+        "detail": "quota preserves drafts and version/PLN arrays; compatibility-only edit publishes a new independent snapshot; unchanged content creates no version and all PLN identities are reused"
+      },
+      {
+        "name": "three-way-safe-sync-and-stale-preview",
+        "passed": true,
+        "detail": "safe template baseline updates once without changing SKU binding/source/spec or MAT/PLN identities; failure atomic; stale replay rejected; refreshed no-op writes zero times"
+      },
+      {
+        "name": "manual-edit-delete-and-durable-keep-protection",
+        "passed": true,
+        "detail": "manual note edits are protected; explicit adopt restores; hand deletion remains suppressed after reload; repeated keep is idempotent"
+      },
+      {
+        "name": "copy-backup-import-and-command-permissions",
+        "passed": true,
+        "detail": "copy remaps rule/claim/node identities without products or published versions; version-15 backup round trip preserves suppression; malformed origin rejected; operator cannot save/publish/sync/copy/import-protect"
+      },
+      {
+        "name": "ordinary-spec-edit-stale-and-explicit-repair",
+        "passed": true,
+        "detail": "existing editable spec remains editable; old template statement is stale; precise valid new combo permits explicit adopt; name-only maintenance does not recalculate compatibility"
+      },
+      {
+        "name": "material-import-transaction-and-only-new",
+        "passed": true,
+        "detail": "actual import candidate fails without half receipt/link; retry persists one complete transaction; stale candidate refused; empty new-ID set never backfills historical records"
+      },
+      {
+        "name": "temporary-actual-attributes-and-display-rename",
+        "passed": true,
+        "detail": "COMMON and VARIANT manual attributes map uniquely without node-name guessing; preview matches actual creation; dictionary display rename and extra non-model common attributes preserve inheritance; precomputed planning deeply equals original entry"
+      },
+      {
+        "name": "stable-merged-lineage-empty-and-invalid-mapping",
+        "passed": true,
+        "detail": "adding identical exception origins updates one existing declaration and keeps its key; explicit empty safely removes managed claim; deleted structure is invalid without clearing; read-only creation is refused"
+      },
+      {
+        "name": "per-claim-manual-protection",
+        "passed": true,
+        "detail": "same-host/basic claims retain separate full source/note identities; editing one is accepted and protects only its lineage; the other untouched template claim still updates safely"
+      },
+      {
+        "name": "manual-identical-not-adopted-and-deny-capability-scope",
+        "passed": true,
+        "detail": "identical manual claim is skipped without origin adoption; same-capability explicit exclusion remains intact by default; independent fast-charge exclusion does not suppress basic claim"
+      },
+      {
+        "name": "old-editor-save-bundle-atomic-only-new",
+        "passed": true,
+        "detail": "legacy editor uses one candidate for SKU and compatibility; quota leaves no half object; retry commits once; later existing-SKU saves never backfill hand-deleted compatibility"
+      },
+      {
+        "name": "deleted-model-draft-save-is-rejected",
+        "passed": true,
+        "detail": "concurrent model/canvas removal invalidates an open compatibility draft; valid claim content does not recreate an orphan configuration and performs zero writes"
+      }
+    ],
+    "attempts": 57,
+    "writes": 50,
+    "artifact": {
+      "path": "work/template-compatibility/state/evidence.json",
+      "sha256": "69f1003188acb7cef56b39830ebd2bf633167a14b946f8cfb0a86eed692361e8",
+      "bytes": 4165
+    }
+  },
+  "browser": {
+    "result": "PASS",
+    "completedAt": "2026-10-23T05:23:19.746Z",
+    "browser": "156.0.8078.47",
+    "fixture": {
+      "modelId": "template-accessory-test",
+      "nodes": 11,
+      "depth": 4,
+      "combinations": 4,
+      "realDeviceModels": 2
+    },
+    "business": {
+      "path": "work/template-compatibility/browser/business-final.json",
+      "sha256": "c839a0496583a75c2420ef62eef9f3b101550e0b36e683ba9e9f5f8b480633a4",
+      "bytes": 52383
+    },
+    "checkpoints": [
+      {
+        "name": "default-ui-save-quota-no-half-write-retry-one-write-refresh"
+      },
+      {
+        "name": "readonly-preview-search-no-number-no-record-writes-and-legacy-pending-conversion-cancel"
+      },
+      {
+        "name": "node-shortcut-shared-editor-structural-range-full-replacement-conflict-no-priority-resolution"
+      },
+      {
+        "name": "publish-frozen-config-one-write-real-ui-create-four-sku-quota-retry-and-per-spec-formal-relations",
+        "setup": "Only SPU identity/common attributes prepared through store.saveSpu after UI publish; SKU generation and save performed through UI."
+      },
+      {
+        "name": "same-formal-relations-forward-device-and-reverse-accessory-with-source-version"
+      },
+      {
+        "name": "real-ui-two-independent-materials-same-planning-each-own-template-declaration"
+      },
+      {
+        "name": "existing-manager-manual-edit-and-delete-create-per-claim-protection"
+      },
+      {
+        "name": "compatibility-only-new-version-explicit-three-way-sync-quota-retry-protects-manual-and-deleted-history-refresh"
+      },
+      {
+        "name": "escape-unsaved-continue-cancel-focus-route-return-single-canvas-keyboard-isolation"
+      },
+      {
+        "name": "model-copy-deep-independent-config-and-switch-unsaved-context-guard"
+      },
+      {
+        "name": "manual-denial-protected-by-default-shown-before-explicit-template-override"
+      },
+      {
+        "name": "fifteen-combinations-paginated-without-truncation-and-device-model-search-pure"
+      },
+      {
+        "name": "visual-light-dark-780-equivalent-125-footer-reachable-no-page-overflow"
+      },
+      {
+        "name": "view-config-readonly-operator-route-gate-manager-readonly-direct-command-denied-no-writes"
+      }
+    ],
+    "diagnostics": [
+      {
+        "context": "main",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "context": "main",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "context": "main",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "context": "main",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "context": "main",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "context": "main",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "context": "main",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "context": "paged-preview",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "context": "light",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "context": "dark",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "context": "dark",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "context": "narrow-780",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "context": "equivalent-125-percent",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "context": "viewing",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      }
+    ],
+    "screenshots": [
+      "default-draft-light.png",
+      "effective-preview-default.png",
+      "exception-conflict-preview.png",
+      "reverse-template-source.png",
+      "forward-template-matches.png",
+      "two-mat-one-planning.png",
+      "sync-three-way-protected.png",
+      "manual-denial-explicit-preview.png",
+      "paged-preview-device-search.png",
+      "config-light.png",
+      "config-dark.png",
+      "config-narrow-780.png",
+      "config-equivalent-125-percent.png",
+      "view-mode-readonly-config.png"
+    ],
+    "environment": {
+      "node": "v22.18.0",
+      "viewport": "1366x768",
+      "time": "2026-10-23T09:00:00.000Z"
+    },
+    "scope": "Independent contexts; no everyday browser storage touched; native OS printing and real Excel not part of this feature.",
+    "artifact": {
+      "path": "work/template-compatibility/browser/result.json",
+      "sha256": "5d34b49ea97a0d39240c5da937c7010f6492f0a9556e824f2c626a50bc40c5c4",
+      "bytes": 7315
+    }
+  },
+  "importBrowser": {
+    "result": "PASS",
+    "syntheticWorkbook": {
+      "fileName": "synthetic-template-compatibility-two-rows.xlsx",
+      "sheetName": "独立配件物料",
+      "rows": 2,
+      "bytes": 17443,
+      "source": "generated fixed fixture, not the real Apple acceptance workbook"
+    },
+    "baseline": {
+      "modelId": "template-accessory-test",
+      "versionId": "compat-version-1",
+      "planningIds": [
+        "PLN-000001",
+        "PLN-000002"
+      ]
+    },
+    "checkpoints": [
+      {
+        "name": "real-upload-and-formal-preview-are-readonly",
+        "workbook": "fixed synthetic .xlsx, two separate suppliers and different legal specifications",
+        "previewCount": 2,
+        "formalCount": 2
+      },
+      {
+        "name": "actual-setItem-failure-keeps-preview-and-no-half-business-state",
+        "unchanged": [
+          "families",
+          "SKU/MAT",
+          "PLN",
+          "receipts",
+          "formal declarations",
+          "per-claim origins",
+          "disk"
+        ],
+        "successfulWrites": 0
+      },
+      {
+        "name": "retry-one-write-creates-each-MAT-with-own-frozen-template-declaration",
+        "materials": 2,
+        "declarations": 2,
+        "origins": 2,
+        "receipts": 2,
+        "successfulWrites": 1,
+        "hosts": [
+          "device:model-a",
+          "device:model-b"
+        ]
+      },
+      {
+        "name": "same-preview-repeat-and-rematch-never-duplicate-or-backfill",
+        "repeatedCreates": 0,
+        "repeatedWrites": 0,
+        "rematchAlreadyImported": 2
+      },
+      {
+        "name": "refresh-restores-data-and-renamed-file-content-remains-idempotent",
+        "restoredMaterials": 2,
+        "renamedAlreadyImported": 2,
+        "additionalWrites": 0
+      }
+    ],
+    "diagnostics": [],
+    "knownExistingIssue": {
+      "file": "src/views/ProductIoView.vue",
+      "location": "previewView computed",
+      "baselineHead": "fd5f6c8d1d899f1709a5ee58c775f8ad89a99c86",
+      "baselineSourceBlob": "ee898817f775c9137d2d9e6c541165a306072ae6",
+      "initialObservedSourceRows": 2,
+      "initialObservedRenderedRows": 3,
+      "initialEvidence": [
+        "existing-supplier-preview-before.png",
+        "existing-supplier-preview-before.json"
+      ],
+      "baselineSource": "const dups = preview.value.filter((item) => item.message.includes('分成两条')); const ready = preview.value.filter((item) => item.status === 'ready'); return [...dups, ...blocked, ...ready].slice(0, 80)",
+      "evidence": "Verified identical in the baseline HEAD: duplicate supplier rows are collected into dups and are also included in ready, rendering the row twice. Production code was not changed. The final focused synthetic fixture uses distinct supplier codes; it makes no claim that duplicate-supplier preview UI is fixed."
+    },
+    "artifact": {
+      "path": "work/template-compatibility/import-browser/evidence.json",
+      "sha256": "3fff6e77bcddc20c87e4467f2a881f62032ab66acacd026f818edf3b9cf3d135",
+      "bytes": 2672
+    }
+  },
+  "visual": {
+    "result": "PASS",
+    "baseline": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\baseline\\source",
+    "browser": "156.0.8078.47",
+    "comparisons": [
+      {
+        "name": "light-spu-list",
+        "before": [
+          1440,
+          960
+        ],
+        "after": [
+          1440,
+          960
+        ],
+        "changedPixels": 0,
+        "intentionallyChanged": false,
+        "note": "Unchanged list / existing device summary and resolution."
+      },
+      {
+        "name": "light-sku-list",
+        "before": [
+          1440,
+          960
+        ],
+        "after": [
+          1440,
+          960
+        ],
+        "changedPixels": 0,
+        "intentionallyChanged": false,
+        "note": "Unchanged list / existing device summary and resolution."
+      },
+      {
+        "name": "light-drawer-device",
+        "before": [
+          720,
+          93
+        ],
+        "after": [
+          720,
+          93
+        ],
+        "changedPixels": 0,
+        "intentionallyChanged": false,
+        "note": "Unchanged list / existing device summary and resolution."
+      },
+      {
+        "name": "light-drawer-resolution",
+        "before": [
+          720,
+          138
+        ],
+        "after": [
+          720,
+          138
+        ],
+        "changedPixels": 0,
+        "intentionallyChanged": false,
+        "note": "Unchanged list / existing device summary and resolution."
+      },
+      {
+        "name": "dark-spu-list",
+        "before": [
+          1440,
+          960
+        ],
+        "after": [
+          1440,
+          960
+        ],
+        "changedPixels": 0,
+        "intentionallyChanged": false,
+        "note": "Unchanged list / existing device summary and resolution."
+      },
+      {
+        "name": "dark-sku-list",
+        "before": [
+          1440,
+          960
+        ],
+        "after": [
+          1440,
+          960
+        ],
+        "changedPixels": 0,
+        "intentionallyChanged": false,
+        "note": "Unchanged list / existing device summary and resolution."
+      },
+      {
+        "name": "dark-drawer-device",
+        "before": [
+          720,
+          93
+        ],
+        "after": [
+          720,
+          93
+        ],
+        "changedPixels": 0,
+        "intentionallyChanged": false,
+        "note": "Unchanged list / existing device summary and resolution."
+      },
+      {
+        "name": "dark-drawer-resolution",
+        "before": [
+          720,
+          138
+        ],
+        "after": [
+          720,
+          138
+        ],
+        "changedPixels": 0,
+        "intentionallyChanged": false,
+        "note": "Unchanged list / existing device summary and resolution."
+      },
+      {
+        "name": "designer",
+        "before": [
+          1440,
+          960
+        ],
+        "after": [
+          1440,
+          960
+        ],
+        "changedPixels": 136887,
+        "intentionallyChanged": true,
+        "note": "Added model compatibility summary; full images retained for review. No pixel-equality claim for this changed region."
+      }
+    ],
+    "diagnostics": [
+      {
+        "phase": "before",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      },
+      {
+        "phase": "after",
+        "type": "warning",
+        "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+      }
+    ],
+    "captures": [
+      {
+        "phase": "before",
+        "name": "light-spu-list",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\before-light-spu-list.png"
+      },
+      {
+        "phase": "before",
+        "name": "light-sku-list",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\before-light-sku-list.png"
+      },
+      {
+        "phase": "before",
+        "name": "light-drawer-device",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\before-light-drawer-device.png"
+      },
+      {
+        "phase": "before",
+        "name": "light-drawer-resolution",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\before-light-drawer-resolution.png"
+      },
+      {
+        "phase": "before",
+        "name": "dark-spu-list",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\before-dark-spu-list.png"
+      },
+      {
+        "phase": "before",
+        "name": "dark-sku-list",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\before-dark-sku-list.png"
+      },
+      {
+        "phase": "before",
+        "name": "dark-drawer-device",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\before-dark-drawer-device.png"
+      },
+      {
+        "phase": "before",
+        "name": "dark-drawer-resolution",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\before-dark-drawer-resolution.png"
+      },
+      {
+        "phase": "before",
+        "name": "designer",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\before-designer.png"
+      },
+      {
+        "phase": "after",
+        "name": "light-spu-list",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\after-light-spu-list.png"
+      },
+      {
+        "phase": "after",
+        "name": "light-sku-list",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\after-light-sku-list.png"
+      },
+      {
+        "phase": "after",
+        "name": "light-drawer-device",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\after-light-drawer-device.png"
+      },
+      {
+        "phase": "after",
+        "name": "light-drawer-resolution",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\after-light-drawer-resolution.png"
+      },
+      {
+        "phase": "after",
+        "name": "dark-spu-list",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\after-dark-spu-list.png"
+      },
+      {
+        "phase": "after",
+        "name": "dark-sku-list",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\after-dark-sku-list.png"
+      },
+      {
+        "phase": "after",
+        "name": "dark-drawer-device",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\after-dark-drawer-device.png"
+      },
+      {
+        "phase": "after",
+        "name": "dark-drawer-resolution",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\after-dark-drawer-resolution.png"
+      },
+      {
+        "phase": "after",
+        "name": "designer",
+        "path": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\template-compatibility\\visual\\after-designer.png"
+      }
+    ],
+    "artifact": {
+      "path": "work/template-compatibility/visual/result.json",
+      "sha256": "ea0f0d8bf86290a8f9f8c25fb7a9d61fcd2d943ecf52476fdb593681c52295d1",
+      "bytes": 6822
+    }
+  },
+  "scope": {
+    "counts": {
+      "baselineFiles": 4216,
+      "rawUnchanged": 4118,
+      "normalizedContentUnchanged": 4195,
+      "changed": 21,
+      "missing": 0,
+      "protectedFiles": 3992,
+      "protectedUnchanged": 3992,
+      "originalWorkFilesRawUnchanged": 3934
+    },
+    "specialCases": {
+      "planningOptionalReuseOnly": true,
+      "legalCombinationBodyUnchanged": true,
+      "generatorBodyUnchanged": true,
+      "conditionValidatorBodyUnchanged": true,
+      "userReadmePrefixPreserved": true,
+      "eolOperationExactlyUndone": true
+    },
+    "protectedViolations": [],
+    "artifact": {
+      "path": "work/template-compatibility/scope-audit.json",
+      "sha256": "a417f87b6dfc5e60a0577c355b57b57d294fe6afcbd62675a8433de7e0795b8b",
+      "bytes": 1727965
+    }
+  },
+  "performance": {
+    "executedAt": "2026-10-23T05:00:57.749Z",
+    "environment": {
+      "node": "v22.18.0",
+      "platform": "win32",
+      "arch": "x64",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor            ",
+      "logicalCpus": 32,
+      "totalMemoryBytes": 50524966912
+    },
+    "fixedBusinessTime": "2026-10-23T04:00:00.000Z",
+    "method": "New-feature equivalent-resolver control: construct an operation context for each selected object versus construct once for the selected batch. All legal combinations remain expanded, with no cap. The targets count is an independently selected batch, not the total combination count. No claim of performance improvement over a pre-feature implementation. Five alternating measured rounds after one warmup per strategy; medians in milliseconds. Fixtures, history, IDs and business time fixed; complete output and input preservation asserted.",
+    "results": [
+      {
+        "name": "small",
+        "styles": 2,
+        "colors": 2,
+        "packs": 2,
+        "targets": 8,
+        "history": 0,
+        "nodes": 12,
+        "depth": 4,
+        "combinations": 8,
+        "exceptionRules": 2,
+        "claims": 3,
+        "measuredRounds": 5,
+        "warmupRounds": 1,
+        "repeatedContext": {
+          "medianMs": 0.8204000000000633,
+          "samplesMs": [
+            0.8744999999998981,
+            0.8204000000000633,
+            0.7930999999998676,
+            0.7424000000000888,
+            0.8816999999999098
+          ],
+          "stats": {
+            "combinationExpansions": 8,
+            "selectorGroups": 16,
+            "selectorIndexLookups": 16,
+            "claimValidations": 24,
+            "resolvedRows": 8
+          }
+        },
+        "sharedContext": {
+          "medianMs": 0.16499999999996362,
+          "samplesMs": [
+            0.1956000000000131,
+            0.19219999999995707,
+            0.16499999999996362,
+            0.16320000000041546,
+            0.16350000000011278
+          ],
+          "stats": {
+            "combinationExpansions": 1,
+            "selectorGroups": 2,
+            "selectorIndexLookups": 2,
+            "claimValidations": 3,
+            "resolvedRows": 8
+          }
+        }
+      },
+      {
+        "name": "medium",
+        "styles": 8,
+        "colors": 16,
+        "packs": 4,
+        "targets": 32,
+        "history": 1000,
+        "nodes": 150,
+        "depth": 4,
+        "combinations": 512,
+        "exceptionRules": 8,
+        "claims": 9,
+        "measuredRounds": 5,
+        "warmupRounds": 1,
+        "repeatedContext": {
+          "medianMs": 33.9677999999999,
+          "samplesMs": [
+            33.9677999999999,
+            34.09089999999969,
+            31.784900000000107,
+            33.009700000000066,
+            35.76580000000013
+          ],
+          "stats": {
+            "combinationExpansions": 32,
+            "selectorGroups": 256,
+            "selectorIndexLookups": 256,
+            "claimValidations": 288,
+            "resolvedRows": 32
+          }
+        },
+        "sharedContext": {
+          "medianMs": 1.1161999999999352,
+          "samplesMs": [
+            1.1096999999999753,
+            1.4182000000000698,
+            1.115900000000238,
+            1.2828000000004067,
+            1.1161999999999352
+          ],
+          "stats": {
+            "combinationExpansions": 1,
+            "selectorGroups": 8,
+            "selectorIndexLookups": 8,
+            "claimValidations": 9,
+            "resolvedRows": 32
+          }
+        }
+      },
+      {
+        "name": "large",
+        "styles": 16,
+        "colors": 32,
+        "packs": 8,
+        "targets": 64,
+        "history": 10000,
+        "nodes": 554,
+        "depth": 4,
+        "combinations": 4096,
+        "exceptionRules": 16,
+        "claims": 17,
+        "measuredRounds": 5,
+        "warmupRounds": 1,
+        "repeatedContext": {
+          "medianMs": 767.0383999999999,
+          "samplesMs": [
+            807.4251000000004,
+            767.0383999999999,
+            803.4389999999994,
+            764.4353000000001,
+            760.9741000000004
+          ],
+          "stats": {
+            "combinationExpansions": 64,
+            "selectorGroups": 1024,
+            "selectorIndexLookups": 1024,
+            "claimValidations": 1088,
+            "resolvedRows": 64
+          }
+        },
+        "sharedContext": {
+          "medianMs": 13.639900000000125,
+          "samplesMs": [
+            11.288700000000063,
+            12.841699999999946,
+            31.360000000000582,
+            13.639900000000125,
+            15.220799999999144
+          ],
+          "stats": {
+            "combinationExpansions": 1,
+            "selectorGroups": 16,
+            "selectorIndexLookups": 16,
+            "claimValidations": 17,
+            "resolvedRows": 64
+          }
+        }
+      }
+    ],
+    "artifact": {
+      "path": "work/template-compatibility/performance.json",
+      "sha256": "543b1c73e7efa1e2fb7b0037928af11f96fad6f80376a17ecca6c47e71ae25c6",
+      "bytes": 4522
+    },
+    "sourceManifest": {
+      "path": "work/template-compatibility/domain-final-source-hashes.json",
+      "sha256": "33b81e920272fc27e8c9d98db031f896b36d671983c78ae3914ff8476804596a",
+      "bytes": 1890
+    },
+    "sourceAgreement": "All timing-critical pure resolver, identity, selectors and benchmark files match the recorded final measurement. Store validation guards are outside the pure-domain timing."
+  },
+  "batchPerformance": {
+    "executedAt": "2026-10-23T05:01:13.090Z",
+    "environment": {
+      "node": "v22.18.0",
+      "platform": "win32",
+      "arch": "x64",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor            "
+    },
+    "fixedBusinessTime": "2026-10-23T04:00:00.000Z",
+    "method": "Real batch materialization and read-only three-way sync preview, one warmup and five measured runs. Full independent data clone occurs outside materialization timing. Every batch mixes separate SKU/MAT targets; history arrays, IDs and business time fixed. All created rows and sync update counts asserted, with untouched input and read-only preview asserted. This records the new feature cost, not a comparison to the pre-feature application.",
+    "results": [
+      {
+        "name": "small",
+        "styles": 2,
+        "colors": 2,
+        "packs": 2,
+        "targets": 8,
+        "historyPlanning": 0,
+        "historyDeclarations": 100,
+        "historyReceipts": 100,
+        "nodes": 12,
+        "depth": 4,
+        "combinations": 8,
+        "existingSkus": 13,
+        "actualHistoryDeclarations": 113,
+        "sourceVersionCount": 1,
+        "targetVersionCount": 1,
+        "measuredRounds": 5,
+        "warmupRounds": 1,
+        "materialize": {
+          "medianMs": 0.8113000000003012,
+          "samplesMs": [
+            0.9423999999999069,
+            0.8582000000001244,
+            0.5833999999999833,
+            0.5255999999999403,
+            0.8113000000003012
+          ],
+          "added": 8,
+          "stats": {
+            "contextBuilds": 1,
+            "combinationExpansions": 1,
+            "declarationScans": 113,
+            "originScans": 0
+          }
+        },
+        "syncPreview": {
+          "medianMs": 3.3052999999999884,
+          "samplesMs": [
+            3.294499999999971,
+            3.3052999999999884,
+            4.025200000000041,
+            3.306600000000344,
+            3.2509000000000015
+          ],
+          "counts": {
+            "add": 0,
+            "update": 8,
+            "remove": 0,
+            "protected": 0,
+            "conflict": 0,
+            "invalid": 0,
+            "unchanged": 0
+          },
+          "stats": {
+            "contextBuilds": 2,
+            "combinationExpansions": 2,
+            "declarationScans": 121,
+            "originScans": 8
+          }
+        }
+      },
+      {
+        "name": "medium",
+        "styles": 8,
+        "colors": 16,
+        "packs": 4,
+        "targets": 32,
+        "historyPlanning": 1000,
+        "historyDeclarations": 2000,
+        "historyReceipts": 1000,
+        "nodes": 150,
+        "depth": 4,
+        "combinations": 512,
+        "existingSkus": 13,
+        "actualHistoryDeclarations": 2013,
+        "sourceVersionCount": 1,
+        "targetVersionCount": 1,
+        "measuredRounds": 5,
+        "warmupRounds": 1,
+        "materialize": {
+          "medianMs": 9.01680000000033,
+          "samplesMs": [
+            9.01680000000033,
+            8.538600000000315,
+            9.717899999999645,
+            9.53590000000031,
+            8.638400000000274
+          ],
+          "added": 32,
+          "stats": {
+            "contextBuilds": 1,
+            "combinationExpansions": 1,
+            "declarationScans": 2013,
+            "originScans": 0
+          }
+        },
+        "syncPreview": {
+          "medianMs": 32.837699999999586,
+          "samplesMs": [
+            32.776800000000094,
+            32.93380000000025,
+            32.308100000000195,
+            33.184400000000096,
+            32.837699999999586
+          ],
+          "counts": {
+            "add": 0,
+            "update": 32,
+            "remove": 0,
+            "protected": 0,
+            "conflict": 0,
+            "invalid": 0,
+            "unchanged": 0
+          },
+          "stats": {
+            "contextBuilds": 2,
+            "combinationExpansions": 2,
+            "declarationScans": 2045,
+            "originScans": 32
+          }
+        }
+      },
+      {
+        "name": "large",
+        "styles": 16,
+        "colors": 32,
+        "packs": 8,
+        "targets": 64,
+        "historyPlanning": 10000,
+        "historyDeclarations": 10000,
+        "historyReceipts": 10000,
+        "nodes": 554,
+        "depth": 4,
+        "combinations": 4096,
+        "existingSkus": 13,
+        "actualHistoryDeclarations": 10013,
+        "sourceVersionCount": 1,
+        "targetVersionCount": 1,
+        "measuredRounds": 5,
+        "warmupRounds": 1,
+        "materialize": {
+          "medianMs": 70.31230000000005,
+          "samplesMs": [
+            57.04499999999962,
+            70.31230000000005,
+            97.98220000000038,
+            72.42000000000007,
+            64.69329999999991
+          ],
+          "added": 64,
+          "stats": {
+            "contextBuilds": 1,
+            "combinationExpansions": 1,
+            "declarationScans": 10013,
+            "originScans": 0
+          }
+        },
+        "syncPreview": {
+          "medianMs": 205.51389999999992,
+          "samplesMs": [
+            205.51389999999992,
+            213.33739999999943,
+            199.6831999999995,
+            202.15279999999984,
+            225.34479999999985
+          ],
+          "counts": {
+            "add": 0,
+            "update": 64,
+            "remove": 0,
+            "protected": 0,
+            "conflict": 0,
+            "invalid": 0,
+            "unchanged": 0
+          },
+          "stats": {
+            "contextBuilds": 2,
+            "combinationExpansions": 2,
+            "declarationScans": 10077,
+            "originScans": 64
+          }
+        }
+      }
+    ],
+    "artifact": {
+      "path": "work/template-compatibility/batch-performance.json",
+      "sha256": "ee44cd53e6585a81e7b4b4caa018934784ef67065b1692cea6eaf478b77ce00d",
+      "bytes": 5218
+    }
+  },
+  "existingSuiteResults": [
+    {
+      "artifact": {
+        "path": "work/template-compatibility/regression-final/spu-sku/result.json",
+        "sha256": "30a1a75d132cf009b3027d6a87e8427672aa7bfd376ed58b56e2a7849b513fe4",
+        "bytes": 1479474
+      },
+      "result": "PASS",
+      "browser": "156.0.8078.47",
+      "checkpointCount": 12,
+      "checkpoints": [
+        "empty-spu-save-refresh",
+        "spu-entry-preselected",
+        "sku-picker-single-preview-cancel-no-write",
+        "template-append-double-submit-preserves-order",
+        "single-sku-and-spu-edit-preserve-siblings",
+        "sku-batch-status-and-parent-deletion-block",
+        "inline-spu-continue-last-sku-delete-keeps-parent",
+        "plan-entry-multi-sku-source-and-history",
+        "v3-real-sku-material-separation-and-old-deeplinks",
+        "independent-views-scope-refresh-and-restore",
+        "sku-count-and-legacy-entry-routing",
+        "desktop-narrow-dark-visuals"
+      ],
+      "diagnostics": [],
+      "note": "Full ordered business states remain in the referenced raw artifact; no repeated full AppData copies in this report."
+    },
+    {
+      "artifact": {
+        "path": "work/template-compatibility/regression-final/sku-workbench/result.json",
+        "sha256": "b343d3b9e68933d35df860adea8a9435625a1d30dbb0450d44da76a07440bffb",
+        "bytes": 3056
+      },
+      "result": "PASS",
+      "browser": "156.0.8078.47",
+      "browserEngine": "chromium",
+      "checkpointCount": 24,
+      "checkpoints": [
+        "system-excludes-material",
+        "draft-cancel-no-apply",
+        "or-groups-applied",
+        "save-favorite-refresh",
+        "temporary-search-intersection",
+        "work-filter-plus-temporary-search",
+        "return-keeps-applied-work",
+        "refresh-keeps-dirty-work",
+        "restore-official-keeps-temporary-search",
+        "search-clear-restores-rule",
+        "scope-opens-all-without-erasing-view",
+        "named-view-intersects-spu",
+        "matching-data-edit-updates-rule",
+        "clear-filters-keeps-spu-scope",
+        "leave-scope-restores-all",
+        "prepare-save-failure",
+        "failed-save-keeps-official-and-dirty-work",
+        "retry-save-refresh",
+        "copy-refresh-preserves-full-config",
+        "delete-default-falls-back-without-deleting-data",
+        "invalid-condition-fails-closed",
+        "rebuild-invalid-work-preserves-formal-and-business",
+        "no-match-empty-state",
+        "horizontal-wheel-scroll"
+      ],
+      "diagnostics": [],
+      "note": "Full ordered business states remain in the referenced raw artifact; no repeated full AppData copies in this report."
+    },
+    {
+      "artifact": {
+        "path": "work/template-compatibility/regression-final/sku-fixes/browser/result.json",
+        "sha256": "31fb33f17c1ea8b199fdcd6e06cd7d0c7417f621e1c6ad046bc04efb28c45780",
+        "bytes": 165102
+      },
+      "result": "PASS",
+      "browser": "156.0.8078.47",
+      "diagnostics": [],
+      "note": "Full ordered business states remain in the referenced raw artifact; no repeated full AppData copies in this report."
+    },
+    {
+      "artifact": {
+        "path": "work/template-compatibility/regression-final/accessory-browser/result.json",
+        "sha256": "d67c6a91cb5e78b87633cf66cceccba1496e8e36475c074beb03a004e59e7f4e",
+        "bytes": 2026
+      },
+      "result": "PASS",
+      "browser": "156.0.8078.47",
+      "checkpointCount": 16,
+      "checkpoints": [
+        "view-detail-reverse-scope-conditions-pure-selection-and-focus",
+        "new-declaration-preview-quota-draft-retry-refresh-immediate-results",
+        "explicit-material-copy-cancel-confirm-source-snapshot-independent-refresh",
+        "unconfigured-device-explicit-binding-refresh",
+        "explicit-binding-removal-quota-retry-keeps-declarations",
+        "multi-model-spu-explicit-choice",
+        "unified-maintenance-entry",
+        "readonly-role-view-without-maintenance",
+        "drawer-close-preserves-saved-view-search-page-selection-and-scroll",
+        "material-only-no-inferred-sale-sku-and-maintenance-guidance",
+        "bulk-add-duplicate-preview-pending-exclusion-cancellation",
+        "legacy-mat-entry-note-quota-retained-retry-refresh",
+        "incomplete-storage-no-seed-download-validate-quota-retry-recovery",
+        "dark-desktop",
+        "narrow",
+        "equivalent-125-percent"
+      ],
+      "diagnostics": [],
+      "note": "Full ordered business states remain in the referenced raw artifact; no repeated full AppData copies in this report."
+    },
+    {
+      "artifact": {
+        "path": "work/template-compatibility/regression-final/benefit/browser/result.json",
+        "sha256": "7a3174e52e84df6b8f2381412fa0a1a76bf93212f3dd369afd64da1b77dd136a",
+        "bytes": 2286
+      },
+      "result": "PASS",
+      "browser": "156.0.8078.47",
+      "checkpointCount": 18,
+      "checkpoints": [
+        "sku-entry-context-only-cancel-preserves-view-search-selection",
+        "accessory-entry-add-merge-replace-invalid-quantity-services-zero-quote-save-quota-retry-refresh",
+        "three-pack-preview-pure-generation-quota-retry-frozen-totals-refresh",
+        "snapshot-print-style-export-real-xlsx-failure-retry-repeat-no-business-writes",
+        "explicit-phone-add-remove-switch-preserves-goods-and-new-request-second-delivery",
+        "favorite-copy-new-identity-deep-independent-source-history-and-quote-review",
+        "optional-rule-kinds-versus-quantity-candidates-not-selection-cross-group-conflict-refresh",
+        "actual-sku-editor-and-package-edits-do-not-rewrite-historical-snapshot",
+        "basic-fast-charge-separate-local-condition-confirmation-invalidation-and-snapshot",
+        "dialog-escape-focus-and-unsaved-keep-edit-save-draft-leave",
+        "new-package-route-does-not-map-current-module-reset-to-system-data",
+        "management-entry-free-goods-services-no-device-no-quote-delivery",
+        "readonly-can-view-print-export-without-edit-actions",
+        "cancel-restores-second-page-selection-horizontal-scroll-without-persistence",
+        "visual-wide",
+        "visual-dark",
+        "visual-narrow",
+        "visual-equivalent-125-percent"
+      ],
+      "diagnostics": [],
+      "note": "Full ordered business states remain in the referenced raw artifact; no repeated full AppData copies in this report."
+    },
+    {
+      "artifact": {
+        "path": "work/template-compatibility/regression-final/navigation-filter/result.json",
+        "sha256": "68dbdd66e03b425bb86f85f1305dc332ae91f52c7f123209271e80b389ad14bf",
+        "bytes": 952
+      },
+      "result": "PASS",
+      "browser": "156.0.8078.47",
+      "checkpointCount": 9,
+      "checkpoints": [
+        "single-dual-collapse-click-keyboard-focus-hover-no-data-write",
+        "route-history-refresh-highlight-native-new-tab",
+        "legacy-migration-corrupt-fallback-all-role-links-and-route-guard",
+        "escape-layer-priority",
+        "category-search-multiselect-clear-sidebar-live-advanced-shared-state",
+        "complex-and-exclusions-date-ranges-tags-empty-clear-boundaries",
+        "1100-900-780-responsive-panels-preference-refresh-dark",
+        "spu-sku-isolation-scope-clear-no-business-mutation",
+        "10-original-final-query-cases-and-unrelated-page-pixel-comparison"
+      ],
+      "diagnostics": [],
+      "windowDiagnostics": [
+        {
+          "source": "baseline",
+          "url": "http://127.0.0.1:49837/skus",
+          "message": "ResizeObserver loop completed with undelivered notifications."
+        }
+      ],
+      "baselineRoot": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\navigation-filter\\baseline",
+      "note": "Full ordered business states remain in the referenced raw artifact; no repeated full AppData copies in this report."
+    },
+    {
+      "artifact": {
+        "path": "work/template-compatibility/regression-final/integration/result.json",
+        "sha256": "ee544b96dc5df4ef54b11f122bda9397bb7f64324829c860202581a8a33ef7e7",
+        "bytes": 1978
+      },
+      "result": "PASS",
+      "browser": "156.0.8078.47",
+      "checkpointCount": 13,
+      "checkpoints": [
+        "preview-repeat-no-write",
+        "publish-initial",
+        "create-FINAL-A",
+        "create-FINAL-B",
+        "mixed-draft-preview-no-write",
+        "publish-reuse-and-new",
+        "create-FINAL-C",
+        "host-cancel-reopen-confirm-once",
+        "model-switch-clears-combo-state",
+        "created-materials-visible-in-list",
+        "list-refresh-restores-data",
+        "list-entry-shows-three-materials",
+        "remount-shortcut-and-history"
+      ],
+      "diagnostics": [
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        },
+        {
+          "type": "warning",
+          "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+        }
+      ],
+      "note": "Full ordered business states remain in the referenced raw artifact; no repeated full AppData copies in this report."
+    }
+  ],
+  "existingIssues": [
+    {
+      "kind": "baseline-warning",
+      "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead",
+      "evidence": "work/template-compatibility/baseline/integration/result.json"
+    },
+    {
+      "kind": "bundle-warning",
+      "message": "Production build succeeds; existing >500kB chunk warning remains. No bundling/dependency scope expansion.",
+      "evidence": "work/template-compatibility/final-runtime-gates/build.log"
+    },
+    {
+      "file": "src/views/ProductIoView.vue",
+      "location": "previewView computed",
+      "baselineHead": "fd5f6c8d1d899f1709a5ee58c775f8ad89a99c86",
+      "baselineSourceBlob": "ee898817f775c9137d2d9e6c541165a306072ae6",
+      "initialObservedSourceRows": 2,
+      "initialObservedRenderedRows": 3,
+      "initialEvidence": [
+        "existing-supplier-preview-before.png",
+        "existing-supplier-preview-before.json"
+      ],
+      "baselineSource": "const dups = preview.value.filter((item) => item.message.includes('分成两条')); const ready = preview.value.filter((item) => item.status === 'ready'); return [...dups, ...blocked, ...ready].slice(0, 80)",
+      "evidence": "Verified identical in the baseline HEAD: duplicate supplier rows are collected into dups and are also included in ready, rendering the row twice. Production code was not changed. The final focused synthetic fixture uses distinct supplier codes; it makes no claim that duplicate-supplier preview UI is fixed."
+    },
+    {
+      "kind": "storage-architecture",
+      "message": "No cross-tab transaction lock in current localStorage architecture; current-state basis validation and atomic setItem do not provide database isolation."
+    }
+  ],
+  "validationLimits": [
+    "Chrome desktop only; Edge can be selected but not claimed tested.",
+    "125% is 1093x614 viewport with DPR 1.25, not a native browser zoom control test.",
+    "Synthetic two-row workbook validates new UI wiring; real Apple workbook has its own 20-check regression.",
+    "No physical accessory compatibility, backend or real multiuser audit testing."
+  ],
+  "historicalDebugArtifacts": {
+    "note": "failure.json/png/html in the new browser/visual directories retain earlier debugging failures. Final PASS is determined by the actual completed result.json and successful command exit, not screenshot existence."
+  },
+  "independentDiff": {
+    "path": "work/template-compatibility/template-compatibility.patch",
+    "basis": "Complete start snapshot, including initially uncommitted work; excludes prior user-only changes.",
+    "verification": "work/template-compatibility/independent-patch-evidence.json",
+    "command": "node work/template-compatibility/build-patch.mjs",
+    "note": "Patch hash and apply-check metadata stay in the external verification artifact to avoid a patch hash referring to itself."
+  },
+  "finalSourceHashes": {
+    ".gitignore": {
+      "rawSha256": "5875c82c4c4d1161c5636d565948f2f14318bda413df40a256337344d3708ad5",
+      "normalizedSha256": "bda67fcb175bdbc24cebcb5ae15242e369cb8c0f08d304ad4934a48dcd73a375"
+    },
+    "package-lock.json": {
+      "rawSha256": "81a00ada09d73c98a4fd331cb6cd87af012bd0e80551bfdf95acc91887e1776c",
+      "normalizedSha256": "70bd52c742a12c277bb7cc352d5de1dad6f67a03344fa6d1f631838fdd32eeb6"
+    },
+    "package.json": {
+      "rawSha256": "3c07704a47804ea3e8b1632951af26dcec24241f22fa8ccdbaa899618dc35230",
+      "normalizedSha256": "417af8b99579a8799432675fafdc8c771271526591bdcafd5c86c02ae7f3c1d5"
+    },
+    "scripts/accessory-compatibility-fixtures.ts": {
+      "rawSha256": "f3fa9201c84362828f665b85b5a7aace25ae1c2a1814d5bcf113eadac258511d",
+      "normalizedSha256": "f3fa9201c84362828f665b85b5a7aace25ae1c2a1814d5bcf113eadac258511d"
+    },
+    "scripts/accessory-compatibility-query-check.ts": {
+      "rawSha256": "3c599aa459f4a6ec056b6549b40bcec8a0a0827a6b52f1714f6099a1488bd115",
+      "normalizedSha256": "3c599aa459f4a6ec056b6549b40bcec8a0a0827a6b52f1714f6099a1488bd115"
+    },
+    "scripts/accessory-compatibility-state-check.ts": {
+      "rawSha256": "d3e445a65bd0b5d2c40cb5716592b584fd69f3249e1afe11434206b90cf44760",
+      "normalizedSha256": "d3e445a65bd0b5d2c40cb5716592b584fd69f3249e1afe11434206b90cf44760"
+    },
+    "scripts/benefit-package-domain-check.ts": {
+      "rawSha256": "c0d0f2567847b8dbf190a6462b06124ef76bd72477f992fccb9c05eee0c99304",
+      "normalizedSha256": "c0d0f2567847b8dbf190a6462b06124ef76bd72477f992fccb9c05eee0c99304"
+    },
+    "scripts/benefit-package-export-check.ts": {
+      "rawSha256": "a332c403eb5aeb8ec299e043773635f5fae08b043959672415c88a3eef2b6ae9",
+      "normalizedSha256": "a332c403eb5aeb8ec299e043773635f5fae08b043959672415c88a3eef2b6ae9"
+    },
+    "scripts/benefit-package-fixtures.ts": {
+      "rawSha256": "ea8db94f4b9d9f7071e342eacc1e34b448ce0f7e4f5e6bb1333d2f12d2364b94",
+      "normalizedSha256": "ea8db94f4b9d9f7071e342eacc1e34b448ce0f7e4f5e6bb1333d2f12d2364b94"
+    },
+    "scripts/benefit-package-state-check.ts": {
+      "rawSha256": "b6c92b727545abf958765d45dbe2199c93df884f5512d5ff1a50089e5d55d8f9",
+      "normalizedSha256": "b6c92b727545abf958765d45dbe2199c93df884f5512d5ff1a50089e5d55d8f9"
+    },
+    "scripts/browser-4a.mjs": {
+      "rawSha256": "e38e0af276efe4a8582fe1cebbf247341642e72916dbc0d54a172288d73feee1",
+      "normalizedSha256": "3155e698d0127f8216eeddd36c83afaf8835bdc947d4ca1aaa91b1ea0af76b68"
+    },
+    "scripts/browser-4b.mjs": {
+      "rawSha256": "9b344102b9789c7bb45fd93f276f43f49167e7887c12924f23422bdee06065b3",
+      "normalizedSha256": "9de9c27e7e8b37a822ce5ae7145d1894a2b93a639d1d498e4c0f3baac92d6752"
+    },
+    "scripts/browser-4c.mjs": {
+      "rawSha256": "402f4aa59c10b5ee91302b4f83834321e5df325bd0b8c3416f2fd30e1eebe2e6",
+      "normalizedSha256": "ab21e10f96a1cf7dd51ee34c718ebf7566beeb206df39262b25a3e17f9ccaefe"
+    },
+    "scripts/browser-4d.mjs": {
+      "rawSha256": "ee542c5282edc2d6ae07b4e915cea6fa42aa624a53e7dd972be7f869703bce9e",
+      "normalizedSha256": "af17080aa3672dd4f4b3b9a453185be2261f680757b975e851390200a856231a"
+    },
+    "scripts/browser-4e.mjs": {
+      "rawSha256": "351cc5b0a17401ab7fe600a6c9ad15a11510a4205d1fcc12fc4cc8186ef2f01b",
+      "normalizedSha256": "7f79cb31e3c0a0d3cf8d07671c7fe1212567c3ff2b756d24358b85fe6923e76a"
+    },
+    "scripts/browser-accessory-compatibility.mjs": {
+      "rawSha256": "2020e80b0538b4fdb322dc4c6aedc3f07c94ee7749d7cb1b8c22fca8318668a1",
+      "normalizedSha256": "2020e80b0538b4fdb322dc4c6aedc3f07c94ee7749d7cb1b8c22fca8318668a1"
+    },
+    "scripts/browser-benefit-packages.mjs": {
+      "rawSha256": "db8748b266d982bfb8f645312868cde82a738a3289a61b862a1b69b3f413a12f",
+      "normalizedSha256": "db8748b266d982bfb8f645312868cde82a738a3289a61b862a1b69b3f413a12f"
+    },
+    "scripts/browser-compat.mjs": {
+      "rawSha256": "86bfd8ba9e781e077a7b07be6c21bbf124d8587367320f7fab2b213afb5fe73a",
+      "normalizedSha256": "bb86d968dc50a08334c39353b2e447f508a66be41d3b2c2db4895e92ca4e7036"
+    },
+    "scripts/browser-designer-round3.mjs": {
+      "rawSha256": "19f439e858cc6c1e76c7ceac37e5d482eb33b00602802f951bbd0eb04c901e75",
+      "normalizedSha256": "b101dcc6880ca80016636f7516900b57033cc806cb5afd742ceec97e81b3da89"
+    },
+    "scripts/browser-frontend-final.mjs": {
+      "rawSha256": "7cbb6f96cf1e3c0520decd5234c2514cff428387b39129af1808e9e358f319a8",
+      "normalizedSha256": "a664762ee7de1cc6a4870941657e98ec1ca277fdfea68b01bb59fbae2240dbfd"
+    },
+    "scripts/browser-layout-fix.mjs": {
+      "rawSha256": "980fb1b978d9011026bf32eaea9b626782377667a3f0f2968079e3f0369ddf91",
+      "normalizedSha256": "a38b3a84e1bdac48da1cb20d8dade532e5a72bdf12134f6ae1ce4e9b8c806a3f"
+    },
+    "scripts/browser-layout-live.mjs": {
+      "rawSha256": "4a59454fca423e82e501fcafb326d045df759593725826c69b89964853cb8290",
+      "normalizedSha256": "1526ea0c9d21d51411f74e3405b7c4f005f665ea2888618f83e4e09c8b86b01d"
+    },
+    "scripts/browser-layout.mjs": {
+      "rawSha256": "a82828dcb8a58bb791273b14321e14e904bb185aaad7661df3a936ebe5f171e2",
+      "normalizedSha256": "9127a327152ddae57f9e6e85b90c5d5b0e5f988bee87ae9fc3540db5bd14b913"
+    },
+    "scripts/browser-match.mjs": {
+      "rawSha256": "e6a4b7d9d650c745ee2d4e650184fd48c302049f45a3c5a372a7ce3d0960abbb",
+      "normalizedSha256": "ce12f5ee51da3653b7ac19f7ce0a5335e1d7495e83f3924d92dc849f84d83793"
+    },
+    "scripts/browser-navigation-filter.mjs": {
+      "rawSha256": "85018f97d776320caefb2a0aec0fb9460e4b97ff4688dbb4da65cf4fbd706ef4",
+      "normalizedSha256": "cf65092c5ac1322d3ffecd2484a9d3d75174e4b111980e00f0fcdbc300ed0b70"
+    },
+    "scripts/browser-product-list-current.mjs": {
+      "rawSha256": "3806c8d7c717f4abe61ae64da8483a26d2e71f422db7d53152c5b88de7bffd0b",
+      "normalizedSha256": "b1260a21478e6bdf9b46da793f5337eaec32812d5acd67cc393e8e94c5913428"
+    },
+    "scripts/browser-product-list-round2.mjs": {
+      "rawSha256": "1fd2b813a68f643bf3e2845a9b2e62dcdc87a96bf44f11e923340dd2ef1e5300",
+      "normalizedSha256": "16144b82b630be25f1616cfacac8c0c1041c048f225cfa859d61bf017503b274"
+    },
+    "scripts/browser-r5.mjs": {
+      "rawSha256": "b3d4d621be4683c7e83501a1f744f5477d799906324b32056812a903ab400d8d",
+      "normalizedSha256": "cf02318a15725095125d0089ade1350e926fc19cd6c7c93fedf334ff390d0753"
+    },
+    "scripts/browser-round2.mjs": {
+      "rawSha256": "e08e41e8ca02336d421ebfb47aa2c8b9413c6e8ef74f5def9d5b89fe3c879dbc",
+      "normalizedSha256": "b13cec20055f698b73cb59e2add1d16dba4f123047f2530d4d37260a7ef97f7e"
+    },
+    "scripts/browser-round3.mjs": {
+      "rawSha256": "dc84b26c4c17cc5f7415022a25f4f369d8bd7a8c175d684cadada4bce76eb8ba",
+      "normalizedSha256": "4ae502032387239ba41498341e1758576e535e04668bf2e635599e0962f80ebe"
+    },
+    "scripts/browser-round4.mjs": {
+      "rawSha256": "fe9d9c4c018d951bb0418a4ef8c274d7dc0747d62ad06e9f5aded53f05846041",
+      "normalizedSha256": "77fb2eaa49459d5d0b9e34d65c8d6f0a48ccf67dd4548c40f31493a5c1456817"
+    },
+    "scripts/browser-round5.mjs": {
+      "rawSha256": "a0ea9f1061d137fdd5e067462a9121f9164988179a7f5b866c61c5b098a39c18",
+      "normalizedSha256": "e4ed5b6e9cf21768f79f73c6a157fcdeb915a1862211a50d828c24ca9ad17f40"
+    },
+    "scripts/browser-round6.mjs": {
+      "rawSha256": "e55827a32af46efff5b19506fd24a16652faa813845f673a312a51f2e2442daa",
+      "normalizedSha256": "54092646ad27c526a07d3104527b11a43d1b2f706243607e3168eaaa2f6e67cf"
+    },
+    "scripts/browser-round8.mjs": {
+      "rawSha256": "f7f14cb58194aa3cfdff77cc5dfe8f54dec1b78ac68f375a0b0bbbd2d25a4ba3",
+      "normalizedSha256": "71ddc2273e371ed646f791e59bab77fdd400c2256a0d71c6e3de1aeca8b1892a"
+    },
+    "scripts/browser-sku-spu-preservation.mjs": {
+      "rawSha256": "c08cdf973d1dc4e934b28da31a05d06128ca6f2bd54bd53e877f046690bf4ff3",
+      "normalizedSha256": "c08cdf973d1dc4e934b28da31a05d06128ca6f2bd54bd53e877f046690bf4ff3"
+    },
+    "scripts/browser-sku-workbench-fixes.mjs": {
+      "rawSha256": "f2b9e3aacde777ecb770814a2888d72c0611614918b3d3ddf8a4804f078497db",
+      "normalizedSha256": "f2b9e3aacde777ecb770814a2888d72c0611614918b3d3ddf8a4804f078497db"
+    },
+    "scripts/browser-sku-workbench.mjs": {
+      "rawSha256": "8269777adb7d93ad037f9fd41105848b13e2b807ae58dc3d8264d93503cbf789",
+      "normalizedSha256": "8269777adb7d93ad037f9fd41105848b13e2b807ae58dc3d8264d93503cbf789"
+    },
+    "scripts/browser-smoke.mjs": {
+      "rawSha256": "0ced356c2b9b65f275b57a5c402f941908cf67d5deca59e7efb9f6cb9404f2f1",
+      "normalizedSha256": "87b77ce9448571a1ba594bf19330f4e0c55dfe49d0de4f43a2ac6d34f291331d"
+    },
+    "scripts/browser-spu-sku.mjs": {
+      "rawSha256": "3c5b4cbe94917cdf7cdca58ebc55388458b460b789523f6bdecb9275cc3c4aed",
+      "normalizedSha256": "3c5b4cbe94917cdf7cdca58ebc55388458b460b789523f6bdecb9275cc3c4aed"
+    },
+    "scripts/browser-template-compatibility-import.mjs": {
+      "rawSha256": "4be82ce71c6c5d862df5277afef73e928c44f571df06773bf566e20d59ed9721",
+      "normalizedSha256": "4be82ce71c6c5d862df5277afef73e928c44f571df06773bf566e20d59ed9721"
+    },
+    "scripts/browser-template-compatibility.mjs": {
+      "rawSha256": "96c19a8bba689f1162fe3cb6d0125c88b37a435abd1c9dc2e67e4c60a8ee9d33",
+      "normalizedSha256": "96c19a8bba689f1162fe3cb6d0125c88b37a435abd1c9dc2e67e4c60a8ee9d33"
+    },
+    "scripts/browser-tree-select.mjs": {
+      "rawSha256": "5912961da24c0c70a242bddfc3f298244d6370c1dc259df73301d4da54154f5c",
+      "normalizedSha256": "5e37c095022dc76b1d94570fcd760b7a96f72e32f8368a592d3701531f529ec4"
+    },
+    "scripts/browser-ui.mjs": {
+      "rawSha256": "c9687bb06a94bf35eb9a813c17490c7a2e9b26b8e3199f9d8c310097af381dbe",
+      "normalizedSha256": "75d17ce797f500387f6de799c8e7fab877e1137a566f5d3d9e50bd5406adc07f"
+    },
+    "scripts/category-fix-check.ts": {
+      "rawSha256": "1ce93c81751c84be96f07287c799de2ae04f0e604704aef722700725eaffcece",
+      "normalizedSha256": "7be764ff839c2a85effddba3821ca9fb62c77b69e57f31768ccc97e33bd6ec71"
+    },
+    "scripts/category-tree-select-check.ts": {
+      "rawSha256": "7a1e9bde8c73f2a0ccecc321b0a09f640c6d29d4e96bd716f65f533af5a8f5df",
+      "normalizedSha256": "cff5419a5d773ce939eb90fece5b60821190b81567cf3c92e2880a12e2b835ee"
+    },
+    "scripts/check-frontend.mjs": {
+      "rawSha256": "ea6134841e7e993b1e56b786c9106561f2c2852fb71f2ad4f853cfafc49c9a66",
+      "normalizedSha256": "313306c443430f1333a91a8c86e1c2b3fa3e2e2da89eba99036ed56dbd66f8bc"
+    },
+    "scripts/combo-material-status-check.ts": {
+      "rawSha256": "c0e4c8adac63dec1cf32bcff6977ed957e12824c6e9b1174efaa5c06affd09a4",
+      "normalizedSha256": "91c416092790488e142fbd56f30a7a18993145db07403711b0bf97b377327e28"
+    },
+    "scripts/compatibility-check.ts": {
+      "rawSha256": "a705a75587448e4a9a5e490315d5b62c9c75b6e1f656439ad43b6c8062190e9d",
+      "normalizedSha256": "e2a4ebabe411bb2d0b70ec506199b22b7637602f8c84f1ee61a3b9badd033246"
+    },
+    "scripts/consistency-check.ts": {
+      "rawSha256": "b9c17d9e5d1f80783b07b6ce90cc99406d47975d0a024e80e83fb0ae10a2498a",
+      "normalizedSha256": "a192a0b9ba68b23129d5050efcf8c70ac40f65b38f592161dafa862ca6b8e051"
+    },
+    "scripts/draft-combo-check.ts": {
+      "rawSha256": "6e924a11a552fd1e870a8601c19fa39c1843ffca8fd156c7e2888a312fce1671",
+      "normalizedSha256": "7a740c5ea7158df54caf9dde0b94db2bde0f4677e22973df9c09242780e6e08a"
+    },
+    "scripts/excel-audit.ts": {
+      "rawSha256": "501bf8eca656f27126ba33dec3034f64fa76065940f6b32ce0361b219a5034b6",
+      "normalizedSha256": "a14b0beae3b945b31a2a90f3234869dd9b20a5e9e6f2559b82733544085609f7"
+    },
+    "scripts/excel-import-check.ts": {
+      "rawSha256": "7454bf875c2be32bfa35609a732fa1fa8a19b64643cca0f9ea4c3596237b6a09",
+      "normalizedSha256": "f59b257c9c61dc0cdef7244f5b4b78faf7e5503446eff6e27f219d051c2d0be7"
+    },
+    "scripts/excel-paths.ts": {
+      "rawSha256": "dba5b3e82814eb7a4a79d9dc82f86c9788f4c1ba09de9c56abade27885e2fc68",
+      "normalizedSha256": "9c7e34c04a07ab7be93c3bad11d8e8c60d3091664564dba9322e92b283088af4"
+    },
+    "scripts/grade-check.ts": {
+      "rawSha256": "5f89ab6d639ea488af90e619d6b2bdc8071074a3d4cc2e24a9458f7ba53cf6d0",
+      "normalizedSha256": "babc28418e4f57791d0e1bd31d3d7d7d43cf0b72345f78589fb52cdbfb3256e1"
+    },
+    "scripts/layout-check.ts": {
+      "rawSha256": "f7f4cf322ac1b2afad3ecb900117ef51441da9842600d3d574a05a82a7a0d39e",
+      "normalizedSha256": "58f8259de9ed914f9f1aaf0c0dec8ea2c500258e9846ab44a461b149b3c97d55"
+    },
+    "scripts/material-archive-check.ts": {
+      "rawSha256": "c4a284082133296288f9bb559055b4e647efbfbeb1023ba892850ba588d60e1b",
+      "normalizedSha256": "30f4b07432558356e0247bfdf1ceef9b1a65eed101634a58655179f55b869636"
+    },
+    "scripts/material-check.ts": {
+      "rawSha256": "5cce638450373c9c5c0a2c7c74d94d986a921f9097bdabe0796033e5aa3f0f27",
+      "normalizedSha256": "2c10c501698df2f11c983e17dde288552dee3ccb3f3b3c3be3d235dda4b3f696"
+    },
+    "scripts/naming-check.ts": {
+      "rawSha256": "28dda3204d54c27bd3a7d4e930025bca81a13c4478633fe8898eb00afb6555b8",
+      "normalizedSha256": "58091553aff4778e6392c3a9a63745fd8ad478eca8f0eb19aa4cbb4c71a3b13e"
+    },
+    "scripts/navigation-filter-check.ts": {
+      "rawSha256": "a1376a0b40325b10f4eb44da51e1fd543d089c9036a8a350550cd427e10ae691",
+      "normalizedSha256": "d6cc9814b57b006c2ae90d9882e7d64f0b8bf318e06dc68013a4f216fb126a69"
+    },
+    "scripts/overview-graph-check.ts": {
+      "rawSha256": "6e157078e52bd3f8c0e5623c8ee08c98374ddbbf0e94c9ebf240692989ec72c9",
+      "normalizedSha256": "6fbb58bc70074d58e6f2e90d79954f3576b4b2c94a4c9f00a6b90f750f9d307b"
+    },
+    "scripts/phone-expect.mjs": {
+      "rawSha256": "8a1035052b6cd9f2316dfe35f93f89b7ed9c455db6e2857840796879e57f3324",
+      "normalizedSha256": "208b7190193000439f643d0c257c10bc8e8f0cde160382e00c13a104e70cfdf6"
+    },
+    "scripts/planning-check.ts": {
+      "rawSha256": "8ab8371bf9f633efd9555c550d0ec30c9cf62b9a528eaf62c9eb739279009a8c",
+      "normalizedSha256": "55ef867fadc77b4decdf4a66ba9d7fe6290e01503abc36f00d45dbcac358f77f"
+    },
+    "scripts/planning-performance-browser.mjs": {
+      "rawSha256": "ae4b2bc5894a08c286c3ee6ebdb05f5245cc10717c9f849452c119eb1ec1b01e",
+      "normalizedSha256": "886bd741cbd404ba88ce2174c9b59fdd4c67011f2e7e7cc7ef9752c6f3d9969b"
+    },
+    "scripts/planning-performance-check.mjs": {
+      "rawSha256": "52e959dcf22ad6ca11b43741e7e80139e334fa77ad41e0538dcf88b234647eff",
+      "normalizedSha256": "7885e05fa1c53824476d356c6c3dcda741881d86f6c22334ccbcaa329e243976"
+    },
+    "scripts/planning-performance-fixtures.mjs": {
+      "rawSha256": "1502c59fcf5d79956352b35853c227b43cb8aea2d673043eeb0e74c244ce3fbb",
+      "normalizedSha256": "fbd1b89529b86ea2d060181781c99cd9a09fb5306f9b493b40ae2ae5e4cfcb69"
+    },
+    "scripts/product-list-check.ts": {
+      "rawSha256": "ec89d2a6979101e0bdf7328c13a878358a9b21c284bee60a047aab16f283bc86",
+      "normalizedSha256": "237a9bda3babc4cf04e389b9fa45eb691fb782b7e13f12b6fee570796cf94927"
+    },
+    "scripts/product-list-presentation-check.ts": {
+      "rawSha256": "970e1bc52924bbcd98a59650c33dd08a5e13fba74e2dc692118d2c1ab5329846",
+      "normalizedSha256": "970e1bc52924bbcd98a59650c33dd08a5e13fba74e2dc692118d2c1ab5329846"
+    },
+    "scripts/product-list-query-check.ts": {
+      "rawSha256": "1ca9c73b57e5ea325f636189b2fb88ec24cb16ef9e577d83d7b5cb5892947728",
+      "normalizedSha256": "16c75b788bfeb11d4e131913a2fd4505e5050895e7fee258e48195af1c76d83e"
+    },
+    "scripts/product-list-view-check.ts": {
+      "rawSha256": "d261dbe1cd15d53d00d6843342ae17227c62707978859654055008c4a6322eb1",
+      "normalizedSha256": "d67a3b0e059224d9ad3c8c2e1ea21916710d419808e140cecb67e7fb25fc1eec"
+    },
+    "scripts/round1-check.ts": {
+      "rawSha256": "855806202e073b654a3fdc1477b98546b22c965315f0fe9bce49c02fad8e0282",
+      "normalizedSha256": "0e3c55d5bffa12ee62b53d96155676b9a663f2ff0c4d7e6775610ebf04dc2494"
+    },
+    "scripts/round2-check.ts": {
+      "rawSha256": "85cffcfa5a166619814175890a56d70056cae5acc327c1b984d0093655c291cc",
+      "normalizedSha256": "689384e8e2ce4acb7009c860e109494a9a2d264a0b8a1897a60eed98ac008085"
+    },
+    "scripts/round3-check.ts": {
+      "rawSha256": "236cf3fa6eb08381b27efbffac863d93fefbbce9e13199f741935dda36fb56ec",
+      "normalizedSha256": "924537806c542bc314b25230130aa58d4c8e42afb87d4a91ee6945f2f69789e6"
+    },
+    "scripts/round5-check.ts": {
+      "rawSha256": "828e3112ffbfc5be2b7d43374ae59f37d4fcd67e847e9652b113510809112eee",
+      "normalizedSha256": "9aade8f2f3c01cbef878c4aeb18b157d87e4b31c3f456bc64838523594cc8daf"
+    },
+    "scripts/run-domain-check.mjs": {
+      "rawSha256": "2aee52527d65fc7dd9c961f50a8d0eb8f6699a10ef923f64f7948372016737f8",
+      "normalizedSha256": "0474c51d3d4453a4667c4e88654ff9ddc3266edd418b01af8693f3f438e6fb56"
+    },
+    "scripts/sku-workbench-grouping-fix-check.ts": {
+      "rawSha256": "b122db0cdbb338d10f0b14e1edb89aadf2bccda0eb5fe42b205053ea5945bcd2",
+      "normalizedSha256": "b122db0cdbb338d10f0b14e1edb89aadf2bccda0eb5fe42b205053ea5945bcd2"
+    },
+    "scripts/sku-workbench-grouping-fix-fixtures.ts": {
+      "rawSha256": "7419b4a749bb9ccf1442f0b07d3e2a81bb8eb0d4ba7bdad3e367b5e05098f5cd",
+      "normalizedSha256": "7419b4a749bb9ccf1442f0b07d3e2a81bb8eb0d4ba7bdad3e367b5e05098f5cd"
+    },
+    "scripts/sku-workbench-migration-fix-check.ts": {
+      "rawSha256": "2dec4a1b6f471b0b8e016389bcfa4fb996b1191a99a1a30b080643a9c6f7b6b9",
+      "normalizedSha256": "2dec4a1b6f471b0b8e016389bcfa4fb996b1191a99a1a30b080643a9c6f7b6b9"
+    },
+    "scripts/sku-workbench-performance.ts": {
+      "rawSha256": "5454bf3fac20b5e5caf8fb4ee5321dae421c7247de4f62f7f3b079b54f2dadeb",
+      "normalizedSha256": "5454bf3fac20b5e5caf8fb4ee5321dae421c7247de4f62f7f3b079b54f2dadeb"
+    },
+    "scripts/sku-workbench-query-check.ts": {
+      "rawSha256": "4db12916d3b6fac875f9e7e432c0662776927f5d4b624ddaf32fa4fdef3df5c3",
+      "normalizedSha256": "4db12916d3b6fac875f9e7e432c0662776927f5d4b624ddaf32fa4fdef3df5c3"
+    },
+    "scripts/sku-workbench-restore-fix-check.ts": {
+      "rawSha256": "7a3fedbdf006ebab74090f8044d4aaf26a0256c0d553c28eee6e37cf9b91cade",
+      "normalizedSha256": "7a3fedbdf006ebab74090f8044d4aaf26a0256c0d553c28eee6e37cf9b91cade"
+    },
+    "scripts/sku-workbench-state-check.ts": {
+      "rawSha256": "f53c2b016d087f2be94a6c80c2746a4bbf0389b1c2fd1f2d53e9f08a67c81e13",
+      "normalizedSha256": "f53c2b016d087f2be94a6c80c2746a4bbf0389b1c2fd1f2d53e9f08a67c81e13"
+    },
+    "scripts/spu-sku-check.ts": {
+      "rawSha256": "e32969b06944cef8995a0ac93ed2e7e1c19ae04386f8509d8c87de3643482395",
+      "normalizedSha256": "e32969b06944cef8995a0ac93ed2e7e1c19ae04386f8509d8c87de3643482395"
+    },
+    "scripts/spu-sku-fixtures.ts": {
+      "rawSha256": "1e908ee4118f3aeb2cdd00926a2fa6e15ecc4aabbdef58bef34876860c2e60ab",
+      "normalizedSha256": "1e908ee4118f3aeb2cdd00926a2fa6e15ecc4aabbdef58bef34876860c2e60ab"
+    },
+    "scripts/template-compatibility-batch-performance.ts": {
+      "rawSha256": "64f6362c362599ee9914aa8947f41bc82c55e5b9708af2f894479a78785362cd",
+      "normalizedSha256": "64f6362c362599ee9914aa8947f41bc82c55e5b9708af2f894479a78785362cd"
+    },
+    "scripts/template-compatibility-domain-check.ts": {
+      "rawSha256": "ca8fc603d603dd42848965d0755acbe3baa67131d27e66d6b7ecf2400a17de41",
+      "normalizedSha256": "ca8fc603d603dd42848965d0755acbe3baa67131d27e66d6b7ecf2400a17de41"
+    },
+    "scripts/template-compatibility-fixtures.ts": {
+      "rawSha256": "b4582b1dd971f7039d7f3ce121cc0f32bae5331300465ff61c074e3980b9c5f3",
+      "normalizedSha256": "b4582b1dd971f7039d7f3ce121cc0f32bae5331300465ff61c074e3980b9c5f3"
+    },
+    "scripts/template-compatibility-performance.ts": {
+      "rawSha256": "52ed01c12eaed6e9131c6c7eac3eb07ad0668108d18070f61343995997959a58",
+      "normalizedSha256": "52ed01c12eaed6e9131c6c7eac3eb07ad0668108d18070f61343995997959a58"
+    },
+    "scripts/template-compatibility-scope-audit.mjs": {
+      "rawSha256": "6b6f448b5c606bd9d205edeaeca62e0f34d9f0124b2d5a08e7bc1e50ea10d6b2",
+      "normalizedSha256": "6b6f448b5c606bd9d205edeaeca62e0f34d9f0124b2d5a08e7bc1e50ea10d6b2"
+    },
+    "scripts/template-compatibility-state-check.ts": {
+      "rawSha256": "05d0e6e97e74a510b3c873f3227f74bb31e19a0c33b85c6cfb67b82f28316ddf",
+      "normalizedSha256": "05d0e6e97e74a510b3c873f3227f74bb31e19a0c33b85c6cfb67b82f28316ddf"
+    },
+    "scripts/template-compatibility-visual-check.mjs": {
+      "rawSha256": "e2321728dfc2ad6abb508ecc13c3b1783c301921eb8d3112b4fb22693de21d35",
+      "normalizedSha256": "e2321728dfc2ad6abb508ecc13c3b1783c301921eb8d3112b4fb22693de21d35"
+    },
+    "scripts/verify.ts": {
+      "rawSha256": "8e985c0d68c0de3fbfa2d7be0ab1a00ca793af8a2711165424b3f039c6f70c36",
+      "normalizedSha256": "3e75d59b8cdbdeec521515a7665848502a81a6170303ed00603443ba13dbbe0b"
+    },
+    "src/App.vue": {
+      "rawSha256": "656e64166110b11cc4da47778d5605a4a495f10d30335172102f105d4b8b33a2",
+      "normalizedSha256": "656e64166110b11cc4da47778d5605a4a495f10d30335172102f105d4b8b33a2"
+    },
+    "src/assets/hero.png": {
+      "rawSha256": "881ffbcaafc212e49addad08846a5b82761355fa20624253af3477ba33262c5c",
+      "normalizedSha256": "964f52f5e9bbc6a1d521c5dcbead74b2f24bec64e4b64c77902dde11e97ef826"
+    },
+    "src/assets/vite.svg": {
+      "rawSha256": "5be21acd42eb7b896e517f4e0f0f11eb5c5d9e54fbbcebe9453f033008fcca6f",
+      "normalizedSha256": "5be21acd42eb7b896e517f4e0f0f11eb5c5d9e54fbbcebe9453f033008fcca6f"
+    },
+    "src/assets/vue.svg": {
+      "rawSha256": "5532db34f1c52841881bab8aeca6c3e8d092bd21a689a65f4d8f8cf8041eef9d",
+      "normalizedSha256": "5532db34f1c52841881bab8aeca6c3e8d092bd21a689a65f4d8f8cf8041eef9d"
+    },
+    "src/components/CategoryFilterTree.vue": {
+      "rawSha256": "6e2e4e4590d379b0215486ec5e9f75fca027a45964a9d95af471acc12a1c18a8",
+      "normalizedSha256": "bd4ecf8d65f86c123cda2fced0c9cbc5045bd81233ba00fb9f6776e4d6ca2916"
+    },
+    "src/components/CategoryTreeSelect.vue": {
+      "rawSha256": "66b16a768ffbbeedf71939336cc9db3f24c3e7e1a79fca55707c01ce3ee6cc16",
+      "normalizedSha256": "8747c7ff34f7798bbb1d134e36782f382b4c8804150ab667ae5b9e17f39a5a96"
+    },
+    "src/components/HelloWorld.vue": {
+      "rawSha256": "994687b12c210166d0cf38e6037189d93246d55aff441871d82931c64cbbd0a2",
+      "normalizedSha256": "994687b12c210166d0cf38e6037189d93246d55aff441871d82931c64cbbd0a2"
+    },
+    "src/components/ModelOutline.vue": {
+      "rawSha256": "5fbc71c9f430e2a6d97cb583a2c4281e830c15cef824debca122fbd7256bc2c5",
+      "normalizedSha256": "eaf75032cae6c7009722e4e9079b4e065a884343cc72a4808ae0cde850698593"
+    },
+    "src/components/NamingRuleDialog.vue": {
+      "rawSha256": "bd83707d8aee5c993a1131e292f148826fc17fa74c156371e98f17054511378e",
+      "normalizedSha256": "178acba47e5c504816b105f31ced96f17af5589bfb8fb55611d003bd9ae23dc5"
+    },
+    "src/components/PageAssist.vue": {
+      "rawSha256": "c8d132be4fc6baca2bb610a8563c478cf7f178a47db7609ca82f09abd5f3aee3",
+      "normalizedSha256": "6dc40ea8f224c49227a4dbeb4ba149a9977c5bee7e41d657710c8858e87c9424"
+    },
+    "src/components/PageHead.vue": {
+      "rawSha256": "ed11622b1208de103beb36fa6b43be8cbcb863aa1d7eb5e9edc8f9491b6bfe4a",
+      "normalizedSha256": "952f70b451d19553e1e8bc8c40f61d9f0a7339657896f8dc223f161385c5e54a"
+    },
+    "src/components/ProductModelSelector.vue": {
+      "rawSha256": "d35a5e40f080e21ef9da70af0c816fb06a99b45a589330411ad30465b1daf8e6",
+      "normalizedSha256": "7d12552fcb87732b16f3d945966ed9dbb000e731715a3fc8d1b2985560ea86e7"
+    },
+    "src/components/StoredDataRecovery.vue": {
+      "rawSha256": "a37fbbb9ee84ea97fd029c988d720acb77020aec88a9b65b28960f2ef46fda86",
+      "normalizedSha256": "a37fbbb9ee84ea97fd029c988d720acb77020aec88a9b65b28960f2ef46fda86"
+    },
+    "src/components/TemporaryMaterialDialog.vue": {
+      "rawSha256": "2c01c72cd185156168ca35835b38d6f77016b2021cf6f5b005a469996d3e1fc1",
+      "normalizedSha256": "3eb6dd0d6a349ed28e66d172f06b82b3387872b8d4718723ab32e0ce87c3e2a2"
+    },
+    "src/components/V3CreateFlow.vue": {
+      "rawSha256": "b0cee87fe9c535de6a07f38711d0e7cd575ff63fe3afff5702e6d50207cf2aae",
+      "normalizedSha256": "8623735b2aacabb7d16a19345cdf9b8515a5c2c89acb9e3915b17c49dc38655a"
+    },
+    "src/components/V3FamilyBoard.vue": {
+      "rawSha256": "747106f310d14a4a4e5369b874f3e788f57eb8db4c71e28d00e8bb989fae8478",
+      "normalizedSha256": "492813f84ab11f6d52257779d753cc1fa2cb0865ec0759ae0a8cde4c602f0061"
+    },
+    "src/components/V3MaterialActions.vue": {
+      "rawSha256": "052a2f29202071fd05e1679520a4f293a258302c22d47269e5756f8606d5a730",
+      "normalizedSha256": "02d7f3655c29fde6d47c1af414a8388e2d36cdb3a891d295c154db374a05bbb3"
+    },
+    "src/components/benefit-package/BenefitDeliverySheet.vue": {
+      "rawSha256": "b12911291d5041e47d73fda23f493f9a0a6e2bc84f9f239f01f1d0a0f6a78c39",
+      "normalizedSha256": "b12911291d5041e47d73fda23f493f9a0a6e2bc84f9f239f01f1d0a0f6a78c39"
+    },
+    "src/components/benefit-package/BenefitIntegerInput.vue": {
+      "rawSha256": "8e88fa0949ddb04dad601e8f22c845566b673ef113ef9bbf87fe08e9f18193a5",
+      "normalizedSha256": "8e88fa0949ddb04dad601e8f22c845566b673ef113ef9bbf87fe08e9f18193a5"
+    },
+    "src/components/benefit-package/BenefitRuleEditor.vue": {
+      "rawSha256": "1e72e00e4c01cf8f3a44a60006f14070166e1322f44e9e1f71a21da77e479959",
+      "normalizedSha256": "1e72e00e4c01cf8f3a44a60006f14070166e1322f44e9e1f71a21da77e479959"
+    },
+    "src/components/benefit-package/BenefitServiceDialog.vue": {
+      "rawSha256": "70676b8f72554bb02ad61ec21e9296819e574d884fe59d3308f408d9770e2736",
+      "normalizedSha256": "70676b8f72554bb02ad61ec21e9296819e574d884fe59d3308f408d9770e2736"
+    },
+    "src/components/benefit-package/benefitPackagePresentation.ts": {
+      "rawSha256": "c903e183032211662237d15e12acb1273a4fd2cf8321708493cc9ee1110e039f",
+      "normalizedSha256": "c903e183032211662237d15e12acb1273a4fd2cf8321708493cc9ee1110e039f"
+    },
+    "src/components/benefit-package/skuReturnState.ts": {
+      "rawSha256": "5c321b455b8ab3147e11a34ea0580006ffb8c6b36072f8a28d61b380259bf747",
+      "normalizedSha256": "5c321b455b8ab3147e11a34ea0580006ffb8c6b36072f8a28d61b380259bf747"
+    },
+    "src/components/benefit-package/useBenefitPackageEditor.ts": {
+      "rawSha256": "37089a00adb9d0a467f0083d1cb071a47adc70548be0d5928a2f27f604c12e6c",
+      "normalizedSha256": "37089a00adb9d0a467f0083d1cb071a47adc70548be0d5928a2f27f604c12e6c"
+    },
+    "src/components/catalog/SkuFields.vue": {
+      "rawSha256": "1a89e3fa715f9c12f1533a925317193dac1333cd556062b211a5b9fba3de9a70",
+      "normalizedSha256": "1a89e3fa715f9c12f1533a925317193dac1333cd556062b211a5b9fba3de9a70"
+    },
+    "src/components/catalog/SpuForm.vue": {
+      "rawSha256": "3498eba140cc76e25d8cec73d65d89c6e294fe1e0c29b9847c08581afa8bb129",
+      "normalizedSha256": "3498eba140cc76e25d8cec73d65d89c6e294fe1e0c29b9847c08581afa8bb129"
+    },
+    "src/components/catalog/SpuPicker.vue": {
+      "rawSha256": "bc3b83e48e2ffd159a82b17ecbb87454a495ade2ad5ec44c72689a662a9e26b9",
+      "normalizedSha256": "bc3b83e48e2ffd159a82b17ecbb87454a495ade2ad5ec44c72689a662a9e26b9"
+    },
+    "src/components/catalog/useUnsavedCatalog.ts": {
+      "rawSha256": "0bfc01f0b9314eacf0111ec5118d7de1dd8b58dad9e12c74d1a541dec5f6206f",
+      "normalizedSha256": "0bfc01f0b9314eacf0111ec5118d7de1dd8b58dad9e12c74d1a541dec5f6206f"
+    },
+    "src/components/compatibility/AccessoryCompatibilityDrawer.vue": {
+      "rawSha256": "ec04361055483f6ec35a14fc6147dcadb0e1f252a256d9aa8862a85c144145e9",
+      "normalizedSha256": "ec04361055483f6ec35a14fc6147dcadb0e1f252a256d9aa8862a85c144145e9"
+    },
+    "src/components/compatibility/CompatibilityManager.vue": {
+      "rawSha256": "c97e49d420113a3d614572122d83010e6813ae6be197c53abe8432d7ddaf5b30",
+      "normalizedSha256": "c97e49d420113a3d614572122d83010e6813ae6be197c53abe8432d7ddaf5b30"
+    },
+    "src/components/compatibility/DeviceBindingDialog.vue": {
+      "rawSha256": "fc312b4baca0753b490ca501eeedc5e97f28b131368448ef4740d415b4a974c2",
+      "normalizedSha256": "fc312b4baca0753b490ca501eeedc5e97f28b131368448ef4740d415b4a974c2"
+    },
+    "src/components/compatibility/LegacyMaterialCompatibility.vue": {
+      "rawSha256": "287ab562f05db3e041600005cfe2e319d1863ac1e5912641764901dbe4047e7a",
+      "normalizedSha256": "f20ae0217b7da4a6abf797d330e55822930f2b221463f90f36486b5a0200c319"
+    },
+    "src/components/compatibility/compatibilityPresentation.ts": {
+      "rawSha256": "45db5997187c0c5dc3fe71e210d06c33ca00be150a5f99b91f78640a01b63af3",
+      "normalizedSha256": "45db5997187c0c5dc3fe71e210d06c33ca00be150a5f99b91f78640a01b63af3"
+    },
+    "src/components/model-editor/CategoryCatalog.vue": {
+      "rawSha256": "85faba2fda7d760383f5cdda197e59a5edf931fbf91f6b3d4b6bd7358cc9310f",
+      "normalizedSha256": "cce65bd3251f14924b9d2aab334ab2301130a134710d4f5c5cb99589f395efde"
+    },
+    "src/components/model-editor/EmptyModelGuide.vue": {
+      "rawSha256": "448fc3dda741e5b7266456f870ebd163a7849b64950564a00c900d9155889f43",
+      "normalizedSha256": "83fe711338b99a96d85ddb903a23ef974e852230202d9e98324d4db744dc56b1"
+    },
+    "src/components/model-editor/LegalComboDialog.vue": {
+      "rawSha256": "9800a02bfbf459b4a41a6719d2a1112e28b8c07b891e64210163626e99c2afd7",
+      "normalizedSha256": "0474059b641fa67e5d4d66cdb17874112a879b624a92f925715ec12dbeae9f11"
+    },
+    "src/components/model-editor/ModelOverview.vue": {
+      "rawSha256": "119a532d752362c6a858d448a8ff23f1d6c1f8f5635b520d12b7edfb2bbb6350",
+      "normalizedSha256": "5086e06db90df52e9f6d942ee4e19b5516748e99c72aae4ee9d47e386657f2d5"
+    },
+    "src/components/model-editor/NodeHostDialog.vue": {
+      "rawSha256": "bee807268f323f24d82c7ecfe8c096bf64a7381d5000701d647c0650ceb44d31",
+      "normalizedSha256": "346e856ff20fbc3d145e01c83d982231b2a190404bdea8836d8cb2764d18879d"
+    },
+    "src/components/model-editor/OverviewGraph.vue": {
+      "rawSha256": "b17675f66097eb3a9248488c98dd0f75405b33607e88848b126eb721811fe823",
+      "normalizedSha256": "84de2566d428bf811a105998eab2c6e9f12d5e93cb9de84773138702fd518278"
+    },
+    "src/components/model-editor/TypeModelRail.vue": {
+      "rawSha256": "f3c71989f4b1011dde642604ae5848a204de1e8ddd233bf3350ac5f743e78e21",
+      "normalizedSha256": "9d9095764f43d887d0d929d890f801091586b1b16166c8977b638d1b208961e4"
+    },
+    "src/components/model-editor/cloneModel.ts": {
+      "rawSha256": "f054650f0fe9251d671c26cfde817e7d47964359919c3de6cd50bdb6b6766fcb",
+      "normalizedSha256": "2951cd190e6505a9351aa8db0008ee0eb2e54602be853326b15d3daff4b0e26a"
+    },
+    "src/components/model-editor/comboPresentation.ts": {
+      "rawSha256": "a20f2f1ade038ad36d3392689d31cf386fc32bef19b9299359fe4d00dae0fe51",
+      "normalizedSha256": "059b4ca35acc6b40b2cb7d8a0bca0de68cc772c97fe4ca3dbeb9928ce27da7a8"
+    },
+    "src/components/model-editor/useComboSelection.ts": {
+      "rawSha256": "5207973c30e8539d18a3f1d080e5d77d0c5252deaff62662ad542fc4219ab460",
+      "normalizedSha256": "cc91311541b4ea5431ae677b942527c5e370b14f7eff67d9ad46fee83f44211a"
+    },
+    "src/components/product-list/ProductListFilterDialog.vue": {
+      "rawSha256": "f211f4b398056f25b83439514e340000dedf3786ec878bd43c7d1f000be07cef",
+      "normalizedSha256": "2b6be5cf1dcdf78099e28b61b7a571dccea1f82673059ff3a2d4ca19040abf28"
+    },
+    "src/components/product-list/ProductListViewTools.vue": {
+      "rawSha256": "97348c6c94bd3659f9a3f490cbe640b109e78eb1c9958e1a0ee6f8308577ebfe",
+      "normalizedSha256": "c6dc057d5b9e1882b1907d623d500531a7a0baa1f33769066c60a62ea70fcb0b"
+    },
+    "src/components/product-list/filterPresentation.ts": {
+      "rawSha256": "03f145c03a3202970cc119bfcef82f375b5329e983aeec599be0c1ca8af01cdc",
+      "normalizedSha256": "8195322c16b571885638087c3d3c0ba7b81d4b161f6b4a288133de342e799df5"
+    },
+    "src/components/product-list/sku/SkuDisplayDialog.vue": {
+      "rawSha256": "86ba2c5e9ccd00f09cffb40c099d9445ec642d489324947ede122aef3fcf51a6",
+      "normalizedSha256": "86ba2c5e9ccd00f09cffb40c099d9445ec642d489324947ede122aef3fcf51a6"
+    },
+    "src/components/product-list/sku/SkuFilterDialog.vue": {
+      "rawSha256": "29d07f52da5bdd4cc980974bb99c546628e474af8c2cd1066e79f2bc93a1ef26",
+      "normalizedSha256": "29d07f52da5bdd4cc980974bb99c546628e474af8c2cd1066e79f2bc93a1ef26"
+    },
+    "src/components/product-list/sku/SkuRuleEditor.vue": {
+      "rawSha256": "372b277510e278f4d33591994e7c26ec7530e641714f8fe524ce3cdd49ca7671",
+      "normalizedSha256": "372b277510e278f4d33591994e7c26ec7530e641714f8fe524ce3cdd49ca7671"
+    },
+    "src/components/product-list/tablePresentation.ts": {
+      "rawSha256": "fa85d0c19cc9a9f634b6d9c1694c462d066d86cb4abdfd6b5094defbd9092ed2",
+      "normalizedSha256": "fa85d0c19cc9a9f634b6d9c1694c462d066d86cb4abdfd6b5094defbd9092ed2"
+    },
+    "src/components/product-list/useProductListCategoryLayout.ts": {
+      "rawSha256": "13e4edb4a61f77b75a11484d4281a859e444fb5447f5045e1347011666d7df53",
+      "normalizedSha256": "13e4edb4a61f77b75a11484d4281a859e444fb5447f5045e1347011666d7df53"
+    },
+    "src/components/product-list/useProductListManualOrder.ts": {
+      "rawSha256": "c87a143c0540d7fcf6323a985b560c9ebd154cb761ab26e3c5fa5e743ef2ea3b",
+      "normalizedSha256": "5582ece2388564a46dd2e07594eeedd0c75708e47bbc404d1c34f5bce4fb350f"
+    },
+    "src/components/product-list/useSkuWorkbench.ts": {
+      "rawSha256": "6e0f913b83c32863ac0e21afb5c17adb6891cfdc8660061353de950e8d8e58b9",
+      "normalizedSha256": "6e0f913b83c32863ac0e21afb5c17adb6891cfdc8660061353de950e8d8e58b9"
+    },
+    "src/components/template-compatibility/TemplateClaimSetEditor.vue": {
+      "rawSha256": "d51164b0bed7b1ba514bc4a0a1c893d9e535a3092962c2e4b876bdcb192971b9",
+      "normalizedSha256": "d51164b0bed7b1ba514bc4a0a1c893d9e535a3092962c2e4b876bdcb192971b9"
+    },
+    "src/components/template-compatibility/TemplateCompatibilityDialog.vue": {
+      "rawSha256": "209155dad9de4c7b33e01b2b091d21a47160d5503602a101db224f3473b39c58",
+      "normalizedSha256": "209155dad9de4c7b33e01b2b091d21a47160d5503602a101db224f3473b39c58"
+    },
+    "src/components/template-compatibility/TemplateCompatibilitySource.vue": {
+      "rawSha256": "c38a617f9f763b1840e08457bc75b8a15f5edebb78bf08802800124c4bdbf852",
+      "normalizedSha256": "c38a617f9f763b1840e08457bc75b8a15f5edebb78bf08802800124c4bdbf852"
+    },
+    "src/components/template-compatibility/TemplateCompatibilitySyncDialog.vue": {
+      "rawSha256": "b57b92638696f2ee2db02c6d0fd6edfec73d7bb7049ddcf158c2b3f6db9553d7",
+      "normalizedSha256": "b57b92638696f2ee2db02c6d0fd6edfec73d7bb7049ddcf158c2b3f6db9553d7"
+    },
+    "src/components/template-compatibility/creationPresentation.ts": {
+      "rawSha256": "2a001623b921db614ba699d44ae9731afbeb8ab97775de6b87b622f13e5fcca2",
+      "normalizedSha256": "2a001623b921db614ba699d44ae9731afbeb8ab97775de6b87b622f13e5fcca2"
+    },
+    "src/domain/acceptanceCatalog.ts": {
+      "rawSha256": "62691112c11181bcd0fd0e2048ae05670315a9465ef09159592349fc03f6c2d9",
+      "normalizedSha256": "bd3cabc96277c0cf8e94a800984f0dd61874f4e1a0f55dd675e22b7a8ad6d386"
+    },
+    "src/domain/accessoryCompatibilityCommands.ts": {
+      "rawSha256": "e1bf27726e507d538485b6b727242c8e18c4310a559e14e897bb3be0648b32ee",
+      "normalizedSha256": "e1bf27726e507d538485b6b727242c8e18c4310a559e14e897bb3be0648b32ee"
+    },
+    "src/domain/accessoryCompatibilityQuery.ts": {
+      "rawSha256": "39af731ebc90be6a26c96dc0f4c97e02a8944af74e0fdf307bd0aa067fa740dd",
+      "normalizedSha256": "39af731ebc90be6a26c96dc0f4c97e02a8944af74e0fdf307bd0aa067fa740dd"
+    },
+    "src/domain/accessoryCompatibilityTypes.ts": {
+      "rawSha256": "87c0dd14614cf103a4df717315e3ed44f61634d1a3f6a8d2cdcf6c39db9bea07",
+      "normalizedSha256": "87c0dd14614cf103a4df717315e3ed44f61634d1a3f6a8d2cdcf6c39db9bea07"
+    },
+    "src/domain/benefitPackageExport.ts": {
+      "rawSha256": "2cec61735c6f5bee15da19f224aea5127889f9671dc65b5eba70b1989ed59c95",
+      "normalizedSha256": "2cec61735c6f5bee15da19f224aea5127889f9671dc65b5eba70b1989ed59c95"
+    },
+    "src/domain/benefitPackageTypes.ts": {
+      "rawSha256": "9e940dd9f8c7dbba808975e26dea0f88505ebdd7663bcb77cc39601bcc7fbee6",
+      "normalizedSha256": "9e940dd9f8c7dbba808975e26dea0f88505ebdd7663bcb77cc39601bcc7fbee6"
+    },
+    "src/domain/benefitPackages.ts": {
+      "rawSha256": "682ba80921a1ff8526002a862f17d494b5e57e27fd6443f0e3672cdae1426320",
+      "normalizedSha256": "682ba80921a1ff8526002a862f17d494b5e57e27fd6443f0e3672cdae1426320"
+    },
+    "src/domain/catalogIdentity.ts": {
+      "rawSha256": "56eae4bd650b45598363c443f34fd8297b6da56b741329811222506abf10caf4",
+      "normalizedSha256": "56eae4bd650b45598363c443f34fd8297b6da56b741329811222506abf10caf4"
+    },
+    "src/domain/categoryFix.ts": {
+      "rawSha256": "72e5f7d1815b1bb2c66d9f4c35081316ca071ca8b03ec07df1718254edf3a481",
+      "normalizedSha256": "53a184c6188198ba7e303e9572b8bada3d2eccc353893cedf468ca62bc8f6f32"
+    },
+    "src/domain/categoryFixCheck.ts": {
+      "rawSha256": "b03c832327c699a9fdbf16e154eeacc5af09449466e85c97d2894f46bc4b7786",
+      "normalizedSha256": "1363d0f9d616f671118eae80b50461edcfa72711e786d4e08fd7d9294c06552b"
+    },
+    "src/domain/categoryTree.ts": {
+      "rawSha256": "ba4f830abd23bf07c5cf2c90baf79a2d28dfa69c6b89a80e6ae3cdc4ae7672b8",
+      "normalizedSha256": "0123dad6fd473f8ba14199b7a9550d5033f8d07eac96ac77e5ab72a348e92082"
+    },
+    "src/domain/categoryTreeSelectCheck.ts": {
+      "rawSha256": "ed0985aec5b0e2d0387c6535d3b5bc95258ce39497581f13d22d0f9d374e9cde",
+      "normalizedSha256": "e719445494ddc27e187db17fb0389b92bd7b08b78209473fc77620e4bd3939a1"
+    },
+    "src/domain/comboMaterialStatus.ts": {
+      "rawSha256": "258db43d4bac18b8d978da9ad3e4458ad2b3d950171f372ed3faada6ffd7b590",
+      "normalizedSha256": "6a760c89a74d741a37cfb740d88c9afa563494c59ebe1ba18b67684692efc961"
+    },
+    "src/domain/comboMaterialStatusCheck.ts": {
+      "rawSha256": "ce9cdbcb0b621b0b75dc67c05ff1fbd68274240449f103fb1562ad1dc0c19640",
+      "normalizedSha256": "b21f3523171bd9ce4ee43d25547475c394ffefb062c569d8e4320971f8d519fe"
+    },
+    "src/domain/compatibility.ts": {
+      "rawSha256": "832695cccaa5173d5b68ed43b3f981db9ba28fafc33d290aa4881ecf7d867732",
+      "normalizedSha256": "b3ccbc4f155fdf039446dfb83f593167aab7a134a00d80365282835cc19197f4"
+    },
+    "src/domain/compatibilityCheck.ts": {
+      "rawSha256": "a6bcd7c73da6e351aedf1239509856fbbe6602f596c154b96b9de8727b6a588a",
+      "normalizedSha256": "f8ad8aea8f6667d983f9321a0475194c3baa1f7e37fcc35a34bf681d8af5d585"
+    },
+    "src/domain/compatibilitySamples.ts": {
+      "rawSha256": "43860eede1900949acbe84f0dfc212e4dca845395e93992edf67840ca2d0e848",
+      "normalizedSha256": "90d967758dbe6d45b4cefc36c54aea8bae6034ebe2c3aeb7715399404d94d9e3"
+    },
+    "src/domain/compatibilityValidation.ts": {
+      "rawSha256": "ffbabb74f658b3cce7296789cf0dd15c8e38898132129dc05bfe93ddbc35dbe4",
+      "normalizedSha256": "ffbabb74f658b3cce7296789cf0dd15c8e38898132129dc05bfe93ddbc35dbe4"
+    },
+    "src/domain/consistencyCheck.ts": {
+      "rawSha256": "a1075781b50edc0ad477d1eddb3da471747cbec25f1825814e3137b3d9f0c5ef",
+      "normalizedSha256": "0aea4aa662286feff0b7f39c0ba42282247a692b08f8fbeb3554f1aeaa1f5a90"
+    },
+    "src/domain/deviceResolution.ts": {
+      "rawSha256": "e39168c71db9062ac20455a19d639bbdde878f2bc75087aeadf28a3409c7be63",
+      "normalizedSha256": "e39168c71db9062ac20455a19d639bbdde878f2bc75087aeadf28a3409c7be63"
+    },
+    "src/domain/dictionaryGuard.ts": {
+      "rawSha256": "cf50be89623deac3d5ab340c3bd9c1e9a8f1a17a994f2c3a39ecfc19a1062e62",
+      "normalizedSha256": "5bfc9464b1b3b873845a127b365fc5e99460946f70b1c2d593a52f7966503a37"
+    },
+    "src/domain/draftComboPreview.ts": {
+      "rawSha256": "fc2961c5183a1495752e9e1531ff9100bd8f9b2b5475b5828e8b707a09dd18b2",
+      "normalizedSha256": "c56f13dc01686183d95209395e7ea2eedc74ac37676cbcd1adb1feb4138708b2"
+    },
+    "src/domain/draftComboPreviewCheck.ts": {
+      "rawSha256": "f1797bc62beaf812c9b5b00269fdf72f3d6f2b90bef81071d3d2d6e07b9fb9e7",
+      "normalizedSha256": "fabbd73545b20ae7ff95b0a6f37604bcedf2547dfcd53bbff752d685c319accc"
+    },
+    "src/domain/excelImport.ts": {
+      "rawSha256": "c1534ac5e2a3ddca603637a81e4af64b12ade227933233cf4894704edf2878e0",
+      "normalizedSha256": "6c2813e6735c05ddf481ce82a48fc9f1e9b5aafef7c1aae9a331d2dac7f662b9"
+    },
+    "src/domain/excelImportCheck.ts": {
+      "rawSha256": "44bfb76fedaa4cd4561534e80663357325edddf86345f2ad080b2d32c4fb633b",
+      "normalizedSha256": "311f1fc545d3127a0688b29e6d0382e745517d03c5f7af35d5fb41bddd9d0185"
+    },
+    "src/domain/excelMatchCheck.ts": {
+      "rawSha256": "c8fdc474e9fbfaf0aae972e2a0cfbc59b3038d28eafeae54aa1ee3040c0d3228",
+      "normalizedSha256": "5fca106fc43ea7cf4893b6675867e81ef1c187767c0180202f92b2813149aa54"
+    },
+    "src/domain/feedbackFiles.ts": {
+      "rawSha256": "15aeb8919be8f7adea5d4361800b161016b038301d6932c15d10118d8b467fc0",
+      "normalizedSha256": "96efe86aba131f1f49fb48d53c713bbf9200a0cb0f47019e10afdc45af15197a"
+    },
+    "src/domain/gradeCheck.ts": {
+      "rawSha256": "8841339630c4b4e4344cf3d1d712076a62abce80324a762512d6babc6b7dbab7",
+      "normalizedSha256": "156fac35ef8371a418e893aa38df10be36fdeb3a90850befea8b3d68f5c02b59"
+    },
+    "src/domain/layoutCheck.ts": {
+      "rawSha256": "d4def0e33aa8979ec23c9470ed896a9c012326a5e13ecbe0b8f43a393412c001",
+      "normalizedSha256": "a9e23cee87e68e8dd78919f7fb9ab2c9f9fbabe0f4d8a0b68a042e93831fec50"
+    },
+    "src/domain/logic.ts": {
+      "rawSha256": "c16636a409a517976c00e04ed2cf04df7d0667cbe3a293a5082f6cc3a28ec99b",
+      "normalizedSha256": "5a77997dcff7d7e936b0f9d7e204941a76cbc954ed9be2563b87cd6db74227ba"
+    },
+    "src/domain/material.ts": {
+      "rawSha256": "193df12995f1420f664a5d0d803fb5f9e7f8d2ae9c8c3536e82173e57bc5f50a",
+      "normalizedSha256": "9d065b3d22e40d7857cb74a29e63876b50bd57a86c42c697965c045e278c36e8"
+    },
+    "src/domain/materialArchiveCheck.ts": {
+      "rawSha256": "323d2b311f4abaf45cb7d9049a76b4a84831da0bceb8f4464bb3cc0e2d78226b",
+      "normalizedSha256": "0e9315ef63107f24fb1fe8bcf96be4ae134d2caed99b9f4dfd6b5cf6424c5976"
+    },
+    "src/domain/materialCheck.ts": {
+      "rawSha256": "4f81ef9f1c85ca2701aadc2ad008c8b7d94e5cd8cd613acadbe443ec4a0a9ef1",
+      "normalizedSha256": "539efbf79af036f80c97e71f286b67f3a1c3ab289f37985bad7f4dec77aec17a"
+    },
+    "src/domain/menuConfig.ts": {
+      "rawSha256": "4e25c866ab6f2fbe408ebdbfda2ee0021e680ba7f6a5f20d7b1691b99f642deb",
+      "normalizedSha256": "2697ed9581271fb58cc37b3978cd16ab97408e6a0c6addab1b552f1865147aec"
+    },
+    "src/domain/naming.ts": {
+      "rawSha256": "92265873b9b95aa010bd5fd16e5a6bc848f6e89a32fb9b7456563e92eaefa579",
+      "normalizedSha256": "3fc6d95500be2967212db10c5ba1675a31df992a928979c2d9a73b3450c3b64a"
+    },
+    "src/domain/namingCheck.ts": {
+      "rawSha256": "f1f967fb10f06d3783414faa9ce8675313d03e516ac7943e12d6d71bbd4c4ec0",
+      "normalizedSha256": "4cba981a9c3c486ce5f530eef03a881abe951ca97ffaa9602aee2ef0346702d4"
+    },
+    "src/domain/nodeCompatibility.ts": {
+      "rawSha256": "7280de343310a0b3783823f9767659560220fdd7e20557570b6b3c090b0c6f50",
+      "normalizedSha256": "b9487c7fdc2171d95b84e3c3801dd9fcf1b5d050670abd87d647d95087733c26"
+    },
+    "src/domain/outlineEdit.ts": {
+      "rawSha256": "25e135a270060bbceca2b228c9ec6342fbc94e445471ce91237d941b7e921bcc",
+      "normalizedSha256": "1ca5f2ee9f5d785ba3a3805ff4840998e149cb9cdaa53d493f29ec51849820ca"
+    },
+    "src/domain/overviewGraph.ts": {
+      "rawSha256": "30ef652276337ed89e5ec2368a5a835a3f4bebac6639b02884edc6dfcab3fbb8",
+      "normalizedSha256": "ec79bffd8e9c37b138496fcdf98c4b70563eb0859ae102f2d6808dacda71878f"
+    },
+    "src/domain/overviewGraphCheck.ts": {
+      "rawSha256": "9fe508cf213c789e0792ec06cc69ccd89c9732cac1f4c47a7908b4e282cd544c",
+      "normalizedSha256": "071f92d80c13841306bfeb1a0f53e0b617f26785fb7099589c11bcd1b9d96066"
+    },
+    "src/domain/pageFeatures.ts": {
+      "rawSha256": "d5db0b234956b3bf50df9ff8b9fbf292cd139a3d64a265648076ac16fd7ff19c",
+      "normalizedSha256": "ef0f3a0fa567803040483641fc1161a798c89a723a470fdd2495e3b72d6b6f96"
+    },
+    "src/domain/planning.ts": {
+      "rawSha256": "b831e2161d915d4456611f5e5e8ea1a6c8598f93d5d68c1ac066654f610ff242",
+      "normalizedSha256": "c0f91c1f26aece0817bd220bf7ebc5b8dce75b6192dc625575abe9193c2ba484"
+    },
+    "src/domain/planningCheck.ts": {
+      "rawSha256": "c78e318fcb67b06795dcba058f3d538ef3efb1373bb595357f38c701fc942229",
+      "normalizedSha256": "cf06894f1e2b743dd1019bfed518f8187a29275d0fb1337c2c5161811fd7e34b"
+    },
+    "src/domain/productList.ts": {
+      "rawSha256": "47c4f37e39e6c2d6f6da202ce2701a372fce554cfcdbc48c9b4d16aabde0725e",
+      "normalizedSha256": "e3fc6c553f425a744d2d0fe4a7e10ce51b5689c1a8f2a0d8dfdbb5d9001e5c5d"
+    },
+    "src/domain/productListCategoryCheck.ts": {
+      "rawSha256": "9fdf0ce04364deead941cdb2b4684376955b26e8566bc4da2cd7edafe8ad7195",
+      "normalizedSha256": "d0da605d2e0f56a0188e29d49dccfe607bd1066d6b735602ed0f39f7154696a3"
+    },
+    "src/domain/productListCheck.ts": {
+      "rawSha256": "fe1d236c7524037ece068d367da02aa76f0c65db78b814a50f9bdd85fdf5f65f",
+      "normalizedSha256": "9d16b2c9b0cdb54e9d963947526dfb2cf84b664a15239ed953375ad5fee5f535"
+    },
+    "src/domain/productListManual.ts": {
+      "rawSha256": "d56d2e3780767a84488c09159e48c52cbb6f8641e70444ba0d4586bd88a95530",
+      "normalizedSha256": "f5fa16368c9fd8a6fac367db528d7d39fea8648ac5e6552025c416e96df22a94"
+    },
+    "src/domain/productListManualCheck.ts": {
+      "rawSha256": "611a9cd98d65e250d79fa9bcd6bd078869a1db2861161fb920fab47e85efe0a4",
+      "normalizedSha256": "ff41beda74f27485a7e39fc049c491f2dae726d07d05908f8254fcd7e07a4b19"
+    },
+    "src/domain/productListPages.ts": {
+      "rawSha256": "69c14ebe80bfe973390037580605f20c612a9452f6ae0a022bc21e9c5c0f0168",
+      "normalizedSha256": "69c14ebe80bfe973390037580605f20c612a9452f6ae0a022bc21e9c5c0f0168"
+    },
+    "src/domain/productListQuery.ts": {
+      "rawSha256": "63b0b3f5e9be9304f8ce48734084ecf81fd171625f87d6448be7ed42a9d7ccdb",
+      "normalizedSha256": "4fad7a0b583879438c7cc101e01feb8687781f91f4fc71edb5e779dbaddfbc02"
+    },
+    "src/domain/productListQueryCheck.ts": {
+      "rawSha256": "b1638d271298fc451eee62c26ea67575f549ded282dd697d6d4af418742e8908",
+      "normalizedSha256": "da36290e2fdcbb7acf05f375bd3f4d76cce079c4da2a99729fb9073083790512"
+    },
+    "src/domain/productListViewCheck.ts": {
+      "rawSha256": "b6588d5417b81784ff7688604b06d83457ec182b2e0351c33372f71b9aa65774",
+      "normalizedSha256": "e8eafc37a2a295bd39ff64d46afc179225d5ea248a628a9164372ef29fa07f43"
+    },
+    "src/domain/productListViews.ts": {
+      "rawSha256": "9a68a9b60cc925c8ef8b8432d3d4a95d1be3d49ae7af159628ceaaa5992786ca",
+      "normalizedSha256": "be7161303b64781e680665199f5c29a13d097536cd4457ffb1072b35f248815d"
+    },
+    "src/domain/round1Check.ts": {
+      "rawSha256": "a4ffa49fafeb9a925a03d999c3319d985239ba4f16f1f3c86e73a3397a3edee9",
+      "normalizedSha256": "a2b5651d99a6c3259e8b6ab609747e32954f43e780e55b63d46df669c81367bc"
+    },
+    "src/domain/round2Check.ts": {
+      "rawSha256": "1681dda346de46710a9291510e719fdd8429cdb031ea34f7112947fb60755e72",
+      "normalizedSha256": "ccec76815be389d558c2ad54a3e386d3833bf1afe1b9889609d453cdedf32941"
+    },
+    "src/domain/round5Check.ts": {
+      "rawSha256": "80d814e55f40511d87a1dfb76faa927e94b740c60c9c6db09fbeae0688505cd0",
+      "normalizedSha256": "7852bdecb53c8c3466f639f77f61657b494482b8b625c694fc2f8dd95c9cedae"
+    },
+    "src/domain/seed.ts": {
+      "rawSha256": "e5d28734af371fc98157467a713850ab58683ed0b45bac2f96cbcae7e68126bb",
+      "normalizedSha256": "b6288c167f60fa2807dfb5c2e1f619fac190a4380c2ff9d8680d5b29135166d1"
+    },
+    "src/domain/skuWorkbenchFields.ts": {
+      "rawSha256": "cecef0db82d754dadfec38c4120b45a098fe20803ff1b722a7c954fdd483d87d",
+      "normalizedSha256": "cecef0db82d754dadfec38c4120b45a098fe20803ff1b722a7c954fdd483d87d"
+    },
+    "src/domain/skuWorkbenchQuery.ts": {
+      "rawSha256": "79605c7a89f360daf1e2cb06e2ad0aa312df0c0b546134a3496cc9f6096c032d",
+      "normalizedSha256": "79605c7a89f360daf1e2cb06e2ad0aa312df0c0b546134a3496cc9f6096c032d"
+    },
+    "src/domain/skuWorkbenchState.ts": {
+      "rawSha256": "332fca1c2066934b8148637e563d05666fc7eca690f8ebf7f838dabf4b0e5644",
+      "normalizedSha256": "332fca1c2066934b8148637e563d05666fc7eca690f8ebf7f838dabf4b0e5644"
+    },
+    "src/domain/skuWorkbenchTypes.ts": {
+      "rawSha256": "19a3023bff381dcbebf1f506a896a55e19d1cfd847aadba1235023d314a44bec",
+      "normalizedSha256": "19a3023bff381dcbebf1f506a896a55e19d1cfd847aadba1235023d314a44bec"
+    },
+    "src/domain/spuDraft.ts": {
+      "rawSha256": "ccf24ece19bcd8c10829edf997d852291d798c5ae73ea89e346b7a2283e43e3a",
+      "normalizedSha256": "ccf24ece19bcd8c10829edf997d852291d798c5ae73ea89e346b7a2283e43e3a"
+    },
+    "src/domain/spuSku.ts": {
+      "rawSha256": "dd8a6be08527de11491037b6cbe402c4c3fbbda98fc1da7e444d329955d2ef30",
+      "normalizedSha256": "84d5f219ae9932304d11af202e42d4f87f61da183037b4e19384791fb17c23e3"
+    },
+    "src/domain/templateCompatibility.ts": {
+      "rawSha256": "a9f8b5fad3e7c93200751dd6843e85288a465bd08131c92aa6d030a06d4e9bda",
+      "normalizedSha256": "a9f8b5fad3e7c93200751dd6843e85288a465bd08131c92aa6d030a06d4e9bda"
+    },
+    "src/domain/templateCompatibilitySync.ts": {
+      "rawSha256": "c44ae6a049efd616024095e9464aa8a8828e2182caa480b323443180ab9dbf9a",
+      "normalizedSha256": "c44ae6a049efd616024095e9464aa8a8828e2182caa480b323443180ab9dbf9a"
+    },
+    "src/domain/templateCompatibilityTypes.ts": {
+      "rawSha256": "a80b2c70726846e3b0681039ad7b84653aa9b321a2975080e2b2e30f6690efe6",
+      "normalizedSha256": "a80b2c70726846e3b0681039ad7b84653aa9b321a2975080e2b2e30f6690efe6"
+    },
+    "src/domain/types.ts": {
+      "rawSha256": "fc1dde3c2122d34f32a0bda2ec6f27e196be678ae103af5a817b4e1528cfe8d6",
+      "normalizedSha256": "f17b4dd09e1e1c9dc4c025586db3daa2f326b413960080c78d8f4d3e49f94920"
+    },
+    "src/layouts/AdminLayout.vue": {
+      "rawSha256": "69768269fd62711a42177b2cc060873efb2436dcc300958e9f16053df6dae8cf",
+      "normalizedSha256": "d19a2b83990a3a1feda57083c8cde4ab553f2f8071c3b51b925d5181519f046f"
+    },
+    "src/layouts/RailNav.vue": {
+      "rawSha256": "d982e0fcc608760adf29a5f8bd55209d810395643b3e5b1f232833f66d82483a",
+      "normalizedSha256": "eaa3adab71435daa069653b3a25441d59d5931c8633e8aed43e23d43654c73de"
+    },
+    "src/layouts/navigationPreferences.ts": {
+      "rawSha256": "f1a48155d6c6549a434bf16fedd3822ac6eb5bf205bc382057d23459de41543d",
+      "normalizedSha256": "f1a48155d6c6549a434bf16fedd3822ac6eb5bf205bc382057d23459de41543d"
+    },
+    "src/main.ts": {
+      "rawSha256": "f0336e823d6bd23cbadda5e7f6bfce33e2c208a86269363369e5d5b780161a44",
+      "normalizedSha256": "8e4e669192769617123852101de39a45f00f1f604bd3cf7c589ac4c966fefab5"
+    },
+    "src/router/index.ts": {
+      "rawSha256": "3837d92a0b569be8cdd60863edef248670e36588d691f8a8300a2d36969515b8",
+      "normalizedSha256": "a90ca910fb1aae45866a8bf0a47ca9f9954acf0f27e81fb0c55e36e17e2315f5"
+    },
+    "src/stores/catalog.ts": {
+      "rawSha256": "9d18f6e7455c7c358ad9e5e869ca4d5bcf8ea3fc1f9405db431960398e64dbcc",
+      "normalizedSha256": "99b2a44c6d2af37cdd655978887232634154f76c65c119d2821ebccb614f9165"
+    },
+    "src/style.css": {
+      "rawSha256": "36fef8063f58833fe0751f5c3a75fc4441c387af45803b2e3d8f96302c780162",
+      "normalizedSha256": "2ef6ea0ec6f1f790b73684f45ec690e3b8aecd1ced118ec917afc45ace0382ac"
+    },
+    "src/theme.css": {
+      "rawSha256": "b2c648e02dbad3cb3741936d969b5233e51984560ef2560d0090e85ba8acdd2a",
+      "normalizedSha256": "6244f2996a3e47e9557a1df6d13240722cce4e5ea617e3ef3de580adf9bcd8c3"
+    },
+    "src/theme.ts": {
+      "rawSha256": "616092ee98c4e2f9f8c5e321167e0e688bca764a03d029cf02e039756484b975",
+      "normalizedSha256": "dd35dfbdc07955ca5369366a5148a3604b7cd075d02a4705023972a45bd39ccb"
+    },
+    "src/views/AccountView.vue": {
+      "rawSha256": "1b3e7f7a4306bc747fa5ce6c2099338c62d88ef1ddb4d079d5ca658740ab8aad",
+      "normalizedSha256": "77ecce4a1fb57971f9821327db003fc12c9b5161f4303fba905ddfe799141425"
+    },
+    "src/views/BenefitDeliveryView.vue": {
+      "rawSha256": "4706887ec82687ddb42f87344cf8ac8d94a88dd49b552a89fa56c375462aca84",
+      "normalizedSha256": "4706887ec82687ddb42f87344cf8ac8d94a88dd49b552a89fa56c375462aca84"
+    },
+    "src/views/BenefitPackageEditView.vue": {
+      "rawSha256": "7d1027a244ad0ddb08fe96470873b3f3fc4e708f927bdaf632d88c400ce89326",
+      "normalizedSha256": "0b3aa43caa4f1abb4c4e86e4a382af2e293819f4a6ff27385d8f3bb8687f059e"
+    },
+    "src/views/BenefitPackageListView.vue": {
+      "rawSha256": "840d527f78ef3a2c7a21138f9666a50ad90c303a872f00cc2057a6da32291717",
+      "normalizedSha256": "840d527f78ef3a2c7a21138f9666a50ad90c303a872f00cc2057a6da32291717"
+    },
+    "src/views/BrandView.vue": {
+      "rawSha256": "57b4319725e6323a74e6708051acd2296973a3f9e71c155e70a1fcfb9c3da101",
+      "normalizedSha256": "8c1558a870dbfbf4f7797d9f429450a297ee18d38b36cbd13cf8ec3352e66f70"
+    },
+    "src/views/CategoryView.vue": {
+      "rawSha256": "53fb6e68b0473f106f50ffa52a41d6bc8a758b54072441265342dd39338d9e37",
+      "normalizedSha256": "819c93c8381ed74e711c49af64a397a18d98759aa0b641a88ee6d5cbe34430b7"
+    },
+    "src/views/CheckView.vue": {
+      "rawSha256": "03d1df2c545b213e0181470ede2d2446f82920931d060aee7d1fb5c2bd5602be",
+      "normalizedSha256": "fdae7efb472b244b279e61208d18893b16896cc76bf7640c5a44e2e888fb47bc"
+    },
+    "src/views/CompatibilityView.vue": {
+      "rawSha256": "151503025b2727df66a8b901f9fe69e45d78bae08207e1372a84eaa09c8b537d",
+      "normalizedSha256": "51cb9653536d5cb0bb6f515df887806e3465a84ca69cf8f8fcc54c7c7babffe0"
+    },
+    "src/views/FeedbackView.vue": {
+      "rawSha256": "bc9bdcfcf576fc11933bde34aa52a8e3987c928ed9c77df0a5311ac8bb0dc048",
+      "normalizedSha256": "29dc4611a99a3f99c1497d480631c86f3ee54ece84950b1e3c0f2589b71d2260"
+    },
+    "src/views/GroupView.vue": {
+      "rawSha256": "86b479e111f3d1efe88b9d129a2aab4dadc243ccbae10a5f6fc3d3d0879d6ef5",
+      "normalizedSha256": "0b1377d8925f642d7965f80cd66fd033584daa884b6ed9c71d75d618afec1ea2"
+    },
+    "src/views/MappingView.vue": {
+      "rawSha256": "16b03a357a7414cbdfa4b11ab374d23a2a318ce971f90ac756e78c82b4a4d6b6",
+      "normalizedSha256": "5a1ea152abcd94f92533d0a58f380670e7599b660a5f73d924df2007f2ddaf42"
+    },
+    "src/views/MaterialCreateView.vue": {
+      "rawSha256": "4fcb27e4281bab9bf93b34057abee4bddf58e84ea1ac0bf31173cd3f8d34ae78",
+      "normalizedSha256": "4fcb27e4281bab9bf93b34057abee4bddf58e84ea1ac0bf31173cd3f8d34ae78"
+    },
+    "src/views/MenuConfigView.vue": {
+      "rawSha256": "a9e41e849e84768b538eb26a7ba9256a8e5bebe18f1083ba3fc578e9e638d839",
+      "normalizedSha256": "76664265e1934cf8b0ba6fa9abd4917610795cc00ab732d84972d1d3f6861054"
+    },
+    "src/views/ModelListView.vue": {
+      "rawSha256": "cda0e23688dee2e97393e760de6e1add8d380b07450b0e0d2865de82beb22b53",
+      "normalizedSha256": "ae6cade5dfc8c61f727d3a3dacda7f3eeece27b7356a074930c90ae825b0bafd"
+    },
+    "src/views/OverviewView.vue": {
+      "rawSha256": "8e005c04fc2415750e5ae70665bff113dc7f19fec5049cbb6e8e0d80a7362a0c",
+      "normalizedSha256": "e1c5af706bf848f90a140b1ed2ad4e200cb320aed0486b51c815b57c6ae83fc0"
+    },
+    "src/views/ParamView.vue": {
+      "rawSha256": "9eddcb31b282f1305a225e7f63b809d93241a7056c864d8e90e7d253a8cd4bb7",
+      "normalizedSha256": "9797d2e8feef8299718b925b60f03b74d7b85afa34f6c4bc15af3f2939c2030f"
+    },
+    "src/views/ProductEditView.vue": {
+      "rawSha256": "ff70af952e1b29bc648da6a7311ab3f7a765a55a88faf15a2616a6bfb5c1e520",
+      "normalizedSha256": "840130470d14101c682d9260c30dd4c4e47623455e4ecec7c953d0830f935b03"
+    },
+    "src/views/ProductIoView.vue": {
+      "rawSha256": "85f6b2c21f9d743d88436b7bd95a41e7fd9bd84cabcdfa321dc5b04c1214ffd9",
+      "normalizedSha256": "ca6dafe4139a567130e158263498bd87e0025ab34e230e2e5a08aae5e83c3054"
+    },
+    "src/views/ProductListView.vue": {
+      "rawSha256": "3f602f955c28d349fccb44484bfbf77df0c84c0820523c502b6a01bffcc872fd",
+      "normalizedSha256": "ae08a5dcf13a0561a8331ec45d9ad3141398b20e0fec91823a21c35ad540764c"
+    },
+    "src/views/ProductPlanView.vue": {
+      "rawSha256": "e62aea77d42a3d36175632721b39876180261bb914abf9e267f654fc35eb2004",
+      "normalizedSha256": "f5020a38e9cf2a9adf45d71aa500a73df5ee33e5b884fc934e2be73f296282b4"
+    },
+    "src/views/ProductTypeView.vue": {
+      "rawSha256": "833f058eae3ab4e9ac55ac46107bf7dd66fb338ef49cdbab3805d468864b9d20",
+      "normalizedSha256": "89620582439b5a8796e44152eb343eee159e1ff1ac91d7be8a91513fef835e6e"
+    },
+    "src/views/RuleView.vue": {
+      "rawSha256": "5732176603e0fb0585571235fcaddb9bc1e93e6490250070d3d7028e75a58758",
+      "normalizedSha256": "9a87cf079f1c74c7a71e3db9fc2cf70c187ec05af89218a70ea39bc7fa9c8401"
+    },
+    "src/views/SkuCreateView.vue": {
+      "rawSha256": "a0ef32609ca88cf8f579d124d2ba6df023e37e3c43599062a1d8f6c2438f892a",
+      "normalizedSha256": "a0ef32609ca88cf8f579d124d2ba6df023e37e3c43599062a1d8f6c2438f892a"
+    },
+    "src/views/SkuEditView.vue": {
+      "rawSha256": "e230cd2470a665dd087069bdb7c3d9a2b2b718a5503221642ad46439c8c21d5b",
+      "normalizedSha256": "e230cd2470a665dd087069bdb7c3d9a2b2b718a5503221642ad46439c8c21d5b"
+    },
+    "src/views/SkuWorkbenchView.vue": {
+      "rawSha256": "1ca388af20094e8e45ff2353527fffe918eded08d0aee17942534b05cb2f9c95",
+      "normalizedSha256": "1ca388af20094e8e45ff2353527fffe918eded08d0aee17942534b05cb2f9c95"
+    },
+    "src/views/SpecConfigView.vue": {
+      "rawSha256": "3bdafb7326ab4f6ecb9a2b2e6fd88d768f8616f7d9cfd3643d20d36c933db2a7",
+      "normalizedSha256": "003c63ba801c48fa74d2fa1b86d7bce387a2d2191262d1cb338936a52b46f219"
+    },
+    "src/views/SpuEditView.vue": {
+      "rawSha256": "278f3f5dc410090462a5af8950e306a6ef401ae225232311bc67f3f8ccf78f80",
+      "normalizedSha256": "278f3f5dc410090462a5af8950e306a6ef401ae225232311bc67f3f8ccf78f80"
+    },
+    "src/views/TemplateView.vue": {
+      "rawSha256": "f4098ba45d252dfb27fe76e4bace068df9bf379d0376f1ebdb1506511c3d2bf4",
+      "normalizedSha256": "1ff6b72036eb3f3b941c85a491389c169e8af997fca7518660dcb2d66716e932"
+    },
+    "src/views/TreePage.vue": {
+      "rawSha256": "df5515c241ae55ad4af0012fa564c661754fc50cc5c2fde02637a62e697a4b4b",
+      "normalizedSha256": "df1c0e1fb511b2d4d17f7b9e28be242d31f24f8c2ac701b904102f10364fc9d3"
+    },
+    "src/views/UserView.vue": {
+      "rawSha256": "bb22c5fe9217fcc35e9971cb53daa8e568c5c214e1782fadd668dd347e9aeddf",
+      "normalizedSha256": "f76e0e65de00ab1f8b0f246db621d803511e5b0807ef229be95d1b33affaf3e8"
+    },
+    "src/views/WorkbenchView.vue": {
+      "rawSha256": "f95a1a35f8f3a8b67debbcdd5481003d529c058503db209ba5fcfa31f89dbfb6",
+      "normalizedSha256": "fdf03978ee11440855bc6e11da66d631a661351b6f91d814c0ad439cf3e984f2"
+    }
+  },
+  "git": {
+    "branch": "20261022",
+    "head": "fd5f6c8d1d899f1709a5ee58c775f8ad89a99c86",
+    "staged": "",
+    "submitted": false,
+    "pushed": false,
+    "merged": false,
+    "deployed": false,
+    "status": " M .gitignore\n M README.md\n M package.json\n M scripts/browser-frontend-final.mjs\n M scripts/run-domain-check.mjs\n M src/components/StoredDataRecovery.vue\n M src/components/TemporaryMaterialDialog.vue\n M src/components/V3MaterialActions.vue\n M src/components/compatibility/AccessoryCompatibilityDrawer.vue\n M src/components/compatibility/CompatibilityManager.vue\n M src/domain/accessoryCompatibilityCommands.ts\n M src/domain/accessoryCompatibilityQuery.ts\n M src/domain/accessoryCompatibilityTypes.ts\n M src/domain/catalogIdentity.ts\n M src/domain/planning.ts\n M src/domain/types.ts\n M src/stores/catalog.ts\n M src/views/ModelListView.vue\n M src/views/ProductIoView.vue\n M src/views/SkuCreateView.vue\n M src/views/SpecConfigView.vue\n?? docs/benefit-package-workbench-evidence.json\n?? docs/benefit-package-workbench.md\n?? docs/template-compatibility-workbench-evidence.json\n?? docs/template-compatibility-workbench.md\n?? scripts/browser-template-compatibility-import.mjs\n?? scripts/browser-template-compatibility.mjs\n?? scripts/template-compatibility-batch-performance.ts\n?? scripts/template-compatibility-domain-check.ts\n?? scripts/template-compatibility-fixtures.ts\n?? scripts/template-compatibility-performance.ts\n?? scripts/template-compatibility-scope-audit.mjs\n?? scripts/template-compatibility-state-check.ts\n?? scripts/template-compatibility-visual-check.mjs\n?? src/components/template-compatibility/\n?? src/domain/compatibilityValidation.ts\n?? src/domain/templateCompatibility.ts\n?? src/domain/templateCompatibilitySync.ts\n?? src/domain/templateCompatibilityTypes.ts"
+  }
+}

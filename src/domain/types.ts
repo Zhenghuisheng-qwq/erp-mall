@@ -1,6 +1,8 @@
 import type { SkuViewConfig, SkuWorkbenchState } from './skuWorkbenchTypes'
 import type { AccessoryTargetKind, CompatibilityCapability, CompatibilityConclusion, CompatibilityCondition, CompatibilityProvenance, CompatibilityVerification, DeviceBinding, DeviceModel } from './accessoryCompatibilityTypes'
 import type { BenefitDeliverySnapshot, BenefitPackage } from './benefitPackageTypes'
+import type { TemplateCompatibilityConfig, TemplateCompatibilitySnapshot } from './templateCompatibilityTypes'
+import type { TemplateCompatibilityOrigin } from './templateCompatibilitySync'
 
 export const DATA_VERSION = 15
 export const STORAGE_KEY = 'iyge-v2-mock-db'
@@ -118,6 +120,7 @@ export interface NamingPart {
 
 /** 一次发布冻结的模型节点。历史商品按 id 读取，不跟随后来的编辑树。 */
 export interface SpecModelVersion {
+  templateCompatibilitySnapshot?: TemplateCompatibilitySnapshot
   id: string
   templateId: string
   version: number
@@ -509,6 +512,9 @@ export interface Profile {
 }
 
 export interface AppData {
+  /** Optional V15 extension. No historical SKU/MAT or declaration is backfilled on load. */
+  templateCompatibilityConfigs?: TemplateCompatibilityConfig[]
+  templateCompatibilityOrigins?: TemplateCompatibilityOrigin[]
   /** V14：两个管理页各自持有视图、筛选预设和分页；旧字段保留用于历史兼容。 */
   productListPages?: Record<ProductListMode, ProductListPageState>
   mode: AppMode

@@ -7,7 +7,7 @@ const baseline = process.argv.includes('--baseline')
   : undefined
 const server = await createServer({
   configFile: false,
-  server: { middlewareMode: true },
+  server: { middlewareMode: true, hmr: false },
   appType: 'custom',
   plugins: baseline ? [{
     name: 'pinned-domain-check-baseline', enforce: 'pre',

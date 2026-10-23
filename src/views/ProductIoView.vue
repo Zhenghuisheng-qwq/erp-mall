@@ -64,7 +64,7 @@
         </el-table-column>
       </el-table>
       <p v-if="preview.length > 80" class="muted">只展示前 80 行，确认时会处理全部可导入行。</p>
-      <el-button type="primary" :disabled="readyCount === 0 || saving" @click="confirm">确认导入 {{ readyCount }} 行</el-button>
+      <el-button type="primary" :disabled="readyCount === 0 || saving || !store.isAdmin" @click="confirm">确认导入 {{ readyCount }} 行</el-button>
       <p v-if="resultText" class="muted">{{ resultText }} <router-link to="/products">打开商品列表</router-link></p>
     </div>
   </div>
@@ -78,6 +78,7 @@ import PageHead from '../components/PageHead.vue'
 import { installAcceptanceCatalog } from '../domain/acceptanceCatalog'
 import { applyExcelImport, observedMaterials, previewGroups, previewSheet, readSheet, suggestMapping, suggestValueAliases, type ColumnMapping, type ColumnTarget, type ImportBlock, type ImportPreviewRow, type SheetProfile, type ValueAlias } from '../domain/excelImport'
 import { uid, useCatalogStore } from '../stores/catalog'
+import { cloneCompatibility } from '../domain/accessoryCompatibilityCommands'
 
 const store = useCatalogStore()
 const fileName = ref('')
@@ -203,7 +204,21 @@ function confirm() {
   saving.value = true
   let result: ReturnType<typeof applyExcelImport> = []
   try {
-    result = applyExcelImport(store.data, preview.value, uid)
+    const basis = store.materialImportBasis()
+    const candidate = cloneCompatibility(store.data)
+    result = applyExcelImport(candidate, preview.value, uid)
+    if (result.every(item => item.ok)) {
+      const committed = store.commitMaterialImport(candidate, basis)
+      if (!committed.ok) {
+        resultText.value = committed.message || '保存失败，导入预览和选择已保留，可以重试。'
+        ElMessage.error(resultText.value)
+        return
+      }
+    }
+  } catch (cause) {
+    resultText.value = `导入未保存：${cause instanceof Error ? cause.message : String(cause)}。预览和选择已保留。`
+    ElMessage.error(resultText.value)
+    return
   } finally {
     saving.value = false
   }

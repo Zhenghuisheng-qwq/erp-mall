@@ -222,8 +222,10 @@ export function reconcilePlanningRecords(input: {
   modelVersionId: string
   nodes: ProductSpecNode[]
   now: string
+  /** A caller may reuse its already expanded, deduplicated combinations from these same nodes. */
+  combinations?: LegalCombination[]
 }): PlanningReconcileResult {
-  const combinations = legalPlanningCombinations(input.data, input.productModelId, input.nodes)
+  const combinations = input.combinations ?? legalPlanningCombinations(input.data, input.productModelId, input.nodes)
   const records = input.records.map((item) => ({
     ...item,
     modelVersionIds: [...item.modelVersionIds],

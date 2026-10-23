@@ -14,11 +14,13 @@
         <el-table-column prop="version" label="版本" width="80" />
         <el-table-column prop="products" label="商品数量" width="100" />
         <el-table-column prop="skus" label="SKU数量" width="100" />
+        <el-table-column prop="compatibilitySummary" label="适用设备配置" min-width="200" />
         <el-table-column prop="updatedAt" label="更新时间" width="160" />
-        <el-table-column label="操作" width="320" fixed="right">
+        <el-table-column label="操作" width="390" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="open(row.id, true)">查看模型</el-button>
             <el-button link type="primary" @click="open(row.id, false)">编辑模型</el-button>
+            <el-button link data-open-model-compatibility @click="compatibilityModelId = row.id; compatibilityOpen = true">适用设备配置</el-button>
             <el-button link @click="router.push({ path: '/skus/new', query: { template: row.id } })">创建 SKU</el-button>
             <el-button link @click="copy(row.id)">复制模型</el-button>
             <el-button link @click="setStatus(row.id, 'published')">发布模型</el-button>
@@ -44,6 +46,7 @@
         <el-button type="primary" @click="create">创建</el-button>
       </template>
     </el-dialog>
+    <TemplateCompatibilityDialog v-model="compatibilityOpen" :model-id="compatibilityModelId" :readonly="!store.isAdmin" />
   </div>
 </template>
 
@@ -53,14 +56,16 @@ import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CategoryTreeSelect from '../components/CategoryTreeSelect.vue'
 import PageHead from '../components/PageHead.vue'
+import TemplateCompatibilityDialog from '../components/template-compatibility/TemplateCompatibilityDialog.vue'
 import { categoryPath } from '../domain/logic'
 import { isRealSku } from '../domain/catalogIdentity'
 import type { SpecModelStatus } from '../domain/types'
-import { uid, useCatalogStore } from '../stores/catalog'
+import { useCatalogStore } from '../stores/catalog'
 
 const store = useCatalogStore()
 const router = useRouter()
 const createOpen = ref(false)
+const compatibilityOpen = ref(false), compatibilityModelId = ref('')
 const draft = reactive({ categoryId: '', productTypeId: '', name: '' })
 const typeOptions = computed(() => store.productTypesOf(draft.categoryId))
 const rows = computed(() => {
@@ -76,6 +81,8 @@ const rows = computed(() => {
     const latest = published[published.length - 1]
     const families = store.data.families.filter((item) => item.templateId === id)
     const familyIds = new Set(families.map((item) => item.id))
+    const compatibility = store.data.templateCompatibilityConfigs?.find(item => item.modelId === id)
+    const legacyCount = store.data.nodeCompatibilityRules.filter(item => item.templateId === id && !item.modelVersionId).length
     return {
       id,
       name: canvas?.name || `${scheme?.name || '未命名'}模型`,
@@ -85,6 +92,7 @@ const rows = computed(() => {
       version: canvas?.status === 'draft' ? canvas.versionName || `V${(latest?.version || 0) + 1}` : latest?.versionName || canvas?.versionName || 'V1',
       products: families.length,
       skus: store.data.skus.filter((item) => familyIds.has(item.familyId) && isRealSku(store.data, item)).length,
+      compatibilitySummary: `${compatibility?.defaultRule.configured ? `默认 ${compatibility.defaultRule.claims.length} 条` : '默认未配置'} · 例外 ${compatibility?.exceptions.length || 0}${legacyCount ? ` · 旧配置 ${legacyCount} 项` : ''}`,
       updatedAt: canvas?.updatedAt ? canvas.updatedAt.slice(0, 16).replace('T', ' ') : '尚未单独保存',
     }
   })
@@ -157,35 +165,8 @@ function setStatus(id: string, status: SpecModelStatus) {
   ElMessage.success(status === 'offline' ? '已下线，新商品不能使用，历史商品仍读取创建时的版本' : '已改为草稿，新商品继续使用最近发布版本')
 }
 function copy(id: string) {
-  const source = store.data.templates.find((item) => item.id === id)
-  const sourceCanvas = store.data.specCanvases.find((item) => item.templateId === id)
-  if (!source || !sourceCanvas?.productTypeId) return
-  const name = `${sourceCanvas.name || source.name} 副本`
-  const nextId = uid('tpl')
-  store.data.templates.push({ ...source, id: nextId, name, parentId: null, structureOrder: [...source.structureOrder] })
-  store.data.templateParams.filter((item) => item.templateId === id).forEach((item) => store.data.templateParams.push({ ...item, templateId: nextId }))
-  const map = new Map(store.data.productSpecNodes.filter((item) => item.templateId === id).map((item) => [item.id, uid('sn')]))
-  store.data.productSpecNodes.filter((item) => item.templateId === id).forEach((item) => {
-    store.data.productSpecNodes.push({
-      ...item,
-      id: map.get(item.id) || uid('sn'),
-      templateId: nextId,
-      parentId: item.parentId ? map.get(item.parentId) || null : null,
-    })
-  })
-  store.data.specCanvases.push({
-    templateId: nextId,
-    productTypeId: sourceCanvas.productTypeId,
-    name,
-    zoom: 1,
-    panX: 0,
-    panY: 0,
-    status: 'draft',
-    version: 1,
-    versionName: 'V1',
-    direction: 'ltr',
-    updatedAt: new Date().toISOString(),
-  })
-  ElMessage.success('已复制模型。新模型是草稿，没有复制商品。')
+  const result = store.copyProductModel(id)
+  if (!result.ok) { ElMessage.warning(result.message || '复制失败，原模型保持。'); return }
+  ElMessage.success(('message' in result ? result.message : '') || '已复制模型。新模型是草稿，没有复制商品或历史版本。')
 }
 </script>

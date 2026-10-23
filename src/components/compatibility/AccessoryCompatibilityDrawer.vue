@@ -36,7 +36,7 @@
                 <p v-for="(reason, index) in item.reasons" :key="index" class="reason">{{ reason }}</p>
                 <el-alert v-if="item.conflict" title="存在相反声明，按保守规则处理；请维护人员核对。" type="warning" :closable="false" />
                 <div v-for="cap in item.capabilities" :key="cap.capability" class="capability-line"><strong>{{ capabilityLabels[cap.capability] }}</strong><span>{{ statusLabels[cap.status] }}</span><span v-if="cap.conflict" class="warn"> · 存在冲突</span><ul v-if="cap.conditions.length"><li v-for="(evaluation, index) in cap.conditions" :key="index"><el-tag size="small" :type="evaluation.state === 'met' ? 'success' : evaluation.state === 'unmet' ? 'danger' : 'warning'">{{ conditionStatus[evaluation.state] }}</el-tag> {{ evaluation.label }}</li></ul></div>
-                <details class="evidence"><summary>查看 {{ item.declarations.length }} 条匹配依据与范围</summary><div v-for="link in item.declarations" :key="link.id" class="evidence-row"><p>{{ scopeText(link.host) }} · {{ capabilityLabels[declarationDefaults(link).capability] }} · {{ verificationLabels[declarationDefaults(link).verification] }}{{ conclusionLabels[declarationDefaults(link).conclusion] }}</p><p>来源：{{ declarationDefaults(link).source }}</p><p v-if="declarationDefaults(link).provenance.kind === 'material-copy'">确认复制自物料 {{ declarationDefaults(link).provenance.materialSnapshot?.code }} · {{ declarationDefaults(link).provenance.materialSnapshot?.name }}；原声明 {{ declarationDefaults(link).provenance.declarationId }} 的历史快照保留。</p><p v-if="link.note">备注：{{ link.note }}</p><p class="muted">{{ link.id }} · 更新 {{ link.updatedAt || '未记录' }}</p></div></details>
+                <details class="evidence"><summary>查看 {{ item.declarations.length }} 条匹配依据与范围</summary><div v-for="link in item.declarations" :key="link.id" class="evidence-row"><p>{{ scopeText(link.host) }} · {{ capabilityLabels[declarationDefaults(link).capability] }} · {{ verificationLabels[declarationDefaults(link).verification] }}{{ conclusionLabels[declarationDefaults(link).conclusion] }}</p><p>来源：{{ declarationDefaults(link).source }}</p><TemplateCompatibilitySource :link="link" /><p v-if="declarationDefaults(link).provenance.kind === 'material-copy'">确认复制自物料 {{ declarationDefaults(link).provenance.materialSnapshot?.code }} · {{ declarationDefaults(link).provenance.materialSnapshot?.name }}；原声明 {{ declarationDefaults(link).provenance.declarationId }} 的历史快照保留。</p><p v-if="link.note">备注：{{ link.note }}</p><p class="muted">{{ link.id }} · 更新 {{ link.updatedAt || '未记录' }}</p></div></details>
                 <div class="card-actions"><el-button link type="primary" @click="detailId = item.target.id">查看详情</el-button><el-button link type="primary" @click="chooseSku(item.target.id)">适用主机</el-button><el-button v-if="store.isAdmin" link @click="manageTarget = item.target; managerOpen = true">维护声明</el-button></div>
               </article>
             </section>
@@ -51,16 +51,17 @@
             <p>{{ item.scopeSummary }}</p>
             <el-alert v-if="item.conflict" title="此型号存在相反声明，需要核对。" type="warning" :closable="false" />
             <div v-for="cap in item.capabilities" :key="cap.capability" class="capability-line"><strong>{{ capabilityLabels[cap.capability] }}</strong><span>{{ statusLabels[cap.status] }}</span><span v-if="cap.conflict" class="warn"> · 存在冲突</span></div>
-            <div v-for="link in item.declarations" :key="link.id" class="evidence-row"><p>{{ scopeText(link.host) }} · {{ capabilityLabels[declarationDefaults(link).capability] }} · {{ verificationLabels[declarationDefaults(link).verification] }}{{ conclusionLabels[declarationDefaults(link).conclusion] }}</p><p class="muted">来源：{{ declarationDefaults(link).source }}</p><ul><li v-for="(condition, index) in declarationDefaults(link).conditions" :key="index">{{ conditionText(store.data, condition) }} · 具体前提请结合设备核验</li></ul></div>
+            <div v-for="link in item.declarations" :key="link.id" class="evidence-row"><p>{{ scopeText(link.host) }} · {{ capabilityLabels[declarationDefaults(link).capability] }} · {{ verificationLabels[declarationDefaults(link).verification] }}{{ conclusionLabels[declarationDefaults(link).conclusion] }}</p><p class="muted">来源：{{ declarationDefaults(link).source }}</p><TemplateCompatibilitySource :link="link" /><ul><li v-for="(condition, index) in declarationDefaults(link).conditions" :key="index">{{ conditionText(store.data, condition) }} · 具体前提请结合设备核验</li></ul></div>
             <div class="reverse-devices"><p v-if="!item.devices.length" class="muted">该型号尚无可查看的具体销售 SKU；型号声明仍保留。</p><el-button v-for="device in item.devices" :key="device.skuId" @click="chooseSku(device.skuId)">{{ device.code }} · {{ device.name }} · {{ statusLabels[device.status] }}</el-button></div>
           </article>
           <el-alert v-for="(issue, index) in reverse.issues" :key="index" :title="issue.message" type="warning" :closable="false" />
         </template>
-        <div class="drawer-maintenance"><el-button v-if="store.isAdmin" @click="manageTarget = undefined; managerOpen = true">管理适用关系</el-button><span v-else class="muted">当前角色只读，维护请联系管理员。</span></div>
+        <div class="drawer-maintenance"><el-button v-if="store.isAdmin" @click="manageTarget = undefined; managerOpen = true">管理适用关系</el-button><el-button v-if="accessoryMode" data-check-template-updates @click="syncOpen = true">检查模板更新</el-button><span v-if="!store.isAdmin" class="muted">当前角色只读，维护请联系管理员。</span></div>
       </template>
       <el-empty v-else-if="!familyId" description="该对象不存在或引用已经失效，请返回列表重新选择。" />
     </div>
     <DeviceBindingDialog v-model="bindingOpen" :sku-id="viewSkuId" />
+    <TemplateCompatibilitySyncDialog v-model="syncOpen" :target="target" />
     <el-dialog v-model="managerOpen" title="管理适用关系" width="min(1100px, 96vw)" :close-on-click-modal="false" destroy-on-close append-to-body><CompatibilityManager :target="managerTarget" :host="managerHost" :device-sku-id="!accessoryMode ? viewSkuId : undefined" /></el-dialog>
     <el-dialog :model-value="!!detailId" title="配件详情" width="min(600px, 94vw)" append-to-body @update:model-value="(value: boolean) => { if (!value) detailId = '' }"><template v-if="detail"><el-tag>{{ isMaterialArchive(store.data, detail) ? 'MAT 物料' : '销售 SKU' }}</el-tag><h3>{{ detail.skuName || '未命名' }}</h3><p>{{ detail.materialCode || detail.code }}</p><p>{{ recordSpec(store.data, detail) }}</p><p>当前状态：{{ {on_sale:'在售',off_sale:'停售',draft:'草稿'}[detail.status] }}</p><p v-if="detail.materialDescription">{{ detail.materialDescription }}</p><el-button @click="chooseSku(detail.id); detailId = ''">查看适用主机</el-button></template></el-dialog>
   </el-drawer>
@@ -77,6 +78,8 @@ import type { AccessoryMatch, AccessoryTarget } from '../../domain/accessoryComp
 import { capabilityLabels, conclusionLabels, verificationLabels, hostKey, hostText, scopeText, conditionText, recordSpec } from './compatibilityPresentation'
 import DeviceBindingDialog from './DeviceBindingDialog.vue'
 import CompatibilityManager from './CompatibilityManager.vue'
+import TemplateCompatibilitySource from '../template-compatibility/TemplateCompatibilitySource.vue'
+import TemplateCompatibilitySyncDialog from '../template-compatibility/TemplateCompatibilitySyncDialog.vue'
 
 const props = defineProps<{ modelValue: boolean; skuId?: string; familyId?: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; 'prepare-benefit-package': [skuId: string] }>()
@@ -85,6 +88,7 @@ const router = useRouter(), route = useRoute()
 const viewSkuId = ref(''), keyword = ref(''), typeId = ref('')
 const section = ref<'sales' | 'materials' | 'pending' | 'excluded' | 'unavailable'>('sales')
 const bindingOpen = ref(false), managerOpen = ref(false), detailId = ref(''), manageTarget = ref<AccessoryTarget>()
+const syncOpen = ref(false)
 let opener: HTMLElement | null = null
 const entryFamily = computed(() => store.data.families.find(item => item.id === props.familyId))
 const familySkus = computed(() => store.data.skus.filter(item => item.familyId === props.familyId && isRealSku(store.data, item)))
@@ -117,14 +121,14 @@ const deviceStatusLabels = { resolved: '已确认设备型号', unconfigured: '�
 const statusLabels = { compatible: '适用', conditional: '有条件适用', incompatible: '当前不适用', pending: '待确认' }
 const conditionStatus = { met: '已满足', unmet: '不满足', unknown: '仍需确认' }
 function statusType(status: AccessoryMatch['status']) { return status === 'compatible' ? 'success' : status === 'incompatible' ? 'danger' : 'warning' }
-function chooseSku(id: string) { viewSkuId.value = id; keyword.value = ''; typeId.value = ''; section.value = 'sales'; manageTarget.value = undefined; detailId.value = '' }
+function chooseSku(id: string) { viewSkuId.value = id; keyword.value = ''; typeId.value = ''; section.value = 'sales'; manageTarget.value = undefined; detailId.value = ''; syncOpen.value = false }
 function composePackage() {
   if (!store.isAdmin || !viewSku.value || !isRealSku(store.data, viewSku.value)) return
   emit('prepare-benefit-package', viewSkuId.value)
   void router.push({ path: '/benefit-packages/new', query: { device: viewSkuId.value, returnTo: route.fullPath } })
 }
 watch(() => [props.modelValue, props.skuId, props.familyId] as const, ([open], old) => {
-  if (!open) { managerOpen.value = false; bindingOpen.value = false; detailId.value = ''; return }
+  if (!open) { managerOpen.value = false; bindingOpen.value = false; syncOpen.value = false; detailId.value = ''; return }
   if (!old?.[0] && typeof document !== 'undefined') opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
   if (props.skuId) chooseSku(props.skuId)
   else if (familySkus.value.length === 1) chooseSku(familySkus.value[0]?.id || '')

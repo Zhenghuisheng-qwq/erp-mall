@@ -7,7 +7,7 @@
       <p class="spec">{{ preview.label }}</p>
       <p class="meta">规划编号 {{ preview.planningId }} · {{ preview.versionName }} · {{ gradeLabel }} · {{ filingLabel }} · {{ codeText || '尚未建档' }}</p>
       <div class="row-actions">
-        <el-button type="primary" @click="openCreate">创建物料</el-button>
+        <el-button type="primary" :disabled="!store.isAdmin" @click="openCreate">创建物料</el-button>
         <el-button :disabled="count === 0" @click="listOpen = true">查看已有物料</el-button>
       </div>
       <p v-if="lastCode" class="meta">刚创建 {{ lastCode }}。<button type="button" class="linkish" @click="listOpen = true">查看</button></p>
@@ -19,6 +19,8 @@
       <div v-if="preview" @keydown.tab.stop>
         <p class="spec">{{ preview.label }}</p>
         <p class="meta">规划编号 {{ preview.planningId }} · 模型版本 {{ preview.versionName }}</p>
+        <p v-if="compatibilitySummary" class="meta" data-material-template-summary>{{ compatibilitySummary }}</p>
+        <p v-if="compatibilityProblem" class="warn" role="alert">{{ compatibilityProblem }}</p>
         <p v-if="choices.length" class="warn">有多款商品都能放下这条规格，请选一款。不会按名称自动合并。</p>
         <el-radio-group v-if="choices.length" v-model="pickedFamilyId" class="choices">
           <el-radio v-for="item in choices" :key="item.id" :value="item.id">{{ item.name }}</el-radio>
@@ -35,8 +37,8 @@
       </div>
       <template #footer>
         <el-button :disabled="saving" @click="createOpen = false">取消</el-button>
-        <el-button :loading="saving" @click="confirm(true)">创建并继续下一条</el-button>
-        <el-button type="primary" :loading="saving" @click="confirm(false)">确认创建</el-button>
+        <el-button :loading="saving" :disabled="!store.isAdmin" @click="confirm(true)">创建并继续下一条</el-button>
+        <el-button type="primary" :loading="saving" :disabled="!store.isAdmin" @click="confirm(false)">确认创建</el-button>
       </template>
     </el-dialog>
 
@@ -79,6 +81,9 @@ import { materialsOfRecord } from '../domain/comboMaterialStatus'
 import { materialNameOriginLabel, suggestMaterialName } from '../domain/naming'
 import type { MaterialChoice } from '../domain/material'
 import { uid, useCatalogStore } from '../stores/catalog'
+import { roleOfType } from '../domain/compatibility'
+import { createTemplateCompatibilityContext, resolveTemplateCompatibility } from '../domain/templateCompatibility'
+import { templateCreationSummary } from './template-compatibility/creationPresentation'
 
 const props = defineProps<{
   productModelId: string
@@ -119,6 +124,15 @@ const resolved = computed(() => {
 })
 const preview = computed(() => (resolved.value && resolved.value.ok ? resolved.value.spec : null))
 const previewMessage = computed(() => (resolved.value && !resolved.value.ok ? resolved.value.message : ''))
+const compatibilityPreview = computed(() => {
+  if (!preview.value || roleOfType(store.data, props.productTypeId) !== 'accessory') return undefined
+  const context = createTemplateCompatibilityContext(store.data, { modelId: props.productModelId, versionId: props.modelVersionId })
+  const source = new Set(preview.value.sourceNodeIds)
+  const combo = context.combinations.find(item => item.steps.length === source.size && item.steps.every(step => source.has(step.valueNodeId)))
+  return combo ? resolveTemplateCompatibility(context, combo) : undefined
+})
+const compatibilitySummary = computed(() => compatibilityPreview.value ? templateCreationSummary([compatibilityPreview.value], preview.value?.versionName || '', 'MAT') : '')
+const compatibilityProblem = computed(() => compatibilityPreview.value && ['conflict', 'invalid'].includes(compatibilityPreview.value.state) ? compatibilityPreview.value.message : '')
 function listedMaterial(item: { planningId?: string; modelVersionId?: string }) {
   if (item.planningId !== props.planningId) return false
   if (!props.matchVersion) return true
@@ -208,7 +222,7 @@ function confirm(keep: boolean) {
   saving.value = false
   if (!result.ok) {
     errorText.value = result.message
-    choices.value = result.choices || []
+    choices.value = 'choices' in result ? result.choices || [] : []
     return
   }
   lastCode.value = result.materialCode

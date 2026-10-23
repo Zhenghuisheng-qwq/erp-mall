@@ -45,8 +45,13 @@ SKU 管理提供本机视图工作台：筛选先应用、再保存，支持条�
 
 统一维护入口为「适用关系」，原 MAT 页面及链接继续保留。数据读取异常时先保留原存储并提供备份、校验恢复入口，不自动替换成演示商品。完整规则、验收与限制见 [设备与配件兼容关系工作台](docs/accessory-compatibility-workbench.md)。专项入口：`npm run check:accessory-compatibility`。
 
-## 还没接真实后端的部分
+## 权益包工作台
 
+从「商品管理 → 权益包」新建，也可在手机 SKU 的「更多 → 组权益包」或适用配件抽屉进入。选设备仅提供适配上下文，显式加入后才交付手机。添加真实 SKU 和独立服务、填写整包报价或留空，保存后按本次包数预览并确认交付清单；历史清单可打印和导出 Excel。
+
+规则、数据安全、实际验证及限制见 [权益包工作台报告](docs/benefit-package-workbench.md)。专项入口：`npm run check:benefit-packages`。当前不进行支付、库存扣减、出库或服务激活。
+
+## 还没接真实后端的部分
 
 分类映射、参数角色、必填、商品族、批量保存事务、规则状态，都在浏览器里计算。
 
@@ -81,3 +86,9 @@ npm run build
 品牌下面同时有 Apple（属性值）和型号（属性）时，品牌下拉是「Apple、型号」。选 Apple 就进入 Apple 的子节点；选型号才进入型号节点。不要品牌一行、型号一行同时出现。
 
 这条按现在的 mock 数据验收。以后改成接口数据时再另说，现在不要为接接口去改选择器。锁定范围和完整规则见 [docs/商品配置闭环.md](docs/商品配置闭环.md) 第 5 节。
+
+## 模板兼容配置
+
+商品模型的“配置适用设备”维护整体默认与规格例外；节点快捷入口编辑同一套规则。保存后发布模型，从该发布版本新增销售 SKU 或 MAT 时自动生成各自的适用声明。已有商品在“适用关系”或商品兼容抽屉中“检查模板更新”，先预览再确认，人工修改与取消记录默认受到保护。
+
+实现、全部实际创建入口、数据保护和验收范围见 [模板兼容工作台报告](docs/template-compatibility-workbench.md)。核心检查运行 `npm run check:template-compatibility`，性能运行 `npm run check:template-compatibility:performance`。浏览器使用独立上下文及已安装的 Chrome，可配置 `BROWSER_CHANNEL`；视觉对照运行 `npm run check:template-compatibility:visual`，需要本轮开始前的完整源码快照（`TEMPLATE_COMPATIBILITY_BASELINE`）。缺失环境或基线会明确失败。

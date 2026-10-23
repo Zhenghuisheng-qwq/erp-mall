@@ -22,13 +22,14 @@
       <label>供应商编码<el-input v-model="supplierCode" clearable placeholder="可留空" /></label>
       <label>物料描述<el-input v-model="materialDescription" type="textarea" :rows="2" /></label>
       <p class="summary">{{ summary || '填写属性后这里会显示摘要。' }}</p>
+      <p class="muted" data-temporary-template-summary>{{ compatibilitySummary }}</p>
       <p v-if="errorText" class="warn">{{ errorText }}</p>
       <p v-if="lastCode" class="muted">刚创建 {{ lastCode }}。可以继续填写下一条，或打开刚创建的物料。</p>
     </div>
     <template #footer>
       <el-button v-if="lastFamilyId" @click="emit('open', lastFamilyId, lastSkuId)">查看刚创建的物料</el-button>
       <el-button :disabled="saving" @click="emit('close')">关闭</el-button>
-      <el-button type="primary" :loading="saving" @click="save">保存临时物料</el-button>
+      <el-button type="primary" :loading="saving" :disabled="!store.isAdmin" @click="save">保存临时物料</el-button>
     </template>
   </el-dialog>
 </template>
@@ -39,6 +40,9 @@ import { computed, reactive, ref, watch } from 'vue'
 import { temporaryAttributeFields } from '../domain/material'
 import { suggestTemporaryName } from '../domain/naming'
 import { uid, useCatalogStore } from '../stores/catalog'
+import { previewTemplateForManualAttributes } from '../domain/templateCompatibilitySync'
+import { templateCreationSummary } from './template-compatibility/creationPresentation'
+import { roleOfType } from '../domain/compatibility'
 
 const props = defineProps<{ open: boolean; categoryId: string; productTypeId: string; productModelId?: string; modelVersionId?: string }>()
 const emit = defineEmits<{ close: []; open: [familyId: string, skuId: string] }>()
@@ -60,6 +64,12 @@ const categoryName = computed(() => store.data.categories.find((item) => item.id
 const typeName = computed(() => store.data.productTypes.find((item) => item.id === props.productTypeId)?.name || '未选类型')
 const modelName = computed(() => store.data.specCanvases.find((item) => item.templateId === props.productModelId)?.name || '')
 const summary = computed(() => rows.filter((item) => item.value.trim()).map((item) => `${item.name} ${item.value.trim()}`).join(' · '))
+const compatibilitySummary = computed(() => {
+  if (roleOfType(store.data, props.productTypeId) !== 'accessory') return '按当前产品类型和属性建档；配件适用设备配置仅用于配件对象。'
+  const result = previewTemplateForManualAttributes(store.data, { modelId: props.productModelId || '', versionId: props.modelVersionId || '', attrs: rows.filter(item => item.value.trim()).map(item => ({ attributeId: item.attributeId, value: item.value.trim() })) })
+  const version = store.data.specModelVersions.find(item => item.id === props.modelVersionId)
+  return `${templateCreationSummary([result], version?.versionName || '', '临时物料')}。${result.message}`
+})
 const namingMessage = computed(() => suggestion.value.status === 'conflict' ? suggestion.value.message : '')
 const suggestion = computed(() => suggestTemporaryName({
   productTypeName: typeName.value,

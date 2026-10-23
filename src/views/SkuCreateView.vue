@@ -1,6 +1,7 @@
 <template>
   <div>
     <PageHead title="新增 SKU" desc="先确定所属 SPU，再填写或批量生成规格。预览和取消都不会写入业务数据。"><el-button @click="back">返回 SKU 管理</el-button></PageHead>
+    <p v-if="copy" class="muted" data-sku-copy-policy>已复制所选 SKU 的规格草稿。适用设备按目标 SPU 绑定的发布版本重新计算，原商品的人工适用设置仍保留在原商品。</p>
     <section class="panel" style="margin-bottom: 16px">
       <h2>1. 选择 SPU</h2>
       <SpuPicker :model-value="familyId" :plan-id="planId" :template-id="templateId" @change="selectFamily" />
@@ -28,6 +29,8 @@
     <section v-if="previewed" class="panel">
       <h2>3. 确认新增</h2>
       <p data-candidate-count>候选 {{ candidates.length }} 条，可新增 {{ count('new') }} 条，已存在 {{ count('existing') }} 条，无效 {{ count('invalid') }} 条。</p>
+      <p v-if="compatibilitySummary" class="muted" data-sku-template-summary>{{ compatibilitySummary }}</p>
+      <p v-for="item in compatibilityProblems" :key="item.key" class="issue-error" data-sku-template-problem>{{ attrsText(item.draft.variantAttrs) }}：{{ item.message }}</p>
       <p v-if="error" class="issue-error" role="alert">{{ error }}</p>
       <p v-if="candidates.length && !count('new')" class="muted">没有可新增规格；已存在的记录不会重复创建。</p>
       <el-table :data="candidates" row-key="key" max-height="500">
@@ -37,7 +40,7 @@
         <el-table-column label="结果" width="110"><template #default="{ row }">{{ { new: '可新增', existing: '已存在', invalid: '无效' }[row.state as SkuCandidate['state']] }}</template></el-table-column>
         <el-table-column label="说明"><template #default="{ row }">{{ row.reason }} <el-button v-if="row.existingId" link @click="router.push({ path: `/skus/${row.existingId}`, query: { spu: familyId } })">查看已有 SKU</el-button></template></el-table-column>
       </el-table>
-      <div class="row-actions" style="margin-top: 16px"><el-button @click="back">取消</el-button><el-button type="primary" :loading="saving" :disabled="!selected.length" @click="submit">确认新增 {{ selected.length }} 条 SKU</el-button></div>
+      <div class="row-actions" style="margin-top: 16px"><el-button @click="back">取消</el-button><el-button type="primary" :loading="saving" :disabled="!selected.length || !store.isAdmin" @click="submit">确认新增 {{ selected.length }} 条 SKU</el-button></div>
     </section>
     <el-dialog v-model="spuOpen" title="新建 SPU 并继续" width="min(820px, 94vw)" destroy-on-close :close-on-click-modal="false">
       <SpuForm v-if="spuInitial" :initial="spuInitial" inline @dirty="inlineDirty = $event" @cancel="spuOpen = false" @saved="spuSaved" />
@@ -59,6 +62,8 @@ import { newSpuDraft } from '../domain/spuDraft'
 import { planSpuCompatibility, previewSkuAppend, skuConfigurationProblem, skuFields, type SkuCandidate, type SkuDraft, type SkuGeneration } from '../domain/spuSku'
 import type { ProductFamily } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
+import { previewTemplateForSkuDrafts } from '../domain/templateCompatibilitySync'
+import { templateCreationSummary } from '../components/template-compatibility/creationPresentation'
 const store = useCatalogStore()
 const route = useRoute()
 const router = useRouter()
@@ -92,6 +97,13 @@ const problem = computed(() => {
   return skuConfigurationProblem(store.data, family.value) || (planId ? planSpuCompatibility(store.data, family.value, planId) : templateId && family.value.templateId !== templateId ? 'SPU 的模型或方案与当前来源不一致。' : '')
 })
 const versionName = computed(() => store.data.specModelVersions.find(item => item.id === family.value?.modelVersionId)?.versionName || family.value?.modelVersionId || '未绑定发布模型')
+const compatibilityCandidates = computed(() => candidates.value.filter(row => row.state === 'new' && selected.value.includes(row.key)))
+const compatibilityPreviews = computed(() => previewTemplateForSkuDrafts(store.data, familyId.value, compatibilityCandidates.value.map(row => row.draft)))
+const compatibilitySummary = computed(() => templateCreationSummary(compatibilityPreviews.value, family.value?.modelVersionId ? versionName.value : '', 'SKU'))
+const compatibilityProblems = computed(() => compatibilityCandidates.value.flatMap((row, index) => {
+  const item = compatibilityPreviews.value[index]
+  return item && (item.state === 'invalid' || item.state === 'conflict') ? [{ ...row, message: item.message }] : []
+}))
 const attrsText = (attrs: Record<string, string>) => Object.entries(attrs).filter(([, value]) => value).map(([name, value]) => `${name}：${value}`).join(' / ')
 const count = (state: SkuCandidate['state']) => candidates.value.filter(row => row.state === state).length
 const allSelected = computed(() => count('new') > 0 && selected.value.length === count('new'))

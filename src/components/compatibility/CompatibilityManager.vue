@@ -2,7 +2,7 @@
   <section class="compatibility-manager" data-compatibility-manager>
     <div class="manager-head">
       <div><h2>兼容声明</h2><p class="muted">销售 SKU 与物料分别声明；型号级与指定规格分别生效。</p></div>
-      <div class="row-actions" v-if="store.isAdmin"><el-button @click="openCopy">从物料适用关系复制</el-button><el-button type="primary" @click="openAdd">新增声明</el-button></div>
+      <div class="row-actions"><el-button data-check-template-updates @click="syncOpen = true">检查模板更新</el-button><template v-if="store.isAdmin"><el-button @click="openCopy">从物料适用关系复制</el-button><el-button type="primary" @click="openAdd">新增声明</el-button></template></div>
     </div>
     <el-alert v-if="!store.isAdmin" title="当前为只读角色，可查看声明与适用范围；维护需要管理员权限。" type="info" :closable="false" />
     <div class="manager-tools">
@@ -23,6 +23,7 @@
         <el-tag :type="item.state.verification === 'pending' ? 'warning' : item.state.conclusion === 'incompatible' ? 'danger' : item.state.conclusion === 'conditional' ? 'warning' : 'success'">{{ verificationLabels[item.state.verification] }} · {{ conclusionLabels[item.state.conclusion] }}</el-tag>
       </div>
       <p class="muted">{{ capabilityLabels[item.state.capability] }} · 来源：{{ item.state.source || '核验依据未记录' }}</p>
+      <TemplateCompatibilitySource :link="item.link" />
       <el-alert v-if="item.conflict" title="同一实际范围存在相反声明，已标记冲突；不会自动选择其中一条。" type="warning" :closable="false" data-declaration-conflict />
       <el-alert v-if="item.referenceProblem" :title="item.referenceProblem" type="warning" :closable="false" data-declaration-invalid />
       <ul v-if="item.state.conditions.length"><li v-for="(condition, index) in item.state.conditions" :key="index">{{ conditionText(store.data, condition) }}</li></ul>
@@ -30,12 +31,14 @@
       <p v-if="item.link.note">备注：{{ item.link.note }}</p>
       <div class="statement-bottom"><span class="muted">更新 {{ item.link.updatedAt || '未记录' }} · {{ item.link.id }}</span><div v-if="store.isAdmin"><el-button link type="primary" @click="openEdit(item.link)">编辑声明</el-button><el-button link type="danger" @click="stageCancellation([item.link.id])">取消声明</el-button></div></div>
     </article>
+    <section v-if="deletedOrigins.length" class="deleted-origins" data-template-deleted-origins><h3>已取消的模板声明</h3><p class="muted">这些取消记录仍受保护，不作为有效兼容关系展示。</p><article v-for="origin in deletedOrigins" :key="origin.key" class="statement-card"><strong>{{ targetText(store.data,origin.target) }} → {{ hostText(origin.baseline.host) }}</strong><TemplateCompatibilitySource :origin="origin" /></article></section>
     <div v-if="store.isAdmin" class="model-tools">
       <h3>设备型号与绑定</h3><p class="muted">手工或模板 SKU 未能唯一确认型号时，可以显式配置；无销售 SKU 的型号也可单独维护。</p>
       <el-select v-model="bindingSkuId" filterable clearable placeholder="选择要配置型号的主机 SKU" aria-label="选择主机 SKU"><el-option v-for="item in deviceSkus" :key="item.id" :value="item.id" :label="`${item.code} · ${item.skuName || item.id}`" /></el-select>
       <el-button :disabled="!bindingSkuId" @click="bindingOpen = true">配置设备型号</el-button><el-button @click="bindingSkuId = ''; bindingOpen = true">新建独立型号</el-button>
     </div>
     <DeviceBindingDialog v-model="bindingOpen" :sku-id="bindingSkuId" @saved="emit('updated')" />
+    <TemplateCompatibilitySyncDialog v-model="syncOpen" :target="target" @updated="emit('updated')" />
 
     <el-dialog v-model="formOpen" :title="formTitle" width="min(820px, 96vw)" :close-on-click-modal="false" data-declaration-editor>
       <template v-if="mode === 'copy'">
@@ -97,11 +100,15 @@ import type { CompatibilityHost, CompatibilityLink } from '../../domain/types'
 import type { AccessoryTarget, AccessoryTargetKind, CompatibilityCapability, CompatibilityConclusion, CompatibilityCondition, CompatibilityVerification } from '../../domain/accessoryCompatibilityTypes'
 import { capabilityLabels, conclusionLabels, verificationLabels, hostText, hostKey, scopeText, targetText, conditionText, declarationText } from './compatibilityPresentation'
 import DeviceBindingDialog from './DeviceBindingDialog.vue'
+import TemplateCompatibilitySource from '../template-compatibility/TemplateCompatibilitySource.vue'
+import TemplateCompatibilitySyncDialog from '../template-compatibility/TemplateCompatibilitySyncDialog.vue'
 
 const props = defineProps<{ target?: AccessoryTarget; host?: CompatibilityHost; deviceSkuId?: string }>()
 const emit = defineEmits<{ updated: [] }>()
 const store = useCatalogStore()
 const keyword = ref(''), kindFilter = ref(''), stateFilter = ref(''), showAll = ref(false), selectedIds = ref<string[]>([])
+const syncOpen = ref(false)
+const deletedOrigins = computed(() => (store.data.templateCompatibilityOrigins || []).filter(origin => origin.state === 'deleted' && (!props.target || showAll.value || origin.target.kind === props.target.kind && origin.target.id === props.target.id) && (!props.host || showAll.value || hostKey(origin.baseline.host) === hostKey(props.host)) && (!kindFilter.value || origin.target.kind === kindFilter.value) && (!keyword.value.trim() || `${targetText(store.data,origin.target)} ${hostText(origin.baseline.host)}`.toLowerCase().includes(keyword.value.trim().toLowerCase()))))
 const relatedDeclarations = computed(() => {
   const groups = new Map<string, CompatibilityLink[]>()
   for (const link of store.data.compatibilities) {
@@ -152,7 +159,7 @@ const planningOptions = computed(() => {
 })
 const sourceLinks = computed(() => store.data.compatibilities.filter(link => { const target = compatibilityTarget(link); return target.kind === 'material' && target.id === sourceMaterialId.value }))
 watch([objectKind, targetIds, hostKeys, scope, planningId, conclusion, verification, capability, source, note, conditionRows, sourceMaterialId, copySkuId], () => { preview.value = undefined; stagedChanges.value = []; error.value = '' }, { deep: true, flush: 'sync' })
-watch(() => [props.target?.kind, props.target?.id, props.host?.productModelId, props.host?.identityKey, props.deviceSkuId], () => { showAll.value = false; selectedIds.value = []; bindingSkuId.value = props.deviceSkuId || ''; formOpen.value = false; bindingOpen.value = false; reset() })
+watch(() => [props.target?.kind, props.target?.id, props.host?.productModelId, props.host?.identityKey, props.deviceSkuId], () => { showAll.value = false; selectedIds.value = []; bindingSkuId.value = props.deviceSkuId || ''; formOpen.value = false; bindingOpen.value = false; syncOpen.value = false; reset() })
 function accessory(familyId: string) { return compatibilityFamilyRole(store.data, familyId) === 'accessory' }
 function relationKey(link: CompatibilityLink) { const target = compatibilityTarget(link); return JSON.stringify([target.kind, target.id, hostKey(link.host), declarationDefaults(link).capability]) }
 function hostOrigin(id: string) { return store.data.specCanvases.find(item => item.templateId === id)?.name || store.data.templates.find(item => item.id === id)?.name || (id.startsWith('device:') ? '独立型号' : id) }

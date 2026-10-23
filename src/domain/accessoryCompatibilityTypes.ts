@@ -14,8 +14,16 @@ export type CompatibilityCondition =
   | { kind: 'manual'; text: string }
 
 export interface CompatibilityProvenance {
-  kind: 'manual' | 'legacy' | 'material-copy'
+  kind: 'manual' | 'legacy' | 'material-copy' | 'template'
   detail: string
+  template?: {
+    originKey: string
+    modelId: string
+    sourceVersionId: string
+    ruleIds: string[]
+    claimIds: string[]
+    state: 'managed' | 'modified' | 'stale'
+  }
   materialId?: string
   materialSnapshot?: { id: string; code: string; name: string }
   declarationId?: string

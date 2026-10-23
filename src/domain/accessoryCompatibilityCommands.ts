@@ -2,6 +2,9 @@ import { isMaterialArchive, isRealSku } from './catalogIdentity'
 import { roleOfType } from './compatibility'
 import { compatibilityRecordRole, sameDeviceHost, validateCompatibilityHost } from './deviceResolution'
 import { declarationDefaults } from './accessoryCompatibilityQuery'
+import { templateClaimContentSignature } from './templateCompatibility'
+import { conditionProblem } from './compatibilityValidation'
+export { conditionProblem } from './compatibilityValidation'
 import type { AppData, CompatibilityHost, CompatibilityLink } from './types'
 import type { AccessoryTarget, CompatibilityCapability, CompatibilityConclusion, CompatibilityCondition, CompatibilityProvenance, CompatibilityVerification, DeviceModel } from './accessoryCompatibilityTypes'
 
@@ -52,25 +55,16 @@ function object(value: unknown): value is Record<string, unknown> { return Boole
 const string = (value: unknown): value is string => typeof value === 'string'
 const oneOf = (value: unknown, options: string[]) => string(value) && options.includes(value)
 
-export function conditionProblem(value: unknown): string {
-  if (!object(value) || !oneOf(value.kind, ['attribute', 'equipment', 'capability', 'manual'])) return '条件类型无效。'
-  if (value.kind === 'attribute') {
-    if (!string(value.attributeId) || !value.attributeId.trim() || !oneOf(value.operator, ['eq', 'in', 'gte'])) return '设备属性条件不完整。'
-    if (value.operator === 'in' ? !Array.isArray(value.value) || !value.value.length || !value.value.every(item => string(item) && item.trim()) : !string(value.value) || !value.value.trim()) return '设备属性条件的值无效。'
-    if (value.operator === 'gte' && !Number.isFinite(Number(value.value))) return '数值条件必须填写有效数字。'
-    if (value.text !== undefined && !string(value.text)) return '条件说明无效。'
-  } else {
-    if (!string(value.text) || !value.text.trim()) return '请填写配套条件或使用前提。'
-    if (value.kind === 'capability' && (value.protocol !== undefined && !string(value.protocol) || value.powerWatts !== undefined && (typeof value.powerWatts !== 'number' || !Number.isFinite(value.powerWatts) || value.powerWatts <= 0))) return '协议或功率要求无效。'
-  }
-  return ''
-}
 function hostShape(value: unknown): value is CompatibilityHost {
   return object(value) && oneOf(value.scope, ['model', 'planning']) && string(value.productTypeId) && Boolean(value.productTypeId) && string(value.productModelId) && Boolean(value.productModelId) && string(value.identityKey) && Boolean(value.identityKey) && Array.isArray(value.steps) && value.steps.length > 0 && value.steps.every(step => object(step) && string(step.attributeId) && Boolean(step.attributeId) && string(step.attributeName) && string(step.valueId)) && (value.scope === 'planning' ? string(value.planningId) && Boolean(value.planningId) : value.planningId === undefined || value.planningId === '')
 }
 function provenanceProblem(value: unknown): string {
   if (value === undefined) return ''
-  if (!object(value) || !oneOf(value.kind, ['manual', 'legacy', 'material-copy']) || !string(value.detail)) return '声明来源结构无效。'
+  if (!object(value) || !oneOf(value.kind, ['manual', 'legacy', 'material-copy', 'template']) || !string(value.detail)) return '声明来源结构无效。'
+  if (value.kind === 'template') {
+    const source = value.template
+    if (!object(source) || ![source.originKey, source.modelId, source.sourceVersionId].every(item => string(item) && Boolean(item)) || !Array.isArray(source.ruleIds) || !source.ruleIds.length || !source.ruleIds.every(string) || !Array.isArray(source.claimIds) || !source.claimIds.length || !source.claimIds.every(string) || !oneOf(source.state, ['managed', 'modified', 'stale'])) return '模板声明来源结构无效。'
+  }
   if (value.kind === 'material-copy') {
     const material = value.materialSnapshot, declaration = value.declarationSnapshot
     if (!string(value.materialId) || !string(value.declarationId) || !object(material) || ![material.id, material.code, material.name].every(string) || !object(declaration) || !string(declaration.id) || !hostShape(declaration.host) || !string(declaration.note) || !oneOf(declaration.conclusion, ['compatible', 'conditional', 'incompatible']) || !oneOf(declaration.verification, ['confirmed', 'pending']) || !oneOf(declaration.capability, ['basic', 'fast-charge', 'other']) || !Array.isArray(declaration.conditions) || declaration.conditions.some(item => conditionProblem(item)) || ![declaration.source, declaration.createdAt, declaration.updatedAt].every(string)) return '物料复制来源快照不完整。'
@@ -122,7 +116,10 @@ export function previewCompatibilityChanges(data: AppData, changes: Compatibilit
     if (change.kind === 'edit' && !original) { append('invalid', '待编辑声明已不存在，请重新打开。'); return }
     const others = trial.filter(link => link.id !== original?.id).map(declarationDraft).filter(draft => sameRange(draft, change.draft))
     if (others.some(draft => opposite(draft.conclusion, change.draft.conclusion))) { append('conflict', '同一对象、型号范围和能力已有相反结论；不会自动覆盖。'); return }
-    if (others.some(draft => sameClaim(draft, change.draft))) { append('duplicate', '同范围、同能力和条件的声明已存在，跳过重复。'); return }
+    const sameExistingClaim = (draft: DeclarationDraft) => original?.provenance?.kind === 'template'
+      ? templateClaimContentSignature({ ...draft, id: '' }) === templateClaimContentSignature({ ...change.draft, id: '' })
+      : sameClaim(draft, change.draft)
+    if (others.some(sameExistingClaim)) { append('duplicate', '同范围、同能力和条件的声明已存在，跳过重复。'); return }
     if (original) {
       const next = asLink(change.draft, original.id, original.updatedAt, original.createdAt)
       if (stable(original) === stable(next)) { append('duplicate', '声明内容没有变化。'); return }

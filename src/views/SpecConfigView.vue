@@ -57,12 +57,17 @@
               <span class="meta-type">{{ productTypeText }}</span>
             </p>
             <p v-if="!viewing && publishImpact" class="meta-row">{{ publishImpact }}</p>
+            <p class="meta-row" data-model-compatibility-summary>
+              <span>适用设备：{{ compatibilitySummary }}</span>
+              <el-button link type="primary" data-open-template-compatibility @click="openTemplateCompatibility()">{{ viewing || !store.isAdmin ? '查看适用设备' : '配置适用设备' }}</el-button>
+              <span v-if="compatibilityUnpublished">兼容配置尚未发布</span>
+            </p>
           </div>
           <div class="studio-actions">
             <el-button v-if="fromOverview" @click="backToOverview">返回总览</el-button>
             <el-button v-if="viewing" type="primary" @click="enterEdit">进入编辑</el-button>
-            <el-button v-if="!viewing" @click="saveModel">保存模型</el-button>
-            <el-button v-if="!viewing" :disabled="publishing" type="primary" @click="publish">发布模型</el-button>
+            <el-button v-if="!viewing" :disabled="!store.isAdmin" @click="saveModel">保存模型</el-button>
+            <el-button v-if="!viewing" :disabled="publishing || !store.isAdmin" type="primary" @click="publish">发布模型</el-button>
           </div>
         </header>
         <div v-if="templateId" class="head-tools">
@@ -464,16 +469,11 @@
         <el-button type="primary" @click="confirmNodeDraft">确认</el-button>
       </template>
     </el-dialog>
-    <NodeHostDialog
-      v-model="hostOpen"
-      v-model:keyword="hostKeyword"
-      :draft-host-rows="draftHostRows"
-      :host-choices="hostChoices"
-      :host-picks="hostPicks"
-      @toggle-host="toggleHostPick"
-      @remove-host="dropDraftHost"
-      @save="saveDraftHosts"
-      @open-compatibility="openCompatibility"
+    <TemplateCompatibilityDialog
+      v-model="templateCompatibilityOpen"
+      :model-id="templateId"
+      :initial-node-id="compatibilityNodeId || undefined"
+      :readonly="viewing || !store.isAdmin"
     />
     <el-dialog v-model="copyOpen" title="复制模型" width="440px">
       <p class="copy-label">原模型</p>
@@ -484,7 +484,7 @@
       <p v-if="copyPick && copyChoices.length === 0" class="muted">还没有可复制的模型。</p>
       <p class="copy-label">新模型名称</p>
       <el-input v-model="copyName" placeholder="例如：二手机模型" @keydown.enter.prevent="confirmCopy" />
-      <p class="muted">复制节点树、节点关系和属性、值引用。不复制发布记录和商品数据。</p>
+      <p class="muted">复制节点树、属性引用和当前草稿的适用设备配置。新模型从草稿开始，发布记录和商品仍属于原模型。</p>
       <template #footer>
         <el-button @click="copyOpen = false">取消</el-button>
         <el-button type="primary" @click="confirmCopy">确认复制</el-button>
@@ -502,21 +502,19 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ModelOutline from '../components/ModelOutline.vue'
 import CategoryCatalog from '../components/model-editor/CategoryCatalog.vue'
-import { cloneProductModel } from '../components/model-editor/cloneModel'
 import EmptyModelGuide from '../components/model-editor/EmptyModelGuide.vue'
 import ModelOverview from '../components/model-editor/ModelOverview.vue'
 import LegalComboDialog from '../components/model-editor/LegalComboDialog.vue'
 import { presentComboRow, type MaterialLaunchMode } from '../components/model-editor/comboPresentation'
 import { useComboSelection } from '../components/model-editor/useComboSelection'
-import NodeHostDialog from '../components/model-editor/NodeHostDialog.vue'
+import TemplateCompatibilityDialog from '../components/template-compatibility/TemplateCompatibilityDialog.vue'
 import TypeModelRail from '../components/model-editor/TypeModelRail.vue'
 import { categoryChain, visibleCategoryRows } from '../domain/categoryTree'
-import { hostLabel, listHostModels } from '../domain/compatibility'
 import { nearestNamingRule } from '../domain/naming'
 import { arrangeSpecPositions, categoryPath, latestPublishedVersion, layoutSpecTree, modelVersionsOf, sameSpecSnapshot, specNodeSize, specTreeAdvance, SPEC_LINK_GAP, SPEC_TREE_GAP, SPEC_TREE_ORIGIN_X, SPEC_TREE_ORIGIN_Y, SPEC_VALUE_TO_VALUE } from '../domain/logic'
 import { defaultOverviewCategoryId, overviewRootId as graphRootId } from '../domain/overviewGraph'
 import { attributeRenameDecision, createDictionaryParam, createDictionaryValue } from '../domain/dictionaryGuard'
-import { addDraftNodeHosts, readDraftNodeHosts, removeDraftNodeHost } from '../domain/nodeCompatibility'
+import { readTemplateCompatibilityConfig, templateCompatibilityContentSignature } from '../domain/templateCompatibility'
 import { outlineChoices, rebindSpecNode } from '../domain/outlineEdit'
 import { legalComboMaterialStatus } from '../domain/comboMaterialStatus'
 import { previewDraftCombinations, publishImpactText } from '../domain/draftComboPreview'
@@ -730,9 +728,8 @@ function onDictEsc(event: KeyboardEvent) {
   else attributeOpen.value = false
 }
 const copyOpen = ref(false)
-const hostOpen = ref(false)
-const hostKeyword = ref('')
-const hostPicks = ref<string[]>([])
+const templateCompatibilityOpen = ref(false)
+const compatibilityNodeId = ref('')
 const namingOpen = ref(false)
 const copyPick = ref(false)
 const copySourceId = ref('')
@@ -799,6 +796,23 @@ const comboSummaryText = computed(() => {
 })
 const draftPreview = computed(() => previewDraftCombinations(store.data, templateId.value, nodes.value))
 const publishImpact = computed(() => publishImpactText(draftPreview.value))
+const compatibilityConfig = computed(() => readTemplateCompatibilityConfig(store.data, templateId.value))
+const compatibilityUnpublished = computed(() => {
+  const latest = latestPublishedVersion(store.data, templateId.value)
+  return templateCompatibilityContentSignature(compatibilityConfig.value) !== templateCompatibilityContentSignature(latest?.templateCompatibilitySnapshot)
+})
+const compatibilitySummary = computed(() => {
+  const config = compatibilityConfig.value
+  if (!config || (!config.defaultRule.configured && !config.exceptions.length)) return '尚未配置'
+  const claims = [...config.defaultRule.claims, ...config.exceptions.flatMap(rule => rule.claims)]
+  const models = new Set(claims.map(item => `${item.host.productModelId}\u001f${item.host.identityKey}`)).size
+  const state = config.defaultRule.configured ? config.defaultRule.claims.length ? '全部规格使用默认配置' : '默认明确留空' : '默认尚未配置'
+  return `${models} 款设备 · ${state}${config.exceptions.length ? ` · ${config.exceptions.length} 项规格例外` : ''}`
+})
+function openTemplateCompatibility(nodeId = '') {
+  compatibilityNodeId.value = nodeId
+  templateCompatibilityOpen.value = true
+}
 const showDraftList = computed(() => draftPreview.value.problems.length > 0 || canvas.value.status !== 'published' || draftPreview.value.rows.length !== comboRows.value.length)
 const draftPreviewLine = computed(() => {
   const preview = draftPreview.value
@@ -806,10 +820,6 @@ const draftPreviewLine = computed(() => {
   if (!showDraftList.value) return ''
   return `草稿预览 ${preview.rows.length} 条 · 尚未发布`
 })
-function openCompatibility() {
-  hostOpen.value = false
-  router.push('/compatibility')
-}
 const visibleComboRows = computed(() => {
   const text = comboKeyword.value.trim().toLowerCase()
   return comboRows.value.filter((row) => {
@@ -1149,20 +1159,6 @@ function attributeHint(node: ProductSpecNode): { bound: boolean; source: string;
 function outlineOptions(node: ProductSpecNode) {
   return outlineChoices(store.data, node.id)
 }
-const draftHostRows = computed(() => readDraftNodeHosts(store.data, templateId.value, selected.value).map((host) => ({
-  identityKey: `${host.productModelId}\u001f${host.identityKey}\u001f${host.scope}\u001f${host.planningId || ''}`,
-  label: hostLabel(host),
-  host,
-})))
-const hostChoices = computed(() => {
-  const owned = new Set(draftHostRows.value.map((item) => item.identityKey))
-  return listHostModels(store.data, hostKeyword.value).map((item) => ({
-    key: item.key,
-    label: item.label,
-    host: item.host,
-    already: owned.has(`${item.host.productModelId}\u001f${item.host.identityKey}\u001f${item.host.scope}\u001f${item.host.planningId || ''}`),
-  }))
-})
 function applyOutlineCreate(payload: { id: string; name: string }) {
   if (viewing.value) return
   const node = nodes.value.find((item) => item.id === payload.id)
@@ -1215,29 +1211,9 @@ function applyOutlineChoice(payload: { id: string; token: string }) {
   if (!result.ok) ElMessage.warning(result.message)
   else if (result.changed) reflowTree()
 }
-function toggleHostPick(key: string) {
-  hostPicks.value = hostPicks.value.includes(key) ? hostPicks.value.filter((item) => item !== key) : [...hostPicks.value, key]
-}
 function openHostConfig() {
   if (viewing.value || !current.value) return
-  hostKeyword.value = ''
-  hostPicks.value = []
-  hostOpen.value = true
-}
-function saveDraftHosts() {
-  const hosts = hostChoices.value.filter((item) => hostPicks.value.includes(item.key)).map((item) => item.host)
-  const result = addDraftNodeHosts(store.data, { templateId: templateId.value, nodeId: selected.value, hosts, nextId: uid })
-  hostPicks.value = []
-  if (result.failed.length && !result.added.length) ElMessage.warning(result.failed[0].message)
-  else {
-    hostOpen.value = false
-    ElMessage.success(`已保存到模型草稿${result.skipped ? `，跳过 ${result.skipped} 款重复项` : ''}。此操作不会自动建立现有物料的适用关系。`)
-  }
-}
-function dropDraftHost(identityKey: string) {
-  const row = draftHostRows.value.find((item) => item.identityKey === identityKey)
-  if (!row) return
-  removeDraftNodeHost(store.data, templateId.value, selected.value, row.host)
+  openTemplateCompatibility(selected.value)
 }
 function ruleMark(node: ProductSpecNode) {
   if (node.namingRule?.length) return '自有' as const
@@ -2197,7 +2173,8 @@ function saveModel() {
     ElMessage.success('当前内容和已发布版本一致。')
     return
   }
-  row.updatedAt = new Date().toISOString()
+  const result = store.saveModelDraft(templateId.value)
+  if (!result.ok) { ElMessage.error(result.message || '保存失败，画布草稿已保留。'); return }
   const published = store.data.specModelVersions.some((item) => item.templateId === templateId.value && item.status === 'published')
   ElMessage.success(published ? '已保存草稿，尚未发布。新商品仍使用最近一次发布的版本。' : '已保存草稿，尚未发布。')
 }
@@ -2221,7 +2198,7 @@ function markWorkingDraft() {
     .slice()
     .sort((a, b) => a.version - b.version)
     .at(-1)
-  if (latest && sameSpecSnapshot(latest.nodesSnapshot, nodes.value)) {
+  if (latest && sameSpecSnapshot(latest.nodesSnapshot, nodes.value) && !compatibilityUnpublished.value) {
     row.status = 'published'
     row.version = latest.version
     row.versionName = latest.versionName
@@ -2523,23 +2500,6 @@ function openCopyPicker() {
   copyName.value = ''
   copyOpen.value = true
 }
-function duplicateModel(sourceId: string, name: string, productTypeId: string) {
-  const cloned = cloneProductModel({
-    sourceId,
-    name,
-    productTypeId,
-    nextId: uid,
-    templates: store.data.templates,
-    nodes: store.data.productSpecNodes,
-    templateParams: store.data.templateParams,
-  })
-  if (!cloned) return ''
-  store.data.templates.push(cloned.template)
-  cloned.params.forEach((item) => store.data.templateParams.push(item))
-  cloned.nodes.forEach((item) => store.data.productSpecNodes.push(item))
-  store.data.specCanvases.push(cloned.canvas)
-  return cloned.templateId
-}
 function confirmCopy() {
   const name = copyName.value.trim()
   const sourceId = copySourceId.value
@@ -2561,14 +2521,14 @@ function confirmCopy() {
     ElMessage.warning('这个产品类型下已有同名模型')
     return
   }
-  const nextId = duplicateModel(sourceId, name, productTypeId)
-  if (!nextId) {
-    ElMessage.warning('原模型不存在')
+  const result = store.copyProductModel(sourceId, { name, productTypeId, direction: 'logic' })
+  if (!result.ok || !('templateId' in result)) {
+    ElMessage.warning(result.message || '复制失败，原模型和输入均已保留。')
     return
   }
   copyOpen.value = false
   activeTypeId.value = productTypeId
-  openModel(nextId)
+  openModel(result.templateId)
   ElMessage.success('已复制为新模型，可以继续编辑。')
 }
 function pickNode(id: string) {
@@ -2671,7 +2631,7 @@ function visibleOverlay(selector: string) {
   })
 }
 function shortcutBlocked() {
-  if (attributeOpen.value || valueOpen.value || copyOpen.value || nodeDraftOpen.value || editingId.value || namingOpen.value || temporaryOpen.value || hostOpen.value || comboManageOpen.value) return true
+  if (attributeOpen.value || valueOpen.value || copyOpen.value || nodeDraftOpen.value || editingId.value || namingOpen.value || temporaryOpen.value || templateCompatibilityOpen.value || comboManageOpen.value) return true
   if (document.querySelector('.v3-material-dialog')) return true
   return visibleOverlay('.el-overlay-dialog, .el-message-box')
 }

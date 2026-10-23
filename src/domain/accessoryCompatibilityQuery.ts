@@ -72,6 +72,7 @@ function overallCapabilityStatus(capabilities: CapabilityEvaluation[]): Accessor
   return 'conditional'
 }
 function declarationProblem(data: AppData, link: CompatibilityLink, context: DeviceResolutionContext, hostOptions: Map<string, DeviceResolutionContext['hostOptions'][number]>) {
+  if (link.provenance?.template?.state === 'stale') return '规格已改变，模板兼容来源待重新确认。'
   if (link.targetId !== undefined && link.targetKind === undefined) return '配件对象类型缺失，请明确销售 SKU 或物料。'
   if (link.targetKind !== undefined && !['sku', 'material'].includes(link.targetKind)) return '配件对象类型无效。'
   if (link.targetKind !== undefined && (typeof link.targetId !== 'string' || !link.targetId.trim())) return '配件对象标识无效。'
