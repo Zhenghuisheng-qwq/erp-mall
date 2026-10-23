@@ -20,7 +20,7 @@
             <el-button size="small">演示数据</el-button>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item @click="resetCurrent">重置当前模块</el-dropdown-item>
+                <el-dropdown-item v-if="!route.path.startsWith('/benefit-packages')" @click="resetCurrent">重置当前模块</el-dropdown-item>
                 <el-dropdown-item @click="resetAll">重置全部演示数据</el-dropdown-item>
                 <el-dropdown-item @click="download">导出演示数据</el-dropdown-item>
                 <el-dropdown-item @click="pickFile">导入演示数据</el-dropdown-item>
@@ -32,7 +32,7 @@
       </header>
       <div class="demo-strip">演示数据只保存在这台浏览器里。不会连接客户数据库，也不会改线上商品。</div>
       <main class="content">
-        <router-view :key="['spu-new', 'spu-edit', 'sku-new', 'sku-edit'].includes(String(route.name)) ? route.fullPath : route.name" />
+        <router-view :key="['spu-new', 'spu-edit', 'sku-new', 'sku-edit', 'benefit-package-new', 'benefit-package-edit', 'benefit-delivery'].includes(String(route.name)) ? route.fullPath : route.name" />
       </main>
     </section>
   </div>
@@ -68,6 +68,7 @@ const active = computed(() => {
   if (['/products', '/spus', '/skus'].includes(route.path) && route.query.panel === 'columns') return '/products?panel=columns'
   if (route.path.startsWith('/products') || route.path.startsWith('/spus') || route.path.startsWith('/materials')) return '/spus'
   if (route.path.startsWith('/skus')) return '/skus'
+  if (route.path.startsWith('/benefit-packages')) return '/benefit-packages'
   if (route.path.startsWith('/specs')) return '/specs'
   return route.path || '/'
 })

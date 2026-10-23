@@ -38,6 +38,7 @@ export function defaultMenuNodes(): MenuNode[] {
     group('analysis', '商品分析', 'product', 5, BOTH),
     page('/spus', 'SPU 管理', 'manage', 1, BOTH),
     page('/skus', 'SKU 管理', 'manage', 1.5, BOTH),
+    page('/benefit-packages', '权益包', 'manage', 1.8, BOTH),
     page('/compatibility', '适用关系', 'manage', 2, BOTH),
     page('/categories', '商品分类中心', 'manage', 3, BOTH),
     page('/product-types', '产品类型', 'manage', 4, BOTH),
@@ -263,6 +264,7 @@ export function canAccessLocation(role: UserRole, path: string, query: { panel?:
   if ((path === '/products' || path === '/spus' || path === '/skus') && query.panel === 'columns') return accessRoute(role, '/products?panel=columns') && accessRoute(role, path === '/skus' ? '/skus' : '/spus')
   if (path === '/products' || path.startsWith('/products/') || path.startsWith('/spus/') || path.startsWith('/materials/')) return accessRoute(role, '/spus')
   if (path.startsWith('/skus/')) return accessRoute(role, '/skus')
+  if (path.startsWith('/benefit-packages/')) return accessRoute(role, '/benefit-packages')
   return accessRoute(role, path === '' ? '/' : path)
 }
 

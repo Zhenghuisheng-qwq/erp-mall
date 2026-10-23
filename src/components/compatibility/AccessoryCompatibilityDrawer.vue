@@ -11,6 +11,7 @@
       <template v-if="viewSku">
         <div class="device-summary"><div><el-tag size="small">{{ isMaterialArchive(store.data, viewSku) ? 'MAT' : 'SKU' }}</el-tag><h2>{{ viewSku.skuName || viewFamily?.name || '未命名记录' }}</h2><p class="muted">{{ viewSku.materialCode || viewSku.code }} · {{ recordSpec(store.data, viewSku) }}</p></div><el-button v-if="viewSkuId !== entrySkuId && entrySkuId" link @click="chooseSku(entrySkuId)">返回原查看对象</el-button></div>
         <template v-if="!accessoryMode">
+          <el-button v-if="store.isAdmin && isRealSku(store.data, viewSku)" type="primary" plain data-compose-from-compatibility @click="composePackage">组权益包</el-button>
           <div class="device-state" :data-device-status="forward.device.status">
             <el-tag :type="forward.device.status === 'resolved' ? 'success' : 'warning'">{{ deviceStatusLabels[forward.device.status] }}</el-tag>
             <strong v-if="forward.device.host">{{ hostText(forward.device.host) }}</strong><p>{{ forward.device.message }}</p><p class="muted">型号来源：{{ forward.device.source || '未记录' }}<template v-if="forward.device.planningId"> · 当前规格 {{ forward.device.planningId }}</template></p>
@@ -66,6 +67,7 @@
 </template>
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '../../stores/catalog'
 import { roleOfType } from '../../domain/compatibility'
 import { isMaterialArchive, isRealSku } from '../../domain/catalogIdentity'
@@ -77,8 +79,9 @@ import DeviceBindingDialog from './DeviceBindingDialog.vue'
 import CompatibilityManager from './CompatibilityManager.vue'
 
 const props = defineProps<{ modelValue: boolean; skuId?: string; familyId?: string }>()
-const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
+const emit = defineEmits<{ 'update:modelValue': [value: boolean]; 'prepare-benefit-package': [skuId: string] }>()
 const store = useCatalogStore()
+const router = useRouter(), route = useRoute()
 const viewSkuId = ref(''), keyword = ref(''), typeId = ref('')
 const section = ref<'sales' | 'materials' | 'pending' | 'excluded' | 'unavailable'>('sales')
 const bindingOpen = ref(false), managerOpen = ref(false), detailId = ref(''), manageTarget = ref<AccessoryTarget>()
@@ -115,6 +118,11 @@ const statusLabels = { compatible: '适用', conditional: '有条件适用', inc
 const conditionStatus = { met: '已满足', unmet: '不满足', unknown: '仍需确认' }
 function statusType(status: AccessoryMatch['status']) { return status === 'compatible' ? 'success' : status === 'incompatible' ? 'danger' : 'warning' }
 function chooseSku(id: string) { viewSkuId.value = id; keyword.value = ''; typeId.value = ''; section.value = 'sales'; manageTarget.value = undefined; detailId.value = '' }
+function composePackage() {
+  if (!store.isAdmin || !viewSku.value || !isRealSku(store.data, viewSku.value)) return
+  emit('prepare-benefit-package', viewSkuId.value)
+  void router.push({ path: '/benefit-packages/new', query: { device: viewSkuId.value, returnTo: route.fullPath } })
+}
 watch(() => [props.modelValue, props.skuId, props.familyId] as const, ([open], old) => {
   if (!open) { managerOpen.value = false; bindingOpen.value = false; detailId.value = ''; return }
   if (!old?.[0] && typeof document !== 'undefined') opener = document.activeElement instanceof HTMLElement ? document.activeElement : null

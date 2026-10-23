@@ -95,7 +95,7 @@
                   <span v-else>{{ displayCell(row.id, column.key, row) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="340"><template #default="{ row }"><el-button v-if="compatibilityRoles.get(row.id) !== 'other'" link type="primary" :data-open-compatibility="row.id" @click.stop="openCompatibility(row.id)">{{ compatibilityRoles.get(row.id) === 'host' ? '适用配件' : '适用主机' }}</el-button><el-button link type="primary" @click="router.push({ path: `/skus/${row.id}`, query: scopeId ? { spu: scopeId } : {} })">编辑 SKU</el-button><el-button link @click="router.push(`/spus/${row.familyId}`)">查看 SPU</el-button><el-button link type="danger" @click="removeOne(row.id)">删除</el-button><el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'before')">插到前面</el-button><el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'after')">插到后面</el-button></template></el-table-column>
+              <el-table-column label="操作" width="340"><template #default="{ row }"><el-button v-if="compatibilityRoles.get(row.id) !== 'other'" link type="primary" :data-open-compatibility="row.id" @click.stop="openCompatibility(row.id)">{{ compatibilityRoles.get(row.id) === 'host' ? '适用配件' : '适用主机' }}</el-button><el-dropdown v-if="store.isAdmin && compatibilityRoles.get(row.id) === 'host'" trigger="click"><el-button link :data-benefit-more="row.id" :aria-label="`更多 SKU 操作 ${row.code}`">更多</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item :data-compose-benefit="row.id" @click="openBenefitPackage(row.id)">组权益包</el-dropdown-item></el-dropdown-menu></template></el-dropdown><el-button link type="primary" @click="router.push({ path: `/skus/${row.id}`, query: scopeId ? { spu: scopeId } : {} })">编辑 SKU</el-button><el-button link @click="router.push(`/spus/${row.familyId}`)">查看 SPU</el-button><el-button link type="danger" @click="removeOne(row.id)">删除</el-button><el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'before')">插到前面</el-button><el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'after')">插到后面</el-button></template></el-table-column>
               <template #empty><div class="empty-state" data-empty="sku"><strong>{{ emptyTitle }}</strong><p class="muted">{{ emptyDetail }}</p><el-button v-if="!scopeId" @click="router.push('/skus/new')">新增 SKU</el-button></div></template>
             </el-table>
           </template>
@@ -105,7 +105,7 @@
     </div>
     <SkuFilterDialog v-model="filterOpen" :data="store.data" :config="config" :view-name="currentView.name" :scope-id="scopeId" :now="now" @apply="applyConfig" />
     <SkuDisplayDialog v-model="displayOpen" :data="store.data" :config="config" :tab="displayTab" @apply="applyConfig" />
-    <AccessoryCompatibilityDrawer v-model="compatibilityOpen" :sku-id="compatibilitySkuId" />
+    <AccessoryCompatibilityDrawer v-model="compatibilityOpen" :sku-id="compatibilitySkuId" @prepare-benefit-package="rememberPackageReturn" />
     <el-dialog v-model="nameOpen" :title="nameAction" width="420px" :close-on-click-modal="false" @closed="nameError = ''">
       <el-input v-model="draftName" placeholder="视图名称" maxlength="80" @keyup.enter="submitName" />
       <el-checkbox v-if="scopeId && nameAction !== '重命名视图'" v-model="includeScope">将当前 SPU 范围保存为条件</el-checkbox>
@@ -117,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableColumnCtx } from 'element-plus'
@@ -141,6 +141,7 @@ import { emptyModeQuery, unfilteredIds } from '../domain/productListQuery'
 import type { SkuViewConfig } from '../domain/skuWorkbenchTypes'
 import type { Sku } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
+import { rememberBenefitSkuReturn, takeBenefitSkuReturn, restoreBenefitSkuScroll } from '../components/benefit-package/skuReturnState'
 
 const store = useCatalogStore(), route = useRoute(), router = useRouter()
 const scopeId = computed(() => typeof route.query.spu === 'string' ? route.query.spu : '')
@@ -224,6 +225,13 @@ function toggleCategory(id: string) {
   applyConfig(next)
 }
 function changeScope(id: string) { router.push({ path: '/skus', query: id ? { spu: id } : {} }) }
+function rememberPackageReturn(skuId: string) {
+  rememberBenefitSkuReturn({ path: route.fullPath, activeId: activeId.value, scopeSearch: scopeSearch.value, scopePage: scopePage.value, selectedIds: selectedIds.value, collapsed, focusSkuId: skuId })
+}
+function openBenefitPackage(skuId: string) {
+  rememberPackageReturn(skuId)
+  void router.push({ path: '/benefit-packages/new', query: { device: skuId, returnTo: route.fullPath } })
+}
 function onPage(value: number) { page.value = value }
 function openName(action: string) { nameAction.value = action; draftName.value = action === '重命名视图' ? currentView.value.name : ''; includeScope.value = false; nameError.value = ''; nameOpen.value = true }
 function saveCurrent() { if (activeId.value === SYSTEM_SKU_VIEW_ID) { openName('另存为'); return }; result(workbench.save()) }
@@ -235,9 +243,22 @@ function setSelectedStatus(status: Sku['status']) { if (!presentation.value.erro
 async function removeOne(id: string) { try { await ElMessageBox.confirm('删除这条 SKU？所属 SPU 会保留。', '删除规格') } catch { return }; const blocked = store.removeSku(id); if (blocked) ElMessage.warning(blocked) }
 async function removeSelected() { if (presentation.value.errors.length) return; const ids = validSelection(); const blocked = ids.map(id => compatibilitySkuBlock(store.data, id)).find(Boolean); if (blocked) { ElMessage.warning(blocked); return }; try { await ElMessageBox.confirm(`删除选中的 ${ids.length} 条 SKU？SPU 会保留。`, '批量删除 SKU') } catch { return }; ids.forEach(id => store.removeSku(id)); selectedIds.value = [] }
 let dateTimer: ReturnType<typeof setInterval> | undefined
+let benefitReturnFrame: number | undefined
+let benefitReturnActive = true
 function updateDate() { now.value = new Date() }
-onMounted(() => { dateTimer = setInterval(updateDate, 60000); document.addEventListener('visibilitychange', updateDate) })
-onBeforeUnmount(() => { clearInterval(dateTimer); document.removeEventListener('visibilitychange', updateDate) })
+onMounted(async () => {
+  dateTimer = setInterval(updateDate, 60000); document.addEventListener('visibilitychange', updateDate)
+  const previous = takeBenefitSkuReturn(route.fullPath)
+  if (!previous) return
+  if (views.value.some(view => view.id === previous.activeId)) activeId.value = previous.activeId
+  scopeSearch.value = previous.scopeSearch; scopePage.value = previous.scopePage
+  await nextTick()
+  selectedIds.value = previous.selectedIds.filter(id => presentation.value.allIds.includes(id))
+  Object.assign(collapsed, previous.collapsed)
+  await nextTick()
+  if (benefitReturnActive) benefitReturnFrame = requestAnimationFrame(() => restoreBenefitSkuScroll(previous))
+})
+onBeforeUnmount(() => { benefitReturnActive = false; if (benefitReturnFrame !== undefined) cancelAnimationFrame(benefitReturnFrame); clearInterval(dateTimer); document.removeEventListener('visibilitychange', updateDate) })
 </script>
 
 <style scoped>

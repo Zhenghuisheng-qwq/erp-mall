@@ -25,6 +25,8 @@ import { applyCompatibilityChanges, cloneCompatibility, compatibilityImportProbl
 import type { CompatibilityChange, CompatibilityCommandResult } from '../domain/accessoryCompatibilityCommands'
 import { compatibilityFamilyTypeId, compatibilityRecordRole, deviceSourceStamp, sameDeviceHost, validateCompatibilityHost } from '../domain/deviceResolution'
 import type { DeviceModel } from '../domain/accessoryCompatibilityTypes'
+import { benefitPackageImportProblems, benefitPackageReferenceProblem, cloneBenefit, createBenefitDeliverySnapshot, previewBenefitDelivery, validateBenefitPackage } from '../domain/benefitPackages'
+import type { BenefitCommandResult, BenefitPackageDraft, BenefitPackageStatus } from '../domain/benefitPackageTypes'
 import type { CompatibilityHost } from '../domain/types'
 import { appendSkuBatch, editSku, previewSkuAppend, saveSpu, spuRemovalBlock, type SkuDraft, type SkuGeneration } from '../domain/spuSku'
 import { draftHostRulesDiffer, forgetDraftNodeRules, freezeDraftNodeHosts } from '../domain/nodeCompatibility'
@@ -57,6 +59,8 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   if (!data?.families || !data.skus || !data.categories || !data.templates || !data.mappings || !data.templateParams) return null
   const version = parsed.version ?? 1
   if (version < 1 || version > DATA_VERSION) return null
+  const benefitProblems = benefitPackageImportProblems(data)
+  if (benefitProblems.length) throw new Error(`权益包数据校验失败：${benefitProblems.join(' ')} 原始记录已保留。`)
   const mark = { changed: version !== DATA_VERSION }
   data.categories = data.categories.map((item) => {
     if (typeof item.enabled === 'boolean') return item
@@ -247,6 +251,123 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   const isAdmin = computed(() => data.activeRole === 'admin')
 
+  function benefitPermission(): BenefitCommandResult | undefined {
+    return isAdmin.value ? undefined : { ok: false, message: '当前角色仅可查看权益包和交付清单，请由管理员维护。' }
+  }
+
+  /** Persist a complete candidate before exposing either configuration or snapshot changes. */
+  function commitBenefitState(next: AppData, result: BenefitCommandResult): BenefitCommandResult {
+    if (!result.ok) return result
+    if (JSON.stringify([data.benefitPackages, data.benefitDeliveries]) === JSON.stringify([next.benefitPackages, next.benefitDeliveries])) return result
+    try {
+      const encoded = JSON.stringify({ version: DATA_VERSION, data: next })
+      localStorage.setItem(STORAGE_KEY, encoded)
+      if (next.benefitPackages !== undefined) data.benefitPackages = next.benefitPackages
+      else delete data.benefitPackages
+      if (next.benefitDeliveries !== undefined) data.benefitDeliveries = next.benefitDeliveries
+      else delete data.benefitDeliveries
+      explicitlyPersisted = JSON.stringify({ version: DATA_VERSION, data })
+      migrationStorageError = ''
+      return result
+    } catch (error) {
+      return { ok: false, message: `无法保存到本机：${error instanceof Error ? error.message : String(error)}。原数据、编辑草稿和本次请求保留，请重试。`, validation: result.validation }
+    }
+  }
+
+  function nextBenefitIdentity(kind: 'package' | 'delivery') {
+    const codePrefix = kind === 'package' ? 'BPK' : 'BDL', idPrefix = kind === 'package' ? 'benefit-package' : 'benefit-delivery'
+    const records = [...(data.benefitPackages || []), ...(data.benefitDeliveries || [])]
+    const usedIds = new Set(records.map(record => record.id)), usedCodes = new Set(records.map(record => record.code))
+    let number = 0
+    for (const code of usedCodes) {
+      const match = new RegExp(`^${codePrefix}-(\\d+)$`).exec(code)
+      const value = match ? Number(match[1]) : 0
+      if (Number.isSafeInteger(value)) number = Math.max(number, value)
+    }
+    do {
+      number += 1
+      if (!Number.isSafeInteger(number)) throw new Error('权益包或清单编号已超出安全范围，请检查导入编号。')
+    } while (usedIds.has(`${idPrefix}-${String(number).padStart(6, '0')}`) || usedCodes.has(`${codePrefix}-${String(number).padStart(6, '0')}`))
+    return { id: `${idPrefix}-${String(number).padStart(6, '0')}`, code: `${codePrefix}-${String(number).padStart(6, '0')}` }
+  }
+
+  function saveBenefitPackage(input: { draft: BenefitPackageDraft; status: 'draft' | 'available'; expectedRevision?: number; requestId: string }): BenefitCommandResult {
+    const denied = benefitPermission()
+    if (denied) return denied
+    if (typeof input.requestId !== 'string' || !input.requestId.trim()) return { ok: false, message: '保存请求缺少标识，请重新打开权益包后重试。' }
+    if (!['draft', 'available'].includes(input.status)) return { ok: false, message: '请选择保存草稿或保存为可用权益包。' }
+    const previous = input.draft.id ? data.benefitPackages?.find(item => item.id === input.draft.id) : undefined
+    if (!input.draft.id) {
+      const receipt = data.benefitPackages?.find(item => item.creationRequestId === input.requestId)
+      if (receipt) return { ok: true, id: receipt.id, package: cloneCompatibility(receipt) }
+    } else if (!previous) return { ok: false, message: '权益包已不存在，未重新创建已删除的配置。' }
+    if (previous && (input.expectedRevision ?? input.draft.revision) !== previous.revision) return { ok: false, message: '权益包已被更新，请重新打开并核对最新配置；当前草稿保留。' }
+    if (previous && !Number.isSafeInteger(previous.revision + 1)) return { ok: false, message: '权益包修订版本已超出安全范围，当前配置未改变。' }
+    if (previous && !previous.creationRequestId && data.benefitPackages?.some(item => item.id !== previous.id && item.creationRequestId === input.requestId)) return { ok: false, message: '保存请求已属于另一权益包，请重新发起当前保存操作。' }
+    const draft = cloneBenefit(input.draft)
+    draft.status = input.status
+    const validation = validateBenefitPackage(data, draft)
+    if (!validation.canSaveDraft || input.status === 'available' && !validation.canSaveAvailable) return { ok: false, message: validation.issues.filter(issue => issue.structural || input.status === 'available' && issue.severity === 'error').map(issue => issue.message).join(' ') || '当前配置需要处理，请保存草稿或完善内容。', validation }
+    try {
+      const next = cloneCompatibility(data), now = new Date().toISOString(), identity = previous ? { id: previous.id, code: previous.code } : nextBenefitIdentity('package')
+      const record: BenefitPackageDraft = { ...draft, ...identity, goods: validation.goods.map(item => ({ ...cloneBenefit(item.line), snapshot: cloneBenefit(item.summary) })), revision: (previous?.revision || 0) + 1, createdAt: previous?.createdAt || now, updatedAt: now, issues: validation.issues.map(issue => issue.message), creationRequestId: previous?.creationRequestId || input.requestId }
+      next.benefitPackages = [...(next.benefitPackages || [])]
+      const index = next.benefitPackages.findIndex(item => item.id === identity.id)
+      if (index >= 0) next.benefitPackages[index] = record
+      else next.benefitPackages.push(record)
+      return commitBenefitState(next, { ok: true, id: record.id, package: cloneCompatibility(record), validation })
+    } catch (error) { return { ok: false, message: error instanceof Error ? error.message : String(error), validation } }
+  }
+
+  function setBenefitPackageStatus(id: string, status: BenefitPackageStatus, expectedRevision: number): BenefitCommandResult {
+    const denied = benefitPermission()
+    if (denied) return denied
+    const previous = data.benefitPackages?.find(item => item.id === id)
+    if (!previous || previous.revision !== expectedRevision) return { ok: false, message: '权益包不存在或已更新，请重新打开最新配置。' }
+    if (!['draft', 'available', 'disabled'].includes(status)) return { ok: false, message: '权益包状态无效。' }
+    if (previous.status === status) return { ok: true, id, package: cloneCompatibility(previous) }
+    if (!Number.isSafeInteger(previous.revision + 1)) return { ok: false, message: '权益包修订版本已超出安全范围，当前配置未改变。' }
+    const validation = validateBenefitPackage(data, { ...previous, status })
+    if (status === 'available' && !validation.canSaveAvailable) return { ok: false, message: validation.issues.filter(issue => issue.severity === 'error').map(issue => issue.message).join(' '), validation }
+    const next = cloneCompatibility(data), record = next.benefitPackages?.find(item => item.id === id)
+    if (!record) return { ok: false, message: '权益包已不存在，请重新打开列表。' }
+    record.status = status; record.revision += 1; record.updatedAt = new Date().toISOString(); record.issues = validation.issues.map(issue => issue.message)
+    return commitBenefitState(next, { ok: true, id, package: cloneCompatibility(record), validation })
+  }
+
+  function setBenefitPackageFavorite(id: string, favorite: boolean, expectedRevision: number): BenefitCommandResult {
+    const denied = benefitPermission()
+    if (denied) return denied
+    const previous = data.benefitPackages?.find(item => item.id === id)
+    if (!previous || previous.revision !== expectedRevision) return { ok: false, message: '权益包不存在或已更新，请重新打开最新配置。' }
+    if (previous.favorite === favorite) return { ok: true, id, package: cloneCompatibility(previous) }
+    if (!Number.isSafeInteger(previous.revision + 1)) return { ok: false, message: '权益包修订版本已超出安全范围，当前配置未改变。' }
+    const next = cloneCompatibility(data), record = next.benefitPackages?.find(item => item.id === id)
+    if (!record) return { ok: false, message: '权益包已不存在，请重新打开列表。' }
+    record.favorite = favorite; record.revision += 1; record.updatedAt = new Date().toISOString()
+    return commitBenefitState(next, { ok: true, id, package: cloneCompatibility(record) })
+  }
+
+  function generateBenefitDelivery(input: { packageId: string; expectedRevision: number; requestId: string; packageCount: number; expectedBasis: string }): BenefitCommandResult {
+    const denied = benefitPermission()
+    if (denied) return denied
+    if (typeof input.requestId !== 'string' || !input.requestId.trim()) return { ok: false, message: '本次生成请求缺少标识，请重新预览。' }
+    const receipt = data.benefitDeliveries?.find(item => item.requestId === input.requestId)
+    if (receipt) return receipt.packageId === input.packageId ? { ok: true, id: receipt.id, delivery: cloneCompatibility(receipt) } : { ok: false, message: '本次请求已属于另一权益包，请发起新的生成操作。' }
+    const source = data.benefitPackages?.find(item => item.id === input.packageId)
+    if (!source || source.revision !== input.expectedRevision) return { ok: false, message: '权益包已更新或不存在，请重新预览完整组成和报价。' }
+    const preview = previewBenefitDelivery(data, source, input.packageCount)
+    if (!preview.canConfirm) return { ok: false, message: preview.issues.filter(issue => issue.severity !== 'warning').map(issue => issue.message).join(' ') || '当前配置不能生成正式清单。' }
+    if (!input.expectedBasis || preview.basis !== input.expectedBasis) return { ok: false, message: '商品、兼容条件或报价依据已变化，请重新预览并确认。' }
+    try {
+      const identity = nextBenefitIdentity('delivery')
+      const delivery = createBenefitDeliverySnapshot(preview, { ...identity, requestId: input.requestId, generatedAt: new Date().toISOString() })
+      const next = cloneCompatibility(data)
+      next.benefitDeliveries = [...(next.benefitDeliveries || []), delivery]
+      return commitBenefitState(next, { ok: true, id: delivery.id, delivery: cloneCompatibility(delivery) })
+    } catch (error) { return { ok: false, message: error instanceof Error ? error.message : String(error) } }
+  }
+
   function commitSkuPage(next: ProductListPageState) {
     const result = persistSkuPage(data, next, text => localStorage.setItem(STORAGE_KEY, text), DATA_VERSION)
     if (result.ok) { explicitlyPersisted = result.encoded; migrationStorageError = '' }
@@ -335,6 +456,8 @@ export const useCatalogStore = defineStore('catalog', () => {
   function removeDeviceModel(id: string): CompatibilityCommandResult {
     const denied = compatibilityPermission()
     if (denied) return denied
+    const benefitBlock = benefitPackageReferenceProblem(data, 'model', `device:${id}`)
+    if (benefitBlock) return { ok: false, message: benefitBlock }
     if (data.compatibilities.some(link => link.host.productModelId === `device:${id}`) || data.deviceBindings?.some(binding => binding.host.productModelId === `device:${id}`)) return { ok: false, message: '型号仍有正式兼容声明或设备绑定，请先处理引用。' }
     const next = cloneCompatibility(data)
     if (!next.deviceModels?.some(model => model.id === id)) return { ok: true }
@@ -353,6 +476,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     Object.assign(data, next)
     if (next.deviceModels === undefined) delete data.deviceModels
     if (next.deviceBindings === undefined) delete data.deviceBindings
+    if (next.benefitPackages === undefined) delete data.benefitPackages
+    if (next.benefitDeliveries === undefined) delete data.benefitDeliveries
   }
 
   function resetAll() {
@@ -398,6 +523,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (!parsed.data) throw new Error('导入文件缺少商品数据，当前数据没有被替换。')
     if (!Array.isArray(parsed.data.skus) || !Array.isArray(parsed.data.families)) throw new Error('导入文件缺少有效的商品数组，当前数据没有被替换。')
     if (!isAdmin.value && JSON.stringify([parsed.data.compatibilities || [], parsed.data.deviceModels, parsed.data.deviceBindings]) !== JSON.stringify([data.compatibilities, data.deviceModels, data.deviceBindings])) throw new Error('当前角色仅可查看适用关系，不能通过导入修改声明或设备绑定。')
+    if (!isAdmin.value && JSON.stringify([parsed.data.benefitPackages || [], parsed.data.benefitDeliveries || []]) !== JSON.stringify([data.benefitPackages || [], data.benefitDeliveries || []])) throw new Error('当前角色仅可查看权益包，不能通过导入修改配置或交付清单。')
+    const benefitProblems = benefitPackageImportProblems(parsed.data)
+    if (benefitProblems.length) throw new Error(`权益包导入校验失败：${benefitProblems.join(' ')} 当前数据没有被替换。`)
     const compatibilityProblems = compatibilityImportProblems(parsed.data)
     if (compatibilityProblems.length) throw new Error(`适用关系导入校验失败：${compatibilityProblems.join(' ')} 当前数据没有被替换。`)
     const next = normalizeStored(parsed, { persist: false })
@@ -457,6 +585,8 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function removeSku(id: string) {
+    const benefitBlock = benefitPackageReferenceProblem(data, 'sku', id)
+    if (benefitBlock) return benefitBlock
     const blocked = compatibilitySkuBlock(data, id)
     if (blocked) return blocked
     const sku = data.skus.find((item) => item.id === id)
@@ -553,6 +683,8 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function productTypeRemovalBlock(id: string) {
+    const benefitBlock = benefitPackageReferenceProblem(data, 'type', id)
+    if (benefitBlock) return benefitBlock
     if (!data.productTypes.some((item) => item.id === id)) return '产品类型不存在。'
     const modelIds = new Set(data.specCanvases.filter((item) => item.productTypeId === id).map((item) => item.templateId))
     const usedByModel = modelIds.size > 0
@@ -696,6 +828,10 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function modelRemovalBlock(ids: string[]) {
+    for (const id of ids) {
+      const benefitBlock = benefitPackageReferenceProblem(data, 'model', id) || benefitPackageReferenceProblem(data, 'model', `template:${id}`)
+      if (benefitBlock) return benefitBlock
+    }
     const versions = data.specModelVersions.filter((item) => ids.includes(item.templateId))
     const versionIds = new Set(versions.map((item) => item.id))
     const plans = (data.planningRecords || []).filter((item) => ids.includes(item.productModelId) || item.modelVersionIds.some((id) => versionIds.has(id)))
@@ -851,6 +987,10 @@ export const useCatalogStore = defineStore('catalog', () => {
   return {
     data,
     commitSkuPage,
+    saveBenefitPackage,
+    setBenefitPackageStatus,
+    setBenefitPackageFavorite,
+    generateBenefitDelivery,
     commitCompatibilityChanges,
     commitDeviceBinding,
     clearDeviceBinding,

@@ -1,5 +1,6 @@
 import type { SkuViewConfig, SkuWorkbenchState } from './skuWorkbenchTypes'
 import type { AccessoryTargetKind, CompatibilityCapability, CompatibilityConclusion, CompatibilityCondition, CompatibilityProvenance, CompatibilityVerification, DeviceBinding, DeviceModel } from './accessoryCompatibilityTypes'
+import type { BenefitDeliverySnapshot, BenefitPackage } from './benefitPackageTypes'
 
 export const DATA_VERSION = 15
 export const STORAGE_KEY = 'iyge-v2-mock-db'
@@ -531,6 +532,9 @@ export interface AppData {
   /** Optional preference-independent compatibility catalogue; no business record is synthesized. */
   deviceModels?: DeviceModel[]
   deviceBindings?: DeviceBinding[]
+  /** Independent package configurations and immutable confirmed delivery snapshots. */
+  benefitPackages?: BenefitPackage[]
+  benefitDeliveries?: BenefitDeliverySnapshot[]
   /** 规划节点上的适用主机。旧数据没有时保持空数组，不回填历史物料。 */
   nodeCompatibilityRules: NodeCompatibilityRule[]
   rules: SpecRule[]

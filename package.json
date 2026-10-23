@@ -16,7 +16,8 @@
     "check:sku-views": "node scripts/run-domain-check.mjs scripts/sku-workbench-query-check.ts && node scripts/run-domain-check.mjs scripts/sku-workbench-state-check.ts && node scripts/browser-sku-workbench.mjs",
     "check:sku-views:performance": "node scripts/run-domain-check.mjs scripts/sku-workbench-performance.ts",
     "check:sku-views:fixes": "node scripts/run-domain-check.mjs scripts/sku-workbench-grouping-fix-check.ts && node scripts/run-domain-check.mjs scripts/sku-workbench-migration-fix-check.ts && node scripts/run-domain-check.mjs scripts/sku-workbench-restore-fix-check.ts && node scripts/browser-sku-workbench-fixes.mjs",
-    "check:accessory-compatibility": "node scripts/run-domain-check.mjs scripts/accessory-compatibility-query-check.ts && node scripts/run-domain-check.mjs scripts/accessory-compatibility-state-check.ts && node scripts/browser-accessory-compatibility.mjs"
+    "check:accessory-compatibility": "node scripts/run-domain-check.mjs scripts/accessory-compatibility-query-check.ts && node scripts/run-domain-check.mjs scripts/accessory-compatibility-state-check.ts && node scripts/browser-accessory-compatibility.mjs",
+    "check:benefit-packages": "node scripts/run-domain-check.mjs scripts/benefit-package-domain-check.ts && node scripts/run-domain-check.mjs scripts/benefit-package-state-check.ts && node scripts/run-domain-check.mjs scripts/benefit-package-export-check.ts && node scripts/browser-benefit-packages.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
