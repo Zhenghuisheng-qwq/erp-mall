@@ -168,14 +168,24 @@ try {
   }
   {
     const { ctx, a } = await pair('missing-locks', data, '/benefit-packages', { disableLocks: true })
-    const before = await read(a), result = await save(a, 'must-not-write'); assert.equal(result.ok, false); assert.match(result.message, /Web Locks/); assert.deepEqual(await read(a), before); await a.locator('[data-catalog-storage-notice]').waitFor()
-    mark('secure-context-missing-WebLocks-visible-readonly', { result }); await ctx.close()
+    const result = await save(a, 'local-without-locks'); assert.equal(result.ok, true)
+    const saved = await read(a); assert.equal(saved.data.benefitPackages.length, 1)
+    await a.reload({ waitUntil: 'networkidle' }); await settle(a)
+    assert.deepEqual((await read(a)).data.benefitPackages, saved.data.benefitPackages)
+    assert.equal(await a.locator('[data-catalog-storage-notice]').count(), 0)
+    mark('missing-WebLocks-local-save-and-reload', { result }); await ctx.close()
   }
   {
     const { ctx, a } = await pair('untrusted-http', data, '/benefit-packages', { base: `http://catalog-test.invalid:${port}` })
     const capabilities = await a.evaluate(() => ({ secure: isSecureContext, locks: Boolean(navigator.locks) })); assert.equal(capabilities.secure, false)
-    const before = await read(a), result = await save(a, 'http-must-not-write'); assert.equal(result.ok, false); assert.deepEqual(await read(a), before)
-    environment.http = capabilities; mark('ordinary-http-no-unsafe-fallback', { capabilities, result }); await ctx.close()
+    const result = await save(a, 'http-local-save'); assert.equal(result.ok, true)
+    const saved = await read(a); assert.equal(saved.data.benefitPackages.length, 1)
+    await a.reload({ waitUntil: 'networkidle' }); await settle(a)
+    assert.deepEqual((await read(a)).data.benefitPackages, saved.data.benefitPackages)
+    await a.goto(`http://catalog-test.invalid:${port}/skus`, { waitUntil: 'networkidle' }); await settle(a)
+    assert.equal(await a.locator('[data-catalog-storage-notice]').count(), 0)
+    assert.equal(await a.getByText(/当前环境无法安全保存共享数据/).count(), 0)
+    environment.http = capabilities; mark('ordinary-http-local-save-reload-and-SKU-no-environment-warning', { capabilities, result }); await ctx.close()
   }
   environment.localhost = await (async () => { const ctx = await browser.newContext(), page = await ctx.newPage(); await page.goto(`http://localhost:${port}/benefit-packages`, { waitUntil: 'networkidle' }); const capabilities = await page.evaluate(() => ({ secure: isSecureContext, locks: Boolean(navigator.locks) })); assert(capabilities.secure && capabilities.locks); assert((await save(page, 'localhost-write')).ok); await ctx.close(); return capabilities })()
   if (process.env.REFINEMENT_TLS_PFX) {

@@ -6,14 +6,17 @@ type CommitIdentity = { datasetId: string; revision: number; commitId: string }
 export type CatalogPayload = { version?: number; data?: AppData; commit?: CommitIdentity }
 export type PersistenceFailure = { ok: false; message: string }
 const conflictMessage = '其他页面已更新数据，本次保存已拒绝；本页输入和草稿保留。请先备份需要保留的内容，再选择“读取最新”后继续。'
-const capabilityMessage = '当前环境无法安全保存共享数据：需要安全上下文及 Web Locks。请使用 Windows Chrome / Edge，通过 localhost 或 HTTPS 打开；当前输入保留，未退回无保护写入。'
-
-function identity() { return crypto.randomUUID() }
+function identity() {
+  if (typeof globalThis.crypto?.randomUUID === 'function') return globalThis.crypto.randomUUID()
+  return Array.from(globalThis.crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('')
+}
 function validCommit(value: CommitIdentity | undefined): value is CommitIdentity {
   return Boolean(value && typeof value.datasetId === 'string' && value.datasetId && Number.isSafeInteger(value.revision) && value.revision > 0 && typeof value.commitId === 'string' && value.commitId)
 }
 
-/** One coordinator per catalogue store. Web Locks protects all tabs; raw equality
+/** Browser-local demo storage. Web Locks protects all tabs when available;
+ * otherwise the per-store queue serializes local saves without requiring HTTPS.
+ * The fallback does not provide atomic cross-tab transactions. Raw equality
  * detects already-changed legacy payloads and writes that did not keep metadata.
  * All current app writers participate; non-cooperating old apps/devtools cannot
  * be made atomic by LocalStorage and are outside this transaction protocol.
@@ -21,8 +24,8 @@ function validCommit(value: CommitIdentity | undefined): value is CommitIdentity
 export function createCatalogPersistence(initialRaw: string | null) {
   let acceptedRaw = initialRaw, insideLock = false, disposed = false
   let queue: Promise<unknown> = Promise.resolve()
-  const supported = typeof navigator !== 'undefined' && globalThis.isSecureContext === true && Boolean(navigator.locks?.request)
-  const state = reactive({ external: false, message: supported ? '' : capabilityMessage, pending: 0, supported, discardConfirmed: false })
+  const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined
+  const state = reactive({ external: false, message: '', pending: 0, supported: true, discardConfirmed: false })
 
   function changed() {
     state.external = true; state.message = conflictMessage
@@ -35,14 +38,14 @@ export function createCatalogPersistence(initialRaw: string | null) {
   function run<T>(operation: () => T | Promise<T>, fail: (message: string) => T): Promise<T> {
     state.pending += 1
     const task = queue.then(async () => {
-      if (!supported) return fail(capabilityMessage)
       try {
-        return await navigator.locks.request(CATALOG_LOCK, { mode: 'exclusive' }, async () => {
+        const commit = async () => {
           if (disposed) return fail('页面已关闭，未执行保存。')
           if (localStorage.getItem(STORAGE_KEY) !== acceptedRaw) { changed(); return fail(conflictMessage) }
           insideLock = true
           try { return await operation() } finally { insideLock = false }
-        })
+        }
+        return locks?.request ? await locks.request(CATALOG_LOCK, { mode: 'exclusive' }, commit) : await commit()
       } catch (error) {
         const message = `无法保存到本机：${error instanceof Error ? error.message : String(error)}。原存储和当前输入保留，请重试。`
         state.message = message

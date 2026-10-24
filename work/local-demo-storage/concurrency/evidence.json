@@ -1,0 +1,311 @@
+{
+  "result": "PASS",
+  "environment": {
+    "browser": "156.0.8078.47",
+    "node": "v22.18.0",
+    "origin": "http://127.0.0.1:64583",
+    "http": {
+      "secure": false,
+      "locks": false
+    },
+    "localhost": {
+      "secure": true,
+      "locks": true
+    },
+    "https": {
+      "verified": false,
+      "reason": "Set REFINEMENT_TLS_PFX and optional REFINEMENT_TLS_PASSPHRASE for a real local TLS check."
+    }
+  },
+  "isolation": "every case has one new BrowserContext and two real Pages sharing same origin",
+  "synchronization": "real Web Locks with held-lock barrier; no timing-based race assumption",
+  "checks": [
+    {
+      "name": "A-package-B-stale-template-rejected",
+      "result": "PASS",
+      "detail": {
+        "packageId": "benefit-package-000001",
+        "retained": 1,
+        "stale": {
+          "ok": false,
+          "message": "其他页面已更新数据，本次保存已拒绝；本页输入和草稿保留。请先备份需要保留的内容，再选择“读取最新”后继续。"
+        }
+      }
+    },
+    {
+      "name": "A-delivery-B-name-rejected-history-and-receipt-preserved",
+      "result": "PASS",
+      "detail": {
+        "deliveryId": "benefit-delivery-000001",
+        "count": 1
+      }
+    },
+    {
+      "name": "A-template-B-stale-sync-rejected",
+      "result": "PASS",
+      "detail": {
+        "stale": {
+          "ok": false,
+          "message": "其他页面已更新数据，本次保存已拒绝；本页输入和草稿保留。请先备份需要保留的内容，再选择“读取最新”后继续。"
+        }
+      }
+    },
+    {
+      "name": "real-WebLock-barrier-parallel-numbering-receipt",
+      "result": "PASS",
+      "detail": {
+        "results": [
+          {
+            "ok": true,
+            "id": "benefit-package-000001",
+            "package": {
+              "id": "benefit-package-000001",
+              "code": "BPK-000001",
+              "revision": 1,
+              "name": "race-a",
+              "status": "draft",
+              "favorite": false,
+              "device": null,
+              "includedPhoneSkuId": "",
+              "requireFastCharge": false,
+              "goods": [],
+              "services": [
+                {
+                  "id": "service-one",
+                  "name": "独立测试服务",
+                  "quantity": 1,
+                  "unit": "次",
+                  "measurement": "per-package",
+                  "validity": "30日",
+                  "description": "仅测试约定"
+                }
+              ],
+              "rulesEnabled": false,
+              "groups": [],
+              "quote": {
+                "currency": "CNY",
+                "amountCents": null,
+                "reviewedBasis": ""
+              },
+              "confirmations": [],
+              "issues": [],
+              "createdAt": "2026-10-23T12:00:00.000Z",
+              "updatedAt": "2026-10-23T12:00:00.000Z",
+              "creationRequestId": "race-a"
+            },
+            "validation": {
+              "issues": [],
+              "goods": [],
+              "deviceLabel": "普通组合包 · 未做设备适配校验",
+              "deviceValid": true,
+              "canSaveDraft": true,
+              "canSaveAvailable": true,
+              "canDeliver": true,
+              "basis": "{\"composition\":\"{\\\"device\\\":null,\\\"goods\\\":[],\\\"groups\\\":[],\\\"includedPhoneSkuId\\\":\\\"\\\",\\\"requireFastCharge\\\":false,\\\"rulesEnabled\\\":false,\\\"services\\\":[{\\\"description\\\":\\\"仅测试约定\\\",\\\"id\\\":\\\"service-one\\\",\\\"measurement\\\":\\\"per-package\\\",\\\"name\\\":\\\"独立测试服务\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"次\\\",\\\"validity\\\":\\\"30日\\\"}]}\",\"declarations\":[],\"device\":null,\"goods\":[]}",
+              "physicalCount": 0,
+              "serviceCount": 1,
+              "quoteNeedsReview": false
+            }
+          },
+          {
+            "ok": false,
+            "message": "其他页面已更新数据，本次保存已拒绝；本页输入和草稿保留。请先备份需要保留的内容，再选择“读取最新”后继续。"
+          }
+        ],
+        "retry": "BPK-000002"
+      }
+    },
+    {
+      "name": "same-record-stale-noop-also-rejected",
+      "result": "PASS",
+      "detail": {
+        "favorite": true
+      }
+    },
+    {
+      "name": "stale-deep-watcher-blocked-input-cancel-read-latest-continue",
+      "result": "PASS",
+      "detail": {
+        "unrelatedDeliveriesRetained": 1
+      }
+    },
+    {
+      "name": "quota-no-half-state-retry-repeat-once",
+      "result": "PASS",
+      "detail": {
+        "failed": {
+          "ok": false,
+          "message": "无法保存到本机：双页真实存储失败注入。原数据、编辑草稿和本次请求保留，请重试。",
+          "validation": {
+            "issues": [],
+            "goods": [],
+            "deviceLabel": "普通组合包 · 未做设备适配校验",
+            "deviceValid": true,
+            "canSaveDraft": true,
+            "canSaveAvailable": true,
+            "canDeliver": true,
+            "basis": "{\"composition\":\"{\\\"device\\\":null,\\\"goods\\\":[],\\\"groups\\\":[],\\\"includedPhoneSkuId\\\":\\\"\\\",\\\"requireFastCharge\\\":false,\\\"rulesEnabled\\\":false,\\\"services\\\":[{\\\"description\\\":\\\"仅测试约定\\\",\\\"id\\\":\\\"service-one\\\",\\\"measurement\\\":\\\"per-package\\\",\\\"name\\\":\\\"独立测试服务\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"次\\\",\\\"validity\\\":\\\"30日\\\"}]}\",\"declarations\":[],\"device\":null,\"goods\":[]}",
+            "physicalCount": 0,
+            "serviceCount": 1,
+            "quoteNeedsReview": false
+          }
+        },
+        "id": "benefit-package-000001"
+      }
+    },
+    {
+      "name": "import-restore-reset-new-dataset-even-revision-reused",
+      "result": "PASS",
+      "detail": {
+        "imported": {
+          "datasetId": "63f18402-f298-47c7-8a2a-36141e2335a4",
+          "revision": 1,
+          "commitId": "818900b9-510b-4af5-b8ee-5084e4dba828"
+        },
+        "restored": {
+          "datasetId": "21500a66-76d8-4a94-92bc-136e9775d32b",
+          "revision": 1,
+          "commitId": "5b72a250-d06b-4360-8748-84248a341e06"
+        },
+        "reset": {
+          "datasetId": "8340521f-f912-48cf-a468-dc97c018354b",
+          "revision": 1,
+          "commitId": "e805608e-9459-43d4-bdef-188adb12cbce"
+        }
+      }
+    },
+    {
+      "name": "legacy-brand-conflict-keeps-dialog-no-false-success",
+      "result": "PASS",
+      "detail": {
+        "retainedPackages": 2
+      }
+    },
+    {
+      "name": "legacy-account-conflict-keeps-input-no-false-success",
+      "result": "PASS",
+      "detail": {}
+    },
+    {
+      "name": "missing-WebLocks-local-save-and-reload",
+      "result": "PASS",
+      "detail": {
+        "result": {
+          "ok": true,
+          "id": "benefit-package-000001",
+          "package": {
+            "id": "benefit-package-000001",
+            "code": "BPK-000001",
+            "revision": 1,
+            "name": "local-without-locks",
+            "status": "draft",
+            "favorite": false,
+            "device": null,
+            "includedPhoneSkuId": "",
+            "requireFastCharge": false,
+            "goods": [],
+            "services": [
+              {
+                "id": "service-one",
+                "name": "独立测试服务",
+                "quantity": 1,
+                "unit": "次",
+                "measurement": "per-package",
+                "validity": "30日",
+                "description": "仅测试约定"
+              }
+            ],
+            "rulesEnabled": false,
+            "groups": [],
+            "quote": {
+              "currency": "CNY",
+              "amountCents": null,
+              "reviewedBasis": ""
+            },
+            "confirmations": [],
+            "issues": [],
+            "createdAt": "2026-10-23T12:00:00.000Z",
+            "updatedAt": "2026-10-23T12:00:00.000Z",
+            "creationRequestId": "local-without-locks"
+          },
+          "validation": {
+            "issues": [],
+            "goods": [],
+            "deviceLabel": "普通组合包 · 未做设备适配校验",
+            "deviceValid": true,
+            "canSaveDraft": true,
+            "canSaveAvailable": true,
+            "canDeliver": true,
+            "basis": "{\"composition\":\"{\\\"device\\\":null,\\\"goods\\\":[],\\\"groups\\\":[],\\\"includedPhoneSkuId\\\":\\\"\\\",\\\"requireFastCharge\\\":false,\\\"rulesEnabled\\\":false,\\\"services\\\":[{\\\"description\\\":\\\"仅测试约定\\\",\\\"id\\\":\\\"service-one\\\",\\\"measurement\\\":\\\"per-package\\\",\\\"name\\\":\\\"独立测试服务\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"次\\\",\\\"validity\\\":\\\"30日\\\"}]}\",\"declarations\":[],\"device\":null,\"goods\":[]}",
+            "physicalCount": 0,
+            "serviceCount": 1,
+            "quoteNeedsReview": false
+          }
+        }
+      }
+    },
+    {
+      "name": "ordinary-http-local-save-reload-and-SKU-no-environment-warning",
+      "result": "PASS",
+      "detail": {
+        "capabilities": {
+          "secure": false,
+          "locks": false
+        },
+        "result": {
+          "ok": true,
+          "id": "benefit-package-000001",
+          "package": {
+            "id": "benefit-package-000001",
+            "code": "BPK-000001",
+            "revision": 1,
+            "name": "http-local-save",
+            "status": "draft",
+            "favorite": false,
+            "device": null,
+            "includedPhoneSkuId": "",
+            "requireFastCharge": false,
+            "goods": [],
+            "services": [
+              {
+                "id": "service-one",
+                "name": "独立测试服务",
+                "quantity": 1,
+                "unit": "次",
+                "measurement": "per-package",
+                "validity": "30日",
+                "description": "仅测试约定"
+              }
+            ],
+            "rulesEnabled": false,
+            "groups": [],
+            "quote": {
+              "currency": "CNY",
+              "amountCents": null,
+              "reviewedBasis": ""
+            },
+            "confirmations": [],
+            "issues": [],
+            "createdAt": "2026-10-23T12:00:00.000Z",
+            "updatedAt": "2026-10-23T12:00:00.000Z",
+            "creationRequestId": "http-local-save"
+          },
+          "validation": {
+            "issues": [],
+            "goods": [],
+            "deviceLabel": "普通组合包 · 未做设备适配校验",
+            "deviceValid": true,
+            "canSaveDraft": true,
+            "canSaveAvailable": true,
+            "canDeliver": true,
+            "basis": "{\"composition\":\"{\\\"device\\\":null,\\\"goods\\\":[],\\\"groups\\\":[],\\\"includedPhoneSkuId\\\":\\\"\\\",\\\"requireFastCharge\\\":false,\\\"rulesEnabled\\\":false,\\\"services\\\":[{\\\"description\\\":\\\"仅测试约定\\\",\\\"id\\\":\\\"service-one\\\",\\\"measurement\\\":\\\"per-package\\\",\\\"name\\\":\\\"独立测试服务\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"次\\\",\\\"validity\\\":\\\"30日\\\"}]}\",\"declarations\":[],\"device\":null,\"goods\":[]}",
+            "physicalCount": 0,
+            "serviceCount": 1,
+            "quoteNeedsReview": false
+          }
+        }
+      }
+    }
+  ],
+  "diagnostics": []
+}

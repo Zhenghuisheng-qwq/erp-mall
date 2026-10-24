@@ -10,7 +10,7 @@ export interface NavigationPreferences {
 export function readNavigation(raw: string | null, allowed: Iterable<string>, current: string[]): NavigationPreferences {
   const valid = new Set(allowed)
   const clean = (keys: unknown[]) => [...new Set(keys.filter((key): key is string => typeof key === 'string' && valid.has(key)))]
-  const fallback: NavigationPreferences = { layout: 'single', collapsed: false, openeds: clean(current) }
+  const fallback: NavigationPreferences = { layout: 'dual', collapsed: false, openeds: clean(current) }
   try {
     const value: unknown = JSON.parse(raw || 'null')
     if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback

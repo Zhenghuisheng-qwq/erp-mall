@@ -6,7 +6,7 @@ import type { ProductListViewFilter } from '../src/domain/types'
 
 const allowed = ['product', 'manage', 'tools']
 const read = (value: unknown) => readNavigation(typeof value === 'string' ? value : JSON.stringify(value), allowed, ['product', 'manage'])
-assert.deepEqual(read(null), { layout: 'single', collapsed: false, openeds: ['product', 'manage'] })
+assert.deepEqual(read(null), { layout: 'dual', collapsed: false, openeds: ['product', 'manage'] })
 for (const value of ['broken', 'null', '[]', '{"mode":"broken"}']) assert.deepEqual(read(value), read(null))
 for (const mode of ['single', 'dual'] as const) {
   assert.deepEqual(read({ mode, pinned: true, openeds: ['manage', 'removed', 'manage', 'forbidden'] }), { layout: mode, collapsed: false, openeds: ['manage'] })
