@@ -1,8 +1,0 @@
-WebSocket server error: Port 24678 is already in use
-18:56:58 [vite] (client) [optimizer] bundling dependencies...
-PASS migration preserves legacy default/keyword/one-sided dates/columns/manual order/SPU and business data; idempotent
-PASS save/copy/import/reload round trips retain tree, sorts, grouping, width, freeze, density and aliases
-PASS failed persistence leaves formal settings/disk intact, migration never replaces data with seed, retry succeeds
-PASS malformed new configurations become explicit invalid queries, not crashes or widened results
-PASS effective dirty comparison ignores internal IDs; repeated explicit scope saves retain unique identities and one-level groups
-PASS work/apply/save/restore/name validation/favorites/default/delete/scoped saves, failure retry and business immutability
