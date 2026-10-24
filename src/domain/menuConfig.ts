@@ -94,10 +94,13 @@ export function sanitizeMenu(nodes: MenuNode[]): MenuNode[] {
   const legacy = nodes.find(item => item.id === 'page:/products')
   if (legacy) nodes = [...nodes, ...(['/spus', '/skus'] as const).filter(route => !nodes.some(item => item.id === `page:${route}`)).map((route, index) => ({ ...legacy, id: `page:${route}`, route, title: route === '/spus' ? 'SPU 管理' : 'SKU 管理', sort: legacy.sort + index * 0.5, roles: [...legacy.roles] }))]
   const defaults = new Map(defaultMenuNodes().map((item) => [item.id, item]))
-  const incoming = clone(nodes).filter((item) => defaults.has(item.id) || (item.custom && item.kind === 'group'))
+  const incoming = clone(nodes.filter(item => item && typeof item.id === 'string').map(item => ({...item,roles:rolesOf(item.roles,BOTH)}))).filter((item) => defaults.has(item.id) || (item.custom && (item.kind === 'group' || item.kind === 'center')))
   const byId = new Map<string, MenuNode>()
   for (const item of defaults.values()) byId.set(item.id, { ...item, roles: [...item.roles] })
+  const accepted = new Set<string>()
   for (const item of incoming) {
+    if (accepted.has(item.id)) continue
+    accepted.add(item.id)
     const base = defaults.get(item.id)
     if (base) {
       byId.set(item.id, {
@@ -108,10 +111,10 @@ export function sanitizeMenu(nodes: MenuNode[]): MenuNode[] {
         hidden: Boolean(item.hidden),
         roles: rolesOf(item.roles, base.roles),
       })
-    } else if (item.custom && item.kind === 'group') {
+    } else if (item.custom && (item.kind === 'group' || item.kind === 'center')) {
       const title = String(item.title || '').trim()
       if (!title) continue
-      byId.set(item.id, { id: item.id, kind: 'group', title, parentId: item.parentId, sort: item.sort || 1, route: '', hidden: Boolean(item.hidden), roles: rolesOf(item.roles, BOTH), custom: true })
+      byId.set(item.id, { id: item.id, kind: item.kind, title, parentId: item.kind === 'center' ? null : item.parentId, sort: item.sort || 1, route: '', hidden: Boolean(item.hidden), roles: rolesOf(item.roles, BOTH), custom: true })
     }
   }
   const list = [...byId.values()]
@@ -144,6 +147,7 @@ export function sanitizeMenu(nodes: MenuNode[]): MenuNode[] {
   for (const item of list) {
     if (item.parentId && cyc(item.id)) item.parentId = defaults.get(item.id)?.parentId || null
   }
+  for (const item of list) if (adminPage(item.route)) item.roles = ['admin']
   return list
 }
 
@@ -154,6 +158,8 @@ export function loadMenu(): MenuNode[] {
 }
 
 export function saveMenu(nodes: MenuNode[]) {
+  const message = validateMenu(nodes)
+  if (message) throw new Error(message)
   const clean = sanitizeMenu(nodes)
   localStorage.setItem(MENU_KEY, JSON.stringify({ version: 1, nodes: clean } satisfies StoredMenu))
   menuRevision.value += 1
@@ -211,24 +217,23 @@ export function addGroup(nodes: MenuNode[], parentId: string, title: string) {
   if (!name) return { ok: false, message: '请填写分组名称', nodes }
   const parent = nodes.find((item) => item.id === parentId && item.kind === 'center')
   if (!parent) return { ok: false, message: '分组要放在业务中心下', nodes }
-  const id = `group-${Date.now().toString(36)}`
+  const id = uniqueMenuId(nodes, 'group')
   const sort = childrenOf(nodes, parentId).reduce((max, item) => Math.max(max, item.sort), 0) + 1
   return { ok: true, message: '', nodes: sanitizeMenu([...nodes, { id, kind: 'group', title: name, parentId, sort, route: '', hidden: false, roles: ['admin', 'operator'], custom: true }]) }
 }
 
 export function removeGroup(nodes: MenuNode[], id: string) {
   const current = nodes.find((item) => item.id === id)
-  if (!current || current.kind !== 'group') return { ok: false, message: '只能删除分组', nodes }
-  if (childrenOf(nodes, id).length) return { ok: false, message: '分组里还有菜单，不能删除', nodes }
+  if (!current?.custom || !['group','center'].includes(current.kind)) return { ok: false, message: '只能删除自定义中心或分组', nodes }
+  if (childrenOf(nodes, id).length) return { ok: false, message: '容器内还有菜单，请先改挂子入口，再删除空容器', nodes }
   return { ok: true, message: '', nodes: nodes.filter((item) => item.id !== id) }
 }
 
 function allowed(node: MenuNode, role: UserRole) {
-  return !node.hidden && node.roles.includes(role)
+  return !node.hidden && node.roles.includes(role) && (role === 'admin' || !adminPage(node.route))
 }
 
-export function railModel(role: UserRole) {
-  const nodes = loadMenu()
+export function railModel(role: UserRole, nodes = loadMenu()) {
   return childrenOf(nodes, null)
     .filter((center) => center.kind === 'center' && allowed(center, role))
     .map((center) => {
@@ -253,32 +258,68 @@ export function railModel(role: UserRole) {
     .filter((group) => group.items.length > 0 || group.sections.length > 0)
 }
 
-export function accessRoute(role: UserRole, path: string) {
-  const nodes = loadMenu()
-  const page = nodes.find((item) => item.kind === 'page' && item.route === path)
-  if (!page) return true
-  return page.roles.includes(role)
+export function menuRouteForLocation(path: string, query: { panel?: unknown } = {}) {
+  if (['/products','/spus','/skus'].includes(path) && query.panel === 'columns') return '/products?panel=columns'
+  if (/^\/(products|spus|materials)(\/|$)/.test(path)) return '/spus'
+  if (/^\/skus(\/|$)/.test(path)) return '/skus'
+  if (/^\/benefit-packages(\/|$)/.test(path)) return '/benefit-packages'
+  return path || '/'
 }
-
+export function accessRoute(role: UserRole, path: string, nodes = loadMenu()) {
+  if (path === '/menus') return role === 'admin' // Recovery path cannot be locked by menu customization.
+  if (adminPage(path) && role !== 'admin') return false
+  let node = nodes.find(item => item.kind === 'page' && item.route === path)
+  const seen = new Set<string>()
+  while (node) {
+    if (seen.has(node.id) || !node.roles.includes(role)) return false
+    seen.add(node.id)
+    node = node.parentId ? nodes.find(item => item.id === node!.parentId) : undefined
+  }
+  return true // Hidden controls navigation visibility, not direct-link permission.
+}
 export function canAccessLocation(role: UserRole, path: string, query: { panel?: unknown } = {}) {
-  if ((path === '/products' || path === '/spus' || path === '/skus') && query.panel === 'columns') return accessRoute(role, '/products?panel=columns') && accessRoute(role, path === '/skus' ? '/skus' : '/spus')
-  if (path === '/products' || path.startsWith('/products/') || path.startsWith('/spus/') || path.startsWith('/materials/')) return accessRoute(role, '/spus')
-  if (path.startsWith('/skus/')) return accessRoute(role, '/skus')
-  if (path.startsWith('/benefit-packages/')) return accessRoute(role, '/benefit-packages')
-  return accessRoute(role, path === '' ? '/' : path)
+  const route = menuRouteForLocation(path,query)
+  return accessRoute(role,route) && (route !== '/products?panel=columns' || accessRoute(role,path === '/skus' ? '/skus' : '/spus'))
 }
 
 export function previewLines(nodes: MenuNode[], role: UserRole) {
-  const lines: { depth: number; title: string }[] = []
-  function walk(parentId: string | null, depth: number) {
-    for (const item of childrenOf(nodes, parentId)) {
-      if (!allowed(item, role)) continue
-      if (item.kind === 'page' || item.kind === 'center' || childrenOf(nodes, item.id).some((child) => allowed(child, role))) {
-        lines.push({ depth, title: item.title })
-        walk(item.id, depth + 1)
-      }
-    }
+  return railModel(role, sanitizeMenu(nodes)).flatMap(center => [
+    {depth:0,title:center.title}, ...center.items.map(page=>({depth:1,title:page.title})),
+    ...center.sections.flatMap(group=>[{depth:1,title:group.title},...group.items.map(page=>({depth:2,title:page.title}))]),
+  ])
+}
+
+/** Eligible parameter-free formal page entrances; never accept arbitrary URLs. */
+export function menuPageRegistry() { return defaultMenuNodes().filter(n => n.kind === 'page') }
+export function adminPage(route: string) { return ['/templates','/rules','/users','/menus','/mappings'].includes(route) }
+function uniqueMenuId(nodes: MenuNode[], kind: string) {
+  let index = 1
+  while (nodes.some(n => n.id === `custom-${kind}-${index}`)) index++
+  return `custom-${kind}-${index}`
+}
+export function addCenter(nodes: MenuNode[], title: string) {
+  if (!title.trim()) return {ok:false,message:'请填写中心名称',nodes}
+  return {ok:true,message:'',nodes:sanitizeMenu([...nodes,{id:uniqueMenuId(nodes,'center'),kind:'center',title:title.trim(),parentId:null,sort:childrenOf(nodes,null).length+1,route:'',hidden:false,roles:[...BOTH],custom:true}])}
+}
+export function placePage(nodes: MenuNode[], route: string, parentId: string) {
+  const registered = menuPageRegistry().find(n => n.route === route)
+  if (!registered) return {ok:false,message:'请选择已注册的正式页面',nodes}
+  const result = changeParent(sanitizeMenu(nodes), registered.id, parentId)
+  if (result.ok) result.nodes.find(n => n.id === registered.id)!.hidden = false
+  return result
+}
+export function validateMenu(nodes: MenuNode[]): string {
+  const ids = new Set<string>(), routes = new Set<string>(), registry = menuPageRegistry()
+  for (const node of nodes) {
+    if (!node.id || ids.has(node.id)) return '菜单 ID 重复或为空'
+    ids.add(node.id)
+    if (!node.title.trim() || !Number.isFinite(node.sort)) return '请填写菜单名称和有效顺序'
+    const parent = nodes.find(n => n.id === node.parentId)
+    if (node.kind === 'center' ? node.parentId !== null : !parent || (node.kind === 'group' ? parent.kind !== 'center' : !['center','group'].includes(parent.kind))) return '菜单父级无效；仅支持中心、分组和页面'
+    if (node.kind === 'page') {
+      if (!registry.some(n=>n.id === node.id && n.route === node.route) || routes.has(node.route)) return '页面必须使用唯一的已注册入口'
+      routes.add(node.route)
+    } else if (!['center','group'].includes(node.kind)) return '菜单类型无效'
   }
-  walk(null, 0)
-  return lines
+  return ''
 }

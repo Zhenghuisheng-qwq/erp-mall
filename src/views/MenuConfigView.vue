@@ -1,20 +1,30 @@
 <template>
-  <div>
+  <div v-if="store.isAdmin">
     <PageHead title="菜单配置" desc="这是前端演示权限。改的是菜单名称、层级和角色可见性，不会改页面地址，也不是服务器上的正式权限。">
       <el-button @click="reload">取消</el-button>
       <el-button @click="restore">恢复默认</el-button>
       <el-button type="primary" @click="save">保存</el-button>
     </PageHead>
+    <el-alert v-if="saveError" :title="saveError" type="error" :closable="false" data-menu-save-error />
     <div class="menu-layout">
       <section class="panel">
         <div class="menu-tools">
-          <el-select v-model="newParent" style="width: 180px">
+          <el-input v-model="centerTitle" placeholder="新中心名称" style="width:180px" /><el-button @click="createCenter">新增中心</el-button>
+        </div>
+        <div class="menu-tools">
+          <el-select v-model="pageRoute" filterable placeholder="选择正式页面" aria-label="选择正式页面" style="width:200px"><el-option v-for="item in menuPageRegistry()" :key="item.id" :label="item.title" :value="item.route" /></el-select>
+          <el-select v-model="pageParent" placeholder="目标中心或分组" aria-label="页面目标父级" style="width:200px"><el-option v-for="item in draft.filter(n => n.kind !== 'page')" :key="item.id" :label="item.title" :value="item.id" /></el-select>
+          <el-button @click="addPage">恢复或移动页面入口</el-button>
+        </div>
+        <p class="muted">每个正式页面仅有一个入口；选择已有页面会改挂并恢复显示。删除容器前请先移走其子入口。</p>
+        <div class="menu-tools">
+          <el-select aria-label="新分组所属中心" v-model="newParent" style="width: 180px">
             <el-option v-for="item in centers" :key="item.id" :label="item.title" :value="item.id" />
           </el-select>
           <el-input v-model="newTitle" placeholder="新分组名称" style="width: 180px" @keyup.enter="createGroup" />
           <el-button @click="createGroup">新增分组</el-button>
         </div>
-        <div v-for="item in rows" :key="item.id" class="menu-row" :style="{ paddingLeft: `${item.depth * 22}px` }">
+        <div v-for="item in rows" :key="item.id" :data-menu-id="item.id" class="menu-row" :style="{ paddingLeft: `${item.depth * 22}px` }">
           <el-input v-model="item.node.title" />
           <span class="menu-kind">{{ kindText(item.node.kind) }}</span>
           <span class="menu-route">{{ item.node.route || '—' }}</span>
@@ -24,8 +34,8 @@
           <el-button :disabled="!canMove(item.node, -1)" @click="shift(item.node.id, -1)">上移</el-button>
           <el-button :disabled="!canMove(item.node, 1)" @click="shift(item.node.id, 1)">下移</el-button>
           <el-switch v-model="item.node.hidden" active-text="隐藏" inactive-text="显示" />
-          <el-checkbox :model-value="item.node.roles.includes('operator')" @change="onOperator(item.node, Boolean($event))">运营可访问</el-checkbox>
-          <el-button v-if="item.node.kind === 'group'" link type="danger" @click="dropGroup(item.node)">删除</el-button>
+          <el-checkbox :disabled="adminPage(item.node.route)" :model-value="item.node.roles.includes('operator')" @change="onOperator(item.node, Boolean($event))">运营可访问</el-checkbox>
+          <el-button v-if="item.node.custom && item.node.kind !== 'page'" link type="danger" @click="dropGroup(item.node)">删除</el-button>
         </div>
       </section>
       <aside class="panel">
@@ -43,11 +53,14 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, ref } from 'vue'
+import { useCatalogStore } from '../stores/catalog'
 import PageHead from '../components/PageHead.vue'
-import { addGroup, changeParent, childrenOf, descendantIds, loadMenu, moveSibling, previewLines, removeGroup, resetMenu, saveMenu, type MenuKind, type MenuNode } from '../domain/menuConfig'
+import { addCenter, placePage, menuPageRegistry, adminPage, addGroup, changeParent, childrenOf, descendantIds, loadMenu, moveSibling, previewLines, removeGroup, resetMenu, saveMenu, type MenuKind, type MenuNode } from '../domain/menuConfig'
 import type { UserRole } from '../domain/types'
 
+const store = useCatalogStore()
 const draft = ref<MenuNode[]>(loadMenu())
+const saveError = ref(''), centerTitle = ref(''), pageRoute = ref(''), pageParent = ref('product')
 const newParent = ref('product')
 const newTitle = ref('')
 const previewRole = ref<UserRole>('operator')
@@ -98,6 +111,17 @@ function onParent(node: MenuNode, parentId: string) {
 function onOperator(node: MenuNode, enabled: boolean) {
   node.roles = enabled ? ['admin', 'operator'] : ['admin']
 }
+function createCenter() {
+  const result = addCenter(draft.value,centerTitle.value)
+  if (!result.ok) { ElMessage.warning(result.message); return }
+  draft.value = result.nodes; centerTitle.value = ''
+}
+function addPage() {
+  const result = placePage(draft.value,pageRoute.value,pageParent.value)
+  if (!result.ok) { ElMessage.warning(result.message); return }
+  draft.value = result.nodes
+  ElMessage.success('已调整规范入口草稿，保存后生效')
+}
 function createGroup() {
   const result = addGroup(draft.value, newParent.value, newTitle.value)
   if (!result.ok) {
@@ -115,7 +139,7 @@ async function dropGroup(node: MenuNode) {
     return
   }
   try {
-    await ElMessageBox.confirm(`删除空分组「${node.title}」？`, '删除分组', { type: 'warning' })
+    await ElMessageBox.confirm(`删除空容器「${node.title}」？`, '删除菜单容器', { type: 'warning' })
   } catch {
     return
   }
@@ -131,12 +155,12 @@ async function restore() {
   } catch {
     return
   }
-  draft.value = resetMenu()
-  ElMessage.success('已恢复默认菜单')
+  if (!store.isAdmin) return
+  try { draft.value = resetMenu(); saveError.value = ''; ElMessage.success('已恢复默认菜单') } catch { saveError.value = '恢复失败，当前菜单草稿已保留，请重试。' }
 }
 function save() {
-  draft.value = saveMenu(draft.value)
-  ElMessage.success('菜单已保存在这台浏览器')
+  if (!store.isAdmin) return
+  try { draft.value = saveMenu(draft.value); saveError.value = ''; ElMessage.success('菜单已保存在这台浏览器') } catch (cause) { saveError.value = `${cause instanceof Error ? cause.message : '保存失败'}；当前草稿已保留，可重试保存。` }
 }
 </script>
 

@@ -115,7 +115,7 @@
       <p v-if="nameError" class="warn" role="alert">{{ nameError }}</p><p class="muted">视图仅保存在本机浏览器，不复制商品数据。</p>
       <template #footer><el-button :disabled="workbench.pending.value" @click="nameOpen = false">取消</el-button><el-button type="primary" :loading="workbench.pending.value" @click="submitName">{{ nameAction === '重命名视图' ? '保存名称' : '创建' }}</el-button></template>
     </el-dialog>
-    <el-drawer v-model="stageOpen" title="排序暂存区" size="min(420px, 90vw)"><p>共 {{ stageIds.length }} 条，确认插入后更新工作配置。</p><ul><li v-for="id in stageIds" :key="id">{{ id }} <el-button link @click="removeStaged(id)">移除</el-button></li></ul><el-button @click="clearStage">清空暂存</el-button></el-drawer>
+    <el-drawer v-model="stageOpen" title="排序暂存区" size="min(420px, 90vw)"><p>共 {{ stageIds.length }} 条，确认插入后更新工作配置。</p><ul><li v-for="item in stagedRows" :key="item.id" class="staged-row"><div :title="item.detail"><strong>{{ item.name }}</strong><span>{{ item.detail }}</span><em v-if="!item.valid">记录已删除或不再是销售 SKU</em><em v-else-if="!item.inResult">当前筛选外；调整筛选后可插入</em></div> <el-button link @click="removeStaged(item.id)">移除</el-button></li></ul><el-button @click="clearStage">清空暂存</el-button></el-drawer>
   </div>
 </template>
 
@@ -187,7 +187,18 @@ const categoryIds = computed(() => categorySelection.value.ids)
 const manualOn = computed(() => config.value.sortMode === 'manual' && !presentation.value.manualBlocked)
 function manualOrder() { return resolveManualOrder(config.value.manualOrder, unfilteredIds(store.data, { ...currentView.value, mode: 'sku', skuQuery: emptyModeQuery('sku') }, 'sku')) }
 async function orderResult(result: ReturnType<typeof insertManualIds>) { if (!result.ok) return result; const changed = await workbench.apply({ ...config.value, manualOrder: result.order }); return changed.ok ? { ok: true as const } : changed }
-const { pickedIds, stageIds, onRowDrag, onRowDrop, togglePick, addStage, clearStage, removeStaged, askInsert } = useProductListManualOrder({ move: (id, target, place) => orderResult(moveManualId(manualOrder(), id, target, place)), insert: (ids, target, place) => orderResult(insertManualIds(manualOrder(), ids, target, place)), hasFilters: () => hasFilters.value || !!search.value })
+const { pickedIds, stageIds, onRowDrag, onRowDrop, togglePick, addStage, clearStage, removeStaged, askInsert, confirmStage } = useProductListManualOrder({ move: (id, target, place) => orderResult(moveManualId(manualOrder(), id, target, place)), insert: (ids, target, place) => {
+  const allowed = new Set(presentation.value.allIds)
+  if (!manualOn.value || [...ids,target].some(id => !allowed.has(id) || !store.data.skus.some(sku => sku.id === id && isRealSku(store.data, sku))))
+    return {ok:false, message:'暂存或目标记录已删除、不是销售 SKU，或不在当前筛选范围。暂存已保留，请调整筛选或移除失效项。'}
+  return orderResult(insertManualIds(manualOrder(), ids, target, place))
+}, context: () => `${activeId.value}:${scopeId.value}`, hasFilters: () => hasFilters.value || !!search.value })
+const stagedRows = computed(() => stageIds.value.map(id => {
+  const sku = store.data.skus.find(item => item.id === id), valid = !!sku && isRealSku(store.data, sku)
+  const family = store.data.families.find(item => item.id === sku?.familyId)
+  return {id, valid, inResult: presentation.value.allIds.includes(id), name: valid ? sku!.skuName || family?.name || '未命名 SKU' : '失效记录',
+    detail: valid ? `${sku!.code || '未编号'} · ${family?.name || '所属 SPU 不存在'} · ${family ? skuFieldValue(store.data,sku!,family,'spec').value || '' : ''}` : '请移除后重新选择'}
+}))
 const formattedGroups = computed(() => new Map(presentTableGroups(store.data, presentation.value.groups.map(group => ({ ...group, label: group.labels.join(' / ') }))).map(group => [group.key, group.skus])))
 const pageRecords = computed(() => new Map(presentation.value.rows.map(record => [record.id, record])))
 function displayRows(group: SkuGroup) { return formattedGroups.value.get(group.key) || [] }
@@ -210,7 +221,8 @@ const allPageSelected = computed(() => !!presentation.value.rows.length && prese
 const somePageSelected = computed(() => presentation.value.rows.some(row => selectedIds.value.includes(row.id)))
 function toggleSelected(id: string, selected: boolean) { selectedIds.value = selected ? [...new Set([...selectedIds.value, id])] : selectedIds.value.filter(item => item !== id) }
 function togglePage(value: boolean | string | number) { const ids = presentation.value.rows.map(row => row.id); selectedIds.value = value ? [...new Set([...selectedIds.value, ...ids])] : selectedIds.value.filter(id => !ids.includes(id)) }
-watch([activeId, scopeId, () => presentation.value.allIds.join('|')], () => { if (selectedIds.value.length) selectionNotice.value = '视图、范围或结果已变化，已清理旧选择。'; selectedIds.value = []; clearStage() })
+watch([activeId, scopeId, () => presentation.value.allIds.join('|')], () => { if (selectedIds.value.length) selectionNotice.value = '视图、范围或结果已变化，已清理旧选择。'; selectedIds.value = [] })
+watch([activeId, scopeId], () => { clearStage(); pickedIds.value = [] })
 watch(() => presentation.value.page, value => { if (page.value !== value) page.value = value }, { immediate: true })
 function parentKey(labels: string[], length: number) { return JSON.stringify(labels.slice(0, length)) }
 function toggleGroup(labels: string[], level: number) { const key = parentKey(labels, level + 1); collapsed[key] = !collapsed[key] }
@@ -218,13 +230,13 @@ function isCollapsed(labels: string[]) { return labels.some((_, level) => collap
 async function result(pending: { ok: boolean; message?: string } | Promise<{ ok: boolean; message?: string }>) { const outcome = await pending; if (!outcome.ok && outcome.message) ElMessage.error(outcome.message); return outcome.ok }
 const quickFiltersRef = ref<InstanceType<typeof SkuQuickFilters>>()
 async function flushQuick() { return await quickFiltersRef.value?.flush() ?? true }
-onBeforeRouteLeave(async () => !workbench.pending.value && await flushQuick())
-onBeforeRouteUpdate(async () => !workbench.pending.value && await flushQuick())
+onBeforeRouteLeave(async () => !workbench.pending.value && await flushQuick() && await confirmStage(false))
+onBeforeRouteUpdate(async to => !workbench.pending.value && await flushQuick() && (String(to.query.spu || '') === scopeId.value || await confirmStage(false)))
 async function applyQuickConfig(next: SkuViewConfig) { const outcome = await workbench.apply(next); if (outcome.ok) page.value = 1; return outcome }
 async function openFilters() { if (await flushQuick()) filterOpen.value = true }
 async function applyConfig(next: SkuViewConfig) { if (await result(workbench.apply(next))) page.value = 1 }
 async function openDisplay(tab: 'fields' | 'sort' | 'more') { if (!(await flushQuick())) return; displayTab.value = tab; displayOpen.value = true }
-async function selectView(id: string) { if (!(await flushQuick())) return; if (await result(workbench.select(id))) { viewsOpen.value = false; page.value = 1 } }
+async function selectView(id: string) { if (!(await flushQuick()) || (id !== activeId.value && !(await confirmStage(false)))) return; if (await result(workbench.select(id))) { viewsOpen.value = false; page.value = 1 } }
 async function restoreView() { if (!(await flushQuick())) return; if (await result(workbench.restore())) page.value = 1 }
 async function rebuildInvalid() { try { await ElMessageBox.confirm('将当前工作配置重建为全部 SKU 的默认规则？原保存视图保留，只有再次保存才会覆盖。当前 SPU 范围仍保留。', '重建工作配置') } catch { return }; applyConfig(defaultSkuConfig()) }
 function clearFilters() { search.value = ''; const next = structuredClone(JSON.parse(JSON.stringify(config.value))) as SkuViewConfig; next.conditions.children = []; if (next.legacy) { next.legacy.keyword = ''; next.legacy.filters = [] }; applyConfig(next) }
@@ -250,11 +262,11 @@ function openBenefitPackage(skuId: string) {
   void router.push({ path: '/benefit-packages/new', query: { device: skuId, returnTo: route.fullPath } })
 }
 function onPage(value: number) { page.value = value }
-async function openName(action: string) { if (!(await flushQuick())) return; nameAction.value = action; draftName.value = action === '重命名视图' ? currentView.value.name : ''; includeScope.value = false; nameError.value = ''; nameOpen.value = true }
+async function openName(action: string) { if (!(await flushQuick()) || (action !== '重命名视图' && !(await confirmStage(false)))) return; nameAction.value = action; draftName.value = action === '重命名视图' ? currentView.value.name : ''; includeScope.value = false; nameError.value = ''; nameOpen.value = true }
 async function saveCurrent() { if (!(await flushQuick())) return; if (activeId.value === SYSTEM_SKU_VIEW_ID) { openName('另存为'); return }; result(workbench.save()) }
 async function submitName() { if (workbench.pending.value) return; const outcome = await (nameAction.value === '重命名视图' ? workbench.rename(activeId.value, draftName.value) : workbench.create(draftName.value, includeScope.value)); if (!outcome.ok) { nameError.value = outcome.message; return }; nameOpen.value = false }
-async function copyView() { if (!(await flushQuick())) return; if (await result(workbench.copy(activeId.value))) moreOpen.value = false }
-async function deleteView() { moreOpen.value = false; try { await ElMessageBox.confirm(`删除视图「${currentView.value.name}」？只删除视图，不删除任何商品。`, '删除视图', { type: 'warning' }) } catch { return }; result(workbench.remove(activeId.value)) }
+async function copyView() { if (!(await flushQuick()) || !(await confirmStage(false))) return; if (await result(workbench.copy(activeId.value))) moreOpen.value = false }
+async function deleteView() { if (!(await confirmStage(false))) return; moreOpen.value = false; try { await ElMessageBox.confirm(`删除视图「${currentView.value.name}」？只删除视图，不删除任何商品。`, '删除视图', { type: 'warning' }) } catch { return }; result(workbench.remove(activeId.value)) }
 function onColumnWidth(width: number, _old: number, column: TableColumnCtx<ProductListSkuRow>) { const next = JSON.parse(JSON.stringify(config.value)) as SkuViewConfig; const found = next.columns.find(item => item.key === column.columnKey); if (found) { found.width = Math.max(80, Math.min(600, Math.round(width))); result(workbench.apply(next)) } }
 function validSelection() { return selectedIds.value.filter(id => presentation.value.allIds.includes(id) && store.data.skus.some(sku => sku.id === id && isRealSku(store.data, sku))) }
 function setSelectedStatus(status: Sku['status']) { if (!presentation.value.errors.length) store.setSkuStatus(validSelection(), status) }
@@ -280,6 +292,8 @@ onBeforeUnmount(() => { benefitReturnActive = false; if (benefitReturnFrame !== 
 </script>
 
 <style scoped>
+.staged-row{display:flex;align-items:center;gap:12px;margin:12px 0}.staged-row>div{flex:1;min-width:0}.staged-row strong,.staged-row span,.staged-row em{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.staged-row span{font-size:12px;color:var(--el-text-color-secondary)}.staged-row em{color:var(--el-color-warning);font-size:12px}
+
 .workbench-panel { padding: 0; overflow: hidden; }
 .scope-banner { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 14px 18px; margin-bottom: 14px; border: 1px solid var(--el-border-color); border-radius: 8px; background: var(--el-fill-color-light); }
 .scope-banner p { margin: 5px 0 0; }.scope-banner>div { flex: 1; }

@@ -1,6 +1,6 @@
 <template>
   <div ref="wrapRef" class="rail-wrap" :data-mode="mode">
-    <div class="nav-column" :class="{ 'is-single': mode === 'single', 'is-icons': mode === 'icons' }">
+    <div class="nav-column" :class="{ 'is-single': mode === 'single' || mode === 'center', 'is-icons': mode === 'icons' }">
     <aside v-if="mode === 'single'" class="sider" aria-label="主导航">
       <div class="sider-brand" title="商品配置">
         <span class="brand-mark">商</span>
@@ -31,6 +31,17 @@
         </el-menu>
       </div>
     </aside>
+    <aside v-else-if="mode === 'center'" class="sider" aria-label="当前中心菜单">
+      <div class="sider-brand"><select aria-label="切换业务中心" :value="centerGroup?.key || ''" @change="switchCenter(($event.target as HTMLSelectElement).value)"><option v-for="group in groups" :key="group.key" :value="group.key">{{ group.title }}</option></select></div>
+      <div class="sider-scroll" v-if="centerGroup">
+        <el-menu :key="centerGroup.key" :default-active="active" :default-openeds="centerGroup.sections.map(s => s.key)">
+          <el-menu-item v-for="item in centerGroup.items" :key="item.index" :index="item.index"><a :href="hrefOf(item.index)" @click.stop="go($event,item.index)">{{ item.title }}</a></el-menu-item>
+          <el-sub-menu v-for="section in centerGroup.sections" :key="section.key" :index="section.key"><template #title>{{ section.title }}</template><el-menu-item v-for="item in section.items" :key="item.index" :index="item.index"><a :href="hrefOf(item.index)" @click.stop="go($event,item.index)">{{ item.title }}</a></el-menu-item></el-sub-menu>
+        </el-menu>
+      </div>
+      <p v-else>当前角色没有可见菜单</p>
+    </aside>
+    <aside v-else-if="layout === 'center'" class="center-compact"><button class="nav-tool" aria-label="打开当前中心菜单" @click="onRailClick(centerGroup?.key || '',$event.currentTarget)">☰</button></aside>
     <aside v-else ref="railRef" class="rail" :class="{ 'is-icons': mode === 'icons' }" aria-label="主导航">
       <div class="rail-brand" title="商品配置">
         <span class="brand-mark">商</span>
@@ -55,6 +66,7 @@
         </button>
       </div>
     </aside>
+    <a v-if="canManageMenus" class="menu-recovery" :href="hrefOf('/menus')" @click="go($event,'/menus')" title="菜单配置" aria-label="菜单配置恢复入口">⚙</a>
     <nav class="nav-dock" aria-label="导航设置">
       <button ref="layoutBtnRef" type="button" class="nav-tool" aria-haspopup="menu" :aria-expanded="layoutOpen" aria-label="导航设置" title="导航设置" @click="toggleLayout">
         <span class="nav-tool-label">导航设置</span>
@@ -82,7 +94,7 @@
       </div>
     </Teleport>
     <div
-      v-if="mode !== 'single' && shownGroup"
+      v-if="mode !== 'single' && mode !== 'center' && shownGroup"
       id="nav-flyout"
       ref="flyoutRef"
       class="flyout"
@@ -93,7 +105,7 @@
       @keydown="onFlyoutKeydown"
     >
       <header class="flyout-head">
-        <strong>{{ shownGroup.title }}</strong>
+        <select v-if="layout === 'center'" aria-label="切换业务中心" :value="shownGroup.key" @change="switchCenter(($event.target as HTMLSelectElement).value)"><option v-for="group in groups" :key="group.key" :value="group.key">{{ group.title }}</option></select><strong v-else>{{ shownGroup.title }}</strong>
       </header>
       <div class="flyout-body" :class="flyoutLayout.mode === 'grid' ? 'is-grid' : 'is-single'">
         <template v-if="flyoutLayout.mode === 'grid'">
@@ -164,6 +176,7 @@ import { Expand, Fold } from '@element-plus/icons-vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Component } from 'vue'
 import { useRouter } from 'vue-router'
+import { useCatalogStore } from '../stores/catalog'
 import { NAV_KEY, readNavigation, type NavigationLayout } from './navigationPreferences'
 
 type Leaf = { index: string; title: string }
@@ -178,6 +191,14 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
+const catalog = useCatalogStore()
+const canManageMenus = computed(() => catalog.isAdmin)
+const centerGroup = computed(() => props.groups.find(g => g.key === props.currentGroup) || props.groups[0])
+function switchCenter(key: string) {
+  const group = props.groups.find(g => g.key === key)
+  const target = group?.items[0]?.index || group?.sections[0]?.items[0]?.index
+  if (target) void router.push(target)
+}
 const wrapRef = ref<HTMLElement>()
 const railRef = ref<HTMLElement>()
 const flyoutRef = ref<HTMLElement>()
@@ -210,6 +231,7 @@ let ignoreMenuEvents = false
 const layoutChoices: { id: NavigationLayout; label: string }[] = [
   { id: 'single', label: '单栏导航' },
   { id: 'dual', label: '双栏导航' },
+  { id: 'center', label: '仅当前中心菜单' },
 ]
 const effectiveCollapsed = computed(() => collapsed.value || props.temporaryCompact === true)
 const mode = computed(() => effectiveCollapsed.value ? 'icons' : layout.value)
@@ -299,8 +321,8 @@ function groupButton(key: string) {
   return [...(railRef.value?.querySelectorAll<HTMLButtonElement>('[data-group]') || [])].find(button => button.dataset.group === key)
 }
 function placePop(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement) || !railRef.value) return
-  popLeft.value = Math.round(railRef.value.getBoundingClientRect().right)
+  if (!(target instanceof HTMLElement)) return
+  popLeft.value = Math.round((railRef.value || wrapRef.value)?.getBoundingClientRect().right || 56)
   // Reserve useful vertical space even for groups near the bottom of a short viewport.
   flyoutTop.value = Math.max(8, Math.min(target.getBoundingClientRect().top, window.innerHeight - 360))
 }
@@ -382,6 +404,8 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.sider-brand select,.flyout-head select{width:100%;padding:8px;background:var(--nav-bg);color:var(--nav-text);border:1px solid var(--flyout-border);border-radius:6px}.center-compact{flex:1}.menu-recovery{color:var(--nav-text);text-align:center;text-decoration:none;padding:5px}
+
 .rail-wrap { display: flex; flex: none; height: 100%; min-height: 0; position: relative; z-index: 20; }
 .nav-column { width: 96px; flex: none; height: 100%; min-height: 0; background: var(--nav-bg); color: var(--nav-text); display: flex; flex-direction: column; }
 .nav-column.is-single { width: 228px; }

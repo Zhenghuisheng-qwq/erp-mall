@@ -1,5 +1,5 @@
 export const NAV_KEY = 'iyge-nav-layout'
-export type NavigationLayout = 'single' | 'dual'
+export type NavigationLayout = 'single' | 'dual' | 'center'
 export interface NavigationPreferences {
   layout: NavigationLayout
   collapsed: boolean
@@ -17,7 +17,7 @@ export function readNavigation(raw: string | null, allowed: Iterable<string>, cu
     const saved = value as Record<string, unknown>
     let layout: NavigationLayout
     let collapsed: boolean
-    if (saved.layout === 'single' || saved.layout === 'dual') {
+    if (saved.layout === 'single' || saved.layout === 'dual' || saved.layout === 'center') {
       layout = saved.layout
       collapsed = saved.collapsed === true
     } else if (saved.mode === 'single' || saved.mode === 'dual' || saved.mode === 'icons') {

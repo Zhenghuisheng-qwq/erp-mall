@@ -6,6 +6,7 @@ interface ManualOrderActions {
   move: (dragId: string, targetId: string, place: 'before' | 'after') => OrderResult | Promise<OrderResult>
   insert: (stagedIds: string[], targetId: string, place: 'before' | 'after') => OrderResult | Promise<OrderResult>
   hasFilters: () => boolean
+  context?: () => string
 }
 
 /**
@@ -18,12 +19,11 @@ export function useProductListManualOrder(actions: ManualOrderActions) {
   const stageIds = ref<string[]>([])
   const dragId = ref('')
 
-  async function confirmStage() {
+  async function confirmStage(discard = true) {
     if (!stageIds.value.length) return true
     try {
       await ElMessageBox.confirm('还有未提交的排序暂存。继续后会清空暂存，已经保存的手工顺序不受影响。', '清空暂存')
-      stageIds.value = []
-      pickedIds.value = []
+      if (discard) { stageIds.value = []; pickedIds.value = [] }
       return true
     } catch {
       return false
@@ -56,21 +56,28 @@ export function useProductListManualOrder(actions: ManualOrderActions) {
   function removeStaged(id: string) {
     stageIds.value = stageIds.value.filter((item) => item !== id)
   }
+  let inserting = false
   async function askInsert(id: string, name: string, place: 'before' | 'after') {
-    const where = place === 'before' ? '之前' : '之后'
+    if (inserting || !stageIds.value.length) return
+    inserting = true
+    const captured = [...stageIds.value], context = actions.context?.()
     try {
-      await ElMessageBox.confirm(`把暂存的 ${stageIds.value.length} 条插入「${name}」${where}？`, '确认插入')
-    } catch {
-      return
-    }
-    const result = await actions.insert(stageIds.value, id, place)
-    if (!result.ok) {
-      ElMessage.warning(result.message)
-      return
-    }
-    stageIds.value = []
-    const hidden = actions.hasFilters() ? '当前筛选下可能看不到全部记录。' : ''
-    ElMessage.success(`展示顺序已更新。${hidden}`)
+      const where = place === 'before' ? '之前' : '之后'
+      try {
+        await ElMessageBox.confirm(`把暂存的 ${stageIds.value.length} 条插入「${name}」${where}？`, '确认插入')
+      } catch {
+        return
+      }
+      if (context !== actions.context?.()) return
+      const result = await actions.insert(captured, id, place)
+      if (!result.ok) {
+        ElMessage.warning(result.message)
+        return
+      }
+      stageIds.value = stageIds.value.filter(id => !captured.includes(id))
+      const hidden = actions.hasFilters() ? '当前筛选下可能看不到全部记录。' : ''
+      ElMessage.success(`展示顺序已更新。${hidden}`)
+    } finally { inserting = false }
   }
 
   return { pickedIds, stageIds, confirmStage, onRowDrag, onRowDrop, togglePick, addStage, clearStage, removeStaged, askInsert }

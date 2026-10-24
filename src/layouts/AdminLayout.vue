@@ -44,7 +44,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, markRaw, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { Component } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from 'vue-router'
-import { canAccessLocation, menuRevision, railModel } from '../domain/menuConfig'
+import { menuRouteForLocation, canAccessLocation, menuRevision, railModel } from '../domain/menuConfig'
 import { useCatalogStore } from '../stores/catalog'
 import type { UserRole } from '../domain/types'
 import PageAssist from '../components/PageAssist.vue'
@@ -71,14 +71,7 @@ function onToggleTheme() {
 }
 const fileRef = ref<HTMLInputElement>()
 const title = computed(() => String(route.meta.title || '商品配置'))
-const active = computed(() => {
-  if (['/products', '/spus', '/skus'].includes(route.path) && route.query.panel === 'columns') return '/products?panel=columns'
-  if (route.path.startsWith('/products') || route.path.startsWith('/spus') || route.path.startsWith('/materials')) return '/spus'
-  if (route.path.startsWith('/skus')) return '/skus'
-  if (route.path.startsWith('/benefit-packages')) return '/benefit-packages'
-  if (route.path.startsWith('/specs')) return '/specs'
-  return route.path || '/'
-})
+const active = computed(() => menuRouteForLocation(route.path, route.query))
 
 const groups = computed(() => {
   menuRevision.value

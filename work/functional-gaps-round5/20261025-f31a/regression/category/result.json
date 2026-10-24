@@ -1,0 +1,14 @@
+{
+  "checks": [
+    "before/after reorder stable siblings",
+    "inner moves complete subtree without changing descendants or associated records",
+    "root movement and typed source legal",
+    "self/descendant/missing source or target/typed target reject atomically",
+    "cancelled preview/no-op reorder cause zero change including derived fields",
+    "disabled source remains movable under existing rules",
+    "saved subtree SKU root IDs follow current hierarchy without rewriting saved conditions",
+    "existing category selector and product category view regressions",
+    "real store persistence failure retains moved result; save-only retry once, no relative move replay"
+  ],
+  "result": "PASS"
+}

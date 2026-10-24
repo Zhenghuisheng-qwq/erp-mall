@@ -1,0 +1,10 @@
+{
+  "result": "PASS",
+  "browser": "156.0.8078.47",
+  "checks": [
+    "A canvas adjacent attribute and batch values; each operation one undo",
+    "A value conditional attribute; outline/document Tab and cancellation are pure",
+    "A published snapshots PLN MAT and product identities unchanged"
+  ],
+  "errors": []
+}

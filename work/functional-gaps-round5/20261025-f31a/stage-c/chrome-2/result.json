@@ -1,0 +1,13 @@
+{
+  "result": "FAIL",
+  "error": "TimeoutError: locator.click: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('option', { name: '运营', exact: true })\u001b[22m\n",
+  "checks": [
+    "A canvas adjacent attribute and batch values; each operation one undo",
+    "A value conditional attribute; outline/document Tab and cancellation are pure",
+    "A published snapshots PLN MAT and product identities unchanged",
+    "B native handle reorder and filtered full-array mapping; cancel/apply/save-as",
+    "B cross-page business labels; cancel view switch; failed insert retains stage; retry; products unchanged",
+    "C center/group and unique page relocation; quota retry; current-center switch, refresh and fold preference"
+  ],
+  "errors": []
+}

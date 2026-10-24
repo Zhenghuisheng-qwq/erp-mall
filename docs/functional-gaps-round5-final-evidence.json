@@ -1,0 +1,243 @@
+{
+  "result": "READY",
+  "scope": [
+    "A 节点旁新增属性/值",
+    "B SKU 字段拖动和排序暂存",
+    "C 受控菜单和当前中心导航"
+  ],
+  "branch": "20261022",
+  "startHead": "b8fa90ff9460c39e6df4311b0a3eae4a6c0bfd89",
+  "endHead": "b8fa90ff9460c39e6df4311b0a3eae4a6c0bfd89",
+  "initialWorkspace": "clean",
+  "runRoot": "work/functional-gaps-round5/20261025-f31a",
+  "results": {
+    "chrome": {
+      "result": "PASS",
+      "browser": "156.0.8078.47",
+      "checks": [
+        "A canvas adjacent attribute and batch values; each operation one undo",
+        "A value conditional attribute; outline/document Tab and cancellation are pure",
+        "A external session invalidation, deleted target closure, narrow-window fallback",
+        "A published snapshots PLN MAT and product identities unchanged",
+        "A integrated readonly value projection rejects add/delete",
+        "B native handle reorder and filtered full-array mapping; cancel/apply/save-as",
+        "B cross-page business labels; cancel view/scope switch; search preserves stage; failed insert retains stage; retry; products unchanged",
+        "B explicit external deletion shows invalid staged item and allows safe removal",
+        "C center/group and unique page relocation; quota retry; current-center switch, refresh and fold preference",
+        "C operator cannot directly enter admin menu configuration or admin template route",
+        "C nonempty container deletion protected; empty custom center deletion and menu-only reset"
+      ],
+      "errors": []
+    },
+    "edge": {
+      "result": "PASS",
+      "browser": "156.0.4314.42",
+      "checks": [
+        "A canvas adjacent attribute and batch values; each operation one undo",
+        "A value conditional attribute; outline/document Tab and cancellation are pure",
+        "A external session invalidation, deleted target closure, narrow-window fallback",
+        "A published snapshots PLN MAT and product identities unchanged",
+        "A integrated readonly value projection rejects add/delete",
+        "B native handle reorder and filtered full-array mapping; cancel/apply/save-as",
+        "B cross-page business labels; cancel view/scope switch; search preserves stage; failed insert retains stage; retry; products unchanged",
+        "B explicit external deletion shows invalid staged item and allows safe removal",
+        "C center/group and unique page relocation; quota retry; current-center switch, refresh and fold preference",
+        "C operator cannot directly enter admin menu configuration or admin template route",
+        "C nonempty container deletion protected; empty custom center deletion and menu-only reset"
+      ],
+      "errors": []
+    },
+    "aSupplement": {
+      "result": "PASS",
+      "browser": "156.0.8078.47",
+      "checks": [
+        "A canvas adjacent attribute and batch values; each operation one undo",
+        "A value conditional attribute; outline/document Tab and cancellation are pure",
+        "A external session invalidation, deleted target closure, narrow-window fallback",
+        "A published snapshots PLN MAT and product identities unchanged",
+        "A integrated readonly value projection rejects add/delete",
+        "A dictionary value create and shared-history undo rejection; outline/document real add; 100% zoom, native pan and page scroll positioning",
+        "A real model switch closes panel; explicit delayed detached-DOM confirm cannot mutate new context"
+      ],
+      "errors": []
+    },
+    "designerChrome": {
+      "browser": "156.0.8078.47",
+      "baseline": false,
+      "checks": [
+        {
+          "name": "A ArrowDown → same-component query B → real Ctrl+Z",
+          "corruptionReproduced": false,
+          "bNodesAfter": 6
+        },
+        {
+          "name": "A→B→A clears old history; same-model undo remains valid",
+          "ok": true
+        },
+        {
+          "name": "left model selection and overview invalidate history",
+          "ok": true
+        },
+        {
+          "name": "属性 projection: real keys, double-click, menu, drag and expansion are readonly",
+          "ok": true
+        },
+        {
+          "name": "值 projection: real keys, double-click, menu, drag and expansion are readonly",
+          "ok": true
+        },
+        {
+          "name": "outline and document edit despite hidden value projection",
+          "ok": true
+        },
+        {
+          "name": "real structural drag is one undo; descendant/value-invalid targets and click/no-op add no history",
+          "ok": true
+        },
+        {
+          "name": "Escape cancels real drag; route change during gesture cannot affect B; viewing blocks drag and undo",
+          "ok": true
+        },
+        {
+          "name": "projection material highlight is readonly and adds no undo entry",
+          "ok": true
+        },
+        {
+          "name": "late delete confirmation cannot modify model B",
+          "ok": true
+        },
+        {
+          "name": "real dictionary create/undo; shared-reference conflict retains history; unrelated later dictionary preserved; input native undo",
+          "ok": true
+        },
+        {
+          "name": "Chinese input and synthetic composing Enter do not trigger structural command",
+          "ok": true
+        },
+        {
+          "name": "quota failure keeps applied undo; retry never replays; ordinary save preserves valid undo",
+          "ok": true
+        },
+        {
+          "name": "import, deletion and reset invalidate old history (store operations + real keyboard)",
+          "ok": true
+        }
+      ]
+    },
+    "designerEdge": {
+      "browser": "156.0.4314.42",
+      "baseline": false,
+      "checks": [
+        {
+          "name": "A ArrowDown → same-component query B → real Ctrl+Z",
+          "corruptionReproduced": false,
+          "bNodesAfter": 6
+        },
+        {
+          "name": "A→B→A clears old history; same-model undo remains valid",
+          "ok": true
+        },
+        {
+          "name": "left model selection and overview invalidate history",
+          "ok": true
+        },
+        {
+          "name": "属性 projection: real keys, double-click, menu, drag and expansion are readonly",
+          "ok": true
+        },
+        {
+          "name": "值 projection: real keys, double-click, menu, drag and expansion are readonly",
+          "ok": true
+        },
+        {
+          "name": "outline and document edit despite hidden value projection",
+          "ok": true
+        },
+        {
+          "name": "real structural drag is one undo; descendant/value-invalid targets and click/no-op add no history",
+          "ok": true
+        },
+        {
+          "name": "Escape cancels real drag; route change during gesture cannot affect B; viewing blocks drag and undo",
+          "ok": true
+        },
+        {
+          "name": "projection material highlight is readonly and adds no undo entry",
+          "ok": true
+        },
+        {
+          "name": "late delete confirmation cannot modify model B",
+          "ok": true
+        },
+        {
+          "name": "real dictionary create/undo; shared-reference conflict retains history; unrelated later dictionary preserved; input native undo",
+          "ok": true
+        },
+        {
+          "name": "Chinese input and synthetic composing Enter do not trigger structural command",
+          "ok": true
+        },
+        {
+          "name": "quota failure keeps applied undo; retry never replays; ordinary save preserves valid undo",
+          "ok": true
+        },
+        {
+          "name": "import, deletion and reset invalidate old history (store operations + real keyboard)",
+          "ok": true
+        }
+      ]
+    },
+    "category": {
+      "checks": [
+        "before/after reorder stable siblings",
+        "inner moves complete subtree without changing descendants or associated records",
+        "root movement and typed source legal",
+        "self/descendant/missing source or target/typed target reject atomically",
+        "cancelled preview/no-op reorder cause zero change including derived fields",
+        "disabled source remains movable under existing rules",
+        "saved subtree SKU root IDs follow current hierarchy without rewriting saved conditions",
+        "existing category selector and product category view regressions",
+        "real store persistence failure retains moved result; save-only retry once, no relative move replay"
+      ],
+      "result": "PASS"
+    }
+  },
+  "checks": {
+    "newDomain": "PASS",
+    "designerSafety": "PASS (7)",
+    "round3": "PASS (11)",
+    "round4Category": "PASS (9)",
+    "skuQuery": "PASS",
+    "skuState": "PASS",
+    "navigationFilter": "PASS",
+    "typecheck": "PASS",
+    "productionBuild": "PASS",
+    "diffCheck": "PASS"
+  },
+  "browserMode": "headless, isolated fixtures/contexts",
+  "testInjections": [
+    "Storage.setItem quota failure",
+    "editorGeneration invalidation",
+    "fixture node/SKU deletion and restoration",
+    "detached old DOM confirmation after real model switch"
+  ],
+  "knownWarnings": [
+    "Vue Flow deprecated options",
+    "existing overview initialization missing-edge warnings in designer regression",
+    "production chunk-size warning"
+  ],
+  "notTested": [
+    "Firefox/Safari",
+    "touch devices",
+    "physical DPI matrix",
+    "native Windows IME candidate window"
+  ],
+  "historicalMissing": [
+    "work/sku-workbench-fixes/migration/after-result.json",
+    "work/sku-workbench-fixes/restore-after.json"
+  ],
+  "commit": false,
+  "push": false,
+  "merge": false,
+  "deploy": false
+}

@@ -404,7 +404,7 @@
       </section>
     </el-drawer>
     <NamingRuleDialog :open="namingOpen" :readonly="!canEditStructure" :node-id="selected" :template-id="templateId" @close="namingOpen = false" @saved="markWorkingDraft" />
-    <el-dialog v-model="attributeOpen" :title="attributeTitle" width="420px" :close-on-press-escape="!dictDropOpen" @closed="resetAttrComposer">
+    <NodeAddPanel v-model="attributeOpen" :title="attributeTitle" :anchor="addAnchor" @closed="resetAttrComposer">
       <el-select v-if="attributeBindId" ref="attrBindSelect" v-model="attributePick" filterable placement="top-start" popper-class="dict-select-popper" placeholder="搜索已有属性" style="width: 100%" :filter-method="rememberAttrQuery" @visible-change="dictDropOpen = $event">
         <el-option v-for="item in filteredAttributeChoices" :key="item.id" :label="item.name" :value="item.id" />
         <template #empty><p class="dict-empty">没有匹配「{{ attrQuery.trim() || '当前关键字' }}」</p></template>
@@ -435,8 +435,8 @@
         <el-button @click="attributeOpen = false">取消</el-button>
         <el-button type="primary" @click="addAttribute">确定</el-button>
       </template>
-    </el-dialog>
-    <el-dialog v-model="valueOpen" title="选择属性值" width="420px" :close-on-press-escape="!dictDropOpen" @closed="resetValueComposer">
+    </NodeAddPanel>
+    <NodeAddPanel v-model="valueOpen" title="添加属性值" :anchor="addAnchor" @closed="resetValueComposer">
       <p v-if="valueParentName" class="dict-empty">只搜索「{{ valueParentName }}」自己的取值，不会搜到其他属性。</p>
       <el-select v-if="valueBindNodeId" ref="valueBindSelect" v-model="valueBindPick" filterable placement="top-start" popper-class="dict-select-popper" placeholder="搜索已有取值" style="width: 100%" :filter-method="rememberValueQuery" @visible-change="dictDropOpen = $event">
         <el-option v-for="item in filteredRebindValues" :key="item" :label="item" :value="item" />
@@ -459,7 +459,7 @@
         <el-button v-if="valueBindNodeId" type="primary" :disabled="!valueBindPick" @click="rebindPickedValue">引用所选</el-button>
         <el-button v-else type="primary" :disabled="!valuePicks.length" @click="addValues">确定</el-button>
       </template>
-    </el-dialog>
+    </NodeAddPanel>
     <el-dialog v-model="nodeDraftOpen" title="新增节点" width="420px">
       <p class="muted">类型</p>
       <el-radio-group v-model="nodeDraft.type">
@@ -503,6 +503,7 @@ import { MiniMap } from '@vue-flow/minimap'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import NodeAddPanel from '../components/model-editor/NodeAddPanel.vue'
 import ModelOutline from '../components/ModelOutline.vue'
 import CategoryCatalog from '../components/model-editor/CategoryCatalog.vue'
 import EmptyModelGuide from '../components/model-editor/EmptyModelGuide.vue'
@@ -700,6 +701,13 @@ const nodeDraftOpen = ref(false)
 const nodeDraft = ref<{ type: ProductSpecNode['nodeType']; name: string }>({ type: 'ATTRIBUTE', name: '' })
 const editingId = ref('')
 const menu = ref({ open: false, x: 0, y: 0 })
+const addAnchor = ref<HTMLElement | null>(null)
+let addSourceId = ''
+function captureAddAnchor(id: string) {
+  const selector = editorMode.value === 'canvas' ? `.vue-flow__node[data-id="${CSS.escape(id || rootId)}"]` : `[data-line="${CSS.escape(id || rootId)}"]`
+  addAnchor.value = document.querySelector<HTMLElement>(`.designer ${selector}`)
+  if (!addAnchor.value) addAnchor.value = document.querySelector<HTMLElement>('.designer .board')
+}
 const attributeOpen = ref(false)
 const dictDropOpen = ref(false)
 type DictSelectExpose = { blur: () => void; expanded: boolean }
@@ -719,7 +727,7 @@ function selectExpanded(item: DictSelectExpose | null) {
 function closeDictDropdown() {
   const active = document.activeElement
   if (active instanceof HTMLElement && active.closest('.dict-select-popper, .el-select-dropdown')) active.blur()
-  for (const node of document.querySelectorAll('.el-dialog .el-select input')) {
+  for (const node of document.querySelectorAll('.el-dialog .el-select input, .node-add-panel .el-select input')) {
     if (!(node instanceof HTMLInputElement) || !node.value) continue
     node.value = ''
     node.dispatchEvent(new Event('input', { bubbles: true }))
@@ -1066,15 +1074,28 @@ watch(() => [editorMode.value, viewMode.value], () => {
 const dialogContexts = new Map<string, ReturnType<typeof editContext> & { nodeId: string }>()
 for (const [kind, open] of [['attribute', attributeOpen], ['value', valueOpen], ['node', nodeDraftOpen]] as const) {
   watch(open, value => {
-    if (value) dialogContexts.set(kind, { ...editContext(), nodeId: selected.value === rootId ? '' : selected.value })
+    interaction += 1
+    if (value) {
+      if (kind === 'attribute') valueOpen.value = false
+      if (kind === 'value') attributeOpen.value = false
+      const nodeId = kind === 'attribute' ? attributeBindId.value || attachParent.value || '' : kind === 'value' ? valueBindNodeId.value || valueParentId.value : selected.value === rootId ? '' : selected.value
+      captureAddAnchor(addSourceId || nodeId || selected.value)
+      addSourceId = ''
+      dialogContexts.set(kind, { ...editContext(), nodeId })
+    }
     else dialogContexts.delete(kind)
   }, { flush: 'sync' })
 }
 function validDialog(kind: string, nodeId?: string) {
   const context = dialogContexts.get(kind)
-  return !!context && validContext(context, nodeId || undefined)
+  return !!context && validContext(context, context.nodeId || undefined) && (!nodeId || nodeId === context.nodeId || (kind === 'value' && nodeId === valueParentId.value))
 }
-watch(comboVersionId, () => { dragStart = undefined })
+watch(() => [canEditStructure.value, nodes.value.map(n => n.id).join('|')], () => {
+  for (const [kind, open] of [['attribute', attributeOpen], ['value', valueOpen]] as const) {
+    if (open.value && !validDialog(kind)) open.value = false
+  }
+})
+watch(comboVersionId, () => { dragStart = undefined; attributeOpen.value = false; valueOpen.value = false })
 function invalidateEditorDialogs() {
   interaction += 1
   dragStart = undefined
@@ -1763,6 +1784,7 @@ async function renameOutline(payload: { id: string; name: string }) {
 function addOutline(payload: { id: string; kind: 'sibling' | 'child-value' | 'child-attribute' }) {
   if (!canEditStructure.value) return
   if (viewing.value) return
+  addSourceId = payload.id
   const source = payload.id === rootId ? undefined : nodes.value.find((item) => item.id === payload.id)
   if (payload.kind === 'child-value') {
     const attributeId = source?.nodeType === 'ATTRIBUTE' ? source.id : source?.nodeType === 'VALUE' ? source.parentId : ''
@@ -2353,6 +2375,7 @@ function markWorkingDraft() {
 }
 function openAttributeAt(parentId: string | null) {
   if (!canEditStructure.value) return
+  attributeOpen.value = false
   if (viewing.value) return
   attributeBindId.value = ''
   attachParent.value = parentId
@@ -2360,7 +2383,7 @@ function openAttributeAt(parentId: string | null) {
   attributePick.value = ''
   creatingAttr.value = false
   newAttrName.value = ''
-  attributeTitle.value = parentId ? '选择下一级属性' : '选择属性'
+  attributeTitle.value = nodes.value.find(n => n.id === parentId)?.nodeType === 'VALUE' ? '添加条件属性' : parentId ? '添加子属性' : '添加属性'
   attributeOpen.value = true
 }
 function resetAttrComposer() {
@@ -2406,6 +2429,7 @@ async function saveGlobalName() {
 }
 function openValuePicker(attributeNodeId: string) {
   if (!canEditStructure.value) return
+  valueOpen.value = false
   if (viewing.value) return
   const node = nodes.value.find((item) => item.id === attributeNodeId && item.nodeType === 'ATTRIBUTE')
   if (!node) {
@@ -2428,12 +2452,13 @@ function openValuePicker(attributeNodeId: string) {
 }
 function openBindAttribute(id: string) {
   if (!canEditStructure.value) return
+  attributeOpen.value = false
   if (viewing.value || !id || id === rootId) return
   const node = nodes.value.find((item) => item.id === id && item.nodeType === 'ATTRIBUTE')
   if (!node) return
   attributeBindId.value = id
   attributePick.value = attributeChoices.value.some((item) => item.id === node.attributeId) ? node.attributeId : ''
-  attributeTitle.value = '选择属性'
+  attributeTitle.value = '选择已有属性引用'
   selected.value = id
   attributeOpen.value = true
 }
@@ -2818,7 +2843,7 @@ function isTypingTarget(target: EventTarget | null) {
   if (!node?.closest) return false
   const tag = node.tagName
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || node.isContentEditable) return true
-  return Boolean(node.closest('.el-dialog, .el-message-box, .el-popper, .el-select, .context-menu, #nav-flyout, .category-tree-select, .category-tree-select-panel'))
+  return Boolean(node.closest('.node-add-panel, .el-dialog, .el-message-box, .el-popper, .el-select, .context-menu, #nav-flyout, .category-tree-select, .category-tree-select-panel'))
 }
 function onKey(event: KeyboardEvent) {
   if (viewing.value || event.isComposing) return

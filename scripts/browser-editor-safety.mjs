@@ -92,7 +92,7 @@ try {
     await select('g-cap');await press('Delete');await page.locator('.el-message-box').waitFor();await go('template=safety-b');const late=business(await read());await page.locator('.el-message-box').getByRole('button',{name:'确定',exact:true}).click();await page.waitForTimeout(250);assert.equal(business(await read()),late)
     mark('late delete confirmation cannot modify model B')
     await reset();await select('model-root');await page.locator('.node-ops').getByRole('button',{name:'添加属性',exact:true}).click()
-    let dialog=page.getByRole('dialog',{name:'选择属性',exact:true})
+    let dialog=page.getByRole('dialog',{name:/^(选择属性|添加属性)$/})
     await dialog.getByRole('button',{name:'新增属性',exact:true}).click()
     const text=dialog.getByPlaceholder('新属性名称');await text.click();await page.keyboard.type('native undo');await page.keyboard.press('Control+z');assert.notEqual(await text.inputValue(),'native undo')
     await text.fill('共享测试新属性');await dialog.getByRole('button',{name:'保存到词典并引用',exact:true}).click();await dialog.waitFor({state:'hidden'});await page.waitForTimeout(250)
@@ -104,7 +104,7 @@ try {
     await page.evaluate(async id=>{const s=(await import('/src/stores/catalog.ts')).useCatalogStore();s.data.templateParams=s.data.templateParams.filter(p=>!(p.templateId==='safety-b'&&p.paramId===id))},newParam.id)
     await press('Control+z');assert(!(await read()).params.some(p=>p.id===newParam.id));assert((await read()).params.some(p=>p.id==='late-dict'))
     mark('real dictionary create/undo; shared-reference conflict retains history; unrelated later dictionary preserved; input native undo')
-    await reset();await select('model-root');await page.locator('.node-ops').getByRole('button',{name:'添加属性',exact:true}).click();dialog=page.getByRole('dialog',{name:'选择属性',exact:true});await dialog.getByRole('button',{name:'新增属性',exact:true}).click()
+    await reset();await select('model-root');await page.locator('.node-ops').getByRole('button',{name:'添加属性',exact:true}).click();dialog=page.getByRole('dialog',{name:/^(选择属性|添加属性)$/});await dialog.getByRole('button',{name:'新增属性',exact:true}).click()
     const ime=dialog.getByPlaceholder('新属性名称');const imeBefore=business(await read());await ime.fill('中文输入验收')
     // CompositionEvent is a synthetic IME contract check, not a claim of OS input-method automation.
     await ime.evaluate(el=>{el.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,isComposing:true}));el.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true,data:'中文输入验收'}))});assert.equal(business(await read()),imeBefore)

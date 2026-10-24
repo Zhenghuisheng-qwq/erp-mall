@@ -6,8 +6,9 @@
           <p class="muted">仅调整展示，不修改商品属性。至少保留 SKU 编号或名称；窄窗口暂不冻结列。</p>
           <el-input v-model="search" placeholder="搜索字段名称或来源" clearable aria-label="搜索字段" />
           <div class="section-heading"><strong>已配置字段</strong><el-button link @click="restoreColumns">恢复默认字段</el-button></div>
-          <div class="column-header"><span>显示字段</span><span>宽度 / 自动</span><span>冻结</span><span>顺序</span></div>
-          <div v-for="column in matchingColumns" :key="column.key" class="column-row" :data-sku-column="column.key">
+          <div class="column-header"><span></span><span>显示字段</span><span>宽度 / 自动</span><span>冻结</span><span>顺序</span></div>
+          <div v-for="column in matchingColumns" :key="column.key" class="column-row" :data-sku-column="column.key" :class="{ 'drop-before': drop?.key === column.key && drop.place === 'before', 'drop-after': drop?.key === column.key && drop.place === 'after' }" @dragover.prevent="overColumn(column.key, $event)" @drop.prevent="dropColumn(column.key, $event)">
+            <button class="column-grip" type="button" draggable="true" :aria-label="`拖动${labelOf(column.key)}`" @dragstart="startColumn(column.key, $event)" @dragend="cancelDrag">⋮⋮</button>
             <el-checkbox v-model="column.visible" :disabled="lastIdentity(column)">{{ labelOf(column.key) }}<small>{{ sourceOf(column.key) }}</small></el-checkbox>
             <div class="width-control"><el-input-number v-model="column.width" :min="80" :max="600" :step="10" controls-position="right" :aria-label="`${labelOf(column.key)}列宽`" /><el-button link :aria-label="`自动适应${labelOf(column.key)}列宽`" @click="autoWidth(column)">自动</el-button></div>
             <el-select :model-value="column.frozen || 'none'" :aria-label="`${labelOf(column.key)}冻结`" @change="(value: string) => setFrozen(column, value)"><el-option value="none" label="不冻结" /><el-option value="left" label="左侧" :disabled="!column.frozen && frozenCount >= 2" /><el-option value="right" label="右侧" :disabled="!column.frozen && frozenCount >= 2" /></el-select>
@@ -54,7 +55,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { reorderSkuColumn } from '../../../domain/skuColumnOrder'
 import { skuFields, skuFieldValue } from '../../../domain/skuWorkbenchFields'
 import { defaultSkuConfig } from '../../../domain/skuWorkbenchState'
 import { isRealSku } from '../../../domain/catalogIdentity'
@@ -68,6 +70,30 @@ const draft = ref(copy(props.config))
 const activeTab = ref(props.tab || 'fields')
 const search = ref('')
 watch(() => props.modelValue, open => { if (open) { draft.value = copy(props.config); activeTab.value = props.tab || 'fields'; search.value = '' } })
+const dragging = ref(''), drop = ref<{key:string;place:'before'|'after'} | null>(null)
+function cancelDrag() { dragging.value = ''; drop.value = null }
+function startColumn(key: string, event: DragEvent) {
+  dragging.value = key
+  event.dataTransfer?.setData('application/x-sku-column', key)
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+}
+function overColumn(key: string, event: DragEvent) {
+  if (!dragging.value) return
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  drop.value = {key, place: event.clientY < rect.top + rect.height / 2 ? 'before' : 'after'}
+}
+function dropColumn(key: string, event: DragEvent) {
+  if (drop.value?.key === key && event.dataTransfer?.getData('application/x-sku-column') === dragging.value)
+    draft.value.columns = reorderSkuColumn(draft.value.columns, dragging.value, key, drop.value.place)
+  cancelDrag()
+}
+function escapeDrag(event: KeyboardEvent) {
+  if (event.key === 'Escape' && dragging.value) { cancelDrag(); event.preventDefault(); event.stopImmediatePropagation() }
+}
+watch(() => props.modelValue, cancelDrag)
+watch(search, cancelDrag)
+onMounted(() => document.addEventListener('keydown', escapeDrag, true))
+onBeforeUnmount(() => document.removeEventListener('keydown', escapeDrag, true))
 const fields = computed(() => skuFields(props.data))
 const sortableFields = computed(() => fields.value.filter(field => field.sortable))
 const groupableFields = computed(() => fields.value.filter(field => field.groupable))
@@ -120,7 +146,8 @@ function apply() { if (errors.value.length) return; emit('apply', copy(draft.val
 <style scoped>
 .display-body { max-height: calc(82vh - 150px); overflow: auto; padding-right: 5px; }
 .section-heading { display: flex; justify-content: space-between; align-items: center; margin: 22px 0 12px; gap: 10px; }
-.column-row, .column-header { display: grid; grid-template-columns: minmax(150px, 1fr) 170px 100px 78px; gap: 12px; align-items: center; padding: 9px 0; }
+.column-row, .column-header { display: grid; grid-template-columns: 24px minmax(150px, 1fr) 170px 100px 78px; gap: 12px; align-items: center; padding: 9px 0; }
+.column-grip{cursor:grab;border:0;background:none;color:var(--el-text-color-secondary);padding:4px}.column-row.drop-before{box-shadow:inset 0 3px var(--el-color-primary)}.column-row.drop-after{box-shadow:inset 0 -3px var(--el-color-primary)}
 .column-row { border-bottom: 1px solid var(--el-border-color-lighter); }
 .column-header { color: var(--el-text-color-secondary); font-size: 12px; }
 .column-row small { display: block; color: var(--el-text-color-secondary); font-size: 11px; }
@@ -138,5 +165,5 @@ function apply() { if (errors.value.length) return; emit('apply', copy(draft.val
 .errors, .conflict { color: var(--el-color-danger); margin: 16px 0; }
 .conflict, .legacy-note { padding: 12px; border-radius: 6px; background: var(--el-fill-color-light); }
 .legacy-note { margin-top: 16px; }
-@media (max-width: 640px) { .column-header { display: none; } .column-row { grid-template-columns: minmax(130px, 1fr) 170px; gap: 8px; } .column-row > .el-select { max-width: 140px; } .order-row { flex-wrap: wrap; } .footer > span { flex-basis: 100%; } }
+@media (max-width: 640px) { .column-header { display: none; } .column-row { grid-template-columns: 24px minmax(130px, 1fr) 170px; gap: 8px; } .column-row > .el-select { max-width: 140px; } .order-row { flex-wrap: wrap; } .footer > span { flex-basis: 100%; } }
 </style>
