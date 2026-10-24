@@ -30,6 +30,7 @@
       <div class="workbench-body" :class="{ 'has-sidebar': showSidebar }" :data-category-layout="categoryLayout">
         <aside v-if="showSidebar" class="category-side" data-category-side>
           <div class="side-title"><strong>商品分类</strong><el-button link @click="categorySideClosed = true">收起分类栏</el-button></div>
+          <small v-if="simpleCategory">{{ categorySelection.rule && categorySelection.rule.operator !== 'descendants' ? '当前精确匹配；重新选择包含下级分类' : '包含下级分类' }}</small>
           <CategoryFilterTree v-if="simpleCategory" :categories="store.data.categories" :selected-ids="categoryIds" @toggle="toggleCategory" @clear="clearCategory" />
           <template v-else><p class="muted">分类属于历史或组合条件。</p><el-button @click="openFilters">管理分类条件</el-button></template>
         </aside>
@@ -56,6 +57,7 @@
             </el-popover>
             <el-popover v-if="!showSidebar && !quickCategory" v-model:visible="categoryOpen" trigger="click" :width="300" placement="bottom-start" popper-class="product-category-pop" :hide-after="0">
               <template #reference><el-button data-category-trigger>商品分类{{ categoryIds.length ? ` ${categoryIds.length}` : '' }}</el-button></template>
+              <small v-if="simpleCategory">{{ categorySelection.rule && categorySelection.rule.operator !== 'descendants' ? '当前精确匹配；重新选择包含下级分类' : '包含下级分类' }}</small>
               <CategoryFilterTree v-if="simpleCategory" closable :categories="store.data.categories" :selected-ids="categoryIds" @toggle="toggleCategory" @clear="clearCategory" @close="categoryOpen = false" />
               <template v-else><p>分类属于历史或组合条件，请在筛选中管理。</p><el-button @click="categoryOpen = false; filterOpen = true">管理分类条件</el-button></template>
             </el-popover>
@@ -118,6 +120,7 @@
 </template>
 
 <script setup lang="ts">
+import { skuCategorySelection, updateSkuCategorySelection } from '../domain/skuCategoryFilter'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -175,11 +178,12 @@ const searchedViews = computed(() => views.value.filter(view => view.name.toLoca
 const layoutView = computed(() => ({ id: activeId.value, categoryFilterLayout: config.value.categoryLayout }))
 const { categoryOpen, categorySideClosed, narrowScreen, categoryLayout, showSidebar: layoutSidebar } = useProductListCategoryLayout(layoutView, layout => applyConfig({ ...config.value, categoryLayout: layout }))
 const frozenAllowed = computed(() => !narrowScreen.value && visibleColumns.value.filter(column => column.frozen).reduce((total, column) => total + (column.width || 160), 0) <= 320)
-const simpleCategory = computed(() => config.value.conditions.logic === 'all' && !config.value.legacy?.filters.some(condition => condition.field === 'category') && !config.value.conditions.children.some(node => node.kind === 'group') && config.value.conditions.children.filter(node => node.kind === 'rule' && node.field === 'category').length <= 1 && !config.value.conditions.children.some(node => node.kind === 'rule' && node.field === 'category' && !['eq', 'in'].includes(node.operator)))
+const categorySelection = computed(() => skuCategorySelection(config.value))
+const simpleCategory = computed(() => categorySelection.value.supported)
 // The fixed category widget and an exposed simple root category rule edit the same condition.
 const quickCategory = computed(() => simpleCategory.value && config.value.conditions.children.some(node => node.kind === 'rule' && node.field === 'category' && config.value.quickFilters?.some(ref => ref.source === 'condition' && ref.ruleId === node.id)))
 const showSidebar = computed(() => layoutSidebar.value && !quickCategory.value)
-const categoryIds = computed(() => config.value.conditions.logic === 'all' ? config.value.conditions.children.flatMap(node => node.kind === 'rule' && node.field === 'category' && (node.operator === 'in' || node.operator === 'eq') ? Array.isArray(node.value) ? node.value : typeof node.value === 'string' ? [node.value] : [] : []) : [])
+const categoryIds = computed(() => categorySelection.value.ids)
 const manualOn = computed(() => config.value.sortMode === 'manual' && !presentation.value.manualBlocked)
 function manualOrder() { return resolveManualOrder(config.value.manualOrder, unfilteredIds(store.data, { ...currentView.value, mode: 'sku', skuQuery: emptyModeQuery('sku') }, 'sku')) }
 async function orderResult(result: ReturnType<typeof insertManualIds>) { if (!result.ok) return result; const changed = await workbench.apply({ ...config.value, manualOrder: result.order }); return changed.ok ? { ok: true as const } : changed }
@@ -226,13 +230,15 @@ async function rebuildInvalid() { try { await ElMessageBox.confirm('将当前工
 function clearFilters() { search.value = ''; const next = structuredClone(JSON.parse(JSON.stringify(config.value))) as SkuViewConfig; next.conditions.children = []; if (next.legacy) { next.legacy.keyword = ''; next.legacy.filters = [] }; applyConfig(next) }
 function nodeSummary(id: string) { return describeSkuConditions(store.data, { ...config.value, legacy: undefined, conditions: { ...config.value.conditions, children: config.value.conditions.children.filter(node => node.id === id) } }) }
 function removeSummary(id: string) { const next = JSON.parse(JSON.stringify(config.value)) as SkuViewConfig; if (id === '$legacy' && next.legacy) { next.legacy.keyword = ''; next.legacy.filters = [] }; if (id !== '$legacy') next.conditions.children = next.conditions.children.filter(node => node.id !== id); applyConfig(next) }
-function clearCategory() { if (!simpleCategory.value) { filterOpen.value = true; return }; const next = JSON.parse(JSON.stringify(config.value)) as SkuViewConfig; next.conditions.children = next.conditions.children.filter(node => !(node.kind === 'rule' && node.field === 'category')); applyConfig(next) }
+function clearCategory() {
+  const next = updateSkuCategorySelection(config.value, [])
+  if (!next) { filterOpen.value = true; return }
+  applyConfig(next)
+}
 function toggleCategory(id: string) {
-  if (!simpleCategory.value) { filterOpen.value = true; return }
   const ids = categoryIds.value.includes(id) ? categoryIds.value.filter(item => item !== id) : [...categoryIds.value, id]
-  const next = JSON.parse(JSON.stringify(config.value)) as SkuViewConfig
-  next.conditions.children = next.conditions.children.filter(node => !(node.kind === 'rule' && node.field === 'category'))
-  if (ids.length) next.conditions.children.push({ kind: 'rule', id: 'category-quick', field: 'category', operator: 'in', value: ids })
+  const next = updateSkuCategorySelection(config.value, ids)
+  if (!next) { filterOpen.value = true; return }
   applyConfig(next)
 }
 async function changeScope(id: string) { if (!(await flushQuick())) return; router.push({ path: '/skus', query: id ? { spu: id } : {} }) }

@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
 import { mkdirSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { resolve, dirname } from 'node:path'
 import { applyTemplateCompatibilitySync, markTemplateManualChanges, materializeTemplateCompatibility, previewTemplateCompatibilitySync, templateCompatibilityOriginProblems } from '../src/domain/templateCompatibilitySync'
 import { createTemplateCompatibilityContext, freezeTemplateCompatibility, selectorForCombination } from '../src/domain/templateCompatibility'
 import { createRefinementSyncFixture, SYNC_REFINEMENT_TIME as now } from './compatibility-refinement-sync-fixtures'
 
 const phase = process.env.SYNC_REFINEMENT_PHASE || 'after'
-const output = resolve('work/compatibility-benefit-refinement', `sync-${phase}.json`)
+const output = resolve(process.env.SYNC_REFINEMENT_OUTPUT || `work/compatibility-benefit-refinement/sync-${phase}.json`)
 const results: { name: string; passed: boolean; detail: string }[] = []
 function check(name: string, run: () => void) {
   try { run(); results.push({ name, passed: true, detail: 'strict assertions passed' }); console.log(`PASS ${name}`) }
@@ -174,7 +174,7 @@ check('duplicate-active-declaration-reference-is-invalid-and-never-applied', () 
   assert.equal(applyTemplateCompatibilitySync(f.data, plan, {}, f.nextId, now).ok, true); assert.equal(JSON.stringify(f.data), before)
 })
 
-mkdirSync(resolve('work/compatibility-benefit-refinement'), { recursive: true })
+mkdirSync(dirname(output), { recursive: true })
 writeFileSync(output, JSON.stringify({ phase, fixedTime: now, runtime: { node: process.version, platform: process.platform, arch: process.arch }, results, passed: results.every(item => item.passed) }, null, 2))
 if (phase === 'after') {
   const browserFixtures = [
@@ -184,6 +184,6 @@ if (phase === 'after') {
     const f = createRefinementSyncFixture(sample.before), targetVersionId = f.publish(sample.after)
     return { name: sample.name, data: f.data, input: { modelId: f.modelId, targetVersionId, targetIds: [f.sku.id] }, expectedNotes: [...new Set(sample.after)] }
   })
-  writeFileSync(resolve('work/compatibility-benefit-refinement/sync-browser-fixtures.json'), JSON.stringify(browserFixtures))
+  writeFileSync(resolve(dirname(output), 'sync-browser-fixtures.json'), JSON.stringify(browserFixtures))
 }
 if (results.some(item => !item.passed)) process.exitCode = 1

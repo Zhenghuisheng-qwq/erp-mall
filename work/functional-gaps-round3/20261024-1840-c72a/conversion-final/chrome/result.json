@@ -1,0 +1,10 @@
+{
+  "browser": "156.0.8078.47",
+  "checks": [
+    "C cancel and new-exception guard preserve evidence after clearing hosts",
+    "C invalidated candidate retains batch and selected legacy source; retry possible",
+    "C late confirmation after editor-generation change refuses commit",
+    "C successful conversion once, applied batch can save, quota failure retry, formal declarations/history unchanged",
+    "C default editor tracks every batch field, reverting fields clears dirty; clean conversion needs no prompt, double-click once; view mode forbids conversion"
+  ]
+}

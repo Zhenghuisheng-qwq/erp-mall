@@ -45,12 +45,12 @@ const field = computed(() => props.fields.find(item => item.id === props.rule.fi
 const fieldGroups = computed(() => [...new Set(props.fields.map(item => item.source))].map(source => ({ source, fields: props.fields.filter(item => item.source === source) })))
 const operators = computed(() => skuOperators(field.value?.type || 'text'))
 const noValue = computed(() => ['empty', 'notEmpty'].includes(props.rule.operator))
-const multiple = computed(() => ['in', 'notIn', 'hasAny', 'hasAll'].includes(props.rule.operator))
+const multiple = computed(() => ['in', 'notIn', 'hasAny', 'hasAll', 'descendants'].includes(props.rule.operator))
 const choiceField = computed(() => ['enum', 'multi', 'spu', 'category'].includes(field.value?.type || ''))
 const textValue = computed(() => typeof props.rule.value === 'string' ? props.rule.value : '')
 const numberValue = computed(() => typeof props.rule.value === 'number' ? props.rule.value : undefined)
 const booleanValue = computed(() => typeof props.rule.value === 'boolean' ? props.rule.value : undefined)
-const arrayValue = computed(() => Array.isArray(props.rule.value) ? props.rule.value : [])
+const arrayValue = computed(() => Array.isArray(props.rule.value) ? props.rule.value : typeof props.rule.value === 'string' && props.rule.value ? [props.rule.value] : [])
 const rangeValue = computed(() => props.rule.value && typeof props.rule.value === 'object' && !Array.isArray(props.rule.value) ? props.rule.value : { from: '', to: '' })
 const rangeDates = computed(() => rangeValue.value.from && rangeValue.value.to ? [rangeValue.value.from, rangeValue.value.to] : null)
 const relativeOptions = [
@@ -64,7 +64,7 @@ function changeField(id: string) {
   emit('update', { ...props.rule, field: id, operator: skuOperators(next?.type || 'text')[0]?.value || 'eq', value: next?.type === 'boolean' ? null : '' })
 }
 function changeOperator(operator: SkuOperator) {
-  const multi = ['in', 'notIn', 'hasAny', 'hasAll'].includes(operator)
+  const multi = ['in', 'notIn', 'hasAny', 'hasAll', 'descendants'].includes(operator)
   const value: SkuValue = operator === 'between' ? { from: '', to: '' } : multi ? [] : operator === 'relative' ? 'today' : typeof props.rule.value === 'object' ? '' : props.rule.value
   emit('update', { ...props.rule, operator, value })
 }

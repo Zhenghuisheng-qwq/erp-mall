@@ -1,0 +1,137 @@
+{
+  "result": "READY",
+  "scope": "functional-gaps-round3 A/B/C/D only",
+  "project": "D:\\单子\\商城erp\\mock\\iyge-v2-mock",
+  "branch": "20261022",
+  "startHead": "27729d2b1a23e10b1c8f85ae5209ec29a4e8f814",
+  "endHead": "27729d2b1a23e10b1c8f85ae5209ec29a4e8f814",
+  "initialWorktree": {
+    "trackedDeletionsUnderWork": 710,
+    "reason": "User-authorized work deletion before this round; preserved, not recreated",
+    "sourceChanges": 0
+  },
+  "runRoot": "work/functional-gaps-round3/20261024-1840-c72a",
+  "checks": [
+    {
+      "name": "新增领域回归",
+      "result": "PASS",
+      "groups": "11 组",
+      "evidence": "work/functional-gaps-round3/20261024-1840-c72a/domain-accepted/domain.json"
+    },
+    {
+      "name": "SKU 查询",
+      "result": "PASS",
+      "groups": "23 组",
+      "evidence": "work/functional-gaps-round3/20261024-1840-c72a/regression/sku-workbench-query-check/output.txt"
+    },
+    {
+      "name": "SKU 视图状态",
+      "result": "PASS",
+      "groups": "6 组",
+      "evidence": "work/functional-gaps-round3/20261024-1840-c72a/regression/sku-workbench-state-check/output.txt"
+    },
+    {
+      "name": "模板兼容领域",
+      "result": "PASS",
+      "groups": "21 组",
+      "evidence": "work/functional-gaps-round3/20261024-1840-c72a/regression/template-compatibility-domain-check/domain-evidence.json"
+    },
+    {
+      "name": "模板编辑／存储状态",
+      "result": "PASS",
+      "groups": "14 场景",
+      "evidence": "work/functional-gaps-round3/20261024-1840-c72a/regression/template-compatibility-state-check/evidence.json"
+    },
+    {
+      "name": "来源合并／拆分同步",
+      "result": "PASS",
+      "groups": "19 组",
+      "evidence": "work/functional-gaps-round3/20261024-1840-c72a/regression/compatibility-refinement-sync-check/sync.json"
+    },
+    {
+      "name": "第一轮领域",
+      "result": "PASS",
+      "groups": "4 组",
+      "evidence": "work/functional-gaps-round3/20261024-1840-c72a/regression/functional-gaps-check/output.txt"
+    },
+    {
+      "name": "第二轮设计器保护领域",
+      "result": "PASS",
+      "groups": "7 组",
+      "evidence": "work/functional-gaps-round3/20261024-1840-c72a/regression/editor-safety-check/output.txt"
+    },
+    {
+      "name": "兼容查询作用域与能力",
+      "result": "PASS",
+      "groups": "19 组",
+      "evidence": "work/functional-gaps-round3/20261024-1840-c72a/accessory-query/query-result.json"
+    },
+    {
+      "name": "第一轮 Chrome 浏览器",
+      "result": "PASS",
+      "groups": "10 组",
+      "evidence": "work/functional-gaps-round3/20261024-1840-c72a/round1-regression/chrome/chrome-result.json"
+    },
+    {
+      "name": "既有模板兼容 Chrome 浏览器",
+      "result": "PASS",
+      "groups": "14 组",
+      "evidence": "work/functional-gaps-round3/20261024-1840-c72a/template-browser-regression/result.json"
+    },
+    {
+      "name": "分类／同步 Chrome",
+      "result": "PASS",
+      "groups": "4 组",
+      "evidence": "work/functional-gaps-round3/20261024-1840-c72a/category-accepted/chrome/result.json"
+    },
+    {
+      "name": "分类／同步 Edge",
+      "result": "PASS",
+      "groups": "4 组",
+      "evidence": "work/functional-gaps-round3/20261024-1840-c72a/category-quick-final/msedge/result.json"
+    },
+    {
+      "name": "转换输入保护 Chrome",
+      "result": "PASS",
+      "groups": "5 组",
+      "evidence": "work/functional-gaps-round3/20261024-1840-c72a/conversion-final/chrome/result.json"
+    },
+    {
+      "name": "转换输入保护 Edge",
+      "result": "PASS",
+      "groups": "5 组",
+      "evidence": "work/functional-gaps-round3/20261024-1840-c72a/conversion-final/msedge/result.json"
+    }
+  ],
+  "typecheck": "PASS via npm run typecheck and final npm run build typecheck phase",
+  "productionBuild": "PASS; generated dist removed after verification",
+  "diffCheck": "PASS",
+  "browsers": {
+    "chrome": "156.0.8078.47",
+    "msedge": "156.0.4314.42",
+    "headless": true,
+    "storage": "isolated BrowserContext, synthetic fixtures"
+  },
+  "cleanup": {
+    "files": 1064.0,
+    "bytes": 373287984.0,
+    "detail": "work/functional-gaps-round3/20261024-1840-c72a/cleanup.json",
+    "preexistingUserDeletedTrackedGenerated": {
+      "files": 633,
+      "bytes": 283105532,
+      "includedInCurrentCleanupTotal": false
+    }
+  },
+  "historicalEvidence": {
+    "originalRound1JsonBytesRecovered": false,
+    "files": [
+      "work/sku-workbench-fixes/migration/after-result.json",
+      "work/sku-workbench-fixes/restore-after.json"
+    ]
+  },
+  "knownWarnings": [
+    "Vue Flow options deprecation",
+    "production chunk > 500 kB"
+  ],
+  "commitPushMergeDeploy": false
+}

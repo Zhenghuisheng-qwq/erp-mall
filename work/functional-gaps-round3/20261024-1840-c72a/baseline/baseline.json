@@ -1,0 +1,19 @@
+[
+  {
+    "issue": "A",
+    "observed": "category shortcut uses exact in; selecting parent excludes child SKU",
+    "parentCount": 0,
+    "leafCount": 5
+  },
+  {
+    "issue": "B",
+    "observed": "merge is adoptable despite outside-group modified template denial",
+    "declaration": "refinement-formal-3",
+    "provenance": "template"
+  },
+  {
+    "issue": "C",
+    "level": "source confirmation; browser reproduction follows",
+    "observed": "pendingBatch only considers host selections; convertLegacy immediately replaces draft/editor selection"
+  }
+]

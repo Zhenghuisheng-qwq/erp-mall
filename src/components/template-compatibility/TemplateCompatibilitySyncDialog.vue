@@ -7,6 +7,7 @@
       <el-form-item label="更新对象"><el-select v-model="targetIds" multiple filterable placeholder="明确选择 SKU 或 MAT，可多选" data-template-sync-targets><el-option v-for="item in targets" :key="item.id" :label="targetText(store.data,item.target)" :value="item.id" /></el-select></el-form-item>
     </el-form>
     <el-button :disabled="!modelId || !versionId || !targetIds.length || saving" data-template-sync-preview @click="makePreview(true)">{{ preview ? '重新预览，保留有效选择' : '预览所选对象的更新' }}</el-button>
+    <el-alert v-for="message in candidateConflicts" :key="message" :title="message + '。请先维护声明，再重新预览。'" type="warning" :closable="false" data-sync-candidate-conflict />
     <el-alert v-if="receipt" :title="receipt" type="success" :closable="false" show-icon data-template-sync-receipt />
     <template v-if="preview">
       <p class="muted" data-template-sync-summary>本次预览 {{ preview.items.length }} 项：{{ summary }}。检查期间不写入正式关系。</p>
@@ -25,7 +26,7 @@
           <p v-else class="muted">显式采用后移除 {{ item.group.operations.filter(op=>op.kind==='remove').length }} 条旧声明、新增 {{ item.group.operations.filter(op=>op.kind==='add').length }} 条结果；旧来源保留追溯。</p>
         </template>
         <div v-else class="field-diffs"><div class="field-diff diff-heading"><span>字段</span><strong>当前商品声明</strong><strong>目标模板结果</strong></div><div v-for="field in diffFields(item)" :key="field.label" class="field-diff" :class="{changed:field.changed}"><span>{{ field.label }}{{ field.changed ? ' · 变化' : '' }}</span><span>{{ field.before }}</span><span>{{ field.after }}</span></div></div>
-        <section v-if="item.blockingIds?.length" data-template-sync-manual-denial><el-alert :title="item.group ? '相反人工结论使整组受保护，不能直接采用模板。请先维护对应声明，再重新预览。' : '采用目标模板将取消以下人工不兼容声明。默认保留当前结果，请核对后再明确选择采用。'" type="warning" :closable="false" show-icon /><p v-for="id in item.blockingIds" :key="id">{{ manualDeclarationText(id) }}</p></section>
+        <section v-if="item.blockingIds?.length" data-template-sync-manual-denial><el-alert :title="item.group ? '相反人工结论使整组受保护，不能直接采用模板。请先维护对应声明，再重新预览。' : '以下受保护声明与模板结论相反，不能取消或覆盖。请先维护对应声明，再重新预览。'" type="warning" :closable="false" show-icon /><p v-for="id in item.blockingIds" :key="id">{{ manualDeclarationText(id) }}</p><el-button v-if="!item.group" link type="primary" :disabled="saving" @click="manageTarget(item)">维护此商品声明</el-button></section>
         <details class="baseline"><summary>查看完整依据、上次基线与历史来源</summary><p class="muted">{{ item.sourceVersionId ? `原来源版本 ${versionName(item.sourceVersionId)}` : '没有旧模板来源' }} → {{ versionName(preview.targetVersionId) }}</p><p>{{ previousBaselineText(item) }}</p><p v-if="item.group" v-for="entry in item.group.before" :key="entry.origin.key" class="muted">{{ versionName(entry.origin.sourceVersionId) }} · {{ claimText(entry.origin.baseline) }}</p><p class="muted">追溯规则：{{ item.ruleIds.join('、') || '无' }}</p></details>
         <el-radio-group v-if="canChoose(item)" :model-value="decisions[item.id] || 'keep'" :disabled="!store.isAdmin || saving" @update:model-value="setDecision(item.id,$event)"><el-radio value="keep">保留当前结果</el-radio><el-radio value="take-template">{{ item.group ? '采用这组模板结果' : item.state === 'protected' && !item.before && item.after ? '明确恢复为目标模板结果' : '采用目标模板结果' }}</el-radio></el-radio-group>
         <p v-else class="muted">{{ item.duplicateManual ? '保留已有独立声明，不重新创建或认领模板来源。' : item.state === 'unchanged' ? '结果一致，无需写入。' : '此项不可应用，请先处理来源或规则问题。' }}</p>
@@ -34,10 +35,11 @@
       <el-pagination v-if="filteredRows.length > pageSize" v-model:current-page="page" :page-size="pageSize" :total="filteredRows.length" layout="prev, pager, next, total" size="small" />
     </template>
     <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon data-template-sync-error />
-    <template #footer><span v-if="preview" class="muted">采用 {{ selectedCount }} 项／组 · 保留 {{ keepCount }} 项决定</span><el-button :disabled="saving" @click="emit('update:modelValue',false)">关闭</el-button><el-button type="primary" :disabled="!store.isAdmin || !preview || !actionCount" :loading="saving" data-template-sync-apply @click="apply">确认更新与保留</el-button></template>
+    <template #footer><span v-if="preview" class="muted">采用 {{ selectedCount }} 项／组 · 保留 {{ keepCount }} 项决定</span><el-button :disabled="saving" @click="emit('update:modelValue',false)">关闭</el-button><el-button type="primary" :disabled="!store.isAdmin || !preview || !actionCount || candidateConflicts.length > 0" :loading="saving" data-template-sync-apply @click="apply">确认更新与保留</el-button></template>
   </el-dialog>
 </template>
 <script setup lang="ts">
+import { templateSyncCandidateConflicts } from '../../domain/templateCompatibilitySync'
 import { computed, nextTick, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
@@ -74,8 +76,9 @@ watch(modelId,() => {versionId.value=versions.value.find(item => item.templateCo
 watch([versionId,targetIds],resetPreview,{deep:true,flush:'sync'})
 watch(filter,()=>{page.value=1})
 function resetPreview(){preview.value=undefined;decisions.value={};touchedDecisions.value=[];error.value='';receipt.value='';page.value=1;filter.value='changes'}
-function canChoose(item:TemplateSyncItem){return !item.duplicateManual && item.state!=='unchanged'&&item.state!=='invalid'&&(item.state!=='conflict'||!!item.group?.canAdopt)}
+function canChoose(item:TemplateSyncItem){return !item.blockingIds?.length && !item.duplicateManual && item.state!=='unchanged'&&item.state!=='invalid'&&(item.state!=='conflict'||!!item.group?.canAdopt)}
 function selectSafe(){for(const item of preview.value?.items||[])if(canChoose(item)&&!item.group&&item.state!=='protected')setDecision(item.id,'take-template')}
+const candidateConflicts = computed(() => preview.value ? templateSyncCandidateConflicts(store.data, preview.value, decisions.value) : [])
 function makePreview(preserve=false){error.value='';try{const old=decisions.value,touched=new Set(touchedDecisions.value),result=store.previewTemplateCompatibilitySync({modelId:modelId.value,targetVersionId:versionId.value,targetIds:[...targetIds.value]});preview.value=result;decisions.value=Object.fromEntries(result.items.map(item => [item.id,preserve&&touched.has(item.id)&&canChoose(item)?old[item.id]||'keep':item.defaultSelected?'take-template':'keep']));touchedDecisions.value=preserve?result.items.filter(item=>touched.has(item.id)&&canChoose(item)).map(item=>item.id):[];page.value=1}catch(cause){error.value=cause instanceof Error?cause.message:'无法生成更新预览。'}}
 function diffFields(item:TemplateSyncItem){const fields=[['型号',(claim:TemplateCompatibilityClaim)=>hostText(claim.host)],['范围',(claim:TemplateCompatibilityClaim)=>scopeText(claim.host)],['能力',(claim:TemplateCompatibilityClaim)=>capabilityLabels[claim.capability]],['结论',(claim:TemplateCompatibilityClaim)=>conclusionLabels[claim.conclusion]],['核验',(claim:TemplateCompatibilityClaim)=>verificationLabels[claim.verification]],['条件',(claim:TemplateCompatibilityClaim)=>claim.conditions.map(condition=>conditionText(store.data,condition)).join('；')||'无'],['依据',(claim:TemplateCompatibilityClaim)=>claim.source],['备注',(claim:TemplateCompatibilityClaim)=>claim.note||'无']] as const;return fields.map(([label,read])=>{const before=item.before?read(item.before):'无声明',after=item.after?read(item.after):'移除声明';return {label,before,after,changed:before!==after}})}
 function setDecision(id:string,value:string|number|boolean|undefined){if(value==='keep'||value==='take-template'){decisions.value={...decisions.value,[id]:value};if(!touchedDecisions.value.includes(id))touchedDecisions.value=[...touchedDecisions.value,id]}}
@@ -84,7 +87,7 @@ function previousBaselineText(item:TemplateSyncItem){if(item.group)return '下�
 function manualDeclarationText(id:string){const link=store.data.compatibilities.find(item=>item.id===id);return link?`${id} · ${claimText({...declarationDraft(link),id:link.id})}`:`人工声明 ${id} 已变化，请重新预览。`}
 function versionName(id:string){return store.data.specModelVersions.find(item=>item.id===id)?.versionName || id}
 function claimText(claim:TemplateCompatibilityClaim){return `${hostText(claim.host)} · ${scopeText(claim.host)} · ${capabilityLabels[claim.capability]} · ${verificationLabels[claim.verification]}${conclusionLabels[claim.conclusion]}${claim.conditions.length?` · ${claim.conditions.map(item=>conditionText(store.data,item)).join('；')}`:''} · 依据：${claim.source || '未填写'}${claim.note?` · 备注：${claim.note}`:''}`}
-async function apply(){if(!store.isAdmin||!preview.value||saving.value||!actionCount.value)return;saving.value=true;try{const result=await store.applyTemplateCompatibilitySync(preview.value,{...decisions.value});if(!result.ok){error.value=result.message || '更新失败，预览与选择已保留；数据可能已变化，请重新预览。';return}receipt.value=`已完成：新增 ${result.added || 0} 条、更新 ${result.updated || 0} 条、移除 ${result.removed || 0} 条、保留 ${result.protected || 0} 项。`;ElMessage.success(receipt.value);emit('updated');makePreview()}catch(cause){error.value=cause instanceof Error?cause.message:'更新失败，选择已保留。'}finally{saving.value=false}}
+async function apply(){if(!store.isAdmin||!preview.value||saving.value||!actionCount.value||candidateConflicts.value.length)return;saving.value=true;try{const result=await store.applyTemplateCompatibilitySync(preview.value,{...decisions.value});if(!result.ok){error.value=result.message || '更新失败，预览与选择已保留；数据可能已变化，请重新预览。';return}receipt.value=`已完成：新增 ${result.added || 0} 条、更新 ${result.updated || 0} 条、移除 ${result.removed || 0} 条、保留 ${result.protected || 0} 项。`;ElMessage.success(receipt.value);emit('updated');makePreview()}catch(cause){error.value=cause instanceof Error?cause.message:'更新失败，选择已保留。'}finally{saving.value=false}}
 async function returnFocus(){await nextTick();if(opener?.isConnected)opener.focus()}
 </script>
 <style scoped>

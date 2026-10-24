@@ -1,0 +1,20 @@
+WebSocket server error: Port 24678 is already in use
+PASS many-to-one-default-never-deletes-conflict-sources
+PASS one-to-many-preview-operations-have-unique-identities
+PASS one-to-many-default-preserves-unresolved-current-result
+PASS explicit-split-receipt-matches-two-real-results
+PASS one-to-one-update-keeps-formal-identity-and-explicit-keep
+PASS explicit-merge-archives-two-origins-and-creates-one-real-result
+PASS many-to-many-is-one-deterministic-atomic-component
+PASS split-merge-split-multiple-versions-are-stable-and-idempotent
+PASS split-preserves-modified-protection-and-refuses-group-bypass
+PASS split-preserves-deleted-protection-and-refuses-group-bypass
+PASS split-preserves-kept-protection-and-refuses-group-bypass
+PASS split-preserves-stale-protection-and-refuses-group-bypass
+PASS manual-denial-blocks-the-whole-group-and-is-never-removed
+PASS default-conflict-does-not-block-an-independent-safe-update
+PASS legacy-lineage-fallback-is-safe-and-obsolete-history-does-not-compete
+PASS removed-and-reintroduced-source-keeps-its-historical-baseline
+PASS stale-preview-and-edited-plan-are-rejected-before-any-write-or-id
+PASS crossed-rule-claim-pairs-have-distinct-origin-identities
+PASS duplicate-active-declaration-reference-is-invalid-and-never-applied

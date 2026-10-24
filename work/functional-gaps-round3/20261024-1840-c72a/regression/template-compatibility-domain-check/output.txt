@@ -1,0 +1,22 @@
+PASS conditional branches × sibling multiplication and order match the existing planning entry
+PASS unconfigured, explicit empty, inherited default and explicit negative remain distinct
+PASS multiple identical full replacements deduplicate and retain exact origin pairs
+PASS every result-affecting field participates in multi-exception conflict; no order/depth priority
+PASS condition/value order normalization preserves full content equality
+PASS selector identity uses actual node/attribute/value/ancestor scope and never display names
+PASS invalid host, condition and scope references block affected output rather than falling back
+PASS published snapshots are independent and preserve fallback roles/names/history
+PASS compatibility-only edits are publish differences; no-op revision/timestamp edits are not
+PASS old versions with only legacy metadata are unconfigured and never borrow current draft
+PASS strong cross-version mapping preserves identity; recreated nodes and ambiguous subsets fail
+PASS legacy conversion is explicit, provable, pending, idempotent and preserves old/history arrays
+PASS save/clone/export-import round trips preserve new fields and unknown extension fields
+PASS full combination selectors preserve tuple boundaries and cannot match partial OR fragments
+PASS operation-local SKU/MAT identity index preserves receipt/code/explicit/legacy precedence
+PASS malformed frozen configuration is reported without current-draft fallback or exceptions
+PASS pure preview and validation consume no random IDs or clock values and can reuse prepared context
+PASS an incomplete exception keeps actual structure available to repair scope in one context
+PASS draft-only edits reuse structural indexes without changing effective results or input
+PASS prepared incomplete drafts expose field locations and recover on correction
+PASS Vue structural dependencies invalidate indexes while text edits only revalidate rules
+Template compatibility domain: 21 checks passed

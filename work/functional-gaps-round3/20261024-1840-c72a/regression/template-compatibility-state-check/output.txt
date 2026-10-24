@@ -1,0 +1,17 @@
+WebSocket server error: Port 24678 is already in use
+18:56:58 [vite] (client) [optimizer] bundling dependencies...
+PASS template state sales-create-actual-quota-and-retry: real Pinia append fails at setItem without SKU/link/origin; retry writes once; repeated existing candidate writes zero times
+PASS template state material-receipt-atomicity-independent-targets: MAT creation/link/receipt commit together; retry returns original material; sales declaration remains a separate identity; unrelated collections remain byte equal
+PASS template state config-save-and-publish-atomic-version-freeze: quota preserves drafts and version/PLN arrays; compatibility-only edit publishes a new independent snapshot; unchanged content creates no version and all PLN identities are reused
+PASS template state three-way-safe-sync-and-stale-preview: safe template baseline updates once without changing SKU binding/source/spec or MAT/PLN identities; failure atomic; stale replay rejected; refreshed no-op writes zero times
+PASS template state manual-edit-delete-and-durable-keep-protection: manual note edits are protected; explicit adopt restores; hand deletion remains suppressed after reload; repeated keep is idempotent
+PASS template state copy-backup-import-and-command-permissions: copy remaps rule/claim/node identities without products or published versions; version-15 backup round trip preserves suppression; malformed origin rejected; operator cannot save/publish/sync/copy/import-protect
+PASS template state ordinary-spec-edit-stale-and-explicit-repair: existing editable spec remains editable; old template statement is stale; precise valid new combo permits explicit adopt; name-only maintenance does not recalculate compatibility
+PASS template state material-import-transaction-and-only-new: actual import candidate fails without half receipt/link; retry persists one complete transaction; stale candidate refused; empty new-ID set never backfills historical records
+PASS template state temporary-actual-attributes-and-display-rename: COMMON and VARIANT manual attributes map uniquely without node-name guessing; preview matches actual creation; dictionary display rename and extra non-model common attributes preserve inheritance; precomputed planning deeply equals original entry
+PASS template state stable-merged-lineage-empty-and-invalid-mapping: adding identical exception origins updates one existing declaration and keeps its key; explicit empty safely removes managed claim; deleted structure is invalid without clearing; read-only creation is refused
+PASS template state per-claim-manual-protection: same-host/basic claims retain separate full source/note identities; editing one is accepted and protects only its lineage; the other untouched template claim still updates safely
+PASS template state manual-identical-not-adopted-and-deny-capability-scope: identical manual claim is skipped without origin adoption; same-capability explicit exclusion remains intact by default; independent fast-charge exclusion does not suppress basic claim
+PASS template state old-editor-save-bundle-atomic-only-new: legacy editor uses one candidate for SKU and compatibility; quota leaves no half object; retry commits once; later existing-SKU saves never backfill hand-deleted compatibility
+PASS template state deleted-model-draft-save-is-rejected: concurrent model/canvas removal invalidates an open compatibility draft; valid claim content does not recreate an orphan configuration and performs zero writes
+PASS 14 template compatibility state scenarios

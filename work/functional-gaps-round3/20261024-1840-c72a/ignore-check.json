@@ -1,0 +1,11 @@
+{
+  "work/functional-gaps-round3/probe/cache/x.js": true,
+  "work/editor-safety-round2/probe/vite-cache/x.js": true,
+  "work/functional-gaps-round3/probe/dist/x.js": true,
+  "work/functional-gaps-round3/probe/tsconfig.json": true,
+  "src/domain/skuCategoryFilter.ts": false,
+  "scripts/functional-gaps-round3-check.ts": false,
+  "docs/functional-gaps-round3-category-compatibility.md": false,
+  "work/functional-gaps-round3/probe/result.json": false,
+  "work/functional-gaps-round3/probe/evidence.png": false
+}

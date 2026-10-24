@@ -1,0 +1,107 @@
+{
+  "phase": "round3",
+  "fixedTime": "2026-10-23T04:00:00.000Z",
+  "runtime": {
+    "node": "v22.18.0",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "results": [
+    {
+      "name": "many-to-one-default-never-deletes-conflict-sources",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "one-to-many-preview-operations-have-unique-identities",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "one-to-many-default-preserves-unresolved-current-result",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "explicit-split-receipt-matches-two-real-results",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "one-to-one-update-keeps-formal-identity-and-explicit-keep",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "explicit-merge-archives-two-origins-and-creates-one-real-result",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "many-to-many-is-one-deterministic-atomic-component",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "split-merge-split-multiple-versions-are-stable-and-idempotent",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "split-preserves-modified-protection-and-refuses-group-bypass",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "split-preserves-deleted-protection-and-refuses-group-bypass",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "split-preserves-kept-protection-and-refuses-group-bypass",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "split-preserves-stale-protection-and-refuses-group-bypass",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "manual-denial-blocks-the-whole-group-and-is-never-removed",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "default-conflict-does-not-block-an-independent-safe-update",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "legacy-lineage-fallback-is-safe-and-obsolete-history-does-not-compete",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "removed-and-reintroduced-source-keeps-its-historical-baseline",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "stale-preview-and-edited-plan-are-rejected-before-any-write-or-id",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "crossed-rule-claim-pairs-have-distinct-origin-identities",
+      "passed": true,
+      "detail": "strict assertions passed"
+    },
+    {
+      "name": "duplicate-active-declaration-reference-is-invalid-and-never-applied",
+      "passed": true,
+      "detail": "strict assertions passed"
+    }
+  ],
+  "passed": true
+}

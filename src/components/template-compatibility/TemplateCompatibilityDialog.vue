@@ -14,22 +14,22 @@
     <el-tabs v-if="draft" v-model="tab" data-template-tabs>
       <el-tab-pane label="默认配置" name="default">
         <el-form label-position="top">
-          <el-form-item label="默认配置状态"><el-select :model-value="draft.defaultRule.configured" :disabled="readOnly || saving" data-template-default-state @update:model-value="setDefaultConfigured"><el-option label="未配置：不产生声明" :value="false" /><el-option label="已明确配置（允许为空）" :value="true" /></el-select></el-form-item>
+          <el-form-item label="默认配置状态"><el-select :model-value="draft.defaultRule.configured" :disabled="readOnly || converting || saving" data-template-default-state @update:model-value="setDefaultConfigured"><el-option label="未配置：不产生声明" :value="false" /><el-option label="已明确配置（允许为空）" :value="true" /></el-select></el-form-item>
           <TemplateClaimSetEditor v-if="draft.defaultRule.configured" ref="defaultEditor" v-model="draft.defaultRule.claims" @batch-change="defaultBatchDirty=$event" :issues="ruleIssues(draft.defaultRule.id)" :readonly="readOnly || saving" empty-text="已明确配置为空：不产生适用声明。这与未配置分别记录。" />
           <el-empty v-else description="默认配置尚未设置。可以启用配置，再选择实际设备型号。" :image-size="65" />
         </el-form>
       </el-tab-pane>
       <el-tab-pane :label="`规格例外 ${draft.exceptions.length}`" name="exceptions">
         <el-alert title="例外是完整结果：只配置一款设备，就只适用这一款；需要保留其他默认设备时先复制默认配置。" type="info" :closable="false" />
-        <div class="exception-tools"><el-select :model-value="selectedExceptionId" :disabled="saving" @update:model-value="selectException" placeholder="选择已有例外" aria-label="选择模板兼容例外"><el-option v-for="item in draft.exceptions" :key="item.id" :label="item.name || '未命名例外'" :value="item.id" /></el-select><el-button v-if="!readOnly" :disabled="saving" data-template-add-exception @click="newException">新增规格例外</el-button></div>
+        <div class="exception-tools"><el-select :model-value="selectedExceptionId" :disabled="converting || saving" @update:model-value="selectException" placeholder="选择已有例外" aria-label="选择模板兼容例外"><el-option v-for="item in draft.exceptions" :key="item.id" :label="item.name || '未命名例外'" :value="item.id" /></el-select><el-button v-if="!readOnly" :disabled="converting || saving" data-template-add-exception @click="newException">新增规格例外</el-button></div>
         <el-form v-if="selectedException" label-position="top" data-template-exception-editor>
           <h3 class="step-title">1 · 选择规格范围</h3>
-          <el-form-item label="例外名称"><el-input v-model="selectedException.name" :disabled="readOnly || saving" placeholder="便于识别的配置名称" /></el-form-item>
+          <el-form-item label="例外名称"><el-input v-model="selectedException.name" :disabled="readOnly || converting || saving" placeholder="便于识别的配置名称" /></el-form-item>
           <p class="muted" data-template-exception-scope>配置范围：{{ selectorText(selectedException.selector) }} · 当前影响 {{ exceptionCount }} 个合法组合。只依据实际属性节点和值，不按名称推测。</p>
-          <div v-if="!readOnly" class="exception-actions"><el-button :disabled="saving" @click="chooseRange = !chooseRange">{{ chooseRange ? '收起范围选择' : '重新选择实际规格范围' }}</el-button></div>
-          <div v-if="chooseRange && !readOnly" class="range-picker" data-template-scope-field><el-select v-model="combinationPicks" :disabled="saving" multiple filterable placeholder="选择一个或多个实际合法组合" aria-label="例外规格范围" data-template-exception-combinations><el-option v-for="item in context.combinations" :key="item.identityKey" :label="item.label" :value="item.identityKey" /></el-select><el-button :disabled="saving || !combinationPicks.length" @click="applyRange">使用所选范围</el-button></div>
+          <div v-if="!readOnly" class="exception-actions"><el-button :disabled="converting || saving" @click="chooseRange = !chooseRange">{{ chooseRange ? '收起范围选择' : '重新选择实际规格范围' }}</el-button></div>
+          <div v-if="chooseRange && !readOnly" class="range-picker" data-template-scope-field><el-select v-model="combinationPicks" :disabled="converting || saving" multiple filterable placeholder="选择一个或多个实际合法组合" aria-label="例外规格范围" data-template-exception-combinations><el-option v-for="item in context.combinations" :key="item.identityKey" :label="item.label" :value="item.identityKey" /></el-select><el-button :disabled="converting || saving || !combinationPicks.length" @click="applyRange">使用所选范围</el-button></div>
           <h3 class="step-title">2 · 设置完整适用结果</h3>
-          <div v-if="!readOnly" class="exception-actions"><el-button :disabled="saving" @click="copyDefaults">复制默认配置</el-button><el-dropdown :disabled="saving" trigger="click" @command="exceptionCommand"><el-button :disabled="saving">更多操作 ▾</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item command="empty">这些规格不产生适用声明</el-dropdown-item><el-dropdown-item command="remove" divided>删除例外并恢复默认</el-dropdown-item></el-dropdown-menu></template></el-dropdown></div>
+          <div v-if="!readOnly" class="exception-actions"><el-button :disabled="converting || saving" @click="copyDefaults">复制默认配置</el-button><el-dropdown :disabled="converting || saving" trigger="click" @command="exceptionCommand"><el-button :disabled="converting || saving">更多操作 ▾</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item command="empty">这些规格不产生适用声明</el-dropdown-item><el-dropdown-item command="remove" divided>删除例外并恢复默认</el-dropdown-item></el-dropdown-menu></template></el-dropdown></div>
           <el-alert v-if="!selectedException.claims.length" title="此例外明确为空结果，不回退到默认设备。移除例外才会恢复继承。" type="warning" :closable="false" />
           <TemplateClaimSetEditor :key="selectedException.id" ref="exceptionEditor" v-model="selectedException.claims" @batch-change="exceptionBatchDirty=$event" :issues="ruleIssues(selectedException.id)" :readonly="readOnly || saving" />
           <h3 class="step-title">3 · 检查影响</h3><p class="muted">当前范围影响 {{ exceptionCount }} 个合法组合，例外完整替代默认。<el-button link type="primary" @click="showPreview('exception')">查看受影响规格与最终结果</el-button></p>
@@ -53,14 +53,14 @@
       <el-tab-pane :label="`旧节点工具 ${legacy.items.length}`" name="legacy">
         <details><summary class="legacy-summary">展开旧节点转换工具（{{ legacy.items.length }} 项）</summary>
         <el-alert title="旧节点适用配置原样保留，不会自动用于新商品。仅转换范围可证明的记录；未记录核验状态的旧配置转换后为待确认。" type="warning" :closable="false" />
-        <article v-for="item in legacy.items" :key="item.legacyRuleId" class="legacy-row" :data-template-legacy-rule="item.legacyRuleId"><el-checkbox :model-value="legacyPicks.includes(item.legacyRuleId)" :disabled="readOnly || saving || item.state !== 'ready'" @change="toggleLegacy(item.legacyRuleId)">{{ item.nodeLabel }} · {{ item.hosts.length }} 个型号</el-checkbox><p>{{ item.message }} · 影响 {{ item.count }} 个合法组合</p><p class="muted">{{ item.selector ? selectorText(item.selector) : '无法证明范围，继续保留待处理' }}</p></article>
+        <article v-for="item in legacy.items" :key="item.legacyRuleId" class="legacy-row" :data-template-legacy-rule="item.legacyRuleId"><el-checkbox :model-value="legacyPicks.includes(item.legacyRuleId)" :disabled="readOnly || converting || saving || item.state !== 'ready'" @change="toggleLegacy(item.legacyRuleId)">{{ item.nodeLabel }} · {{ item.hosts.length }} 个型号</el-checkbox><p>{{ item.message }} · 影响 {{ item.count }} 个合法组合</p><p class="muted">{{ item.selector ? selectorText(item.selector) : '无法证明范围，继续保留待处理' }}</p></article>
         <el-empty v-if="!legacy.items.length" description="当前模型没有旧节点适用配置。" :image-size="65" />
-        <el-button v-if="!readOnly" :disabled="saving || !legacyPicks.length" data-template-convert-legacy @click="convertLegacy">转换所选记录到本次草稿</el-button>
+        <el-button v-if="!readOnly" :disabled="converting || saving || !legacyPicks.length" :loading="converting" data-template-convert-legacy @click="convertLegacy">转换所选记录到本次草稿</el-button>
         </details>
       </el-tab-pane>
     </el-tabs>
     <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon data-template-config-error />
-    <template #footer><span v-if="dirty" class="dirty-note">有未保存修改</span><el-button :disabled="saving" @click="requestClose">{{ readOnly ? '关闭' : '取消' }}</el-button><el-button @click="showPreview('all')">查看生效预览</el-button><el-button v-if="!readOnly" type="primary" :loading="saving" data-template-save @click="save">保存到模型草稿</el-button></template>
+    <template #footer><span v-if="dirty" class="dirty-note">有未保存修改</span><el-button :disabled="converting || saving" @click="requestClose">{{ readOnly ? '关闭' : '取消' }}</el-button><el-button @click="showPreview('all')">查看生效预览</el-button><el-button v-if="!readOnly" type="primary" :loading="saving" data-template-save @click="save">保存到模型草稿</el-button></template>
   </el-dialog>
 </template>
 <script setup lang="ts">
@@ -76,12 +76,36 @@ import TemplateClaimSetEditor from './TemplateClaimSetEditor.vue'
 const props = defineProps<{ modelValue: boolean; modelId: string; initialNodeId?: string; readonly?: boolean; versionId?: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value:boolean]; saved: [] }>()
 const store = useCatalogStore(), visible = ref(false), loadedModelId = ref(''), loadedVersionId = ref(''), loadedInitialNodeId = ref('')
-const draft = ref<TemplateCompatibilityConfig>(), baseline = ref(''), expectedRevision = ref(0), error = ref(''), saving = ref(false), contextNotice = ref('')
+const draft = ref<TemplateCompatibilityConfig>(), baseline = ref(''), expectedRevision = ref(0), error = ref(''), saving = ref(false), converting=ref(false), contextNotice = ref('')
 const selectedExceptionId = ref(''), combinationPicks = ref<string[]>([]), chooseRange = ref(false), legacyPicks = ref<string[]>([])
 const tab = ref('default'), previewKeyword = ref(''), previewPage = ref(1), pageSize = 12
 const defaultBatchDirty=ref(false),exceptionBatchDirty=ref(false)
 const previewOrigin=ref('all'), defaultEditor=ref<InstanceType<typeof TemplateClaimSetEditor>>(),exceptionEditor=ref<InstanceType<typeof TemplateClaimSetEditor>>()
-let opener: HTMLElement | null = null, guardPending = false
+let opener: HTMLElement | null = null, guardPending = false, contextEpoch = 0
+watch(
+  () => [props.modelValue, props.modelId, props.versionId, props.initialNodeId, props.readonly,
+    store.editorGeneration, store.isAdmin, store.data, visible.value, loadedModelId.value, loadedVersionId.value, selectedExceptionId.value],
+  () => { contextEpoch++ }, { flush: 'sync' },
+)
+// Only this editor's draft and batch inputs are captured; no whole-catalog snapshot.
+function inputStamp() {
+  return JSON.stringify([contextEpoch, visible.value, readOnly.value, loadedModelId.value,
+    loadedVersionId.value, selectedExceptionId.value, expectedRevision.value, draft.value,
+    legacyPicks.value, exceptionEditor.value?.batchSignature, defaultEditor.value?.batchSignature,
+    store.data.templateCompatibilityConfigs?.find(config => config.modelId === loadedModelId.value)])
+}
+async function confirmBatchDiscard(
+  confirmButtonText = '放弃这批输入',
+  message = '当前例外的批量输入尚未应用，切换会放弃这批输入。其他模型草稿继续保留。',
+) {
+  if (!exceptionBatchDirty.value) return true
+  try {
+    await ElMessageBox.confirm(message, '尚未应用的批量输入', {
+      confirmButtonText, cancelButtonText: '继续填写', type: 'warning',
+    })
+    return true
+  } catch { return false }
+}
 onBeforeRouteLeave(async () => !visible.value || await canDiscard())
 const readOnly = computed(() => !!props.readonly || !store.isAdmin || !!loadedVersionId.value)
 const modelName = computed(() => store.data.specCanvases.find(item => item.templateId === loadedModelId.value)?.name || store.data.templates.find(item => item.id === loadedModelId.value)?.name || loadedModelId.value)
@@ -124,6 +148,7 @@ watch(() => [props.modelId,props.versionId,props.initialNodeId] as const,async (
   else contextNotice.value = `已保留“${modelName.value}”的未保存配置。当前弹窗仍属于该模型，请先保存或取消后再打开其他模型。`
 })
 function load() {
+  contextEpoch++
   defaultEditor.value?.resetPendingBatch();exceptionEditor.value?.resetPendingBatch();defaultBatchDirty.value=false;exceptionBatchDirty.value=false
   loadedModelId.value = props.modelId; loadedVersionId.value = props.versionId || ''; loadedInitialNodeId.value = props.initialNodeId || ''
   const version = store.data.specModelVersions.find(item => item.id === loadedVersionId.value)
@@ -139,12 +164,25 @@ function load() {
     else { const id = uid('texception'); draft.value.exceptions.push({id,name:`节点规格例外（${result.count} 个组合）`,selector:result.selector,claims:[]}); selectedExceptionId.value = id }
   }
 }
-async function canDiscard() { if(saving.value) return false; if (!dirty.value) return true; if (guardPending) return false; guardPending = true; try {await ElMessageBox.confirm('当前适用设备配置尚未保存，放弃这些修改？','未保存配置',{confirmButtonText:'放弃修改',cancelButtonText:'继续编辑',type:'warning'});defaultEditor.value?.resetPendingBatch();exceptionEditor.value?.resetPendingBatch(); return true} catch {return false} finally {guardPending = false} }
+async function canDiscard() { if(saving.value||converting.value) return false; if (!dirty.value) return true; if (guardPending) return false; guardPending = true; try {await ElMessageBox.confirm('当前适用设备配置尚未保存，放弃这些修改？','未保存配置',{confirmButtonText:'放弃修改',cancelButtonText:'继续编辑',type:'warning'});defaultEditor.value?.resetPendingBatch();exceptionEditor.value?.resetPendingBatch(); return true} catch {return false} finally {guardPending = false} }
 async function requestClose() { if (await canDiscard()) {visible.value = false; emit('update:modelValue',false)} }
 function beforeClose(done:() => void) { void canDiscard().then(ok => {if(ok) {emit('update:modelValue',false); visible.value = false; done()}}) }
 async function returnFocus() {await nextTick(); if(opener?.isConnected) opener.focus()}
 async function newException() { if(!draft.value || readOnly.value || saving.value || !await discardExceptionBatch()) return; const id=uid('texception'); draft.value.exceptions.push({id,name:`规格例外 ${draft.value.exceptions.length + 1}`,selector:{anyOf:[]},claims:[]}); selectedExceptionId.value = id; combinationPicks.value = []; chooseRange.value = true }
-async function discardExceptionBatch(){if(!exceptionBatchDirty.value)return true;try{await ElMessageBox.confirm('当前例外的批量型号尚未应用，切换会放弃这批输入。其他模型草稿继续保留。','尚未应用的批量输入',{confirmButtonText:'放弃这批输入',cancelButtonText:'继续填写',type:'warning'});exceptionEditor.value?.resetPendingBatch();return true}catch{return false}}
+async function discardExceptionBatch() {
+  if (saving.value || converting.value || guardPending) return false
+  const stamp = inputStamp()
+  guardPending = true
+  try {
+    if (!await confirmBatchDiscard()) return false
+    if (stamp !== inputStamp()) {
+      error.value = '配置或输入已变化，本次操作已取消，输入已保留。'
+      return false
+    }
+    exceptionEditor.value?.resetPendingBatch()
+    return true
+  } finally { guardPending = false }
+}
 async function selectException(value:string){if(saving.value||value===selectedExceptionId.value||!await discardExceptionBatch())return;selectedExceptionId.value=value}
 function applyRange() { if(!selectedException.value || readOnly.value || saving.value) return; selectedException.value.selector = {anyOf:context.value.combinations.filter(item => combinationPicks.value.includes(item.identityKey)).flatMap(item => selectorForCombination(item).anyOf)}; chooseRange.value = false; error.value = '' }
 function copyDefaults() { if(!selectedException.value || !draft.value || readOnly.value || saving.value) return; selectedException.value.claims = cloneTemplateCompatibility(draft.value.defaultRule.claims).map(item => ({...item,id:uid('tclaim')})) }
@@ -157,8 +195,37 @@ function ruleName(id:string) {return id===draft.value?.defaultRule.id ? '默认�
 async function setDefaultConfigured(value:boolean) {if(!draft.value||readOnly.value||saving.value)return;if(!value&&(draft.value.defaultRule.claims.length||defaultBatchDirty.value)){try{await ElMessageBox.confirm('改为未配置会移除本次草稿中的默认声明，规格例外保持。继续？','停用默认配置',{confirmButtonText:'改为未配置',cancelButtonText:'继续保留',type:'warning'})}catch{return}defaultEditor.value?.resetPendingBatch();draft.value.defaultRule.claims=[]}draft.value.defaultRule.configured=value}
 function claimText(claim:TemplateCompatibilityClaim) { return `${hostText(claim.host)} · ${scopeText(claim.host)} · ${capabilityLabels[claim.capability]} · ${verificationLabels[claim.verification]}${conclusionLabels[claim.conclusion]}${claim.conditions.length ? ` · ${claim.conditions.map(item => conditionText(store.data,item)).join('；')}` : ''} · 依据：${claim.source || '未填写'}${claim.note ? ` · 备注：${claim.note}` : ''}` }
 function toggleLegacy(id:string) {if(saving.value)return;legacyPicks.value = legacyPicks.value.includes(id) ? legacyPicks.value.filter(item => item !== id) : [...legacyPicks.value,id]}
-function convertLegacy() {if(readOnly.value || !draft.value || saving.value) return; const result = applyLegacyTemplateCompatibilityConversion(store.data,loadedModelId.value,legacyPicks.value,new Date().toISOString(),draft.value); if(!result.ok) {error.value=result.message; return}; draft.value = result.config; selectedExceptionId.value=result.config.conversions.find(item=>legacyPicks.value.includes(item.legacyRuleId))?.exceptionId || result.config.exceptions[0]?.id || ''; legacyPicks.value=[]; error.value=''; ElMessage.success(`${result.message}；尚未保存到模型草稿。`)}
-async function save() {if(readOnly.value || !draft.value || saving.value) return;if(defaultBatchDirty.value||exceptionBatchDirty.value){tab.value=defaultBatchDirty.value?'default':'exceptions';error.value='还有尚未应用的批量型号，请先点击“对所选型号应用”，或清空选择后保存。';return}if(issues.value.length){error.value=`请先处理 ${issues.value.length} 处待完善，当前输入已保留。`;if(issues.value[0])await locateIssue(issues.value[0]);return}const submittedModelId=loadedModelId.value;saving.value=true;try{const result=await store.saveTemplateCompatibility(cloneTemplateCompatibility(draft.value),expectedRevision.value);if(!result.ok) {error.value=result.message || '保存失败，当前草稿已保留。'; return}; const saved=store.data.templateCompatibilityConfigs?.find(item => item.modelId===submittedModelId); if(saved) draft.value=cloneTemplateCompatibility(saved); baseline.value=JSON.stringify(draft.value); expectedRevision.value=draft.value.revision; error.value=''; emit('saved'); ElMessage.success(result.message || '适用设备配置已保存到模型草稿。')}catch(cause){error.value=cause instanceof Error?cause.message:'保存失败，当前输入已保留。'}finally{saving.value=false}}
+async function convertLegacy() {
+  if (readOnly.value || !draft.value || saving.value || converting.value || guardPending || !legacyPicks.value.length) return
+  converting.value = true
+  const stamp = inputStamp(), now = new Date().toISOString(), editor = exceptionEditor.value
+  const discardBatch = exceptionBatchDirty.value
+  try {
+    const candidate = applyLegacyTemplateCompatibilityConversion(store.data, loadedModelId.value, [...legacyPicks.value], now, draft.value)
+    if (!candidate.ok || !candidate.converted) { error.value = candidate.message; return }
+    if (!await confirmBatchDiscard('放弃输入并转换', '当前例外还有尚未应用的批量输入。转换并切换到新例外会放弃这批输入，是否继续？')) return
+    if (stamp !== inputStamp() || readOnly.value) {
+      error.value = '确认期间模型、配置或输入已变化，转换已取消，当前输入已保留。'
+      return
+    }
+    const checked = applyLegacyTemplateCompatibilityConversion(store.data, loadedModelId.value, [...legacyPicks.value], now, draft.value)
+    if (!checked.ok || !checked.converted || JSON.stringify(checked.config) !== JSON.stringify(candidate.config)) {
+      error.value = '旧记录或规格范围已变化，转换已取消，当前输入已保留。'
+      return
+    }
+    const nextId = checked.config.conversions.find(item => legacyPicks.value.includes(item.legacyRuleId))?.exceptionId
+    if (!nextId) { error.value = '未找到转换结果，当前输入已保留。'; return }
+    draft.value = checked.config
+    selectedExceptionId.value = nextId
+    if (discardBatch) editor?.resetPendingBatch()
+    legacyPicks.value = []
+    error.value = ''
+    ElMessage.success(`${checked.message}；尚未保存到模型草稿。`)
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : '转换失败，当前输入已保留。'
+  } finally { converting.value = false }
+}
+async function save() {if(readOnly.value || !draft.value || saving.value || converting.value) return;if(defaultBatchDirty.value||exceptionBatchDirty.value){tab.value=defaultBatchDirty.value?'default':'exceptions';error.value='还有尚未应用的批量型号，请先点击“对所选型号应用”，或明确放弃这批输入后保存。';return}if(issues.value.length){error.value=`请先处理 ${issues.value.length} 处待完善，当前输入已保留。`;if(issues.value[0])await locateIssue(issues.value[0]);return}const submittedModelId=loadedModelId.value;saving.value=true;try{const result=await store.saveTemplateCompatibility(cloneTemplateCompatibility(draft.value),expectedRevision.value);if(!result.ok) {error.value=result.message || '保存失败，当前草稿已保留。'; return}; const saved=store.data.templateCompatibilityConfigs?.find(item => item.modelId===submittedModelId); if(saved) draft.value=cloneTemplateCompatibility(saved); baseline.value=JSON.stringify(draft.value); expectedRevision.value=draft.value.revision; error.value=''; emit('saved'); ElMessage.success(result.message || '适用设备配置已保存到模型草稿。')}catch(cause){error.value=cause instanceof Error?cause.message:'保存失败，当前输入已保留。'}finally{saving.value=false}}
 </script>
 <style scoped>
 .muted { color:var(--el-text-color-secondary); font-size:13px; line-height:1.65; }.exception-tools,.exception-actions,.range-picker { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0; }.exception-tools>.el-select { flex:1; min-width:220px; }.range-picker>.el-select { width:100%; }.preview-row,.legacy-row { border:1px solid var(--el-border-color-lighter); border-radius:10px; padding:12px; margin:12px 0; overflow-wrap:anywhere; }.preview-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }.preview-row p,.legacy-row p { margin:8px 0; line-height:1.65; }.claim-preview { padding-left:12px; border-left:2px solid var(--el-color-primary-light-5); font-size:13px; }.danger {color:var(--el-color-danger);}.dirty-note { color:var(--el-color-warning); margin-right:12px; font-size:13px; }.el-pagination { flex-wrap:wrap; }

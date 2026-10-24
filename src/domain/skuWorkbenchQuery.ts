@@ -106,7 +106,7 @@ export function validateSkuConfig(data: AppData, config: SkuViewConfig): string[
       if (item.operator === 'empty' || item.operator === 'notEmpty') continue
       const value = item.value
       if (value === null || typeof value === 'string' && !value.trim() || Array.isArray(value) && !value.length) { errors.push(`${field.label} 尚未填写条件值。`); continue }
-      if (['in', 'notIn', 'hasAny', 'hasAll'].includes(item.operator)) {
+      if (['in', 'notIn', 'hasAny', 'hasAll'].includes(item.operator) || item.operator === 'descendants' && Array.isArray(value)) {
         if (!Array.isArray(value) || value.some(entry => typeof entry !== 'string' || !entry.trim())) errors.push(`${field.label} 需要至少一个有效选项。`)
       } else if (item.operator === 'between') {
         if (!value || typeof value !== 'object' || Array.isArray(value) || !value.from || !value.to) errors.push(`${field.label} 需要完整范围。`)
@@ -201,9 +201,13 @@ export function querySkuWorkbench(data: AppData, config: SkuViewConfig, options:
     const type = fields.get(node.field)?.type
     if (!type) return false
     let included = new Set<string>()
-    if (node.operator === 'descendants' && typeof node.value === 'string') {
-      included = descendantCache.get(node.value) || descendants(node.value)
-      descendantCache.set(node.value, included)
+    if (node.operator === 'descendants') {
+      const roots = Array.isArray(node.value) ? node.value : typeof node.value === 'string' ? [node.value] : []
+      for (const root of roots) {
+        const subtree = descendantCache.get(root) || descendants(root)
+        descendantCache.set(root, subtree)
+        subtree.forEach(id => included.add(id))
+      }
     }
     return matchesSkuValue(type, get(row, node.field), node, now, included)
   }

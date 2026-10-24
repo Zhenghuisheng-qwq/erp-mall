@@ -3,7 +3,7 @@
     <div v-if="!readonly" class="host-picker">
       <DeviceModelPicker :model-value="hostPicks" :options="hosts" multiple placeholder="搜索并选择适用设备型号，可多选" label="选择模板适用型号" data-template-hosts @update:model-value="hostPicks = Array.isArray($event) ? $event : []" />
     </div>
-    <section v-if="hostPicks.length && !readonly" class="batch-form" data-template-batch>
+    <section v-if="(hostPicks.length || pendingBatch) && !readonly" class="batch-form" data-template-batch>
       <strong>本批 {{ hostPicks.length }} 款型号 · 公共信息</strong><p class="muted">只加入所选型号，已有声明保持。生成后可逐条调整，最后保存模型草稿。</p>
       <div class="claim-grid">
         <el-form-item label="能力"><el-select v-model="batch.capability" aria-label="本批能力"><el-option v-for="(label,value) in capabilityLabels" :key="value" :label="label" :value="value" /></el-select></el-form-item>
@@ -76,10 +76,20 @@ const hosts = computed(() => listDeviceModels(store.data))
 const hostPicks = ref<string[]>([]), page = ref(1), pageSize = 8
 const expanded = ref<string[]>([])
 const batch = ref<Pick<TemplateCompatibilityClaim,'capability'|'conclusion'|'verification'|'source'>>({capability:'basic',conclusion:'compatible',verification:'pending',source:''}), batchCondition = ref('')
-const pendingBatch=computed(()=>hostPicks.value.length>0)
-watch(pendingBatch,value=>emit('batch-change',value),{immediate:true,flush:'sync'})
-onUnmounted(()=>emit('batch-change',false))
-function resetPendingBatch(){hostPicks.value=[];batch.value={capability:'basic',conclusion:'compatible',verification:'pending',source:''};batchCondition.value=''}
+const batchSignature = computed(() => JSON.stringify([
+  hostPicks.value.slice().sort(), batch.value.capability, batch.value.conclusion,
+  batch.value.verification, batch.value.source, batchCondition.value,
+]))
+const appliedBatchSignature = ref(batchSignature.value)
+const pendingBatch = computed(() => batchSignature.value !== appliedBatchSignature.value)
+watch(pendingBatch, value => emit('batch-change', value), { immediate: true, flush: 'sync' })
+onUnmounted(() => emit('batch-change', false))
+function resetPendingBatch() {
+  hostPicks.value = []
+  batch.value = { capability: 'basic', conclusion: 'compatible', verification: 'pending', source: '' }
+  batchCondition.value = ''
+  appliedBatchSignature.value = batchSignature.value
+}
 const hostIndex = computed(() => new Map(hosts.value.map(item => [item.key,item])))
 const pageClaims = computed(() => props.modelValue.slice((page.value - 1) * pageSize, page.value * pageSize))
 watch(() => props.modelValue.length, length => { page.value = Math.min(page.value, Math.max(1, Math.ceil(length / pageSize))) })
@@ -97,7 +107,7 @@ async function locate(issue: TemplateCompatibilityIssue) {
   const target=row?.querySelector<HTMLElement>(`[data-claim-field="${issue.field || 'source'}"]`) || row
   target?.scrollIntoView({block:'center',behavior:'instant'}); target?.querySelector<HTMLElement>('input,textarea,button,[tabindex="0"]')?.focus({preventScroll:true})
 }
-defineExpose({locate,pendingBatch,resetPendingBatch})
+defineExpose({locate,pendingBatch,batchSignature,resetPendingBatch})
 function validHost(host: CompatibilityHost) { return !validateCompatibilityHost(store.data, host, hosts.value) }
 function planningFor(host: CompatibilityHost) { const option = hosts.value.find(item => hostKey(item.host) === hostKey(host)); return store.data.planningRecords.filter(item => option?.planningIds.includes(item.planningId)) }
 function set(id: string, patch: Partial<TemplateCompatibilityClaim>) { if (props.readonly) return; emit('update:modelValue', props.modelValue.map(item => item.id === id ? {...cloneCompatibility(item),...cloneCompatibility(patch)} : cloneCompatibility(item))) }
@@ -106,7 +116,8 @@ function addHosts() {
   if (props.readonly) return
   const picks=new Set(hostPicks.value)
   const additions: TemplateCompatibilityClaim[] = hosts.value.filter(item => picks.has(item.key)).map(item => ({id:uid('tclaim'),host:{...cloneCompatibility(item.host),scope:'model',planningId:undefined},...batch.value,conditions:batch.value.conclusion === 'conditional' ? [{kind:'manual',text:batchCondition.value}] : [],note:''}))
-  emit('update:modelValue', [...props.modelValue.map(item => cloneCompatibility(item)),...additions]); hostPicks.value = []; page.value = Math.max(1,Math.ceil((props.modelValue.length + additions.length) / pageSize))
+  if (!additions.length) return
+  emit('update:modelValue', [...props.modelValue.map(item => cloneCompatibility(item)),...additions]); hostPicks.value = []; appliedBatchSignature.value = batchSignature.value; page.value = Math.max(1,Math.ceil((props.modelValue.length + additions.length) / pageSize))
   if(additions.length===1&&additions[0])expanded.value=[...expanded.value,additions[0].id]
 }
 function setScope(claim: TemplateCompatibilityClaim, scope: 'model' | 'planning') { set(claim.id,{host:{...claim.host,scope,planningId:undefined}}) }

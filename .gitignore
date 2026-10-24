@@ -41,3 +41,11 @@ backups
 
 # Temporary validation output for the functional gaps round
 /work/functional-gaps-round1/
+
+# Reproducible validation caches only; keep scripts, fixtures and evidence visible.
+/work/**/cache/
+/work/**/*-cache/
+/work/**/.vite/
+/work/**/*.tsbuildinfo
+/work/**/tsconfig.*.json
+/work/**/tsconfig.json

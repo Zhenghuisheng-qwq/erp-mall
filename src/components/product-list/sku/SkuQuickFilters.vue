@@ -12,7 +12,7 @@
             <el-input :model-value="range(entry).from" :placeholder="entry.field.type === 'date' ? '开始 YYYY-MM-DD' : '最小值'" aria-label="常用范围开始" @update:model-value="(value: string) => changeRange(entry, 'from', value)" @keydown.enter.prevent="commitOne(entry)" />
             <span>至</span><el-input :model-value="range(entry).to" :placeholder="entry.field.type === 'date' ? '结束 YYYY-MM-DD' : '最大值'" aria-label="常用范围结束" @update:model-value="(value: string) => changeRange(entry, 'to', value)" @keydown.enter.prevent="commitOne(entry)" />
           </div>
-          <el-select v-else-if="['enum', 'multi', 'spu', 'category', 'boolean'].includes(entry.field.type)" :model-value="draft(entry).value" :multiple="isMulti(entry)" filterable collapse-tags clearable aria-label="常用条件取值" @change="(value: SkuValue) => choose(entry, value)">
+          <el-select v-else-if="['enum', 'multi', 'spu', 'category', 'boolean'].includes(entry.field.type)" :model-value="isMulti(entry) && typeof draft(entry).value === 'string' ? [draft(entry).value] : draft(entry).value" :multiple="isMulti(entry)" filterable collapse-tags clearable aria-label="常用条件取值" @change="(value: SkuValue) => choose(entry, value)">
             <el-option v-for="option in entry.field.type === 'boolean' ? [{value: true, label: '是'}, {value: false, label: '否'}] : entry.field.options" :key="String(option.value)" :value="option.value" :label="option.label" />
           </el-select>
           <el-input v-else :model-value="draft(entry).value" :placeholder="entry.field.type === 'date' ? 'YYYY-MM-DD' : '输入取值'" aria-label="常用条件取值" @update:model-value="(value: string) => change(entry, value)" @compositionstart="composing.add(entry.key)" @compositionend="composing.delete(entry.key)" @keydown.enter="enter(entry, $event)" @blur="commitOne(entry)" />
@@ -55,7 +55,7 @@ const entries = computed<Entry[]>(() => {
 })
 function draft(entry: Entry) { return drafts[entry.key] || entry.rule! }
 function range(entry: Entry) { const value = draft(entry).value; return value && typeof value === 'object' && !Array.isArray(value) ? value : {from: '', to: ''} }
-function isMulti(entry: Entry) { return ['in', 'notIn', 'hasAny', 'hasAll'].includes(entry.rule!.operator) }
+function isMulti(entry: Entry) { return ['in', 'notIn', 'hasAny', 'hasAll', 'descendants'].includes(entry.rule!.operator) }
 function operatorLabel(entry: Entry) { return skuOperators(entry.field?.type || 'text').find(item => item.value === entry.rule?.operator)?.label || '原语义' }
 function change(entry: Entry, value: SkuValue) { drafts[entry.key] = { ...cloneSku(draft(entry)), value }; delete errors[entry.key] }
 function changeRange(entry: Entry, key: 'from' | 'to', value: string) { change(entry, { ...range(entry), [key]: value }) }

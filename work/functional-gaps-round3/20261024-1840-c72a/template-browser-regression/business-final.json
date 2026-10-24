@@ -1,0 +1,1587 @@
+{
+  "versions": [
+    {
+      "id": "mv-mvkqoio0-6",
+      "templateId": "template-accessory-test",
+      "version": 1,
+      "versionName": "V1",
+      "status": "published",
+      "nodesSnapshot": [
+        {
+          "id": "compat-style",
+          "templateId": "template-accessory-test",
+          "parentId": null,
+          "nodeType": "ATTRIBUTE",
+          "attributeId": "attr-style",
+          "valueId": "",
+          "sort": 1,
+          "positionX": 292,
+          "positionY": 87,
+          "role": "VARIANT"
+        },
+        {
+          "id": "compat-pack",
+          "templateId": "template-accessory-test",
+          "parentId": null,
+          "nodeType": "ATTRIBUTE",
+          "attributeId": "attr-pack",
+          "valueId": "",
+          "sort": 2,
+          "positionX": 292,
+          "positionY": 224,
+          "role": "COMMON"
+        },
+        {
+          "id": "compat-style-0",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-style",
+          "nodeType": "VALUE",
+          "attributeId": "attr-style",
+          "valueId": "款式 1",
+          "sort": 1,
+          "positionX": 460,
+          "positionY": 41
+        },
+        {
+          "id": "compat-color-0",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-style-0",
+          "nodeType": "ATTRIBUTE",
+          "attributeId": "attr-color",
+          "valueId": "",
+          "sort": 1,
+          "positionX": 582,
+          "positionY": 37,
+          "role": "VARIANT"
+        },
+        {
+          "id": "compat-color-0-0",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-color-0",
+          "nodeType": "VALUE",
+          "attributeId": "attr-color",
+          "valueId": "色彩 1",
+          "sort": 1,
+          "positionX": 750,
+          "positionY": 16
+        },
+        {
+          "id": "compat-color-0-1",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-color-0",
+          "nodeType": "VALUE",
+          "attributeId": "attr-color",
+          "valueId": "色彩 2",
+          "sort": 2,
+          "positionX": 750,
+          "positionY": 66
+        },
+        {
+          "id": "compat-style-1",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-style",
+          "nodeType": "VALUE",
+          "attributeId": "attr-style",
+          "valueId": "款式 2",
+          "sort": 2,
+          "positionX": 460,
+          "positionY": 141
+        },
+        {
+          "id": "compat-color-1",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-style-1",
+          "nodeType": "ATTRIBUTE",
+          "attributeId": "attr-color",
+          "valueId": "",
+          "sort": 1,
+          "positionX": 582,
+          "positionY": 137,
+          "role": "VARIANT"
+        },
+        {
+          "id": "compat-color-1-0",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-color-1",
+          "nodeType": "VALUE",
+          "attributeId": "attr-color",
+          "valueId": "色彩 1",
+          "sort": 1,
+          "positionX": 750,
+          "positionY": 116
+        },
+        {
+          "id": "compat-color-1-1",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-color-1",
+          "nodeType": "VALUE",
+          "attributeId": "attr-color",
+          "valueId": "色彩 2",
+          "sort": 2,
+          "positionX": 750,
+          "positionY": 166
+        },
+        {
+          "id": "compat-pack-0",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-pack",
+          "nodeType": "VALUE",
+          "attributeId": "attr-pack",
+          "valueId": "包装 1",
+          "sort": 1,
+          "positionX": 460,
+          "positionY": 224
+        }
+      ],
+      "createdTime": "2026-10-23T09:00:00.000Z",
+      "publishTime": "2026-10-23T09:00:00.000Z",
+      "templateCompatibilitySnapshot": {
+        "schemaVersion": 1,
+        "config": {
+          "schemaVersion": 1,
+          "modelId": "template-accessory-test",
+          "revision": 2,
+          "defaultRule": {
+            "id": "template-default:template-accessory-test",
+            "configured": true,
+            "claims": [
+              {
+                "id": "tclaim-mvkqoio0-2",
+                "host": {
+                  "scope": "model",
+                  "productTypeId": "type-device",
+                  "productModelId": "device:model-a",
+                  "identityKey": "device:model-a",
+                  "steps": [
+                    {
+                      "attributeId": "device-model",
+                      "attributeName": "设备型号",
+                      "valueId": "【独立测试】Orion A"
+                    }
+                  ]
+                },
+                "capability": "basic",
+                "conclusion": "compatible",
+                "verification": "confirmed",
+                "source": "【独立浏览器测试】默认壳适用设备A的核验资料",
+                "conditions": [],
+                "note": ""
+              }
+            ]
+          },
+          "exceptions": [
+            {
+              "id": "texception-mvkqoio0-2",
+              "name": "节点规格例外（2 个组合）",
+              "selector": {
+                "anyOf": [
+                  [
+                    {
+                      "attributeNodeId": "compat-style",
+                      "attributeId": "attr-style",
+                      "valueNodeId": "compat-style-0",
+                      "valueId": "款式 1",
+                      "parentValueNodeId": null
+                    }
+                  ]
+                ]
+              },
+              "claims": [
+                {
+                  "id": "tclaim-mvkqoio0-3",
+                  "host": {
+                    "scope": "model",
+                    "productTypeId": "type-device",
+                    "productModelId": "device:model-b",
+                    "identityKey": "device:model-b",
+                    "steps": [
+                      {
+                        "attributeId": "device-model",
+                        "attributeName": "设备型号",
+                        "valueId": "【独立测试】Orion B"
+                      }
+                    ]
+                  },
+                  "capability": "basic",
+                  "conclusion": "compatible",
+                  "verification": "confirmed",
+                  "source": "【独立浏览器测试】款式1改用设备B，完整替换默认",
+                  "conditions": [],
+                  "note": ""
+                }
+              ]
+            }
+          ],
+          "conversions": [],
+          "updatedAt": "2026-10-23T09:00:00.000Z"
+        },
+        "attributeRoles": [
+          {
+            "attributeNodeId": "compat-style",
+            "role": "VARIANT",
+            "roleSource": "node"
+          },
+          {
+            "attributeNodeId": "compat-pack",
+            "role": "COMMON",
+            "roleSource": "node"
+          },
+          {
+            "attributeNodeId": "compat-color-0",
+            "role": "VARIANT",
+            "roleSource": "node"
+          },
+          {
+            "attributeNodeId": "compat-color-1",
+            "role": "VARIANT",
+            "roleSource": "node"
+          }
+        ],
+        "attributeNames": [
+          {
+            "attributeId": "attr-color",
+            "name": "颜色"
+          },
+          {
+            "attributeId": "attr-style",
+            "name": "款式"
+          },
+          {
+            "attributeId": "attr-pack",
+            "name": "包装"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mv-mvkqoio0-9",
+      "templateId": "template-accessory-test",
+      "version": 2,
+      "versionName": "V2",
+      "status": "published",
+      "nodesSnapshot": [
+        {
+          "id": "compat-style",
+          "templateId": "template-accessory-test",
+          "parentId": null,
+          "nodeType": "ATTRIBUTE",
+          "attributeId": "attr-style",
+          "valueId": "",
+          "sort": 1,
+          "positionX": 292,
+          "positionY": 87,
+          "role": "VARIANT"
+        },
+        {
+          "id": "compat-pack",
+          "templateId": "template-accessory-test",
+          "parentId": null,
+          "nodeType": "ATTRIBUTE",
+          "attributeId": "attr-pack",
+          "valueId": "",
+          "sort": 2,
+          "positionX": 292,
+          "positionY": 224,
+          "role": "COMMON"
+        },
+        {
+          "id": "compat-style-0",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-style",
+          "nodeType": "VALUE",
+          "attributeId": "attr-style",
+          "valueId": "款式 1",
+          "sort": 1,
+          "positionX": 460,
+          "positionY": 41
+        },
+        {
+          "id": "compat-color-0",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-style-0",
+          "nodeType": "ATTRIBUTE",
+          "attributeId": "attr-color",
+          "valueId": "",
+          "sort": 1,
+          "positionX": 582,
+          "positionY": 37,
+          "role": "VARIANT"
+        },
+        {
+          "id": "compat-color-0-0",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-color-0",
+          "nodeType": "VALUE",
+          "attributeId": "attr-color",
+          "valueId": "色彩 1",
+          "sort": 1,
+          "positionX": 750,
+          "positionY": 16
+        },
+        {
+          "id": "compat-color-0-1",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-color-0",
+          "nodeType": "VALUE",
+          "attributeId": "attr-color",
+          "valueId": "色彩 2",
+          "sort": 2,
+          "positionX": 750,
+          "positionY": 66
+        },
+        {
+          "id": "compat-style-1",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-style",
+          "nodeType": "VALUE",
+          "attributeId": "attr-style",
+          "valueId": "款式 2",
+          "sort": 2,
+          "positionX": 460,
+          "positionY": 141
+        },
+        {
+          "id": "compat-color-1",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-style-1",
+          "nodeType": "ATTRIBUTE",
+          "attributeId": "attr-color",
+          "valueId": "",
+          "sort": 1,
+          "positionX": 582,
+          "positionY": 137,
+          "role": "VARIANT"
+        },
+        {
+          "id": "compat-color-1-0",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-color-1",
+          "nodeType": "VALUE",
+          "attributeId": "attr-color",
+          "valueId": "色彩 1",
+          "sort": 1,
+          "positionX": 750,
+          "positionY": 116
+        },
+        {
+          "id": "compat-color-1-1",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-color-1",
+          "nodeType": "VALUE",
+          "attributeId": "attr-color",
+          "valueId": "色彩 2",
+          "sort": 2,
+          "positionX": 750,
+          "positionY": 166
+        },
+        {
+          "id": "compat-pack-0",
+          "templateId": "template-accessory-test",
+          "parentId": "compat-pack",
+          "nodeType": "VALUE",
+          "attributeId": "attr-pack",
+          "valueId": "包装 1",
+          "sort": 1,
+          "positionX": 460,
+          "positionY": 224
+        }
+      ],
+      "createdTime": "2026-10-23T09:00:00.000Z",
+      "publishTime": "2026-10-23T09:00:00.000Z",
+      "templateCompatibilitySnapshot": {
+        "schemaVersion": 1,
+        "config": {
+          "schemaVersion": 1,
+          "modelId": "template-accessory-test",
+          "revision": 3,
+          "defaultRule": {
+            "id": "template-default:template-accessory-test",
+            "configured": true,
+            "claims": [
+              {
+                "id": "tclaim-mvkqoio0-2",
+                "host": {
+                  "scope": "model",
+                  "productTypeId": "type-device",
+                  "productModelId": "device:model-a",
+                  "identityKey": "device:model-a",
+                  "steps": [
+                    {
+                      "attributeId": "device-model",
+                      "attributeName": "设备型号",
+                      "valueId": "【独立测试】Orion A"
+                    }
+                  ]
+                },
+                "capability": "basic",
+                "conclusion": "compatible",
+                "verification": "confirmed",
+                "source": "【独立浏览器测试】V2 新核验资料",
+                "conditions": [],
+                "note": ""
+              }
+            ]
+          },
+          "exceptions": [
+            {
+              "id": "texception-mvkqoio0-2",
+              "name": "节点规格例外（2 个组合）",
+              "selector": {
+                "anyOf": [
+                  [
+                    {
+                      "attributeNodeId": "compat-style",
+                      "attributeId": "attr-style",
+                      "valueNodeId": "compat-style-0",
+                      "valueId": "款式 1",
+                      "parentValueNodeId": null
+                    }
+                  ]
+                ]
+              },
+              "claims": [
+                {
+                  "id": "tclaim-mvkqoio0-3",
+                  "host": {
+                    "scope": "model",
+                    "productTypeId": "type-device",
+                    "productModelId": "device:model-b",
+                    "identityKey": "device:model-b",
+                    "steps": [
+                      {
+                        "attributeId": "device-model",
+                        "attributeName": "设备型号",
+                        "valueId": "【独立测试】Orion B"
+                      }
+                    ]
+                  },
+                  "capability": "basic",
+                  "conclusion": "compatible",
+                  "verification": "confirmed",
+                  "source": "【独立浏览器测试】款式1改用设备B，完整替换默认",
+                  "conditions": [],
+                  "note": ""
+                }
+              ]
+            }
+          ],
+          "conversions": [],
+          "updatedAt": "2026-10-23T09:00:00.000Z"
+        },
+        "attributeRoles": [
+          {
+            "attributeNodeId": "compat-style",
+            "role": "VARIANT",
+            "roleSource": "node"
+          },
+          {
+            "attributeNodeId": "compat-pack",
+            "role": "COMMON",
+            "roleSource": "node"
+          },
+          {
+            "attributeNodeId": "compat-color-0",
+            "role": "VARIANT",
+            "roleSource": "node"
+          },
+          {
+            "attributeNodeId": "compat-color-1",
+            "role": "VARIANT",
+            "roleSource": "node"
+          }
+        ],
+        "attributeNames": [
+          {
+            "attributeId": "attr-color",
+            "name": "颜色"
+          },
+          {
+            "attributeId": "attr-style",
+            "name": "款式"
+          },
+          {
+            "attributeId": "attr-pack",
+            "name": "包装"
+          }
+        ]
+      }
+    }
+  ],
+  "planningRecords": [
+    {
+      "planningId": "PLN-000001",
+      "productModelId": "template-accessory-test",
+      "originModelVersionId": "mv-mvkqoio0-6",
+      "modelVersionId": "mv-mvkqoio0-9",
+      "modelVersionIds": [
+        "mv-mvkqoio0-6",
+        "mv-mvkqoio0-9"
+      ],
+      "steps": [
+        {
+          "valueNodeId": "compat-style-0",
+          "attributeNodeId": "compat-style",
+          "attributeId": "attr-style",
+          "attributeName": "款式",
+          "valueId": "款式 1",
+          "parentValueNodeId": null,
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-color-0-0",
+          "attributeNodeId": "compat-color-0",
+          "attributeId": "attr-color",
+          "attributeName": "颜色",
+          "valueId": "色彩 1",
+          "parentValueNodeId": "compat-style-0",
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-pack-0",
+          "attributeNodeId": "compat-pack",
+          "attributeId": "attr-pack",
+          "attributeName": "包装",
+          "valueId": "包装 1",
+          "parentValueNodeId": null,
+          "role": "common",
+          "roleSource": "node"
+        }
+      ],
+      "identityKey": "compat-color-0-0\u001fcompat-color-0\u001fattr-color\u001f色彩 1\u001fcompat-style-0\u001fvariant\u001ecompat-pack-0\u001fcompat-pack\u001fattr-pack\u001f包装 1\u001f\u001fcommon\u001ecompat-style-0\u001fcompat-style\u001fattr-style\u001f款式 1\u001f\u001fvariant",
+      "status": "active",
+      "createdTime": "2026-10-23T09:00:00.000Z"
+    },
+    {
+      "planningId": "PLN-000002",
+      "productModelId": "template-accessory-test",
+      "originModelVersionId": "mv-mvkqoio0-6",
+      "modelVersionId": "mv-mvkqoio0-9",
+      "modelVersionIds": [
+        "mv-mvkqoio0-6",
+        "mv-mvkqoio0-9"
+      ],
+      "steps": [
+        {
+          "valueNodeId": "compat-style-0",
+          "attributeNodeId": "compat-style",
+          "attributeId": "attr-style",
+          "attributeName": "款式",
+          "valueId": "款式 1",
+          "parentValueNodeId": null,
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-color-0-1",
+          "attributeNodeId": "compat-color-0",
+          "attributeId": "attr-color",
+          "attributeName": "颜色",
+          "valueId": "色彩 2",
+          "parentValueNodeId": "compat-style-0",
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-pack-0",
+          "attributeNodeId": "compat-pack",
+          "attributeId": "attr-pack",
+          "attributeName": "包装",
+          "valueId": "包装 1",
+          "parentValueNodeId": null,
+          "role": "common",
+          "roleSource": "node"
+        }
+      ],
+      "identityKey": "compat-color-0-1\u001fcompat-color-0\u001fattr-color\u001f色彩 2\u001fcompat-style-0\u001fvariant\u001ecompat-pack-0\u001fcompat-pack\u001fattr-pack\u001f包装 1\u001f\u001fcommon\u001ecompat-style-0\u001fcompat-style\u001fattr-style\u001f款式 1\u001f\u001fvariant",
+      "status": "active",
+      "createdTime": "2026-10-23T09:00:00.000Z"
+    },
+    {
+      "planningId": "PLN-000003",
+      "productModelId": "template-accessory-test",
+      "originModelVersionId": "mv-mvkqoio0-6",
+      "modelVersionId": "mv-mvkqoio0-9",
+      "modelVersionIds": [
+        "mv-mvkqoio0-6",
+        "mv-mvkqoio0-9"
+      ],
+      "steps": [
+        {
+          "valueNodeId": "compat-style-1",
+          "attributeNodeId": "compat-style",
+          "attributeId": "attr-style",
+          "attributeName": "款式",
+          "valueId": "款式 2",
+          "parentValueNodeId": null,
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-color-1-0",
+          "attributeNodeId": "compat-color-1",
+          "attributeId": "attr-color",
+          "attributeName": "颜色",
+          "valueId": "色彩 1",
+          "parentValueNodeId": "compat-style-1",
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-pack-0",
+          "attributeNodeId": "compat-pack",
+          "attributeId": "attr-pack",
+          "attributeName": "包装",
+          "valueId": "包装 1",
+          "parentValueNodeId": null,
+          "role": "common",
+          "roleSource": "node"
+        }
+      ],
+      "identityKey": "compat-color-1-0\u001fcompat-color-1\u001fattr-color\u001f色彩 1\u001fcompat-style-1\u001fvariant\u001ecompat-pack-0\u001fcompat-pack\u001fattr-pack\u001f包装 1\u001f\u001fcommon\u001ecompat-style-1\u001fcompat-style\u001fattr-style\u001f款式 2\u001f\u001fvariant",
+      "status": "active",
+      "createdTime": "2026-10-23T09:00:00.000Z"
+    },
+    {
+      "planningId": "PLN-000004",
+      "productModelId": "template-accessory-test",
+      "originModelVersionId": "mv-mvkqoio0-6",
+      "modelVersionId": "mv-mvkqoio0-9",
+      "modelVersionIds": [
+        "mv-mvkqoio0-6",
+        "mv-mvkqoio0-9"
+      ],
+      "steps": [
+        {
+          "valueNodeId": "compat-style-1",
+          "attributeNodeId": "compat-style",
+          "attributeId": "attr-style",
+          "attributeName": "款式",
+          "valueId": "款式 2",
+          "parentValueNodeId": null,
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-color-1-1",
+          "attributeNodeId": "compat-color-1",
+          "attributeId": "attr-color",
+          "attributeName": "颜色",
+          "valueId": "色彩 2",
+          "parentValueNodeId": "compat-style-1",
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-pack-0",
+          "attributeNodeId": "compat-pack",
+          "attributeId": "attr-pack",
+          "attributeName": "包装",
+          "valueId": "包装 1",
+          "parentValueNodeId": null,
+          "role": "common",
+          "roleSource": "node"
+        }
+      ],
+      "identityKey": "compat-color-1-1\u001fcompat-color-1\u001fattr-color\u001f色彩 2\u001fcompat-style-1\u001fvariant\u001ecompat-pack-0\u001fcompat-pack\u001fattr-pack\u001f包装 1\u001f\u001fcommon\u001ecompat-style-1\u001fcompat-style\u001fattr-style\u001f款式 2\u001f\u001fvariant",
+      "status": "active",
+      "createdTime": "2026-10-23T09:00:00.000Z"
+    }
+  ],
+  "skus": [
+    {
+      "code": "",
+      "oaSkuId": "",
+      "skuName": "款式 1 / 色彩 1",
+      "status": "draft",
+      "variantAttrs": {
+        "款式": "款式 1",
+        "颜色": "色彩 1"
+      },
+      "sourceNodeIds": [
+        "compat-style-0",
+        "compat-color-0-0",
+        "compat-pack-0"
+      ],
+      "id": "sku-mvkqoio0-17",
+      "familyId": "fam-mvkqoio0-8",
+      "recordKind": "sku",
+      "modelVersionId": "mv-mvkqoio0-6",
+      "projectedAttrs": {
+        "包装": "包装 1",
+        "款式": "款式 1",
+        "颜色": "色彩 1"
+      },
+      "createdAt": "2026-10-23T09:00:00.000Z",
+      "updatedAt": "2026-10-23T09:00:00.000Z",
+      "creationSource": {
+        "kind": "model",
+        "templateId": "template-accessory-test",
+        "modelVersionId": "mv-mvkqoio0-6",
+        "createdAt": "2026-10-23T09:00:00.000Z"
+      }
+    },
+    {
+      "code": "",
+      "oaSkuId": "",
+      "skuName": "款式 1 / 色彩 2",
+      "status": "draft",
+      "variantAttrs": {
+        "款式": "款式 1",
+        "颜色": "色彩 2"
+      },
+      "sourceNodeIds": [
+        "compat-style-0",
+        "compat-color-0-1",
+        "compat-pack-0"
+      ],
+      "id": "sku-mvkqoio0-18",
+      "familyId": "fam-mvkqoio0-8",
+      "recordKind": "sku",
+      "modelVersionId": "mv-mvkqoio0-6",
+      "projectedAttrs": {
+        "包装": "包装 1",
+        "款式": "款式 1",
+        "颜色": "色彩 2"
+      },
+      "createdAt": "2026-10-23T09:00:00.000Z",
+      "updatedAt": "2026-10-23T09:00:00.000Z",
+      "creationSource": {
+        "kind": "model",
+        "templateId": "template-accessory-test",
+        "modelVersionId": "mv-mvkqoio0-6",
+        "createdAt": "2026-10-23T09:00:00.000Z"
+      }
+    },
+    {
+      "code": "",
+      "oaSkuId": "",
+      "skuName": "款式 2 / 色彩 1",
+      "status": "draft",
+      "variantAttrs": {
+        "款式": "款式 2",
+        "颜色": "色彩 1"
+      },
+      "sourceNodeIds": [
+        "compat-style-1",
+        "compat-color-1-0",
+        "compat-pack-0"
+      ],
+      "id": "sku-mvkqoio0-19",
+      "familyId": "fam-mvkqoio0-8",
+      "recordKind": "sku",
+      "modelVersionId": "mv-mvkqoio0-6",
+      "projectedAttrs": {
+        "包装": "包装 1",
+        "款式": "款式 2",
+        "颜色": "色彩 1"
+      },
+      "createdAt": "2026-10-23T09:00:00.000Z",
+      "updatedAt": "2026-10-23T09:00:00.000Z",
+      "creationSource": {
+        "kind": "model",
+        "templateId": "template-accessory-test",
+        "modelVersionId": "mv-mvkqoio0-6",
+        "createdAt": "2026-10-23T09:00:00.000Z"
+      }
+    },
+    {
+      "code": "",
+      "oaSkuId": "",
+      "skuName": "款式 2 / 色彩 2",
+      "status": "draft",
+      "variantAttrs": {
+        "款式": "款式 2",
+        "颜色": "色彩 2"
+      },
+      "sourceNodeIds": [
+        "compat-style-1",
+        "compat-color-1-1",
+        "compat-pack-0"
+      ],
+      "id": "sku-mvkqoio0-20",
+      "familyId": "fam-mvkqoio0-8",
+      "recordKind": "sku",
+      "modelVersionId": "mv-mvkqoio0-6",
+      "projectedAttrs": {
+        "包装": "包装 1",
+        "款式": "款式 2",
+        "颜色": "色彩 2"
+      },
+      "createdAt": "2026-10-23T09:00:00.000Z",
+      "updatedAt": "2026-10-23T09:00:00.000Z",
+      "creationSource": {
+        "kind": "model",
+        "templateId": "template-accessory-test",
+        "modelVersionId": "mv-mvkqoio0-6",
+        "createdAt": "2026-10-23T09:00:00.000Z"
+      }
+    },
+    {
+      "recordKind": "material",
+      "id": "sku-mvkqoio0-4",
+      "familyId": "fam-mvkqoio0-3",
+      "code": "",
+      "oaSkuId": "",
+      "status": "draft",
+      "variantAttrs": {
+        "款式": "款式 1",
+        "颜色": "色彩 1"
+      },
+      "projectedAttrs": {
+        "包装": "包装 1",
+        "款式": "款式 1",
+        "颜色": "色彩 1"
+      },
+      "skuName": "【独立浏览器测试】同规划物料 1",
+      "sourceNodeIds": [
+        "compat-style-0",
+        "compat-color-0-0",
+        "compat-pack-0"
+      ],
+      "planningId": "PLN-000001",
+      "modelVersionId": "mv-mvkqoio0-6",
+      "materialCode": "MAT-000001",
+      "supplierCode": "",
+      "guanjiapoCode": "",
+      "materialDescription": "",
+      "nameSource": "manual",
+      "suggestedName": "测试保护壳 款式 1 色彩 1 包装 1",
+      "createdAt": "2026-10-23T09:00:00.000Z",
+      "updatedAt": "2026-10-23T09:00:00.000Z"
+    },
+    {
+      "recordKind": "material",
+      "id": "sku-mvkqoio0-7",
+      "familyId": "fam-mvkqoio0-3",
+      "code": "",
+      "oaSkuId": "",
+      "status": "draft",
+      "variantAttrs": {
+        "款式": "款式 1",
+        "颜色": "色彩 1"
+      },
+      "projectedAttrs": {
+        "包装": "包装 1",
+        "款式": "款式 1",
+        "颜色": "色彩 1"
+      },
+      "skuName": "【独立浏览器测试】同规划物料 2",
+      "sourceNodeIds": [
+        "compat-style-0",
+        "compat-color-0-0",
+        "compat-pack-0"
+      ],
+      "planningId": "PLN-000001",
+      "modelVersionId": "mv-mvkqoio0-6",
+      "materialCode": "MAT-000002",
+      "supplierCode": "",
+      "guanjiapoCode": "",
+      "materialDescription": "",
+      "nameSource": "manual",
+      "suggestedName": "测试保护壳 款式 1 色彩 1 包装 1",
+      "createdAt": "2026-10-23T09:00:00.000Z",
+      "updatedAt": "2026-10-23T09:00:00.000Z"
+    }
+  ],
+  "compatibilities": [
+    {
+      "id": "compat-mvkqoio0-21",
+      "accessorySkuId": "sku-mvkqoio0-17",
+      "targetKind": "sku",
+      "targetId": "sku-mvkqoio0-17",
+      "host": {
+        "scope": "model",
+        "productTypeId": "type-device",
+        "productModelId": "device:model-b",
+        "identityKey": "device:model-b",
+        "steps": [
+          {
+            "attributeId": "device-model",
+            "attributeName": "设备型号",
+            "valueId": "【独立测试】Orion B"
+          }
+        ]
+      },
+      "conclusion": "compatible",
+      "verification": "confirmed",
+      "capability": "basic",
+      "conditions": [],
+      "source": "【独立浏览器测试】款式1改用设备B，完整替换默认",
+      "note": "【独立浏览器测试】人工备注保护",
+      "provenance": {
+        "kind": "template",
+        "detail": "从绑定的已发布模板兼容配置生成；每条声明独立保留来源与人工保护。",
+        "template": {
+          "originKey": "[\"sku:sku-mvkqoio0-17\",\"template-accessory-test\",[[\"texception-mvkqoio0-2\",\"tclaim-mvkqoio0-3\"]]]",
+          "modelId": "template-accessory-test",
+          "sourceVersionId": "mv-mvkqoio0-6",
+          "ruleIds": [
+            "texception-mvkqoio0-2"
+          ],
+          "claimIds": [
+            "tclaim-mvkqoio0-3"
+          ],
+          "state": "modified"
+        }
+      },
+      "createdAt": "2026-10-23T09:00:00.000Z",
+      "updatedAt": "2026-10-23T09:00:00.000Z"
+    },
+    {
+      "id": "compat-mvkqoio0-23",
+      "accessorySkuId": "sku-mvkqoio0-19",
+      "targetKind": "sku",
+      "targetId": "sku-mvkqoio0-19",
+      "host": {
+        "scope": "model",
+        "productTypeId": "type-device",
+        "productModelId": "device:model-a",
+        "identityKey": "device:model-a",
+        "steps": [
+          {
+            "attributeId": "device-model",
+            "attributeName": "设备型号",
+            "valueId": "【独立测试】Orion A"
+          }
+        ]
+      },
+      "conclusion": "compatible",
+      "verification": "confirmed",
+      "capability": "basic",
+      "conditions": [],
+      "source": "【独立浏览器测试】V2 新核验资料",
+      "note": "",
+      "provenance": {
+        "kind": "template",
+        "detail": "从绑定的已发布模板兼容配置生成；每条声明独立保留来源与人工保护。",
+        "template": {
+          "originKey": "[\"sku:sku-mvkqoio0-19\",\"template-accessory-test\",[[\"template-default:template-accessory-test\",\"tclaim-mvkqoio0-2\"]]]",
+          "modelId": "template-accessory-test",
+          "sourceVersionId": "mv-mvkqoio0-9",
+          "ruleIds": [
+            "template-default:template-accessory-test"
+          ],
+          "claimIds": [
+            "tclaim-mvkqoio0-2"
+          ],
+          "state": "managed"
+        }
+      },
+      "createdAt": "2026-10-23T09:00:00.000Z",
+      "updatedAt": "2026-10-23T09:00:00.000Z"
+    },
+    {
+      "id": "compat-mvkqoio0-24",
+      "accessorySkuId": "sku-mvkqoio0-20",
+      "targetKind": "sku",
+      "targetId": "sku-mvkqoio0-20",
+      "host": {
+        "scope": "model",
+        "productTypeId": "type-device",
+        "productModelId": "device:model-a",
+        "identityKey": "device:model-a",
+        "steps": [
+          {
+            "attributeId": "device-model",
+            "attributeName": "设备型号",
+            "valueId": "【独立测试】Orion A"
+          }
+        ]
+      },
+      "conclusion": "compatible",
+      "verification": "confirmed",
+      "capability": "basic",
+      "conditions": [],
+      "source": "【独立浏览器测试】V2 新核验资料",
+      "note": "",
+      "provenance": {
+        "kind": "template",
+        "detail": "从绑定的已发布模板兼容配置生成；每条声明独立保留来源与人工保护。",
+        "template": {
+          "originKey": "[\"sku:sku-mvkqoio0-20\",\"template-accessory-test\",[[\"template-default:template-accessory-test\",\"tclaim-mvkqoio0-2\"]]]",
+          "modelId": "template-accessory-test",
+          "sourceVersionId": "mv-mvkqoio0-9",
+          "ruleIds": [
+            "template-default:template-accessory-test"
+          ],
+          "claimIds": [
+            "tclaim-mvkqoio0-2"
+          ],
+          "state": "managed"
+        }
+      },
+      "createdAt": "2026-10-23T09:00:00.000Z",
+      "updatedAt": "2026-10-23T09:00:00.000Z"
+    },
+    {
+      "id": "compat-mvkqoio0-5",
+      "accessorySkuId": "sku-mvkqoio0-4",
+      "targetKind": "material",
+      "targetId": "sku-mvkqoio0-4",
+      "host": {
+        "scope": "model",
+        "productTypeId": "type-device",
+        "productModelId": "device:model-b",
+        "identityKey": "device:model-b",
+        "steps": [
+          {
+            "attributeId": "device-model",
+            "attributeName": "设备型号",
+            "valueId": "【独立测试】Orion B"
+          }
+        ]
+      },
+      "conclusion": "compatible",
+      "verification": "confirmed",
+      "capability": "basic",
+      "conditions": [],
+      "source": "【独立浏览器测试】款式1改用设备B，完整替换默认",
+      "note": "",
+      "provenance": {
+        "kind": "template",
+        "detail": "从绑定的已发布模板兼容配置生成；每条声明独立保留来源与人工保护。",
+        "template": {
+          "originKey": "[\"material:sku-mvkqoio0-4\",\"template-accessory-test\",[[\"texception-mvkqoio0-2\",\"tclaim-mvkqoio0-3\"]]]",
+          "modelId": "template-accessory-test",
+          "sourceVersionId": "mv-mvkqoio0-6",
+          "ruleIds": [
+            "texception-mvkqoio0-2"
+          ],
+          "claimIds": [
+            "tclaim-mvkqoio0-3"
+          ],
+          "state": "managed"
+        }
+      },
+      "createdAt": "2026-10-23T09:00:00.000Z",
+      "updatedAt": "2026-10-23T09:00:00.000Z"
+    },
+    {
+      "id": "compat-mvkqoio0-8",
+      "accessorySkuId": "sku-mvkqoio0-7",
+      "targetKind": "material",
+      "targetId": "sku-mvkqoio0-7",
+      "host": {
+        "scope": "model",
+        "productTypeId": "type-device",
+        "productModelId": "device:model-b",
+        "identityKey": "device:model-b",
+        "steps": [
+          {
+            "attributeId": "device-model",
+            "attributeName": "设备型号",
+            "valueId": "【独立测试】Orion B"
+          }
+        ]
+      },
+      "conclusion": "compatible",
+      "verification": "confirmed",
+      "capability": "basic",
+      "conditions": [],
+      "source": "【独立浏览器测试】款式1改用设备B，完整替换默认",
+      "note": "",
+      "provenance": {
+        "kind": "template",
+        "detail": "从绑定的已发布模板兼容配置生成；每条声明独立保留来源与人工保护。",
+        "template": {
+          "originKey": "[\"material:sku-mvkqoio0-7\",\"template-accessory-test\",[[\"texception-mvkqoio0-2\",\"tclaim-mvkqoio0-3\"]]]",
+          "modelId": "template-accessory-test",
+          "sourceVersionId": "mv-mvkqoio0-6",
+          "ruleIds": [
+            "texception-mvkqoio0-2"
+          ],
+          "claimIds": [
+            "tclaim-mvkqoio0-3"
+          ],
+          "state": "managed"
+        }
+      },
+      "createdAt": "2026-10-23T09:00:00.000Z",
+      "updatedAt": "2026-10-23T09:00:00.000Z"
+    }
+  ],
+  "origins": [
+    {
+      "key": "[\"sku:sku-mvkqoio0-17\",\"template-accessory-test\",[[\"texception-mvkqoio0-2\",\"tclaim-mvkqoio0-3\"]]]",
+      "target": {
+        "kind": "sku",
+        "id": "sku-mvkqoio0-17"
+      },
+      "modelId": "template-accessory-test",
+      "sourceVersionId": "mv-mvkqoio0-6",
+      "ruleIds": [
+        "texception-mvkqoio0-2"
+      ],
+      "claimIds": [
+        "tclaim-mvkqoio0-3"
+      ],
+      "lineage": [
+        {
+          "ruleId": "texception-mvkqoio0-2",
+          "claimId": "tclaim-mvkqoio0-3"
+        }
+      ],
+      "identityKey": "compat-color-0-0\u001fcompat-color-0\u001fattr-color\u001f色彩 1\u001fcompat-style-0\u001fvariant\u001ecompat-pack-0\u001fcompat-pack\u001fattr-pack\u001f包装 1\u001f\u001fcommon\u001ecompat-style-0\u001fcompat-style\u001fattr-style\u001f款式 1\u001f\u001fvariant",
+      "steps": [
+        {
+          "valueNodeId": "compat-style-0",
+          "attributeNodeId": "compat-style",
+          "attributeId": "attr-style",
+          "attributeName": "款式",
+          "valueId": "款式 1",
+          "parentValueNodeId": null,
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-color-0-0",
+          "attributeNodeId": "compat-color-0",
+          "attributeId": "attr-color",
+          "attributeName": "颜色",
+          "valueId": "色彩 1",
+          "parentValueNodeId": "compat-style-0",
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-pack-0",
+          "attributeNodeId": "compat-pack",
+          "attributeId": "attr-pack",
+          "attributeName": "包装",
+          "valueId": "包装 1",
+          "parentValueNodeId": null,
+          "role": "common",
+          "roleSource": "node"
+        }
+      ],
+      "sourceStamp": "[\"sku-mvkqoio0-17\",\"fam-mvkqoio0-8\",\"template-accessory-test\",\"mv-mvkqoio0-6\",\"mv-mvkqoio0-6\",\"mv-mvkqoio0-6\",{\"包装\":\"包装 1\"},{\"款式\":\"款式 1\",\"颜色\":\"色彩 1\"},[\"compat-style-0\",\"compat-color-0-0\",\"compat-pack-0\"],\"\"]",
+      "baseline": {
+        "id": "tclaim-mvkqoio0-3",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-b",
+          "identityKey": "device:model-b",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion B"
+            }
+          ]
+        },
+        "capability": "basic",
+        "conclusion": "compatible",
+        "verification": "confirmed",
+        "source": "【独立浏览器测试】款式1改用设备B，完整替换默认",
+        "conditions": [],
+        "note": ""
+      },
+      "state": "modified",
+      "updatedAt": "2026-10-23T09:00:00.000Z",
+      "declarationId": "compat-mvkqoio0-21"
+    },
+    {
+      "key": "[\"sku:sku-mvkqoio0-18\",\"template-accessory-test\",[[\"texception-mvkqoio0-2\",\"tclaim-mvkqoio0-3\"]]]",
+      "target": {
+        "kind": "sku",
+        "id": "sku-mvkqoio0-18"
+      },
+      "modelId": "template-accessory-test",
+      "sourceVersionId": "mv-mvkqoio0-6",
+      "ruleIds": [
+        "texception-mvkqoio0-2"
+      ],
+      "claimIds": [
+        "tclaim-mvkqoio0-3"
+      ],
+      "lineage": [
+        {
+          "ruleId": "texception-mvkqoio0-2",
+          "claimId": "tclaim-mvkqoio0-3"
+        }
+      ],
+      "identityKey": "compat-color-0-1\u001fcompat-color-0\u001fattr-color\u001f色彩 2\u001fcompat-style-0\u001fvariant\u001ecompat-pack-0\u001fcompat-pack\u001fattr-pack\u001f包装 1\u001f\u001fcommon\u001ecompat-style-0\u001fcompat-style\u001fattr-style\u001f款式 1\u001f\u001fvariant",
+      "steps": [
+        {
+          "valueNodeId": "compat-style-0",
+          "attributeNodeId": "compat-style",
+          "attributeId": "attr-style",
+          "attributeName": "款式",
+          "valueId": "款式 1",
+          "parentValueNodeId": null,
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-color-0-1",
+          "attributeNodeId": "compat-color-0",
+          "attributeId": "attr-color",
+          "attributeName": "颜色",
+          "valueId": "色彩 2",
+          "parentValueNodeId": "compat-style-0",
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-pack-0",
+          "attributeNodeId": "compat-pack",
+          "attributeId": "attr-pack",
+          "attributeName": "包装",
+          "valueId": "包装 1",
+          "parentValueNodeId": null,
+          "role": "common",
+          "roleSource": "node"
+        }
+      ],
+      "sourceStamp": "[\"sku-mvkqoio0-18\",\"fam-mvkqoio0-8\",\"template-accessory-test\",\"mv-mvkqoio0-6\",\"mv-mvkqoio0-6\",\"mv-mvkqoio0-6\",{\"包装\":\"包装 1\"},{\"款式\":\"款式 1\",\"颜色\":\"色彩 2\"},[\"compat-style-0\",\"compat-color-0-1\",\"compat-pack-0\"],\"\"]",
+      "baseline": {
+        "id": "tclaim-mvkqoio0-3",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-b",
+          "identityKey": "device:model-b",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion B"
+            }
+          ]
+        },
+        "capability": "basic",
+        "conclusion": "compatible",
+        "verification": "confirmed",
+        "source": "【独立浏览器测试】款式1改用设备B，完整替换默认",
+        "conditions": [],
+        "note": ""
+      },
+      "state": "deleted",
+      "updatedAt": "2026-10-23T09:00:00.000Z",
+      "declarationId": "compat-mvkqoio0-22"
+    },
+    {
+      "key": "[\"sku:sku-mvkqoio0-19\",\"template-accessory-test\",[[\"template-default:template-accessory-test\",\"tclaim-mvkqoio0-2\"]]]",
+      "target": {
+        "kind": "sku",
+        "id": "sku-mvkqoio0-19"
+      },
+      "modelId": "template-accessory-test",
+      "sourceVersionId": "mv-mvkqoio0-9",
+      "ruleIds": [
+        "template-default:template-accessory-test"
+      ],
+      "claimIds": [
+        "tclaim-mvkqoio0-2"
+      ],
+      "lineage": [
+        {
+          "ruleId": "template-default:template-accessory-test",
+          "claimId": "tclaim-mvkqoio0-2"
+        }
+      ],
+      "identityKey": "compat-color-1-0\u001fcompat-color-1\u001fattr-color\u001f色彩 1\u001fcompat-style-1\u001fvariant\u001ecompat-pack-0\u001fcompat-pack\u001fattr-pack\u001f包装 1\u001f\u001fcommon\u001ecompat-style-1\u001fcompat-style\u001fattr-style\u001f款式 2\u001f\u001fvariant",
+      "steps": [
+        {
+          "valueNodeId": "compat-style-1",
+          "attributeNodeId": "compat-style",
+          "attributeId": "attr-style",
+          "attributeName": "款式",
+          "valueId": "款式 2",
+          "parentValueNodeId": null,
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-color-1-0",
+          "attributeNodeId": "compat-color-1",
+          "attributeId": "attr-color",
+          "attributeName": "颜色",
+          "valueId": "色彩 1",
+          "parentValueNodeId": "compat-style-1",
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-pack-0",
+          "attributeNodeId": "compat-pack",
+          "attributeId": "attr-pack",
+          "attributeName": "包装",
+          "valueId": "包装 1",
+          "parentValueNodeId": null,
+          "role": "common",
+          "roleSource": "node"
+        }
+      ],
+      "sourceStamp": "[\"sku-mvkqoio0-19\",\"fam-mvkqoio0-8\",\"template-accessory-test\",\"mv-mvkqoio0-6\",\"mv-mvkqoio0-6\",\"mv-mvkqoio0-6\",{\"包装\":\"包装 1\"},{\"款式\":\"款式 2\",\"颜色\":\"色彩 1\"},[\"compat-style-1\",\"compat-color-1-0\",\"compat-pack-0\"],\"\"]",
+      "baseline": {
+        "id": "tclaim-mvkqoio0-2",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-a",
+          "identityKey": "device:model-a",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion A"
+            }
+          ]
+        },
+        "capability": "basic",
+        "conclusion": "compatible",
+        "verification": "confirmed",
+        "source": "【独立浏览器测试】V2 新核验资料",
+        "conditions": [],
+        "note": ""
+      },
+      "state": "managed",
+      "updatedAt": "2026-10-23T09:00:00.000Z",
+      "declarationId": "compat-mvkqoio0-23"
+    },
+    {
+      "key": "[\"sku:sku-mvkqoio0-20\",\"template-accessory-test\",[[\"template-default:template-accessory-test\",\"tclaim-mvkqoio0-2\"]]]",
+      "target": {
+        "kind": "sku",
+        "id": "sku-mvkqoio0-20"
+      },
+      "modelId": "template-accessory-test",
+      "sourceVersionId": "mv-mvkqoio0-9",
+      "ruleIds": [
+        "template-default:template-accessory-test"
+      ],
+      "claimIds": [
+        "tclaim-mvkqoio0-2"
+      ],
+      "lineage": [
+        {
+          "ruleId": "template-default:template-accessory-test",
+          "claimId": "tclaim-mvkqoio0-2"
+        }
+      ],
+      "identityKey": "compat-color-1-1\u001fcompat-color-1\u001fattr-color\u001f色彩 2\u001fcompat-style-1\u001fvariant\u001ecompat-pack-0\u001fcompat-pack\u001fattr-pack\u001f包装 1\u001f\u001fcommon\u001ecompat-style-1\u001fcompat-style\u001fattr-style\u001f款式 2\u001f\u001fvariant",
+      "steps": [
+        {
+          "valueNodeId": "compat-style-1",
+          "attributeNodeId": "compat-style",
+          "attributeId": "attr-style",
+          "attributeName": "款式",
+          "valueId": "款式 2",
+          "parentValueNodeId": null,
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-color-1-1",
+          "attributeNodeId": "compat-color-1",
+          "attributeId": "attr-color",
+          "attributeName": "颜色",
+          "valueId": "色彩 2",
+          "parentValueNodeId": "compat-style-1",
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-pack-0",
+          "attributeNodeId": "compat-pack",
+          "attributeId": "attr-pack",
+          "attributeName": "包装",
+          "valueId": "包装 1",
+          "parentValueNodeId": null,
+          "role": "common",
+          "roleSource": "node"
+        }
+      ],
+      "sourceStamp": "[\"sku-mvkqoio0-20\",\"fam-mvkqoio0-8\",\"template-accessory-test\",\"mv-mvkqoio0-6\",\"mv-mvkqoio0-6\",\"mv-mvkqoio0-6\",{\"包装\":\"包装 1\"},{\"款式\":\"款式 2\",\"颜色\":\"色彩 2\"},[\"compat-style-1\",\"compat-color-1-1\",\"compat-pack-0\"],\"\"]",
+      "baseline": {
+        "id": "tclaim-mvkqoio0-2",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-a",
+          "identityKey": "device:model-a",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion A"
+            }
+          ]
+        },
+        "capability": "basic",
+        "conclusion": "compatible",
+        "verification": "confirmed",
+        "source": "【独立浏览器测试】V2 新核验资料",
+        "conditions": [],
+        "note": ""
+      },
+      "state": "managed",
+      "updatedAt": "2026-10-23T09:00:00.000Z",
+      "declarationId": "compat-mvkqoio0-24"
+    },
+    {
+      "key": "[\"material:sku-mvkqoio0-4\",\"template-accessory-test\",[[\"texception-mvkqoio0-2\",\"tclaim-mvkqoio0-3\"]]]",
+      "target": {
+        "kind": "material",
+        "id": "sku-mvkqoio0-4"
+      },
+      "modelId": "template-accessory-test",
+      "sourceVersionId": "mv-mvkqoio0-6",
+      "ruleIds": [
+        "texception-mvkqoio0-2"
+      ],
+      "claimIds": [
+        "tclaim-mvkqoio0-3"
+      ],
+      "lineage": [
+        {
+          "ruleId": "texception-mvkqoio0-2",
+          "claimId": "tclaim-mvkqoio0-3"
+        }
+      ],
+      "identityKey": "compat-color-0-0\u001fcompat-color-0\u001fattr-color\u001f色彩 1\u001fcompat-style-0\u001fvariant\u001ecompat-pack-0\u001fcompat-pack\u001fattr-pack\u001f包装 1\u001f\u001fcommon\u001ecompat-style-0\u001fcompat-style\u001fattr-style\u001f款式 1\u001f\u001fvariant",
+      "steps": [
+        {
+          "valueNodeId": "compat-style-0",
+          "attributeNodeId": "compat-style",
+          "attributeId": "attr-style",
+          "attributeName": "款式",
+          "valueId": "款式 1",
+          "parentValueNodeId": null,
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-color-0-0",
+          "attributeNodeId": "compat-color-0",
+          "attributeId": "attr-color",
+          "attributeName": "颜色",
+          "valueId": "色彩 1",
+          "parentValueNodeId": "compat-style-0",
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-pack-0",
+          "attributeNodeId": "compat-pack",
+          "attributeId": "attr-pack",
+          "attributeName": "包装",
+          "valueId": "包装 1",
+          "parentValueNodeId": null,
+          "role": "common",
+          "roleSource": "node"
+        }
+      ],
+      "sourceStamp": "[\"sku-mvkqoio0-4\",\"fam-mvkqoio0-3\",\"template-accessory-test\",\"mv-mvkqoio0-6\",\"mv-mvkqoio0-6\",\"\",{\"包装\":\"包装 1\"},{\"款式\":\"款式 1\",\"颜色\":\"色彩 1\"},[\"compat-style-0\",\"compat-color-0-0\",\"compat-pack-0\"],\"PLN-000001\"]",
+      "baseline": {
+        "id": "tclaim-mvkqoio0-3",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-b",
+          "identityKey": "device:model-b",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion B"
+            }
+          ]
+        },
+        "capability": "basic",
+        "conclusion": "compatible",
+        "verification": "confirmed",
+        "source": "【独立浏览器测试】款式1改用设备B，完整替换默认",
+        "conditions": [],
+        "note": ""
+      },
+      "state": "managed",
+      "updatedAt": "2026-10-23T09:00:00.000Z",
+      "declarationId": "compat-mvkqoio0-5"
+    },
+    {
+      "key": "[\"material:sku-mvkqoio0-7\",\"template-accessory-test\",[[\"texception-mvkqoio0-2\",\"tclaim-mvkqoio0-3\"]]]",
+      "target": {
+        "kind": "material",
+        "id": "sku-mvkqoio0-7"
+      },
+      "modelId": "template-accessory-test",
+      "sourceVersionId": "mv-mvkqoio0-6",
+      "ruleIds": [
+        "texception-mvkqoio0-2"
+      ],
+      "claimIds": [
+        "tclaim-mvkqoio0-3"
+      ],
+      "lineage": [
+        {
+          "ruleId": "texception-mvkqoio0-2",
+          "claimId": "tclaim-mvkqoio0-3"
+        }
+      ],
+      "identityKey": "compat-color-0-0\u001fcompat-color-0\u001fattr-color\u001f色彩 1\u001fcompat-style-0\u001fvariant\u001ecompat-pack-0\u001fcompat-pack\u001fattr-pack\u001f包装 1\u001f\u001fcommon\u001ecompat-style-0\u001fcompat-style\u001fattr-style\u001f款式 1\u001f\u001fvariant",
+      "steps": [
+        {
+          "valueNodeId": "compat-style-0",
+          "attributeNodeId": "compat-style",
+          "attributeId": "attr-style",
+          "attributeName": "款式",
+          "valueId": "款式 1",
+          "parentValueNodeId": null,
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-color-0-0",
+          "attributeNodeId": "compat-color-0",
+          "attributeId": "attr-color",
+          "attributeName": "颜色",
+          "valueId": "色彩 1",
+          "parentValueNodeId": "compat-style-0",
+          "role": "variant",
+          "roleSource": "node"
+        },
+        {
+          "valueNodeId": "compat-pack-0",
+          "attributeNodeId": "compat-pack",
+          "attributeId": "attr-pack",
+          "attributeName": "包装",
+          "valueId": "包装 1",
+          "parentValueNodeId": null,
+          "role": "common",
+          "roleSource": "node"
+        }
+      ],
+      "sourceStamp": "[\"sku-mvkqoio0-7\",\"fam-mvkqoio0-3\",\"template-accessory-test\",\"mv-mvkqoio0-6\",\"mv-mvkqoio0-6\",\"\",{\"包装\":\"包装 1\"},{\"款式\":\"款式 1\",\"颜色\":\"色彩 1\"},[\"compat-style-0\",\"compat-color-0-0\",\"compat-pack-0\"],\"PLN-000001\"]",
+      "baseline": {
+        "id": "tclaim-mvkqoio0-3",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-b",
+          "identityKey": "device:model-b",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion B"
+            }
+          ]
+        },
+        "capability": "basic",
+        "conclusion": "compatible",
+        "verification": "confirmed",
+        "source": "【独立浏览器测试】款式1改用设备B，完整替换默认",
+        "conditions": [],
+        "note": ""
+      },
+      "state": "managed",
+      "updatedAt": "2026-10-23T09:00:00.000Z",
+      "declarationId": "compat-mvkqoio0-8"
+    }
+  ]
+}

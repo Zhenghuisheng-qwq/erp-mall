@@ -1,0 +1,225 @@
+{
+  "result": "PASS",
+  "completedAt": "2026-10-24T11:06:47.754Z",
+  "browser": "156.0.8078.47",
+  "fixture": {
+    "modelId": "template-accessory-test",
+    "nodes": 11,
+    "depth": 4,
+    "combinations": 4,
+    "realDeviceModels": 2
+  },
+  "business": {
+    "skuIds": [
+      "sku-mvkqoio0-17",
+      "sku-mvkqoio0-18",
+      "sku-mvkqoio0-19",
+      "sku-mvkqoio0-20"
+    ],
+    "materialIds": [
+      "sku-mvkqoio0-4",
+      "sku-mvkqoio0-7"
+    ],
+    "planningIds": [
+      "PLN-000001",
+      "PLN-000002",
+      "PLN-000003",
+      "PLN-000004"
+    ],
+    "versionIds": [
+      "mv-mvkqoio0-6",
+      "mv-mvkqoio0-9"
+    ],
+    "formalDeclarations": 5,
+    "originStates": [
+      {
+        "target": {
+          "kind": "sku",
+          "id": "sku-mvkqoio0-17"
+        },
+        "state": "modified",
+        "sourceVersionId": "mv-mvkqoio0-6"
+      },
+      {
+        "target": {
+          "kind": "sku",
+          "id": "sku-mvkqoio0-18"
+        },
+        "state": "deleted",
+        "sourceVersionId": "mv-mvkqoio0-6"
+      },
+      {
+        "target": {
+          "kind": "sku",
+          "id": "sku-mvkqoio0-19"
+        },
+        "state": "managed",
+        "sourceVersionId": "mv-mvkqoio0-9"
+      },
+      {
+        "target": {
+          "kind": "sku",
+          "id": "sku-mvkqoio0-20"
+        },
+        "state": "managed",
+        "sourceVersionId": "mv-mvkqoio0-9"
+      },
+      {
+        "target": {
+          "kind": "material",
+          "id": "sku-mvkqoio0-4"
+        },
+        "state": "managed",
+        "sourceVersionId": "mv-mvkqoio0-6"
+      },
+      {
+        "target": {
+          "kind": "material",
+          "id": "sku-mvkqoio0-7"
+        },
+        "state": "managed",
+        "sourceVersionId": "mv-mvkqoio0-6"
+      }
+    ],
+    "detail": "business-final.json"
+  },
+  "checkpoints": [
+    {
+      "name": "default-ui-save-quota-no-half-write-retry-one-write-refresh"
+    },
+    {
+      "name": "readonly-preview-search-no-number-no-record-writes-and-legacy-pending-conversion-cancel"
+    },
+    {
+      "name": "node-shortcut-shared-editor-structural-range-full-replacement-conflict-no-priority-resolution"
+    },
+    {
+      "name": "publish-frozen-config-one-write-real-ui-create-four-sku-quota-retry-and-per-spec-formal-relations",
+      "setup": "Only SPU identity/common attributes prepared through store.saveSpu after UI publish; SKU generation and save performed through UI."
+    },
+    {
+      "name": "same-formal-relations-forward-device-and-reverse-accessory-with-source-version"
+    },
+    {
+      "name": "real-ui-two-independent-materials-same-planning-each-own-template-declaration"
+    },
+    {
+      "name": "existing-manager-manual-edit-and-delete-create-per-claim-protection"
+    },
+    {
+      "name": "compatibility-only-new-version-explicit-three-way-sync-quota-retry-protects-manual-and-deleted-history-refresh"
+    },
+    {
+      "name": "escape-unsaved-continue-cancel-focus-route-return-single-canvas-keyboard-isolation"
+    },
+    {
+      "name": "model-copy-deep-independent-config-and-switch-unsaved-context-guard"
+    },
+    {
+      "name": "manual-denial-protected-no-template-override"
+    },
+    {
+      "name": "fifteen-combinations-paginated-without-truncation-and-device-model-search-pure"
+    },
+    {
+      "name": "visual-light-dark-780-equivalent-125-footer-reachable-no-page-overflow"
+    },
+    {
+      "name": "view-config-readonly-operator-route-gate-manager-readonly-direct-command-denied-no-writes"
+    }
+  ],
+  "diagnostics": [
+    {
+      "context": "main",
+      "type": "warning",
+      "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+    },
+    {
+      "context": "main",
+      "type": "warning",
+      "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+    },
+    {
+      "context": "main",
+      "type": "warning",
+      "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+    },
+    {
+      "context": "main",
+      "type": "warning",
+      "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+    },
+    {
+      "context": "main",
+      "type": "warning",
+      "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+    },
+    {
+      "context": "main",
+      "type": "warning",
+      "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+    },
+    {
+      "context": "main",
+      "type": "warning",
+      "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+    },
+    {
+      "context": "paged-preview",
+      "type": "warning",
+      "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+    },
+    {
+      "context": "light",
+      "type": "warning",
+      "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+    },
+    {
+      "context": "dark",
+      "type": "warning",
+      "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+    },
+    {
+      "context": "dark",
+      "type": "warning",
+      "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+    },
+    {
+      "context": "narrow-780",
+      "type": "warning",
+      "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+    },
+    {
+      "context": "equivalent-125-percent",
+      "type": "warning",
+      "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+    },
+    {
+      "context": "viewing",
+      "type": "warning",
+      "message": "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+    }
+  ],
+  "screenshots": [
+    "default-draft-light.png",
+    "effective-preview-default.png",
+    "exception-conflict-preview.png",
+    "reverse-template-source.png",
+    "forward-template-matches.png",
+    "two-mat-one-planning.png",
+    "sync-three-way-protected.png",
+    "manual-denial-explicit-preview.png",
+    "paged-preview-device-search.png",
+    "config-light.png",
+    "config-dark.png",
+    "config-narrow-780.png",
+    "config-equivalent-125-percent.png",
+    "view-mode-readonly-config.png"
+  ],
+  "environment": {
+    "node": "v22.18.0",
+    "viewport": "1366x768",
+    "time": "2026-10-23T09:00:00.000Z"
+  },
+  "scope": "Independent contexts; no everyday browser storage touched; native OS printing and real Excel not part of this feature."
+}
