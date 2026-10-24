@@ -31,12 +31,12 @@
         <aside v-if="showSidebar" class="category-side" data-category-side>
           <div class="side-title"><strong>商品分类</strong><el-button link @click="categorySideClosed = true">收起分类栏</el-button></div>
           <CategoryFilterTree v-if="simpleCategory" :categories="store.data.categories" :selected-ids="categoryIds" @toggle="toggleCategory" @clear="clearCategory" />
-          <template v-else><p class="muted">分类属于历史或组合条件。</p><el-button @click="filterOpen = true">管理分类条件</el-button></template>
+          <template v-else><p class="muted">分类属于历史或组合条件。</p><el-button @click="openFilters">管理分类条件</el-button></template>
         </aside>
         <div class="table-area">
           <div class="workbench-tools">
             <el-input v-model="search" placeholder="名称、分类、属性、SKU、OA 编号" clearable data-filter="keyword" aria-label="在当前视图中搜索" />
-            <el-button data-filter-count @click="filterOpen = true">筛选<span v-if="conditionCount"> {{ conditionCount }}</span></el-button>
+            <el-button data-filter-count @click="openFilters">筛选<span v-if="conditionCount"> {{ conditionCount }}</span></el-button>
             <el-button data-fields-button @click="openDisplay('fields')">字段 {{ visibleColumns.length }}</el-button>
             <el-button data-sort-button @click="openDisplay('sort')">排序<span v-if="config.sorts.length"> {{ config.sorts.length }}</span></el-button>
             <el-popover v-model:visible="moreOpen" trigger="click" placement="bottom-end" :width="230">
@@ -49,12 +49,12 @@
                 <el-button :disabled="activeId === SYSTEM_SKU_VIEW_ID || !state.favorites.includes(activeId)" @click="result(workbench.moveFavorite(activeId, -1))">常用视图前移</el-button>
                 <el-button :disabled="activeId === SYSTEM_SKU_VIEW_ID || !state.favorites.includes(activeId)" @click="result(workbench.moveFavorite(activeId, 1))">常用视图后移</el-button>
                 <el-button :disabled="activeId === SYSTEM_SKU_VIEW_ID" @click="moreOpen = false; openName('重命名视图')">重命名</el-button>
-                <el-button @click="result(workbench.copy(activeId))">复制视图</el-button>
+                <el-button @click="copyView">复制视图</el-button>
                 <el-button type="danger" :disabled="activeId === SYSTEM_SKU_VIEW_ID" @click="deleteView">删除视图</el-button>
                 <el-button @click="router.push('/import')">导入导出</el-button>
               </div>
             </el-popover>
-            <el-popover v-if="!showSidebar" v-model:visible="categoryOpen" trigger="click" :width="300" placement="bottom-start" popper-class="product-category-pop" :hide-after="0">
+            <el-popover v-if="!showSidebar && !quickCategory" v-model:visible="categoryOpen" trigger="click" :width="300" placement="bottom-start" popper-class="product-category-pop" :hide-after="0">
               <template #reference><el-button data-category-trigger>商品分类{{ categoryIds.length ? ` ${categoryIds.length}` : '' }}</el-button></template>
               <CategoryFilterTree v-if="simpleCategory" closable :categories="store.data.categories" :selected-ids="categoryIds" @toggle="toggleCategory" @clear="clearCategory" @close="categoryOpen = false" />
               <template v-else><p>分类属于历史或组合条件，请在筛选中管理。</p><el-button @click="categoryOpen = false; filterOpen = true">管理分类条件</el-button></template>
@@ -62,18 +62,19 @@
             <el-button v-if="categorySideClosed && categoryLayout === 'sidebar' && !narrowScreen" link @click="categorySideClosed = false">展开分类栏</el-button>
             <el-select :model-value="scopeId" filterable clearable placeholder="筛选所属 SPU" data-list-spu @change="changeScope"><el-option v-for="family in store.data.families" :key="family.id" :value="family.id" :label="`${family.name} · ${family.oaProductId || family.id}`" /></el-select>
           </div>
+          <SkuQuickFilters ref="quickFiltersRef" :key="`${activeId}:${scopeId}`" :data="store.data" :config="config" :apply="applyQuickConfig" :busy="workbench.pending.value" @edit="openFilters" />
           <div v-if="hasFilters || search" class="query-summary" data-active-filters>
-            <el-button link @click="filterOpen = true" aria-label="编辑条件摘要">{{ expandedSummary ? summary : summary.slice(0, 180) }}{{ !expandedSummary && summary.length > 180 ? '…' : '' }}</el-button>
+            <el-button link @click="openFilters" aria-label="编辑条件摘要">{{ expandedSummary ? summary : summary.slice(0, 180) }}{{ !expandedSummary && summary.length > 180 ? '…' : '' }}</el-button>
             <el-button v-if="summary.length > 180" link @click="expandedSummary = !expandedSummary">{{ expandedSummary ? '折叠' : '完整条件' }}</el-button>
             <span v-if="search" class="muted">当前搜索：{{ search }}（不保存到视图）</span>
             <el-button link type="primary" @click="clearFilters">清空筛选</el-button>
             <div v-if="expandedSummary || conditionCount <= 3" class="summary-tags">
-              <el-tag v-for="node in config.conditions.children" :key="node.id" closable :title="nodeSummary(node.id)" @click="filterOpen = true" @close="removeSummary(node.id)">{{ nodeSummary(node.id) }}</el-tag>
-              <el-tag v-if="config.legacy && (config.legacy.keyword || config.legacy.filters.length)" closable @click="filterOpen = true" @close="removeSummary('$legacy')">历史条件（原语义）</el-tag>
+              <el-tag v-for="node in config.conditions.children" :key="node.id" closable :title="nodeSummary(node.id)" @click="openFilters" @close="removeSummary(node.id)">{{ nodeSummary(node.id) }}</el-tag>
+              <el-tag v-if="config.legacy && (config.legacy.keyword || config.legacy.filters.length)" closable @click="openFilters" @close="removeSummary('$legacy')">历史条件（原语义）</el-tag>
             </div>
           </div>
           <div class="result-line"><span class="muted" data-result-count>SKU {{ presentation.total }} 条</span><span v-if="config.groups.length" class="muted">组数量按全部匹配结果计算，分页按记录计算</span><span v-if="selectedIds.length">已选 {{ selectedIds.length }} 条（跨页保留）</span></div>
-          <el-alert v-if="presentation.errors.length" type="error" :closable="false" show-icon title="配置失效，已暂停查询及批量操作" data-invalid-config><template #default><p v-for="item in presentation.errors" :key="item">{{ item }}</p><el-button @click="filterOpen = true">修复筛选</el-button><el-button @click="restoreView">恢复已保存配置</el-button><el-button @click="rebuildInvalid">重建工作配置</el-button></template></el-alert>
+          <el-alert v-if="presentation.errors.length" type="error" :closable="false" show-icon title="配置失效，已暂停查询及批量操作" data-invalid-config><template #default><p v-for="item in presentation.errors" :key="item">{{ item }}</p><el-button @click="openFilters">修复筛选</el-button><el-button @click="restoreView">恢复已保存配置</el-button><el-button @click="rebuildInvalid">重建工作配置</el-button></template></el-alert>
           <p v-if="selectionNotice" class="muted" role="status">{{ selectionNotice }}</p>
           <div v-if="selectedIds.length" class="batch-actions"><el-button :disabled="!!presentation.errors.length" @click="setSelectedStatus('on_sale')">批量在售</el-button><el-button :disabled="!!presentation.errors.length" @click="setSelectedStatus('off_sale')">批量停售</el-button><el-button type="danger" :disabled="!!presentation.errors.length" @click="removeSelected">批量删除</el-button><el-button link @click="selectedIds = []">取消选择</el-button></div>
           <el-alert v-if="presentation.manualBlocked" title="手工顺序已保留。请在排序设置中清除分组和字段排序后使用。" type="info" :closable="false" />
@@ -103,7 +104,7 @@
         </div>
       </div>
     </div>
-    <SkuFilterDialog v-model="filterOpen" :data="store.data" :config="config" :view-name="currentView.name" :scope-id="scopeId" :now="now" @apply="applyConfig" />
+    <SkuFilterDialog v-model="filterOpen" :data="store.data" :config="config" :view-name="currentView.name" :scope-id="scopeId" :now="now" :apply-config="applyQuickConfig" />
     <SkuDisplayDialog v-model="displayOpen" :data="store.data" :config="config" :tab="displayTab" @apply="applyConfig" />
     <AccessoryCompatibilityDrawer v-model="compatibilityOpen" :sku-id="compatibilitySkuId" @prepare-benefit-package="rememberPackageReturn" />
     <el-dialog v-model="nameOpen" :show-close="!workbench.pending.value" :close-on-press-escape="!workbench.pending.value" :title="nameAction" width="420px" :close-on-click-modal="false" @closed="nameError = ''">
@@ -118,7 +119,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableColumnCtx } from 'element-plus'
 import PageHead from '../components/PageHead.vue'
@@ -138,6 +139,7 @@ import { querySkuWorkbench, describeSkuConditions, type SkuGroup } from '../doma
 import { SYSTEM_SKU_VIEW_ID, defaultSkuConfig } from '../domain/skuWorkbenchState'
 import { insertManualIds, moveManualId, resolveManualOrder } from '../domain/productListManual'
 import { emptyModeQuery, unfilteredIds } from '../domain/productListQuery'
+import SkuQuickFilters from '../components/product-list/sku/SkuQuickFilters.vue'
 import type { SkuViewConfig } from '../domain/skuWorkbenchTypes'
 import type { Sku } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
@@ -171,9 +173,12 @@ const hasFilters = computed(() => conditionCount.value > 0)
 const pinnedViews = computed(() => [views.value.find(view => view.id === SYSTEM_SKU_VIEW_ID), ...state.value.order.filter(id => state.value.favorites.includes(id) && id !== SYSTEM_SKU_VIEW_ID).map(id => views.value.find(view => view.id === id))].filter(view => !!view).slice(0, 5))
 const searchedViews = computed(() => views.value.filter(view => view.name.toLocaleLowerCase().includes(viewSearch.value.trim().toLocaleLowerCase())))
 const layoutView = computed(() => ({ id: activeId.value, categoryFilterLayout: config.value.categoryLayout }))
-const { categoryOpen, categorySideClosed, narrowScreen, categoryLayout, showSidebar } = useProductListCategoryLayout(layoutView, layout => applyConfig({ ...config.value, categoryLayout: layout }))
+const { categoryOpen, categorySideClosed, narrowScreen, categoryLayout, showSidebar: layoutSidebar } = useProductListCategoryLayout(layoutView, layout => applyConfig({ ...config.value, categoryLayout: layout }))
 const frozenAllowed = computed(() => !narrowScreen.value && visibleColumns.value.filter(column => column.frozen).reduce((total, column) => total + (column.width || 160), 0) <= 320)
 const simpleCategory = computed(() => config.value.conditions.logic === 'all' && !config.value.legacy?.filters.some(condition => condition.field === 'category') && !config.value.conditions.children.some(node => node.kind === 'group') && config.value.conditions.children.filter(node => node.kind === 'rule' && node.field === 'category').length <= 1 && !config.value.conditions.children.some(node => node.kind === 'rule' && node.field === 'category' && !['eq', 'in'].includes(node.operator)))
+// The fixed category widget and an exposed simple root category rule edit the same condition.
+const quickCategory = computed(() => simpleCategory.value && config.value.conditions.children.some(node => node.kind === 'rule' && node.field === 'category' && config.value.quickFilters?.some(ref => ref.source === 'condition' && ref.ruleId === node.id)))
+const showSidebar = computed(() => layoutSidebar.value && !quickCategory.value)
 const categoryIds = computed(() => config.value.conditions.logic === 'all' ? config.value.conditions.children.flatMap(node => node.kind === 'rule' && node.field === 'category' && (node.operator === 'in' || node.operator === 'eq') ? Array.isArray(node.value) ? node.value : typeof node.value === 'string' ? [node.value] : [] : []) : [])
 const manualOn = computed(() => config.value.sortMode === 'manual' && !presentation.value.manualBlocked)
 function manualOrder() { return resolveManualOrder(config.value.manualOrder, unfilteredIds(store.data, { ...currentView.value, mode: 'sku', skuQuery: emptyModeQuery('sku') }, 'sku')) }
@@ -207,10 +212,16 @@ function parentKey(labels: string[], length: number) { return JSON.stringify(lab
 function toggleGroup(labels: string[], level: number) { const key = parentKey(labels, level + 1); collapsed[key] = !collapsed[key] }
 function isCollapsed(labels: string[]) { return labels.some((_, level) => collapsed[parentKey(labels, level + 1)]) }
 async function result(pending: { ok: boolean; message?: string } | Promise<{ ok: boolean; message?: string }>) { const outcome = await pending; if (!outcome.ok && outcome.message) ElMessage.error(outcome.message); return outcome.ok }
-function applyConfig(next: SkuViewConfig) { result(workbench.apply(next)); page.value = 1 }
-function openDisplay(tab: 'fields' | 'sort' | 'more') { displayTab.value = tab; displayOpen.value = true }
-async function selectView(id: string) { if (await result(workbench.select(id))) { viewsOpen.value = false; page.value = 1 } }
-async function restoreView() { if (await result(workbench.restore())) page.value = 1 }
+const quickFiltersRef = ref<InstanceType<typeof SkuQuickFilters>>()
+async function flushQuick() { return await quickFiltersRef.value?.flush() ?? true }
+onBeforeRouteLeave(async () => !workbench.pending.value && await flushQuick())
+onBeforeRouteUpdate(async () => !workbench.pending.value && await flushQuick())
+async function applyQuickConfig(next: SkuViewConfig) { const outcome = await workbench.apply(next); if (outcome.ok) page.value = 1; return outcome }
+async function openFilters() { if (await flushQuick()) filterOpen.value = true }
+async function applyConfig(next: SkuViewConfig) { if (await result(workbench.apply(next))) page.value = 1 }
+async function openDisplay(tab: 'fields' | 'sort' | 'more') { if (!(await flushQuick())) return; displayTab.value = tab; displayOpen.value = true }
+async function selectView(id: string) { if (!(await flushQuick())) return; if (await result(workbench.select(id))) { viewsOpen.value = false; page.value = 1 } }
+async function restoreView() { if (!(await flushQuick())) return; if (await result(workbench.restore())) page.value = 1 }
 async function rebuildInvalid() { try { await ElMessageBox.confirm('将当前工作配置重建为全部 SKU 的默认规则？原保存视图保留，只有再次保存才会覆盖。当前 SPU 范围仍保留。', '重建工作配置') } catch { return }; applyConfig(defaultSkuConfig()) }
 function clearFilters() { search.value = ''; const next = structuredClone(JSON.parse(JSON.stringify(config.value))) as SkuViewConfig; next.conditions.children = []; if (next.legacy) { next.legacy.keyword = ''; next.legacy.filters = [] }; applyConfig(next) }
 function nodeSummary(id: string) { return describeSkuConditions(store.data, { ...config.value, legacy: undefined, conditions: { ...config.value.conditions, children: config.value.conditions.children.filter(node => node.id === id) } }) }
@@ -224,7 +235,7 @@ function toggleCategory(id: string) {
   if (ids.length) next.conditions.children.push({ kind: 'rule', id: 'category-quick', field: 'category', operator: 'in', value: ids })
   applyConfig(next)
 }
-function changeScope(id: string) { router.push({ path: '/skus', query: id ? { spu: id } : {} }) }
+async function changeScope(id: string) { if (!(await flushQuick())) return; router.push({ path: '/skus', query: id ? { spu: id } : {} }) }
 function rememberPackageReturn(skuId: string) {
   rememberBenefitSkuReturn({ path: route.fullPath, activeId: activeId.value, scopeSearch: scopeSearch.value, scopePage: scopePage.value, selectedIds: selectedIds.value, collapsed, focusSkuId: skuId })
 }
@@ -233,9 +244,10 @@ function openBenefitPackage(skuId: string) {
   void router.push({ path: '/benefit-packages/new', query: { device: skuId, returnTo: route.fullPath } })
 }
 function onPage(value: number) { page.value = value }
-function openName(action: string) { nameAction.value = action; draftName.value = action === '重命名视图' ? currentView.value.name : ''; includeScope.value = false; nameError.value = ''; nameOpen.value = true }
-function saveCurrent() { if (activeId.value === SYSTEM_SKU_VIEW_ID) { openName('另存为'); return }; result(workbench.save()) }
+async function openName(action: string) { if (!(await flushQuick())) return; nameAction.value = action; draftName.value = action === '重命名视图' ? currentView.value.name : ''; includeScope.value = false; nameError.value = ''; nameOpen.value = true }
+async function saveCurrent() { if (!(await flushQuick())) return; if (activeId.value === SYSTEM_SKU_VIEW_ID) { openName('另存为'); return }; result(workbench.save()) }
 async function submitName() { if (workbench.pending.value) return; const outcome = await (nameAction.value === '重命名视图' ? workbench.rename(activeId.value, draftName.value) : workbench.create(draftName.value, includeScope.value)); if (!outcome.ok) { nameError.value = outcome.message; return }; nameOpen.value = false }
+async function copyView() { if (!(await flushQuick())) return; if (await result(workbench.copy(activeId.value))) moreOpen.value = false }
 async function deleteView() { moreOpen.value = false; try { await ElMessageBox.confirm(`删除视图「${currentView.value.name}」？只删除视图，不删除任何商品。`, '删除视图', { type: 'warning' }) } catch { return }; result(workbench.remove(activeId.value)) }
 function onColumnWidth(width: number, _old: number, column: TableColumnCtx<ProductListSkuRow>) { const next = JSON.parse(JSON.stringify(config.value)) as SkuViewConfig; const found = next.columns.find(item => item.key === column.columnKey); if (found) { found.width = Math.max(80, Math.min(600, Math.round(width))); result(workbench.apply(next)) } }
 function validSelection() { return selectedIds.value.filter(id => presentation.value.allIds.includes(id) && store.data.skus.some(sku => sku.id === id && isRealSku(store.data, sku))) }

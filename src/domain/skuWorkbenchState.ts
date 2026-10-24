@@ -1,3 +1,4 @@
+import { repairQuickFilters } from './skuQuickFilters'
 import type { AppData, ProductListPageState, ProductListSavedView, ProductListFilterOperator, ProductListViewFilter } from './types'
 import { filtersFromListQuery } from './productListQuery'
 import type { SkuColumn, SkuCondition, SkuConditionGroup, SkuOperator, SkuViewConfig, SkuWorkbenchState } from './skuWorkbenchTypes'
@@ -8,7 +9,7 @@ export const cloneSku = <T>(value: T): T => value === undefined ? value : JSON.p
 
 export function defaultSkuConfig(): SkuViewConfig {
   return {
-    version: 1, conditions: { kind: 'group', id: 'root', logic: 'all', children: [] },
+    quickFilters: [], version: 1, conditions: { kind: 'group', id: 'root', logic: 'all', children: [] },
     columns: ['code', 'name', 'spec', 'familyId', 'category', 'status', 'updatedAt'].map(key => ({ key, visible: true })),
     sorts: [], groups: [], density: 'comfortable', manualOrder: [], sortMode: 'default', categoryLayout: 'popover',
   }
@@ -65,14 +66,17 @@ export function repairSkuConfig(raw: unknown, data?: AppData): SkuViewConfig {
       const legacy = input.legacy
       next.legacy = { keyword: String(legacy.keyword), filters: [], exposed: Array.isArray(legacy.exposed) ? legacy.exposed.filter((item): item is string => typeof item === 'string') : [], grouping: null, sorting: null, sortMode: legacy.sortMode === 'manual' || legacy.sortMode === 'field' ? legacy.sortMode : 'default' }
       const filters: unknown[] = Array.isArray(legacy.filters) ? legacy.filters : []
-      filters.forEach(filter => {
+      const legacyIds = new Set(filters.flatMap(filter => record(filter) && typeof filter.id === 'string' && filter.id ? [filter.id] : []))
+      filters.forEach((filter, index) => {
         if (!record(filter) || typeof filter.field !== 'string' || typeof filter.operator !== 'string') { broken = true; return }
         let value: ProductListViewFilter['value'] = ''
         if (typeof filter.value === 'string') value = filter.value
         else if (Array.isArray(filter.value) && filter.value.every(item => typeof item === 'string')) value = [...filter.value]
         else if (record(filter.value) && (filter.value.from === undefined || typeof filter.value.from === 'string') && (filter.value.to === undefined || typeof filter.value.to === 'string')) value = { ...(filter.value.from === undefined ? {} : { from: filter.value.from }), ...(filter.value.to === undefined ? {} : { to: filter.value.to }) }
         else broken = true
-        next.legacy?.filters.push({ id: String(filter.id || ''), field: filter.field, operator: filter.operator as ProductListFilterOperator, value })
+        let id = String(filter.id || '')
+        if (!id) { id = `legacy-filter-${index}`; while (legacyIds.has(id)) id += '-old'; legacyIds.add(id) }
+        next.legacy?.filters.push({ id, field: filter.field, operator: filter.operator as ProductListFilterOperator, value })
       })
       for (const key of ['sorting', 'grouping'] as const) {
         const order = legacy[key]
@@ -87,6 +91,8 @@ export function repairSkuConfig(raw: unknown, data?: AppData): SkuViewConfig {
   data?.params.forEach(param => { aliases[param.id] = [...new Set([param.name, ...(aliases[param.id] || [])])] })
   next.attributeNames = aliases
   if (broken && !next.conditions.children.some(item => item.id === 'invalid-import')) next.conditions.children.push(invalid())
+  delete next.quickFilters
+  next.quickFilters = repairQuickFilters(next, input.quickFilters)
   return next
 }
 
@@ -96,6 +102,7 @@ export function configFromLegacy(view: ProductListSavedView, data?: AppData): Sk
   const query = view.skuQuery
   if (query) {
     config.legacy = cloneSku(query)
+    delete config.quickFilters
     config.sorts = query.sorting ? [{ ...query.sorting, field: fieldKey(query.sorting.field) }] : []
     config.groups = query.grouping ? [{ ...query.grouping, field: fieldKey(query.grouping.field) }] : []
     config.sortMode = query.sortMode || (query.sorting ? 'field' : 'default')
@@ -147,6 +154,7 @@ export function ensureSkuWorkbench(data: AppData): boolean {
     query.keyword = preset.viewFilters ? preset.keyword || '' : converted.keyword
     query.filters = cloneSku(preset.viewFilters || converted.filters)
     config.legacy = query
+    delete config.quickFilters
     let name = `筛选预设 · ${preset.name}`
     while (page.views.some(view => view.name === name)) name += '（历史）'
     page.views.push(createSkuSavedView(id, name, repairSkuConfig(config, data), legacy))

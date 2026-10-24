@@ -27,7 +27,9 @@
       <el-option v-for="item in field?.options || []" :key="item.value" :value="item.value" :label="item.label" />
     </el-select>
     <el-input v-else :model-value="textValue" placeholder="填写条件值" aria-label="条件取值" data-rule-value @update:model-value="(value: string) => setValue(value)" />
+    <el-button link aria-label="复制条件" @click="emit('copy')">复制</el-button>
     <el-button link type="danger" aria-label="删除条件" @click="emit('remove')">删除</el-button>
+    <el-checkbox v-if="exposed !== undefined" :model-value="exposed" class="expose" @change="(value: boolean | string | number) => emit('expose', Boolean(value))">显示在常用筛选</el-checkbox>
     <p v-if="!field" class="invalid">该字段已失效，请更换或删除条件。</p>
   </div>
 </template>
@@ -37,8 +39,8 @@ import { computed } from 'vue'
 import { skuOperators } from '../../../domain/skuWorkbenchFields'
 import type { SkuCondition, SkuField, SkuOperator, SkuValue } from '../../../domain/skuWorkbenchTypes'
 
-const props = defineProps<{ rule: SkuCondition; fields: SkuField[] }>()
-const emit = defineEmits<{ update: [rule: SkuCondition]; remove: [] }>()
+const props = defineProps<{ rule: SkuCondition; fields: SkuField[]; exposed?: boolean }>()
+const emit = defineEmits<{ update: [rule: SkuCondition]; remove: []; copy: []; expose: [shown: boolean] }>()
 const field = computed(() => props.fields.find(item => item.id === props.rule.field))
 const fieldGroups = computed(() => [...new Set(props.fields.map(item => item.source))].map(source => ({ source, fields: props.fields.filter(item => item.source === source) })))
 const operators = computed(() => skuOperators(field.value?.type || 'text'))
@@ -71,11 +73,12 @@ function updateRange(key: 'from' | 'to', value: string) { setValue({ ...rangeVal
 </script>
 
 <style scoped>
-.rule { display: grid; grid-template-columns: minmax(150px, 1fr) 124px minmax(175px, 1.2fr) 40px; gap: 8px; align-items: center; margin: 10px 0; }
+.rule { display: grid; grid-template-columns: minmax(150px, 1fr) 124px minmax(175px, 1.2fr) 40px 40px; gap: 8px; align-items: center; margin: 10px 0; }
 .rule > * { min-width: 0; max-width: 100%; }
 .rule .el-date-editor { width: 100%; }
 .number-range { display: flex; align-items: center; gap: 6px; }
+.expose { grid-column: 1 / -1; margin-top: -6px; }
 .invalid { grid-column: 1 / -1; color: var(--el-color-danger); margin: 0; }
 .value-placeholder { color: var(--el-text-color-secondary); font-size: 13px; }
-@media (max-width: 640px) { .rule { grid-template-columns: minmax(130px, 1fr) minmax(110px, 1fr) 40px; } .rule > :nth-child(3) { grid-column: 1 / 3; grid-row: 2; } .rule > .el-button { grid-column: 3; grid-row: 1 / 3; } }
+@media (max-width: 640px) { .rule { grid-template-columns: minmax(130px, 1fr) minmax(110px, 1fr) 40px 40px; } .rule > :nth-child(3) { grid-column: 1 / 3; grid-row: 2; } .rule > .el-button { grid-row: 1 / 3; }.rule > .el-button:nth-child(4) { grid-column:3; }.rule > .el-button:nth-child(5) { grid-column:4; } }
 </style>

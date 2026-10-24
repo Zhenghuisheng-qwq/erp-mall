@@ -1,3 +1,4 @@
+import { repairQuickFilters } from '../../domain/skuQuickFilters'
 import { computed, ref, watch } from 'vue'
 import type { Ref } from 'vue'
 import { useCatalogStore, uid, catalogMigrationError } from '../../stores/catalog'
@@ -60,6 +61,8 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     if (next.skuWorkbench) next.skuWorkbench.working = cloneSku(localWork.value)
   }
   async function apply(nextConfig: SkuViewConfig): Promise<SkuCommandResult> {
+    if (pending.value) return { ok: false, message: '上一项操作尚未完成，请重试。' }
+    nextConfig = { ...nextConfig, quickFilters: repairQuickFilters(nextConfig) }
     const errors = validateSkuConfig(store.data, nextConfig)
     if (errors.length) { error.value = errors.join('；'); return { ok: false, message: error.value } }
     localWork.value[workingKey.value] = cloneSku(nextConfig)
@@ -70,12 +73,14 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
   }
   async function select(id: string): Promise<SkuCommandResult> {
     if (!views.value.some(view => view.id === id)) return { ok: false, message: '找不到这个视图。' }
-    activeId.value = id
+    if (pending.value) return { ok: false, message: '上一项操作尚未完成，请重试。' }
     const next = trial()
     if (!next?.skuWorkbench) return missing()
     syncWork(next)
     if (!scopeId.value) { next.activeId = id; next.skuWorkbench.activeId = id }
-    return commit(next)
+    const result = await commit(next)
+    if (result.ok) activeId.value = id
+    return result
   }
   async function restore(): Promise<SkuCommandResult> {
     const key = workingKey.value
@@ -116,6 +121,7 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     if (activeId.value === SYSTEM_SKU_VIEW_ID) return { ok: false, message: '全部 SKU 为系统视图，请另存为自己的视图。' }
     const errors = validateSkuConfig(store.data, config.value)
     if (errors.length) { error.value = errors.join('；'); return { ok: false, message: error.value } }
+    const key = workingKey.value
     const next = trial()
     const view = next?.views.find(item => item.id === activeId.value)
     if (!next?.skuWorkbench || !view) return missing()
@@ -124,7 +130,7 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     syncWork(next)
     delete next.skuWorkbench.working[activeId.value]
     const result = await commit(next)
-    if (result.ok) delete localWork.value[activeId.value]
+    if (result.ok) delete localWork.value[key]
     return result
   }
   async function rename(id: string, name: string): Promise<SkuCommandResult> {

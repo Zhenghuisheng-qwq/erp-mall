@@ -32,7 +32,7 @@
         @create="createModelFor"
         @copy="openCopyCurrent"
       />
-      <div class="work-main">
+      <div class="work-main" :class="{ 'with-materials': showStructureMaterials && editorMode === 'canvas' && viewMode === 'all' }">
         <ModelOverview
           v-if="surface === 'overview'"
           :category-id="overviewCategoryId"
@@ -187,6 +187,8 @@
           </ul>
           <p v-if="temporaryListOpen && temporaryMaterials.length > 30" class="insight-empty">这里只列出前 30 条。其余到商品列表按供应商编码或物料编码搜索。</p>
         </section>
+        <div v-if="templateId && editorMode === 'canvas' && viewMode === 'all'" class="structure-material-toggle"><el-checkbox v-model="showStructureMaterials">显示关联物料</el-checkbox></div>
+        <StructureMaterials v-if="templateId && showStructureMaterials && editorMode === 'canvas' && viewMode === 'all'" :key="templateId" :data="store.data" :model-id="templateId" :nodes="nodes" :status="comboStatus" :versions="publishedComboVersions" :version-id="comboVersionId" @version="id => comboVersionId = id" @locate="ids => materialHighlight = new Set(ids)" @close="showStructureMaterials = false; materialHighlight = new Set()" />
         <LegalComboDialog
           v-model="comboManageOpen"
           v-model:keyword="comboKeyword"
@@ -278,7 +280,7 @@
             </div>
           </template>
           <template #node-value="{ data }">
-            <div class="model-value" :class="{ 'is-on': data.selected, 'is-path': data.onPath, 'is-quiet': data.quiet }" :style="{ width: data.boxWidth + 'px' }" :title="data.label">
+            <div class="model-value" :data-material-highlight="showStructureMaterials && materialHighlight.has(data.id) ? data.id : undefined" :class="{ 'is-material-combo': showStructureMaterials && materialHighlight.has(data.id), 'is-on': data.selected, 'is-path': data.onPath, 'is-quiet': data.quiet }" :style="{ width: data.boxWidth + 'px' }" :title="data.label">
               <Handle type="target" :position="Position.Left" />
               <select v-if="editingId === data.id" class="inline-edit" :value="data.editValue" @change="commitInline(data.id, 'value', $event)" @blur="editingId = ''" @mousedown.stop @pointerdown.stop @click.stop @dblclick.stop>
                 <option v-for="item in data.options" :key="item.value" :value="item.value">{{ item.label }}</option>
@@ -504,6 +506,7 @@ import ModelOutline from '../components/ModelOutline.vue'
 import CategoryCatalog from '../components/model-editor/CategoryCatalog.vue'
 import EmptyModelGuide from '../components/model-editor/EmptyModelGuide.vue'
 import ModelOverview from '../components/model-editor/ModelOverview.vue'
+import StructureMaterials from '../components/model-editor/StructureMaterials.vue'
 import LegalComboDialog from '../components/model-editor/LegalComboDialog.vue'
 import { presentComboRow, type MaterialLaunchMode } from '../components/model-editor/comboPresentation'
 import { useComboSelection } from '../components/model-editor/useComboSelection'
@@ -769,6 +772,9 @@ const comboManageOpen = ref(false)
 const comboKeyword = ref('')
 const comboUnfiledOnly = ref(false)
 const comboVersionId = ref('')
+const showStructureMaterials = ref(false)
+const materialHighlight = ref(new Set<string>())
+watch(templateId, () => { materialHighlight.value = new Set(); showStructureMaterials.value = false })
 const publishedComboVersions = computed(() => modelVersionsOf(store.data, templateId.value).filter((item) => item.status === 'published'))
 watch(
   () => `${templateId.value}#${publishedComboVersions.value.map((item) => item.id).join('|')}`,
@@ -2724,6 +2730,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.work-main.with-materials { overflow-y: auto; }
+.work-main.with-materials .board { flex: 1 0 240px; }
+.structure-material-toggle { padding: 4px 12px; }
+.model-value.is-material-combo { outline: 3px solid var(--el-color-success); outline-offset: 3px; }
 .designer { display: flex; flex-direction: column; height: calc(100vh - 132px); min-height: 520px; color: var(--text-primary, #253044); }
 .studio-switch { margin-bottom: 8px; }
 .dict-global { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border-default, #e4e8ef); }
