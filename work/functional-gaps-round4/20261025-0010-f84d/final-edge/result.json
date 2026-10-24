@@ -1,0 +1,19 @@
+{
+  "result": "PASS",
+  "browser": "156.0.4314.42",
+  "headless": true,
+  "checks": [
+    "default single/view mode; independent searches; staging does not mutate categories",
+    "native cross-panel inner A→B and B→A preserve complete subtree",
+    "native before/after across panels and within one panel; true no-op writes zero times",
+    "descendant and typed-target visual rejection; Escape and external generation cancel with no writes",
+    "closing drag target cancels native drag; dropping on header never moves to root",
+    "native drag edge scroll reaches long-list targets within the destination panel",
+    "view-mode cancellation; independent scrolling; close either panel preserves surviving instance/selection/scroll",
+    "keyboard destination and explicit move; quota failure retains memory/disk; save-only retry once; reload matches",
+    "same node in both panels: scoped rename/focus; all non-category business data unchanged",
+    "existing copy subtree, child deletion protection and property-scheme/detail entries remain available",
+    "light/narrow stacked panels and keyboard root movement"
+  ],
+  "diagnostics": []
+}

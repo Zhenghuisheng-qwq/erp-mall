@@ -1,0 +1,8 @@
+{
+  "result": "FAIL",
+  "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nnull !== 'r4-b'\n",
+  "checks": [
+    "default single/view mode; independent searches; staging does not mutate categories"
+  ],
+  "diagnostics": []
+}

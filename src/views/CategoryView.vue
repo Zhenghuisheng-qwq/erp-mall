@@ -1,115 +1,39 @@
 <template>
-  <div>
-    <PageHead title="商品分类中心" desc="默认只查看和展开分类。需要调整层级或顺序时，再打开编辑模式。" />
-    <div class="cat-layout" :class="{ 'is-moving': moveOpen }">
-      <section class="panel cat-tree-panel">
-        <div class="cat-toolbar">
-          <div class="cat-toolbar-ops">
-            <el-radio-group v-model="treeMode">
-              <el-radio-button value="view">查看模式</el-radio-button>
-              <el-radio-button value="edit">编辑模式</el-radio-button>
-            </el-radio-group>
-            <el-button @click="expandAll">展开全部</el-button>
-            <el-button @click="collapseAll">收起全部</el-button>
-            <el-button v-if="editing" type="primary" @click="openCreate(null)">新增根分类</el-button>
-          </div>
-          <el-input v-model="keyword" class="cat-search" placeholder="搜索并定位分类" clearable />
-        </div>
-        <p class="muted">{{ editing ? '编辑模式：可拖动调整层级和顺序，双击名称直接改名。' : '查看模式：单击展开或收起，不能修改分类。' }}</p>
-        <div v-if="rows.length" ref="treeScroll" class="cat-scroll">
-          <div
-            v-for="row in rows"
-            :key="row.id"
-            class="cat-row"
-            :data-id="row.id"
-            :class="{
-              'is-active': row.id === selected,
-              'is-located': row.id === locatedId,
-              'is-editing': editing,
-              'is-off': !row.enabled,
-              'is-drop-before': dropState?.id === row.id && dropState.position === 'before' && !dropState.blocked,
-              'is-drop-after': dropState?.id === row.id && dropState.position === 'after' && !dropState.blocked,
-              'is-drop-inner': dropState?.id === row.id && dropState.position === 'inner' && !dropState.blocked,
-              'is-drop-ban': dropState?.id === row.id && dropState.blocked,
-            }"
-            :style="{ paddingLeft: `${8 + row.depth * 18}px` }"
-            :draggable="editing && renameId !== row.id"
-            @click="onRowClick(row.id, $event)"
-            @dragstart="onDragStart(row, $event)"
-            @dragover="onDragOver(row, $event)"
-            @drop="onDrop(row)"
-            @dragend="onDragEnd"
-          >
-            <button type="button" class="cat-expand" draggable="false" :title="row.hasChildren ? (row.expanded ? '收起' : '展开') : ''" @pointerdown.stop.prevent="onExpandDown(row.id, $event)" @click.stop="onExpandClick(row.id, $event)">
-              <span v-if="row.hasChildren">{{ row.expanded ? '▼' : '▸' }}</span>
-            </button>
-            <span v-if="row.icon" class="cat-emoji">{{ row.icon }}</span>
-            <el-icon v-else-if="row.hasChildren" class="cat-icon"><FolderOpened v-if="row.expanded" /><Folder v-else /></el-icon>
-            <el-icon v-else class="cat-icon"><Document /></el-icon>
-            <input
-              v-if="renameId === row.id"
-              :ref="bindRenameInput"
-              v-model="renameValue"
-              class="cat-rename"
-              draggable="false"
-              @pointerdown.stop
-              @mousedown.stop
-              @click.stop
-              @dblclick.stop
-              @dragstart.stop.prevent
-              @keydown.enter.prevent="commitRename"
-              @keydown.esc.prevent="cancelRename"
-              @blur="commitRename"
-            />
-            <span v-else class="cat-name" :title="row.name" @click="onNameClick(row.id, $event)" @dblclick.stop.prevent="onNameDblClick(row.id)">
-              <span v-for="(part, index) in nameParts(row.name)" :key="index" :class="{ 'cat-hit': part.hit }">{{ part.text }}</span>
-            </span>
-            <span v-if="!row.enabled" class="cat-off-tag">停用</span>
-            <span v-if="badgeOf(row.id)" class="cat-count">{{ badgeOf(row.id) }}</span>
-            <span v-if="editing" class="cat-ops" draggable="false" @pointerdown.stop.prevent @click.stop>
-              <button type="button" @click="openCreate(row.id)">新增子分类</button>
-              <button type="button" @click="openEdit(row.id)">编辑</button>
-              <button type="button" @click="copyNode(row.id)">复制</button>
-              <button type="button" @click="openMove(row.id)">移动</button>
-              <button type="button" class="is-danger" @click="remove(row.id)">删除</button>
-            </span>
-          </div>
-        </div>
-        <el-empty v-else :description="keyword.trim() ? '没有匹配的分类' : '还没有分类'" />
-      </section>
-
-      <section v-if="moveOpen" class="panel cat-move-panel">
-        <h2>移动分类</h2>
-        <p class="move-line"><span>正在移动</span>{{ moveSourcePath }}</p>
-        <p class="move-line"><span>目标父级</span>{{ moveTargetLabel }}</p>
-        <button type="button" class="move-root" :class="{ 'is-on': !moveParent }" @click="pickMoveTarget(null)">作为根分类</button>
-        <div class="cat-scroll cat-move-scroll">
-          <div
-            v-for="row in moveRows"
-            :key="row.id"
-            class="cat-row"
-            :class="{
-              'is-source': row.id === moveId,
-              'is-target': row.id === moveParent,
-              'is-ban': Boolean(moveTargetBlocked(row.id)),
-              'is-off': !row.enabled,
-            }"
-            :style="{ paddingLeft: `${8 + row.depth * 18}px` }"
-            :title="moveTargetBlocked(row.id)"
-          >
-            <button type="button" class="cat-expand" :title="row.hasChildren ? (row.expanded ? '收起' : '展开') : ''" @click.stop="toggleMove(row.id)">
-              <span v-if="row.hasChildren">{{ row.expanded ? '▼' : '▸' }}</span>
-            </button>
-            <button type="button" class="move-name" @click="pickMoveTarget(row.id)">{{ row.name }}</button>
-          </div>
-        </div>
-        <div class="row-actions">
-          <el-button @click="closeMove">取消</el-button>
-          <el-button type="primary" @click="confirmMove">确定移动</el-button>
-        </div>
-      </section>
-
-      <section v-if="current" class="panel cat-detail">
+  <div data-category-workspace>
+    <PageHead title="商品分类中心" desc="分别浏览两边的分类，保留来源后拖动或选择目标移动。">
+      <el-button v-if="panels.length === 1" data-open-category-panel @click="openPanel">打开双栏</el-button>
+    </PageHead>
+    <div class="workspace-toolbar">
+      <el-radio-group v-model="treeMode" aria-label="分类操作模式">
+        <el-radio-button value="view">查看模式</el-radio-button>
+        <el-radio-button value="edit">编辑模式</el-radio-button>
+      </el-radio-group>
+      <span class="muted">{{ editing ? '拖到上缘或下缘调整顺序，拖到中间移入。也可点击移动后选择目标。' : '只浏览分类；需要修改时打开编辑模式。' }}</span>
+      <el-button v-if="editing" :disabled="saving || !!saveError" @click="openCreate(null)">新增根分类</el-button>
+      <el-button v-if="panels.length === 2" link @click="detailsOpen = !detailsOpen">{{ detailsOpen ? '收起详情' : '查看详情' }}</el-button>
+    </div>
+    <div v-if="staged" class="source-strip" data-category-source>
+      <div><strong>待移动：{{ sourcePath }}</strong><span>包含 {{ sourceDescendants }} 个子分类</span></div>
+      <div class="source-actions"><el-button link @click="locateSource">定位来源</el-button><el-button v-if="editing" :disabled="saving || !!saveError" @click="performMove({id:staged.id,targetId:null},activePanel)">移为根分类</el-button><el-button link @click="staged = null">取消移动</el-button></div>
+    </div>
+    <el-alert v-if="saveError" :title="saveError" type="error" :closable="false" data-category-save-error>
+      <el-button :loading="saving" @click="retrySave">重试保存当前结果</el-button>
+    </el-alert>
+    <div class="operation-status">
+    <p v-if="interactionMessage" class="interaction-message" role="status">{{ interactionMessage }}</p>
+    <p v-if="dropState" class="drop-hint" :class="{blocked: !!dropState.message}" role="status">{{ dropState.message || `放置方式：${dropLabels[dropState.position]}` }}</p>
+    </div>
+    <div class="cat-layout" :class="{ 'is-dual': panels.length === 2 }">
+      <CategoryBrowsePanel v-for="panel in panels" :key="panel.id" :ref="el => bindPanel(panel.id,el)"
+        :panel-id="panel.id" :title="panel.title" :categories="store.data.categories" :initial-id="panel.initialId"
+        :editing="editing" :busy="saving || !!saveError" :closable="panels.length > 1" :badges="productBadges"
+        :source-id="staged?.id || ''" :dragging="!!drag" :drop="dropState" :block-target="targetBlock"
+        @close="closePanel(panel.id)" @select="id => selectInPanel(panel.id,id)"
+        @stage="id => stageSource(panel.id,id)" @move="targetId => staged && performMove({id:staged.id,targetId},panel.id)"
+        @action="(id,action) => panelAction(panel.id,id,action)" @rename="renameCategory"
+        @dragstart="(id,event) => startDrag(panel.id,id,event)" @dragover="(id,position,event) => dragOver(panel.id,id,position,event)"
+        @drop="(id,position,event) => drop(panel.id,id,position,event)" @dragend="cancelDrag()" />
+      <section v-if="current && (panels.length === 1 || detailsOpen)" class="panel cat-detail">
         <h2>{{ current.name }}</h2>
         <div class="info-card">
           <h3>基础信息</h3>
@@ -143,7 +67,7 @@
           <el-button type="danger" @click="remove(current.id)">删除</el-button>
         </div>
       </section>
-      <section v-else class="panel cat-detail">
+      <section v-else-if="panels.length === 1 || detailsOpen" class="panel cat-detail">
         <el-empty description="选择左侧分类后查看" />
       </section>
     </div>
@@ -184,51 +108,39 @@
 </template>
 
 <script setup lang="ts">
-import { Document, Folder, FolderOpened } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, nextTick, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import PageHead from '../components/PageHead.vue'
-import { blockChildOfTypedCategory, branchIds, categoryChain, relocateBlockMessage, subtreeCounts, visibleCategoryRows, type CategoryRow, type DropPosition } from '../domain/categoryTree'
+import CategoryBrowsePanel from '../components/category/CategoryBrowsePanel.vue'
+import { categoryChain, subtreeCounts, type DropPosition } from '../domain/categoryTree'
+import { categoryStructureStamp, previewCategoryMove, type CategoryMoveRequest } from '../domain/categoryMovement'
 import { descendantIds, shelfOf, templateById } from '../domain/logic'
 import { applyPresetToActiveView } from '../domain/productListViews'
 import { useCatalogStore } from '../stores/catalog'
 
-const store = useCatalogStore()
-const router = useRouter()
-const treeMode = ref<'view' | 'edit'>('view')
-const editing = computed(() => treeMode.value === 'edit')
-const keyword = ref('')
-const pinnedClosed = ref(new Set<string>())
-const dragged = ref(false)
-const dragId = ref('')
-const dropState = ref<{ id: string; position: DropPosition; blocked: boolean } | null>(null)
-const initialId = store.data.categories.some((item) => item.id === 'c-phone') ? 'c-phone' : store.data.categories.find((item) => item.parentId === null)?.id || ''
-const selected = ref(initialId)
-const locatedId = ref('')
-const expanded = ref(new Set(ancestorIds(initialId)))
-const treeScroll = ref<HTMLElement | null>(null)
-const createOpen = ref(false)
-const editOpen = ref(false)
-const refsOpen = ref(false)
-const moveOpen = ref(false)
-const createName = ref('')
-const parentForCreate = ref<string | null>(null)
+const store = useCatalogStore(), router = useRouter()
+const treeMode = ref<'view' | 'edit'>('view'), editing = computed(() => treeMode.value === 'edit')
+const initialId = store.data.categories.some(item => item.id === 'c-phone') ? 'c-phone' : store.data.categories[0]?.id || ''
+const selected = ref(initialId), activePanel = ref('panel-1'), detailsOpen = ref(false)
+const panels = ref([{id:'panel-1',title:'分类栏 A',initialId}])
+const panelRefs = new Map<string, InstanceType<typeof CategoryBrowsePanel>>()
+let panelSequence = 1, interactionSequence = 0, contextEpoch = 0, alive = true
+const saving = ref(false), saveError = ref(''), interactionMessage = ref('')
+const canMutate = () => alive && editing.value && !saving.value && !saveError.value
+const staged = ref<{id:string; panelId:string} | null>(null)
+const drag = shallowRef<{id:string; panelId:string; stamp:string; epoch:number; token:string} | null>(null)
+const dropState = ref<{panelId:string; id:string; position:DropPosition; message:string} | null>(null)
+const dropLabels = {before:'目标之前',after:'目标之后',inner:'作为目标的子分类'}
+const structureStamp = computed(() => categoryStructureStamp(store.data.categories))
+const typedIds = computed(() => new Set(store.data.productTypes.map(item => item.categoryId)))
+const sourcePath = computed(() => staged.value ? categoryChain(store.data.categories,staged.value.id).map(item => item.name).join(' / ') : '')
+const sourceDescendants = computed(() => staged.value ? descendantIds(store.data.categories,staged.value.id).length : 0)
+const createOpen = ref(false), editOpen = ref(false), refsOpen = ref(false), createName = ref('')
+const parentForCreate = ref<string | null>(null), editId = ref('')
 let pendingCreateId = ''
-const editId = ref('')
-const moveId = ref('')
-const moveParent = ref('')
-const moveExpanded = ref(new Set<string>())
-const moveClosed = ref(new Set<string>())
-const renameId = ref('')
-const renameValue = ref('')
-const renameInput = ref<HTMLInputElement | null>(null)
-let renameClosing = false
-let renameFocused = false
-const draft = reactive({ name: '', enabled: true, templateId: '' })
-
+const draft = reactive({name:'',enabled:true,templateId:''})
 const current = computed(() => store.data.categories.find((item) => item.id === selected.value))
-const rows = computed(() => visibleCategoryRows(store.data.categories, expanded.value, keyword.value, pinnedClosed.value))
 const productBadges = computed(() => subtreeCounts(store.data.categories, store.data.families))
 const parentName = computed(() => {
   if (!current.value?.parentId) return '根分类'
@@ -246,9 +158,6 @@ const schemeUsers = computed(() => {
 })
 const bindableSchemes = computed(() => store.data.templates.filter((item) => item.structureOrder.length > 0))
 const createParentLabel = computed(() => (parentForCreate.value ? categoryChain(store.data.categories, parentForCreate.value).map((item) => item.name).join(' / ') : ''))
-const moveRows = computed(() => visibleCategoryRows(store.data.categories, moveExpanded.value, '', moveClosed.value))
-const moveSourcePath = computed(() => (moveId.value ? categoryChain(store.data.categories, moveId.value).map((item) => item.name).join(' / ') : ''))
-const moveTargetLabel = computed(() => (moveParent.value ? categoryChain(store.data.categories, moveParent.value).map((item) => item.name).join(' / ') : '根分类'))
 const ownedFamilies = computed(() => store.data.families.filter((item) => item.categoryId === current.value?.id))
 const productCount = computed(() => ownedFamilies.value.length)
 const skuCount = computed(() => {
@@ -256,212 +165,145 @@ const skuCount = computed(() => {
   return store.data.skus.filter((item) => ids.has(item.familyId)).length
 })
 
-watch(treeMode, (mode) => {
-  if (mode === 'view') {
-    dragId.value = ''
-    dropState.value = null
-    dragged.value = false
-    cancelRename()
-    closeMove()
-    createOpen.value = false
-    editOpen.value = false
-  }
-})
 
-watch(keyword, (value) => {
-  pinnedClosed.value = new Set()
-  const id = firstMatchId(value)
-  locatedId.value = id
-  if (!id) return
-  pick(id)
-  focusRow(id)
-})
-
-function ancestorIds(id: string) {
-  return categoryChain(store.data.categories, id).slice(0, -1).map((item) => item.id)
+function bindPanel(id: string, element: unknown) {
+  if (element) panelRefs.set(id,element as InstanceType<typeof CategoryBrowsePanel>)
+  else panelRefs.delete(id)
 }
-function firstMatchId(value: string) {
-  const token = value.trim().toLowerCase()
-  if (!token) return ''
-  const walk = (parentId: string | null): string => {
-    const children = store.data.categories.filter((item) => item.parentId === parentId).sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
-    for (const item of children) {
-      if (item.name.toLowerCase().includes(token)) return item.id
-      const nested = walk(item.id)
-      if (nested) return nested
-    }
-    return ''
-  }
-  return walk(null)
+function openPanel() {
+  if (panels.value.length > 1) return
+  panelSequence++
+  panels.value.push({id:`panel-${panelSequence}`,title:`分类栏 ${String.fromCharCode(64 + panelSequence)}`,initialId:staged.value?.id || selected.value})
 }
-function badgeOf(id: string) {
-  return productBadges.value.get(id) || 0
+function closePanel(id: string) {
+  if (panels.value.length < 2) return
+  if (drag.value?.panelId === id || dropState.value?.panelId === id) cancelDrag('面板已关闭，本次拖动已取消。')
+  panels.value = panels.value.filter(panel => panel.id !== id)
+  if (activePanel.value === id) { activePanel.value = panels.value[0]!.id; selected.value = panelRefs.get(activePanel.value)?.selectedId || '' }
+  detailsOpen.value = false
 }
-function nameParts(name: string) {
-  const needle = keyword.value.trim()
-  if (!needle) return [{ text: name, hit: false }]
-  const lower = name.toLowerCase()
-  const token = needle.toLowerCase()
-  const parts: { text: string; hit: boolean }[] = []
-  let start = 0
-  let index = lower.indexOf(token)
-  if (index < 0) return [{ text: name, hit: false }]
-  while (index >= 0) {
-    if (index > start) parts.push({ text: name.slice(start, index), hit: false })
-    parts.push({ text: name.slice(index, index + token.length), hit: true })
-    start = index + token.length
-    index = lower.indexOf(token, start)
-  }
-  if (start < name.length) parts.push({ text: name.slice(start), hit: false })
-  return parts
+function selectInPanel(panelId: string, id: string) { activePanel.value = panelId; selected.value = id }
+function pick(id: string) { selected.value = id; panelRefs.get(activePanel.value)?.reveal(id,true) }
+function reveal(id: string) { panelRefs.get(activePanel.value)?.reveal(id) }
+function stageSource(panelId: string, id: string) {
+  if (!canMutate() || !store.data.categories.some(item => item.id === id)) return
+  cancelDrag(); staged.value = {id,panelId}; interactionMessage.value = ''; openPanel()
 }
-function reveal(id: string) {
-  const next = new Set(expanded.value)
-  ancestorIds(id).forEach((item) => next.add(item))
-  expanded.value = next
-  const closed = new Set(pinnedClosed.value)
-  ancestorIds(id).forEach((item) => closed.delete(item))
-  pinnedClosed.value = closed
+function openMove(id: string) { stageSource(activePanel.value,id) }
+function locateSource() {
+  if (!staged.value) return
+  const id = panels.value.some(panel => panel.id === staged.value?.panelId) ? staged.value.panelId : panels.value[0]!.id
+  panelRefs.get(id)?.reveal(staged.value.id,true)
 }
-function pick(id: string) {
-  selected.value = id
-  reveal(id)
+function targetBlock(targetId: string) {
+  return staged.value ? previewCategoryMove(store.data.categories,{id:staged.value.id,targetId},typedIds.value).message : ''
 }
-function focusRow(id: string) {
-  nextTick(() => {
-    const box = treeScroll.value
-    const row = box?.querySelector(`[data-id="${CSS.escape(id)}"]`) as HTMLElement | null
-    if (!box || !row) return
-    const top = row.offsetTop
-    const bottom = top + row.offsetHeight
-    if (top < box.scrollTop) box.scrollTop = Math.max(0, top - 8)
-    else if (bottom > box.scrollTop + box.clientHeight) box.scrollTop = bottom - box.clientHeight + 8
-  })
+function panelAction(panelId: string, id: string, action: string) {
+  selectInPanel(panelId,id)
+  if (action === 'detail') { detailsOpen.value = true; return }
+  if (!canMutate()) return
+  if (action === 'create') openCreate(id)
+  if (action === 'edit') openEdit(id)
+  if (action === 'copy') void copyNode(id)
+  if (action === 'remove') void remove(id)
 }
-function toggle(id: string) {
-  const row = rows.value.find((item) => item.id === id)
-  if (!row?.hasChildren) return
-  const nextExpanded = new Set(expanded.value)
-  const nextClosed = new Set(pinnedClosed.value)
-  if (row.expanded) {
-    nextExpanded.delete(id)
-    nextClosed.add(id)
-  } else {
-    nextExpanded.add(id)
-    nextClosed.delete(id)
-  }
-  expanded.value = nextExpanded
-  pinnedClosed.value = nextClosed
+function cancelDrag(message = '') {
+  drag.value = null; dropState.value = null
+  if (message) interactionMessage.value = message
 }
-function onExpandDown(id: string, event: Event) {
-  event.stopPropagation()
-  event.preventDefault()
-  toggle(id)
+function startDrag(panelId: string, id: string, event: DragEvent) {
+  if (!canMutate()) { event.preventDefault(); return }
+  const token = `category-${++interactionSequence}`
+  drag.value = {id,panelId,stamp:structureStamp.value,epoch:contextEpoch,token}
+  interactionMessage.value = ''
+  event.dataTransfer?.setData('application/x-erp-category',token)
+  event.dataTransfer?.setData('text/plain',categoryChain(store.data.categories,id).map(item=>item.name).join(' / '))
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
 }
-function onExpandClick(id: string, event: MouseEvent) {
-  if (event.detail !== 0) return
-  toggle(id)
+function validDrag() {
+  return canMutate() && drag.value && drag.value.epoch === contextEpoch && drag.value.stamp === structureStamp.value
+    && panels.value.some(panel => panel.id === drag.value?.panelId)
 }
-function expandAll() {
-  pinnedClosed.value = new Set()
-  expanded.value = new Set(branchIds(store.data.categories))
+function dragOver(panelId: string, id: string, position: DropPosition, event: DragEvent) {
+  if (!validDrag() || !drag.value) return
+  const result = previewCategoryMove(store.data.categories,{id:drag.value.id,targetId:id,position},typedIds.value)
+  dropState.value = {panelId,id,position,message:result.message}
+  if (event.dataTransfer) event.dataTransfer.dropEffect = result.message ? 'none' : 'move'
 }
-function collapseAll() {
-  expanded.value = new Set()
-  pinnedClosed.value = keyword.value.trim() ? new Set(branchIds(store.data.categories)) : new Set()
-}
-function onRowClick(id: string, event: MouseEvent) {
-  if (dragged.value) return
-  const target = event.target as HTMLElement | null
-  if (target?.closest('input, button')) return
-  if (!editing.value) {
-    selected.value = id
-    const row = rows.value.find((item) => item.id === id)
-    if (row?.hasChildren) toggle(id)
-    return
-  }
-  pick(id)
-}
-function onNameClick(id: string, event: MouseEvent) {
-  if (!editing.value || dragged.value || renameId.value) return
-  event.stopPropagation()
-  pick(id)
-}
-function onNameDblClick(id: string) {
-  if (!editing.value || dragged.value) return
-  startRename(id)
-}
-function bindRenameInput(el: unknown) {
-  renameInput.value = el instanceof HTMLInputElement ? el : null
-  if (!renameInput.value || renameFocused) return
-  renameFocused = true
-  renameInput.value.focus()
-  renameInput.value.select()
-}
-function startRename(id: string) {
-  const item = store.data.categories.find((row) => row.id === id)
-  if (!item || !editing.value) return
-  renameClosing = false
-  renameFocused = false
-  renameId.value = id
-  renameValue.value = item.name
-  selected.value = id
-}
-function cancelRename() {
-  renameClosing = true
-  renameId.value = ''
-  renameValue.value = ''
+async function drop(panelId: string, id: string, position: DropPosition, event: DragEvent) {
+  if (!validDrag() || !drag.value || event.dataTransfer?.getData('application/x-erp-category') !== drag.value.token
+    || dropState.value?.panelId !== panelId || dropState.value.id !== id) { cancelDrag(); return }
+  const sourceId = drag.value.id
+  cancelDrag()
+  await performMove({id:sourceId,targetId:id,position},panelId)
 }
 async function flushChanges() {
-  const result = await store.flushPersistence()
-  if (!result.ok) { ElMessage.error(store.persistenceState.message || '分类修改尚未保存，当前输入已保留。'); return false }
-  return true
+  if (saving.value) return false
+  saving.value = true
+  try {
+    const result = await store.flushPersistence()
+    saveError.value = result.ok ? '' : `${store.persistenceState.message || '保存失败'} 当前分类编辑已保留在本页，尚未保存；重试只保存当前结果。`
+    return result.ok
+  } catch (cause) {
+    saveError.value = `${cause instanceof Error ? cause.message : '保存失败'}。当前分类编辑尚未保存，已保留在本页。`
+    return false
+  } finally { saving.value = false }
 }
-async function commitRename() {
-  if (renameClosing || !renameId.value) return
-  const id = renameId.value
-  const item = store.data.categories.find((row) => row.id === id)
-  if (!item) {
-    cancelRename()
-    return
+async function performMove(request: CategoryMoveRequest, targetPanel: string) {
+  if (!canMutate()) return
+  const check = previewCategoryMove(store.data.categories,request,typedIds.value)
+  if (check.message) { interactionMessage.value = check.message; return }
+  if (!check.changed) { interactionMessage.value = '位置没有变化。'; return }
+  const epoch = contextEpoch
+  const message = request.position ? store.relocateCategory(request.id,request.targetId || '',request.position) : store.moveCategory(request.id,request.targetId)
+  if (message) { interactionMessage.value = message; return }
+  interactionMessage.value = ''
+  if (!await flushChanges()) return
+  if (!alive) return
+  if (epoch === contextEpoch) {
+    if (staged.value?.id === request.id) staged.value = null
+    panelRefs.get(targetPanel)?.reveal(request.id)
   }
-  if (renameValue.value.trim() === item.name) {
-    renameClosing = true
-    if (!await flushChanges()) { renameClosing = false; nextTick(() => renameInput.value?.focus()); return }
-    cancelRename()
-    return
-  }
-  const siblings = store.data.categories
-    .filter((row) => (row.parentId || null) === (item.parentId || null))
-    .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
-  const index = Math.max(0, siblings.findIndex((row) => row.id === id))
-  const message = store.updateCategory(id, {
-    name: renameValue.value,
-    enabled: item.enabled !== false,
-    sort: index + 1,
-    parentId: item.parentId,
-    icon: item.icon,
-  })
-  if (message) {
-    ElMessage.warning(message)
-    nextTick(() => renameInput.value?.focus())
-    return
-  }
-  renameClosing = true
-  if (!await flushChanges()) { renameClosing = false; nextTick(() => renameInput.value?.focus()); return }
-  renameId.value = ''
-  renameValue.value = ''
-  ElMessage.success('已保存')
+  ElMessage.success(request.position && request.position !== 'inner' ? '分类位置已保存' : '已移动分类')
 }
+async function retrySave() {
+  if (saving.value || !saveError.value) return
+  if (await flushChanges()) { staged.value = null; ElMessage.success('当前分类修改已保存') }
+}
+async function renameCategory(id: string, name: string, done: (ok:boolean) => void) {
+  if (!canMutate()) { done(false); return }
+  const item = store.data.categories.find(category => category.id === id)
+  if (!item) { done(false); return }
+  if (name.trim() === item.name) { done(true); return }
+  const message = store.updateCategory(id,{...item,name,enabled:item.enabled !== false})
+  if (message) { ElMessage.warning(message); done(false); return }
+  const ok = await flushChanges(); done(ok)
+  if (ok) ElMessage.success('已保存')
+}
+watch(structureStamp, () => {
+  if (drag.value) cancelDrag('分类结构已变化，本次拖动已取消，请重新拖动。')
+  if (staged.value && !store.data.categories.some(item=>item.id===staged.value?.id)) { staged.value = null; interactionMessage.value = '来源分类已不存在，已取消待移动来源。' }
+}, {flush:'sync'})
+watch(() => [treeMode.value, store.editorGeneration, store.data.activeRole], () => {
+  contextEpoch++
+  if (drag.value) cancelDrag('操作上下文已变化，尚未提交的拖动已取消。')
+  else interactionMessage.value = ''
+  if (!editing.value) { createOpen.value = false; editOpen.value = false }
+}, {flush:'sync'})
+watch(() => store.editorGeneration, () => { staged.value = null })
+function escape(event: KeyboardEvent) { if (event.key === 'Escape' && drag.value) { event.preventDefault(); cancelDrag('已取消拖动。') } }
+onMounted(() => window.addEventListener('keydown',escape,true))
+onBeforeRouteLeave(() => { contextEpoch++; cancelDrag() })
+onBeforeUnmount(() => { alive = false; contextEpoch++; cancelDrag(); window.removeEventListener('keydown',escape,true) })
 function openCreate(parentId: string | null) {
-  if (!editing.value) return
+  if (!canMutate()) return
   parentForCreate.value = parentId
   pendingCreateId = ''
   createName.value = ''
   createOpen.value = true
 }
 async function create() {
-  if (!editing.value) return
+  if (!canMutate()) return
   const name = createName.value.trim()
   if (!name) {
     ElMessage.warning('请填写分类名称')
@@ -483,7 +325,7 @@ async function create() {
   ElMessage.success('已新增分类')
 }
 function openEdit(id: string) {
-  if (!editing.value) return
+  if (!canMutate()) return
   const item = store.data.categories.find((row) => row.id === id)
   if (!item) return
   pick(id)
@@ -494,7 +336,7 @@ function openEdit(id: string) {
   editOpen.value = true
 }
 async function saveEdit() {
-  if (!editing.value) return
+  if (!canMutate()) return
   const item = store.data.categories.find((row) => row.id === editId.value)
   if (!item) return
   const message = store.updateCategory(item.id, {
@@ -517,80 +359,17 @@ async function saveEdit() {
   editOpen.value = false
   ElMessage.success('已保存')
 }
-function moveTargetBlocked(id: string | null) {
-  if (!id) return ''
-  if (id === moveId.value) return '不能移动到自己下面'
-  if (descendantIds(store.data.categories, moveId.value).includes(id)) return '不能移动到自己的子分类下面'
-  return blockChildOfTypedCategory(id, new Set(store.data.productTypes.map((item) => item.categoryId)))
-}
-function openMove(id: string) {
-  if (!editing.value) return
-  const item = store.data.categories.find((row) => row.id === id)
-  if (!item) return
-  moveId.value = id
-  moveParent.value = item.parentId || ''
-  moveExpanded.value = new Set(ancestorIds(id))
-  moveClosed.value = new Set()
-  moveOpen.value = true
-}
-function closeMove() {
-  moveOpen.value = false
-}
-function toggleMove(id: string) {
-  const row = moveRows.value.find((item) => item.id === id)
-  if (!row?.hasChildren) return
-  const nextExpanded = new Set(moveExpanded.value)
-  const nextClosed = new Set(moveClosed.value)
-  if (row.expanded) {
-    nextExpanded.delete(id)
-    nextClosed.add(id)
-  } else {
-    nextExpanded.add(id)
-    nextClosed.delete(id)
-  }
-  moveExpanded.value = nextExpanded
-  moveClosed.value = nextClosed
-}
-function pickMoveTarget(id: string | null) {
-  const message = id ? moveTargetBlocked(id) : ''
-  if (message) {
-    ElMessage.warning(message)
-    return
-  }
-  moveParent.value = id || ''
-}
-async function confirmMove() {
-  if (!editing.value) return
-  const item = store.data.categories.find((row) => row.id === moveId.value)
-  if (!item) return
-  const blocked = moveTargetBlocked(moveParent.value || null)
-  if (blocked) {
-    ElMessage.warning(blocked)
-    return
-  }
-  if ((item.parentId || '') === (moveParent.value || '')) {
-    if (!await flushChanges()) return
-    closeMove()
-    return
-  }
-  const message = store.moveCategory(item.id, moveParent.value || null)
-  if (message) ElMessage.warning(message)
-  else {
-    if (!await flushChanges()) return
-    reveal(item.id)
-    closeMove()
-    ElMessage.success('已移动分类')
-  }
-}
 async function copyNode(id: string) {
-  if (!editing.value) return
+  if (!canMutate()) return
   const item = store.data.categories.find((row) => row.id === id)
   if (!item) return
+  const epoch = contextEpoch
   try {
     await ElMessageBox.confirm(`将复制「${item.name}」及其子分类。商品不会被复制。`, '复制分类', { confirmButtonText: '复制', cancelButtonText: '取消' })
   } catch {
     return
   }
+  if (!canMutate() || epoch !== contextEpoch) return
   const nextId = store.copyCategory(id)
   if (!nextId || !store.data.categories.some((row) => row.id === nextId)) {
     ElMessage.warning(nextId || '分类不存在')
@@ -612,7 +391,7 @@ function openProducts() {
   router.push('/products')
 }
 async function remove(id: string) {
-  if (!editing.value) return
+  if (!canMutate()) return
   const block = store.categoryRemovalBlock(id)
   if (block) {
     const owned = store.data.families.filter((item) => item.categoryId === id)
@@ -628,11 +407,13 @@ async function remove(id: string) {
   }
   const item = store.data.categories.find((row) => row.id === id)
   if (!item) return
+  const epoch = contextEpoch
   try {
     await ElMessageBox.confirm(`确定删除分类「${item.name}」？`, '删除分类', { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' })
   } catch {
     return
   }
+  if (!canMutate() || epoch !== contextEpoch) return
   const parentId = item.parentId || ''
   const message = store.removeCategory(id)
   if (message) ElMessage.warning(message)
@@ -646,121 +427,8 @@ function openScheme() {
   if (!currentMapping.value || !store.isAdmin) return
   router.push({ path: '/templates', query: { scheme: currentMapping.value.templateId } })
 }
-function dropPosition(event: DragEvent): DropPosition {
-  const el = event.currentTarget as HTMLElement
-  const rect = el.getBoundingClientRect()
-  const ratio = (event.clientY - rect.top) / Math.max(rect.height, 1)
-  if (ratio < 0.28) return 'before'
-  if (ratio > 0.72) return 'after'
-  return 'inner'
-}
-function onDragStart(row: CategoryRow, event: DragEvent) {
-  if (!editing.value) {
-    event.preventDefault()
-    return
-  }
-  const target = event.target as HTMLElement | null
-  if (target?.closest('button, input')) {
-    event.preventDefault()
-    return
-  }
-  dragged.value = true
-  dragId.value = row.id
-  event.dataTransfer?.setData('text/plain', row.id)
-  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
-}
-function onDragOver(row: CategoryRow, event: DragEvent) {
-  if (!editing.value || !dragId.value) return
-  event.preventDefault()
-  const position = dropPosition(event)
-  const moving = store.data.categories.find((item) => item.id === dragId.value)
-  const nextParent = position === 'inner' ? row.id : row.parentId
-  const parentChanged = (moving?.parentId || null) !== (nextParent || null)
-  const typedBlock = parentChanged ? blockChildOfTypedCategory(nextParent, new Set(store.data.productTypes.map((item) => item.categoryId))) : ''
-  const message = relocateBlockMessage(store.data.categories, dragId.value, row.id, position) || typedBlock
-  dropState.value = { id: row.id, position, blocked: Boolean(message) }
-  if (event.dataTransfer) event.dataTransfer.dropEffect = message ? 'none' : 'move'
-}
-async function onDrop(row: CategoryRow) {
-  if (!editing.value) return
-  const id = dragId.value
-  const state = dropState.value
-  if (!id || !state || state.id !== row.id) return
-  const previousParent = store.data.categories.find((item) => item.id === id)?.parentId
-  const message = store.relocateCategory(id, row.id, state.position)
-  if (message) {
-    ElMessage.warning(message)
-    return
-  }
-  if (!await flushChanges()) return
-  const nextParent = store.data.categories.find((item) => item.id === id)?.parentId ?? null
-  if (state.position === 'inner' || previousParent !== nextParent) reveal(id)
-  ElMessage.success(previousParent !== nextParent ? '已移动分类' : '已更新排序')
-}
-function onDragEnd() {
-  dragId.value = ''
-  dropState.value = null
-  window.setTimeout(() => {
-    dragged.value = false
-  }, 40)
-}
 </script>
-
 <style scoped>
-.cat-layout { display: grid; grid-template-columns: calc(40% - 7px) calc(60% - 7px); gap: 14px; align-items: start; }
-.cat-layout.is-moving { grid-template-columns: minmax(280px, 1.15fr) minmax(260px, 0.9fr) minmax(280px, 1fr); }
-.cat-tree-panel { min-height: 640px; }
-.cat-move-panel { min-height: 640px; }
-.cat-move-panel h2 { font-size: 18px; }
-.move-line { display: flex; gap: 12px; margin: 8px 0; font-size: 14px; line-height: 22px; }
-.move-line span { width: 64px; flex: none; color: #66788a; }
-.move-root, .move-name { border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.move-root { display: block; margin: 8px 0; padding: 6px 8px; border-radius: 6px; }
-.move-root.is-on, .cat-row.is-target { background: #e8f3ff; }
-.cat-row.is-source .move-name { font-weight: 650; }
-.cat-row.is-ban .move-name { color: #98a2b3; cursor: not-allowed; }
-.move-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cat-move-scroll { max-height: calc(100vh - 360px); }
-.cat-detail { padding-bottom: 16px; }
-.cat-detail h2 { font-size: 20px; }
-.cat-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
-.cat-toolbar-ops { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.cat-search { width: 220px; flex: none; }
-.cat-scroll { margin-top: 10px; max-height: calc(100vh - 230px); overflow: auto; border: 1px solid #e6edf5; border-radius: 8px; background: #fbfcfe; position: relative; }
-.cat-row { position: relative; display: flex; align-items: center; gap: 6px; min-height: 36px; padding-right: 8px; border-bottom: 1px solid #f0f3f8; cursor: default; }
-.cat-row.is-editing { cursor: grab; }
-.cat-row:hover { background: #f5f9ff; }
-.cat-row.is-active { background: #ecf5ff; }
-.cat-row.is-located { box-shadow: inset 3px 0 0 #409eff; }
-.cat-row.is-off .cat-name { color: #98a2b3; }
-.cat-row.is-drop-before { box-shadow: inset 0 2px 0 #409eff; }
-.cat-row.is-drop-after { box-shadow: inset 0 -2px 0 #409eff; }
-.cat-row.is-drop-inner { background: #e8f3ff; outline: 1px dashed #409eff; outline-offset: -1px; }
-.cat-row.is-drop-ban { background: #fff6f6; cursor: not-allowed; }
-.cat-expand { width: 22px; height: 22px; border: 0; padding: 0; background: transparent; color: #66788a; cursor: pointer; flex: none; position: relative; z-index: 1; }
-.cat-icon { color: #5b8def; flex: none; }
-.cat-emoji { width: 16px; text-align: center; flex: none; }
-.cat-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
-.cat-rename { flex: 1; min-width: 0; height: 26px; border: 1px solid #409eff; border-radius: 4px; padding: 0 6px; font-size: 14px; background: #fff; }
-.cat-row.is-editing .cat-name { cursor: pointer; }
-.cat-hit { background: #ffe58f; border-radius: 2px; }
-.cat-off-tag { flex: none; font-size: 12px; line-height: 18px; color: #8a94a6; background: #f2f4f7; border-radius: 4px; padding: 0 6px; }
-.cat-count { flex: none; color: #98a2b3; font-size: 12px; }
-.cat-ops { display: none; position: absolute; right: 0; top: 0; bottom: 0; align-items: center; gap: 2px; padding: 0 6px 0 16px; background: linear-gradient(90deg, rgba(245, 249, 255, 0), #f5f9ff 14px); }
-.cat-row:hover .cat-ops { display: flex; }
-.cat-row:hover .cat-count { display: none; }
-.cat-ops button { border: 0; background: transparent; color: #1677ff; font-size: 12px; cursor: pointer; padding: 0 3px; white-space: nowrap; }
-.cat-ops button.is-danger { color: #cf3b3b; }
-.info-card { margin-top: 12px; padding: 12px 14px; background: #f7faff; border: 1px solid #e6edf5; border-radius: 8px; }
-.info-card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: #66788a; }
-.info-card p { display: flex; gap: 12px; margin: 0; font-size: 14px; line-height: 26px; }
-.info-card p span { width: 42px; flex: none; color: #66788a; }
-.owned-product { align-items: center; }
-.owned-product span { width: auto; color: #b45309; font-size: 12px; }
-.card-links { display: flex; gap: 12px; margin-top: 4px; }
-.cat-detail .row-actions { margin-top: 14px; }
-@media (max-width: 1100px) {
-  .cat-layout, .cat-layout.is-moving { grid-template-columns: 1fr; }
-  .cat-search { width: 100%; }
-}
+.cat-layout{display:grid;grid-template-columns:minmax(350px,1.2fr) minmax(280px,1fr);gap:16px;align-items:start}.cat-layout > :deep(.panel){margin:0}.cat-layout.is-dual{grid-template-columns:repeat(2,minmax(0,1fr))}.is-dual>.cat-detail{grid-column:1/-1}.workspace-toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}.muted{color:var(--el-text-color-secondary);font-size:13px}.source-strip{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;margin-bottom:14px;border:1px solid var(--el-color-primary-light-7);background:var(--el-color-primary-light-9);border-radius:8px}.source-strip>div:first-child{display:flex;flex-direction:column;gap:5px;min-width:0;overflow-wrap:anywhere}.source-strip span{font-size:13px;color:var(--el-text-color-secondary)}.source-actions{display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0}.operation-status{height:48px;overflow:auto}.interaction-message,.drop-hint{font-size:14px;line-height:1.6;color:var(--el-text-color-secondary);margin:10px 0}.drop-hint{color:var(--el-color-primary)}.drop-hint.blocked{color:var(--el-color-danger)}.cat-detail{padding:20px;min-width:0}.cat-detail h2{font-size:20px}.info-card{padding:12px 0;border-bottom:1px solid var(--el-border-color-lighter)}.info-card h3{font-size:13px;color:var(--el-text-color-secondary);margin:0 0 8px}.info-card p{display:flex;gap:12px;font-size:14px;line-height:26px;margin:0;overflow-wrap:anywhere}.info-card p>span:first-child{flex:none;color:var(--el-text-color-secondary)}.card-links,.row-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:1100px){.cat-layout,.cat-layout.is-dual{grid-template-columns:1fr}.source-strip{align-items:flex-start;flex-direction:column}.workspace-toolbar .muted{width:100%}}
 </style>

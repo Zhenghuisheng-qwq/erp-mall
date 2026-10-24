@@ -1,0 +1,14 @@
+{
+  "browser": "156.0.8078.47",
+  "existing": [
+    "single tree search/expand/rename",
+    "parent picker with independent expansion",
+    "domain before/after/inner commands"
+  ],
+  "missing": [
+    "two searchable peer panels",
+    "cross-panel reverse drag",
+    "close-left preserving right state",
+    "staged source with failure retry"
+  ]
+}

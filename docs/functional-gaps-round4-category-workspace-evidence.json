@@ -1,0 +1,91 @@
+{
+  "result": "READY",
+  "scope": "商品分类中心第四轮",
+  "branch": "20261022",
+  "startHead": "3712fd1d4d32b1e5ae762991713a5f97ad1898ef",
+  "endHead": "3712fd1d4d32b1e5ae762991713a5f97ad1898ef",
+  "initialWorkspace": "clean",
+  "outputRoot": "work/functional-gaps-round4/20261025-0010-f84d",
+  "domain": {
+    "checks": [
+      "before/after reorder stable siblings",
+      "inner moves complete subtree without changing descendants or associated records",
+      "root movement and typed source legal",
+      "self/descendant/missing source or target/typed target reject atomically",
+      "cancelled preview/no-op reorder cause zero change including derived fields",
+      "disabled source remains movable under existing rules",
+      "saved subtree SKU root IDs follow current hierarchy without rewriting saved conditions",
+      "existing category selector and product category view regressions",
+      "real store persistence failure retains moved result; save-only retry once, no relative move replay"
+    ],
+    "result": "PASS"
+  },
+  "browsers": {
+    "chrome": {
+      "result": "PASS",
+      "browser": "156.0.8078.47",
+      "headless": true,
+      "checks": [
+        "default single/view mode; independent searches/expansion; staging, scoped locate and cancel do not mutate categories",
+        "native cross-panel inner A→B and B→A preserve complete subtree",
+        "native before/after across panels and within one panel; true no-op writes zero times",
+        "descendant and typed-target visual rejection; Escape and external generation cancel with no writes",
+        "closing drag target cancels native drag; dropping on header never moves to root",
+        "native drag edge scroll reaches long-list targets within the destination panel",
+        "view-mode cancellation; independent scrolling; close either panel preserves surviving instance/selection/scroll",
+        "keyboard destination and explicit move; quota failure retains memory/disk; save-only retry once; reload matches",
+        "same node in both panels: scoped rename/focus; all non-category business data unchanged",
+        "existing copy subtree, child deletion protection and property-scheme/detail entries remain available",
+        "light/narrow stacked panels and keyboard root movement"
+      ],
+      "diagnostics": []
+    },
+    "edge": {
+      "result": "PASS",
+      "browser": "156.0.4314.42",
+      "headless": true,
+      "checks": [
+        "default single/view mode; independent searches; staging does not mutate categories",
+        "native cross-panel inner A→B and B→A preserve complete subtree",
+        "native before/after across panels and within one panel; true no-op writes zero times",
+        "descendant and typed-target visual rejection; Escape and external generation cancel with no writes",
+        "closing drag target cancels native drag; dropping on header never moves to root",
+        "native drag edge scroll reaches long-list targets within the destination panel",
+        "view-mode cancellation; independent scrolling; close either panel preserves surviving instance/selection/scroll",
+        "keyboard destination and explicit move; quota failure retains memory/disk; save-only retry once; reload matches",
+        "same node in both panels: scoped rename/focus; all non-category business data unchanged",
+        "existing copy subtree, child deletion protection and property-scheme/detail entries remain available",
+        "light/narrow stacked panels and keyboard root movement"
+      ],
+      "diagnostics": []
+    }
+  },
+  "regressions": {
+    "round3": "PASS (11 groups)",
+    "editorSafety": "PASS (7 groups)",
+    "skuQuery": "PASS",
+    "typecheck": "PASS via npm run build",
+    "productionBuild": "PASS; chunk-size warning",
+    "gitDiffCheck": "PASS"
+  },
+  "additionalChromeCoverage": [
+    "staged source scoped locate and cancel cause zero writes",
+    "narrow destination footer screenshot"
+  ],
+  "historicalEvidenceMissing": [
+    "work/sku-workbench-fixes/migration/after-result.json",
+    "work/sku-workbench-fixes/restore-after.json"
+  ],
+  "notRun": [
+    "Firefox/Safari",
+    "touch devices",
+    "manual headed browser",
+    "physical device/DPI matrix"
+  ],
+  "gitActions": {
+    "commit": false,
+    "push": false,
+    "merge": false,
+    "deploy": false
+  }
+}
