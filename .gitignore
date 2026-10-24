@@ -38,3 +38,6 @@ backups
 /work/benefit-package/
 /work/template-compatibility/
 /work/compatibility-benefit-refinement/
+
+# Temporary validation output for the functional gaps round
+/work/functional-gaps-round1/

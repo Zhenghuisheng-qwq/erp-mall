@@ -2,7 +2,7 @@
   <el-button size="small" @click="featureOpen = true">页面功能</el-button>
   <el-button size="small" @click="openFeedback()">反馈问题</el-button>
   <el-drawer v-model="featureOpen" title="页面功能" size="420px" :modal="false" modal-class="assist-mask">
-    <p class="assist-page">{{ sheet?.title || '当前页面' }}</p>
+    <p class="assist-page">{{ pageTitle }}</p>
     <p v-if="!sheet" class="assist-note">功能清单待完善。这里不编造没有核对过的功能。</p>
     <template v-else>
       <section v-for="group in groups" :key="group" class="assist-group">
@@ -67,15 +67,15 @@ import { featureSheet, featureStatusText, type PageFeature } from '../domain/pag
 import type { FeedbackItem, FeedbackKind } from '../domain/types'
 import { uid, useCatalogStore } from '../stores/catalog'
 
-const props = defineProps<{ path: string; queryPanel?: unknown }>()
+const props = defineProps<{ path: string; queryPanel?: unknown; fullPath?: string; title?: string }>()
 const store = useCatalogStore()
 const featureOpen = ref(false)
 const formOpen = ref(false)
 const saving = ref(false)
 const fileRef = ref<HTMLInputElement>()
 const sheet = computed(() => featureSheet(props.path, { panel: props.queryPanel }))
-const pageTitle = computed(() => sheet.value?.title || '当前页面')
-const pageKey = computed(() => (props.path === '/products' && props.queryPanel === 'columns' ? '/products?panel=columns' : props.path || '/'))
+const pageTitle = computed(() => sheet.value?.title || props.title || props.path)
+const pageKey = computed(() => props.fullPath || (props.path === '/products' && props.queryPanel === 'columns' ? '/products?panel=columns' : props.path || '/'))
 const groups = computed(() => [...new Set((sheet.value?.features || []).map((item) => item.group))])
 const sourceTitle = ref('')
 const sourceKey = ref('')

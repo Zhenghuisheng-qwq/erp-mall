@@ -279,7 +279,7 @@ function dropOnSheet() {
   parts.value.push(item)
 }
 function save() {
-  if (props.readonly) return
+  if (!props.open || props.readonly) return
   const node = store.data.productSpecNodes.find((item) => item.id === props.nodeId && item.templateId === props.templateId)
   if (!node) return
   node.namingRule = storedParts(parts.value)

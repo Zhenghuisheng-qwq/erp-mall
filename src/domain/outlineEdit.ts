@@ -38,7 +38,7 @@ function rebindAttribute(data: AppData, node: ProductSpecNode, attributeId: stri
   const param = data.params.find((item) => item.id === attributeId)
   if (!attributeId || !param) return { ok: false, message: '请从属性词典里选择属性', changed: false }
   if (node.attributeId === attributeId) return { ok: true, message: '', changed: false }
-  const sibling = data.productSpecNodes.find((item) => item.parentId === node.parentId && item.id !== node.id && item.nodeType === 'ATTRIBUTE' && item.attributeId === attributeId)
+  const sibling = data.productSpecNodes.find((item) => item.templateId === node.templateId && item.parentId === node.parentId && item.id !== node.id && item.nodeType === 'ATTRIBUTE' && item.attributeId === attributeId)
   if (sibling) return { ok: false, message: `同一个位置已经有属性「${param.name}」`, changed: false }
   const children = data.productSpecNodes.filter((item) => item.parentId === node.id && item.nodeType === 'VALUE')
   const illegal = children.filter((item) => item.valueId && !param.values.includes(item.valueId))

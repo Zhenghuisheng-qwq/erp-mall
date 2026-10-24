@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, onScopeDispose, reactive, watch } from 'vue'
+import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { createCatalogPersistence } from './catalogPersistence'
 import {
   blockChildOfTypedCategory,
@@ -238,6 +238,7 @@ export function uid(prefix: string) {
 export const useCatalogStore = defineStore('catalog', () => {
   const originalRaw = localStorage.getItem(STORAGE_KEY)
   const data = reactive<AppData>(loadData(originalRaw))
+  const editorGeneration = ref(0)
   const persistence = createCatalogPersistence(originalRaw)
   onScopeDispose(persistence.dispose)
   ensureProductListPages(data)
@@ -319,7 +320,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     const result = applyTemplateCompatibilitySync(next, preview, decisions, () => uid('compat'), new Date().toISOString())
     return commitCandidate(next, result, ['compatibilities', 'templateCompatibilityOrigins'])
   }
-  function saveModelDraft(templateId: string) {
+  function saveModelDraft(templateId: string, isCurrent: () => boolean = () => true) {
+    if (!isCurrent()) return { ok: false, message: '编辑上下文已变化，本次保存已取消。' }
     if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看模型，请由管理员保存。' }
     if (!data.templates.some(item => item.id === templateId)) return { ok: false, message: '模型已不存在。' }
     const next = cloneCompatibility(data), canvas = next.specCanvases.find(item => item.templateId === templateId)
@@ -567,6 +569,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function replaceAll(next: AppData) {
+    editorGeneration.value += 1
     ensureProductListPages(next)
     Object.assign(data, next)
     if (next.deviceModels === undefined) delete data.deviceModels
@@ -1167,6 +1170,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   return {
     data,
     persistenceState: persistence.state,
+    editorGeneration,
     waitForPersistence: persistence.idle,
     flushPersistence: persistLive,
     saveTemplateCompatibility: (...args: Parameters<typeof saveTemplateCompatibility>) => command(() => saveTemplateCompatibility(...args)),

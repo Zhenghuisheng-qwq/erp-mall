@@ -1,0 +1,25 @@
+{
+  "scope": "designer data protection round2",
+  "result": "READY",
+  "branch": "20261022",
+  "head": "55862021854feb1ea95f488b593ab5108bebdc64",
+  "browserChecks": {
+    "chrome": {
+      "version": "156.0.8078.47",
+      "groups": 14,
+      "result": "PASS"
+    },
+    "edge": {
+      "version": "156.0.4314.42",
+      "groups": 14,
+      "result": "PASS"
+    },
+    "round1": {
+      "groups": 10,
+      "result": "PASS"
+    }
+  },
+  "domain": "domain/editor-safety-completion.log",
+  "report": "docs/functional-gaps-round2-editor-safety.md",
+  "historicalArtifacts": "First-round original bytes remain unrecovered; no regenerated substitutes."
+}

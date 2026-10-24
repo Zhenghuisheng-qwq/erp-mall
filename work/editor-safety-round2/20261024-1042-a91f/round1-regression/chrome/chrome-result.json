@@ -1,0 +1,21 @@
+{
+  "result": "PASS",
+  "browser": "156.0.8078.47",
+  "checks": [
+    "expose cancel/apply/hide/order preserve OR and result order",
+    "same condition edit, invalid input, save guard, Escape, IME, save-as/reload/restore",
+    "copy group new identities and native held-lock repeat submission/context guard",
+    "quota failure retains quick input and retry saves",
+    "incomplete date keeps result; dynamic attribute direct editing; SPU scope intersects",
+    "cross-tab conflict retains input",
+    "structure shows two same-name MAT, highlights both value nodes, readonly, opens exact archive",
+    "actual help pages and persisted feature feedback preserve dynamic route and query",
+    "historical-only not filed; draft new combinations no invented PLN/MAT; readonly history",
+    "large existing fixture 4096 combinations: 10 rows/page, 291 canvas nodes, open 106 ms"
+  ],
+  "diagnostics": [],
+  "knownWarnings": [
+    "[Vue Flow]: The options parameter is deprecated and will be removed in the next major version. Please use the id parameter instead"
+  ],
+  "savedId": "sku-view-mvm7x82t-2"
+}

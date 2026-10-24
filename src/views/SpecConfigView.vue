@@ -32,7 +32,7 @@
         @create="createModelFor"
         @copy="openCopyCurrent"
       />
-      <div class="work-main">
+      <div class="work-main" :class="{ 'with-materials': showStructureMaterials && editorMode === 'canvas' }">
         <ModelOverview
           v-if="surface === 'overview'"
           :category-id="overviewCategoryId"
@@ -74,8 +74,8 @@
             <el-segmented v-model="editorMode" class="view-switch" :options="modeOptions" />
             <div class="op-bar">
               <el-button-group>
-                <el-button v-if="!viewing" @click="tidy">自动布局</el-button>
-                <el-button v-if="!viewing" @click="useManualLayout">手工摆放</el-button>
+                <el-button v-if="canEditStructure" @click="tidy">自动布局</el-button>
+                <el-button v-if="canEditStructure" @click="useManualLayout">手工摆放</el-button>
                 <el-button @click="fitAll">适应全部</el-button>
               </el-button-group>
               <el-dropdown trigger="click" @command="onZoomCommand">
@@ -114,14 +114,14 @@
               <button type="button" class="key-more" @click="keysOpen = true">全部快捷键</button>
             </div>
         </div>
-        <div v-if="templateId && !viewing" class="key-strip" aria-label="常用快捷键">
+        <div v-if="templateId && canEditStructure" class="key-strip" aria-label="常用快捷键">
           <span v-for="item in quickHints" :key="item.keys + item.label" class="key-chip" :class="{ 'is-off': !item.enabled }" :title="item.note">
             <kbd>{{ item.keys }}</kbd>{{ item.label }}
           </span>
           <button type="button" class="key-more" @click="keysOpen = true">全部快捷键</button>
         </div>
         <div v-if="templateId" class="node-ops">
-          <template v-if="!viewing && selected">
+          <template v-if="canEditStructure && selected">
             <span class="ops-copy">
               <strong>{{ current ? nodeTitle(current) : schemeTitle }}</strong>
               <em v-if="selectionTrail">{{ selectionTrail }}</em>
@@ -144,8 +144,8 @@
               <el-button size="small" type="danger" plain @click="runMenu('delete')">删除</el-button>
             </template>
           </template>
-          <span v-else class="ops-idle">{{ viewing ? '查看模式下不能改结构和命名规则' : '选中节点后，可以添加属性、属性值或条件属性' }}</span>
-          <el-button v-if="viewing && selected && selected !== rootId" size="small" @click="namingOpen = true">查看命名规则</el-button>
+          <span v-else class="ops-idle">{{ !canEditStructure ? '当前视图只读，不能改结构和命名规则' : '选中节点后，可以添加属性、属性值或条件属性' }}</span>
+          <el-button v-if="!canEditStructure && selected && selected !== rootId" size="small" @click="namingOpen = true">查看命名规则</el-button>
         </div>
         <EmptyModelGuide
           v-else-if="showEmptyGuide"
@@ -187,6 +187,8 @@
           </ul>
           <p v-if="temporaryListOpen && temporaryMaterials.length > 30" class="insight-empty">这里只列出前 30 条。其余到商品列表按供应商编码或物料编码搜索。</p>
         </section>
+        <div v-if="templateId && editorMode === 'canvas'" class="structure-material-toggle"><el-checkbox v-model="showStructureMaterials">显示关联物料</el-checkbox></div>
+        <StructureMaterials v-if="templateId && showStructureMaterials && editorMode === 'canvas'" :key="templateId" :data="store.data" :model-id="templateId" :nodes="nodes" :status="comboStatus" :versions="publishedComboVersions" :version-id="comboVersionId" @version="id => comboVersionId = id" @locate="ids => materialHighlight = new Set(ids)" @close="showStructureMaterials = false; materialHighlight = new Set()" />
         <LegalComboDialog
           v-model="comboManageOpen"
           v-model:keyword="comboKeyword"
@@ -235,7 +237,7 @@
           :nodes="flowNodes"
           :edges="flowEdges"
           :nodes-connectable="false"
-          :nodes-draggable="!viewing"
+          :nodes-draggable="canEditStructure"
           :default-viewport="{ x: canvas.panX, y: canvas.panY, zoom: canvas.zoom || 0.88 }"
           :default-edge-options="{ type: 'tree' }"
           :min-zoom="0.6"
@@ -246,6 +248,7 @@
           @node-click="onNodeClick"
           @node-double-click="onNodeDoubleClick"
           @node-context-menu="onNodeMenu"
+          @node-drag-start="onNodeDragStart"
           @node-drag-stop="onNodeDragStop"
           @move="onViewportMove"
           @move-end="onMoveEnd"
@@ -263,7 +266,7 @@
             </div>
           </template>
           <template #node-attribute="{ data }">
-            <div class="model-attr" :class="{ 'is-on': data.selected, 'is-path': data.onPath, 'is-quiet': data.quiet, 'is-head': data.head, 'is-nested': !data.head, 'is-unbound': !data.bound }" :style="{ width: data.boxWidth + 'px' }" :title="data.bound ? `${data.label} · 来自属性词典` : '未绑定属性'">
+            <div class="model-attr" :data-material-highlight="materialAttributeHighlight.has(data.id) ? data.id : undefined" :class="{ 'is-material-combo': materialAttributeHighlight.has(data.id), 'is-on': data.selected, 'is-path': data.onPath, 'is-quiet': data.quiet, 'is-head': data.head, 'is-nested': !data.head, 'is-unbound': !data.bound }" :style="{ width: data.boxWidth + 'px' }" :title="data.bound ? `${data.label} · 来自属性词典` : '未绑定属性'">
               <Handle type="target" :position="Position.Left" />
               <select v-if="editingId === data.id" class="inline-edit" :value="data.editValue" @change="commitInline(data.id, 'attribute', $event)" @blur="editingId = ''" @mousedown.stop @pointerdown.stop @click.stop @dblclick.stop>
                 <option v-for="item in data.options" :key="item.value" :value="item.value">{{ item.label }}</option>
@@ -271,14 +274,14 @@
               <template v-else>
                 <strong>{{ data.label }}</strong>
                 <i v-if="data.ruleKind" class="rule-mark" :class="{ 'is-inherit': data.ruleKind === 'inherited' }" :title="data.ruleTitle">{{ data.ruleKind === 'own' ? '自有' : '继承' }}</i>
-                <button v-if="!data.bound && !viewing" type="button" class="pick-attr" @mousedown.stop @pointerdown.stop @click.stop="openBindAttribute(data.id)" @dblclick.stop>选择属性</button>
+                <button v-if="!data.bound && canEditStructure" type="button" class="pick-attr" @mousedown.stop @pointerdown.stop @click.stop="openBindAttribute(data.id)" @dblclick.stop>选择属性</button>
               </template>
               <button v-if="data.childCount" type="button" class="fold" @click.stop="toggleExpand(data.id)" @dblclick.stop>{{ data.expanded ? '−' : data.childCount }}</button>
               <Handle type="source" :position="Position.Right" />
             </div>
           </template>
           <template #node-value="{ data }">
-            <div class="model-value" :class="{ 'is-on': data.selected, 'is-path': data.onPath, 'is-quiet': data.quiet }" :style="{ width: data.boxWidth + 'px' }" :title="data.label">
+            <div class="model-value" :data-material-highlight="showStructureMaterials && materialHighlight.has(data.id) ? data.id : undefined" :class="{ 'is-material-combo': showStructureMaterials && materialHighlight.has(data.id), 'is-on': data.selected, 'is-path': data.onPath, 'is-quiet': data.quiet }" :style="{ width: data.boxWidth + 'px' }" :title="data.label">
               <Handle type="target" :position="Position.Left" />
               <select v-if="editingId === data.id" class="inline-edit" :value="data.editValue" @change="commitInline(data.id, 'value', $event)" @blur="editingId = ''" @mousedown.stop @pointerdown.stop @click.stop @dblclick.stop>
                 <option v-for="item in data.options" :key="item.value" :value="item.value">{{ item.label }}</option>
@@ -292,7 +295,7 @@
         </VueFlow>
         <div v-if="nodes.length === 0" class="structure-empty">
           <p>还没有商品结构</p>
-          <div v-if="!viewing" class="structure-start">
+          <div v-if="canEditStructure" class="structure-start">
             <span>快速开始</span>
             <el-button size="small" @click="openAttributeAt(null)">添加属性</el-button>
             <el-button size="small" @click="openCopyPicker">复制已有模型</el-button>
@@ -308,7 +311,7 @@
         :root-title="schemeTitle"
         :root-id="rootId"
         :active-id="selected"
-        :viewing="viewing"
+        :viewing="!canEditStructure"
         :folded-ids="viewClosed"
         :focus-tick="outlineCue.tick"
         :focus-id="outlineCue.id"
@@ -340,7 +343,7 @@
         :root-title="schemeTitle"
         :root-id="rootId"
         :active-id="selected"
-        :viewing="viewing"
+        :viewing="!canEditStructure"
         :folded-ids="viewClosed"
         :focus-tick="outlineCue.tick"
         :focus-id="outlineCue.id"
@@ -369,7 +372,7 @@
         </template>
       </div>
     </div>
-    <div v-if="menu.open && !viewing" class="context-menu" :style="{ left: menu.x + 'px', top: menu.y + 'px' }" @pointerdown.stop @click.stop>
+    <div v-if="menu.open && canEditStructure" class="context-menu" :style="{ left: menu.x + 'px', top: menu.y + 'px' }" @pointerdown.stop @click.stop>
       <template v-if="menuKind === 'model'">
         <el-button text @click="runMenu('add-attribute')">添加属性</el-button>
       </template>
@@ -400,7 +403,7 @@
         </p>
       </section>
     </el-drawer>
-    <NamingRuleDialog :open="namingOpen" :readonly="viewing" :node-id="selected" :template-id="templateId" @close="namingOpen = false" @saved="markWorkingDraft" />
+    <NamingRuleDialog :open="namingOpen" :readonly="!canEditStructure" :node-id="selected" :template-id="templateId" @close="namingOpen = false" @saved="markWorkingDraft" />
     <el-dialog v-model="attributeOpen" :title="attributeTitle" width="420px" :close-on-press-escape="!dictDropOpen" @closed="resetAttrComposer">
       <el-select v-if="attributeBindId" ref="attrBindSelect" v-model="attributePick" filterable placement="top-start" popper-class="dict-select-popper" placeholder="搜索已有属性" style="width: 100%" :filter-method="rememberAttrQuery" @visible-change="dictDropOpen = $event">
         <el-option v-for="item in filteredAttributeChoices" :key="item.id" :label="item.name" :value="item.id" />
@@ -415,7 +418,7 @@
         <el-button v-if="attrQuery.trim() && !exactAttribute" link type="primary" @click="beginCreateAttribute(attrQuery)">新增属性：{{ attrQuery.trim() }}</el-button>
         <el-button v-else-if="!creatingAttr" link type="primary" @click="creatingAttr = true">新增属性</el-button>
         <template v-if="creatingAttr">
-          <el-input v-model="newAttrName" placeholder="新属性名称" @keydown.enter.prevent="createDictionaryAttribute" />
+          <el-input v-model="newAttrName" placeholder="新属性名称" @keydown.enter="createDictionaryAttribute" />
           <el-button type="primary" :loading="dictBusy" @click="createDictionaryAttribute">保存到词典并引用</el-button>
         </template>
       </div>
@@ -447,7 +450,7 @@
       <div class="dict-create">
         <el-button v-if="valueQuery.trim() && !exactValue" link type="primary" @click="beginCreateValue(valueQuery)">新增属性值：{{ valueQuery.trim() }}</el-button>
         <template v-if="creatingValue">
-          <el-input v-model="newDictValue" placeholder="新属性值" @keydown.enter.prevent="createDictionaryValueForNode" />
+          <el-input v-model="newDictValue" placeholder="新属性值" @keydown.enter="createDictionaryValueForNode" />
           <el-button type="primary" :loading="dictBusy" @click="createDictionaryValueForNode">保存到词典并引用</el-button>
         </template>
       </div>
@@ -463,7 +466,7 @@
         <el-radio value="ATTRIBUTE">属性节点</el-radio>
         <el-radio value="VALUE">属性值节点</el-radio>
       </el-radio-group>
-      <el-input v-model="nodeDraft.name" placeholder="名称" style="margin-top: 12px" @keydown.enter.prevent="confirmNodeDraft" />
+      <el-input v-model="nodeDraft.name" placeholder="名称" style="margin-top: 12px" @keydown.enter="confirmNodeDraft" />
       <template #footer>
         <el-button @click="nodeDraftOpen = false">取消</el-button>
         <el-button type="primary" @click="confirmNodeDraft">确认</el-button>
@@ -483,7 +486,7 @@
       </el-select>
       <p v-if="copyPick && copyChoices.length === 0" class="muted">还没有可复制的模型。</p>
       <p class="copy-label">新模型名称</p>
-      <el-input :disabled="copying" v-model="copyName" placeholder="例如：二手机模型" @keydown.enter.prevent="confirmCopy" />
+      <el-input :disabled="copying" v-model="copyName" placeholder="例如：二手机模型" @keydown.enter="confirmCopy" />
       <p class="muted">复制节点树、属性引用和当前草稿的适用设备配置。新模型从草稿开始，发布记录和商品仍属于原模型。</p>
       <template #footer>
         <el-button :disabled="copying" @click="copyOpen = false">取消</el-button>
@@ -504,6 +507,7 @@ import ModelOutline from '../components/ModelOutline.vue'
 import CategoryCatalog from '../components/model-editor/CategoryCatalog.vue'
 import EmptyModelGuide from '../components/model-editor/EmptyModelGuide.vue'
 import ModelOverview from '../components/model-editor/ModelOverview.vue'
+import StructureMaterials from '../components/model-editor/StructureMaterials.vue'
 import LegalComboDialog from '../components/model-editor/LegalComboDialog.vue'
 import { presentComboRow, type MaterialLaunchMode } from '../components/model-editor/comboPresentation'
 import { useComboSelection } from '../components/model-editor/useComboSelection'
@@ -521,11 +525,13 @@ import { previewDraftCombinations, publishImpactText } from '../domain/draftComb
 import NamingRuleDialog from '../components/NamingRuleDialog.vue'
 import TemporaryMaterialDialog from '../components/TemporaryMaterialDialog.vue'
 import V3MaterialActions from '../components/V3MaterialActions.vue'
-import type { ProductGrade, ProductSpecNode, ParamDef } from '../domain/types'
+import type { ProductGrade, ProductSpecNode } from '../domain/types'
 import { uid, useCatalogStore } from '../stores/catalog'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
 import '@vue-flow/minimap/dist/style.css'
+
+import { captureEditor, editorEntry, prepareEditorUndo, sameEditorModel, type EditorHistoryEntry, type EditorSnapshot } from '../domain/editorHistory'
 
 const store = useCatalogStore()
 const route = useRoute()
@@ -648,10 +654,13 @@ function openModel(id: string) {
 async function createModelFor(typeId: string) {
   const type = store.data.productTypes.find((item) => item.id === typeId)
   if (!type || viewing.value) return
+  const context = editContext()
   activeTypeId.value = typeId
   try {
     const result = await ElMessageBox.prompt('模型名称', '创建空白模型', { inputValue: `${type.name}模型` })
+    if (!sameContext(context) || viewing.value || !store.data.productTypes.some(item => item.id === type.id)) return
     const created = await store.createProductModel({ productTypeId: type.id, name: result.value })
+    if (!sameContext(context)) return
     if (!created.ok) {
       ElMessage.warning(created.message)
       return
@@ -675,7 +684,18 @@ const viewOptions = [
   { label: '值', value: 'value' },
 ]
 const outlineCue = ref({ id: '', tick: 0 })
-const undoStack = ref<string[]>([])
+const undoStack = ref<EditorHistoryEntry[]>([])
+let editSession = 0
+let interaction = 0
+let pendingUndo: { modelId: string; session: number; before: EditorSnapshot } | undefined
+const canEditStructure = computed(() => !viewing.value && surface.value === 'design' && store.isAdmin && !!templateId.value && store.data.templates.some(t => t.id === templateId.value) && (editorMode.value !== 'canvas' || viewMode.value === 'all'))
+function editContext() { return { modelId: templateId.value, session: editSession, interaction } }
+function sameContext(context: ReturnType<typeof editContext>) {
+  return context.modelId === templateId.value && context.session === editSession && context.interaction === interaction
+}
+function validContext(context: ReturnType<typeof editContext>, nodeId?: string) {
+  return canEditStructure.value && sameContext(context) && (!nodeId || nodes.value.some(n => n.id === nodeId))
+}
 const nodeDraftOpen = ref(false)
 const nodeDraft = ref<{ type: ProductSpecNode['nodeType']; name: string }>({ type: 'ATTRIBUTE', name: '' })
 const editingId = ref('')
@@ -769,6 +789,12 @@ const comboManageOpen = ref(false)
 const comboKeyword = ref('')
 const comboUnfiledOnly = ref(false)
 const comboVersionId = ref('')
+const showStructureMaterials = ref(false)
+const materialHighlight = ref(new Set<string>())
+const materialAttributeHighlight = computed(() => showStructureMaterials.value && viewMode.value === 'attribute'
+  ? new Set(nodes.value.filter(node => materialHighlight.value.has(node.id)).map(node => node.parentId).filter(Boolean))
+  : new Set<string>())
+watch(templateId, () => { materialHighlight.value = new Set(); showStructureMaterials.value = false })
 const publishedComboVersions = computed(() => modelVersionsOf(store.data, templateId.value).filter((item) => item.status === 'published'))
 watch(
   () => `${templateId.value}#${publishedComboVersions.value.map((item) => item.id).join('|')}`,
@@ -811,6 +837,7 @@ const compatibilitySummary = computed(() => {
   return `${models} 款设备 · ${state}${config.exceptions.length ? ` · ${config.exceptions.length} 项规格例外` : ''}`
 })
 function openTemplateCompatibility(nodeId = '') {
+  if (nodeId && !canEditStructure.value) return
   compatibilityNodeId.value = nodeId
   templateCompatibilityOpen.value = true
 }
@@ -1027,6 +1054,37 @@ const structureNotes = computed(() => {
   return notes
 })
 
+watch([templateId, surface, viewing, () => store.editorGeneration, () => store.data.templates.some(t => t.id === templateId.value)], () => {
+  editSession += 1
+  pendingUndo = undefined
+  undoStack.value = []
+  invalidateEditorDialogs()
+}, { flush: 'sync' })
+watch(() => [editorMode.value, viewMode.value], () => {
+  invalidateEditorDialogs()
+}, { flush: 'sync' })
+const dialogContexts = new Map<string, ReturnType<typeof editContext> & { nodeId: string }>()
+for (const [kind, open] of [['attribute', attributeOpen], ['value', valueOpen], ['node', nodeDraftOpen]] as const) {
+  watch(open, value => {
+    if (value) dialogContexts.set(kind, { ...editContext(), nodeId: selected.value === rootId ? '' : selected.value })
+    else dialogContexts.delete(kind)
+  }, { flush: 'sync' })
+}
+function validDialog(kind: string, nodeId?: string) {
+  const context = dialogContexts.get(kind)
+  return !!context && validContext(context, nodeId || undefined)
+}
+watch(comboVersionId, () => { dragStart = undefined })
+function invalidateEditorDialogs() {
+  interaction += 1
+  dragStart = undefined
+  editingId.value = ''
+  menu.value.open = false
+  attributeOpen.value = false
+  valueOpen.value = false
+  nodeDraftOpen.value = false
+  namingOpen.value = false
+}
 watch(templateId, () => {
   if (!templateId.value) return
   selected.value = ''
@@ -1050,7 +1108,7 @@ watch(viewing, (isView) => {
 })
 watch(editorMode, (mode) => {
   menu.value.open = false
-  if (mode === 'canvas' && !viewing.value) reflowTree()
+  if (mode === 'canvas' && canEditStructure.value) reflowTree()
   if ((mode === 'outline' || mode === 'document') && selected.value) revealAncestors(selected.value)
 })
 watch(
@@ -1117,6 +1175,7 @@ function ensureTreeLayout() {
   row.layoutLocked = false
 }
 function reflowTree() {
+  if (!canEditStructure.value) { paint(); return }
   const row = ensureCanvas()
   if (manualHold()) {
     placeFreshNodes()
@@ -1161,6 +1220,7 @@ function outlineOptions(node: ProductSpecNode) {
   return outlineChoices(store.data, node.id)
 }
 function applyOutlineCreate(payload: { id: string; name: string }) {
+  if (!canEditStructure.value) return
   if (viewing.value) return
   const node = nodes.value.find((item) => item.id === payload.id)
   if (!node) return
@@ -1200,6 +1260,7 @@ function resetValueComposer() {
   valueBindPick.value = ''
 }
 function applyOutlineChoice(payload: { id: string; token: string }) {
+  if (!canEditStructure.value) return
   const node = nodes.value.find((item) => item.id === payload.id)
   if (!node) return
   if (!payload.token) {
@@ -1208,7 +1269,7 @@ function applyOutlineChoice(payload: { id: string; token: string }) {
   }
   pushUndo()
   const result = rebindSpecNode(store.data, node.id, node.nodeType === 'ATTRIBUTE' ? { attributeId: payload.token } : { valueId: payload.token })
-  if (!result.ok || !result.changed) undoStack.value.pop()
+  if (!result.ok || !result.changed) cancelUndo()
   if (!result.ok) ElMessage.warning(result.message)
   else if (result.changed) reflowTree()
 }
@@ -1242,7 +1303,7 @@ function matchesView(node: ProductSpecNode) {
   return true
 }
 function nodeOpen(node: ProductSpecNode) {
-  if (viewing.value) return !viewClosed.value.includes(node.id)
+  if (!canEditStructure.value) return !viewClosed.value.includes(node.id)
   return node.expanded !== false
 }
 function isShown(node: ProductSpecNode) {
@@ -1400,7 +1461,8 @@ function revealAncestors(id: string) {
     guard.add(parentId)
     const parent = nodes.value.find((item) => item.id === parentId)
     if (!parent) return
-    if (parent.expanded === false) parent.expanded = true
+    if (!canEditStructure.value) viewClosed.value = viewClosed.value.filter(id => id !== parent.id)
+    else if (parent.expanded === false) parent.expanded = true
     parentId = parent.parentId
   }
 }
@@ -1410,7 +1472,7 @@ function onNodeClick(payload: { event?: { target?: EventTarget | null }; node: {
   selected.value = payload.node.id
   revealAncestors(payload.node.id)
   menu.value.open = false
-  nextTick(() => document.querySelector<HTMLElement>('.designer .board')?.focus())
+  nextTick(() => document.querySelector<HTMLElement>('.designer .board')?.focus({ preventScroll: true }))
 }
 function canvasSize() {
   const el = document.querySelector('.designer .canvas') as HTMLElement | null
@@ -1516,6 +1578,7 @@ function onNodeDoubleClick(payload: { event: { target?: EventTarget | null }; no
   beginEdit(payload.node.id)
 }
 function beginEdit(id: string) {
+  if (!canEditStructure.value) return
   if (viewing.value) return
   if (id === rootId) {
     selected.value = id
@@ -1562,29 +1625,58 @@ function orderSiblings(parentId: string | null, orderedIds: string[]) {
     if (node && node.parentId === parentId) node.sort = index + 1
   })
 }
-function pushUndo() {
-  const template = store.data.templates.find((item) => item.id === templateId.value)
-  undoStack.value.push(JSON.stringify({
-    nodes: nodes.value.map((item) => ({ ...item })),
-    params: store.data.params.map((item) => ({ ...item, values: [...item.values], valueGroups: item.valueGroups.map((group) => ({ ...group, values: [...group.values] })) })),
-    templateParams: store.data.templateParams.map((item) => ({ ...item })),
-    structureOrder: template ? [...template.structureOrder] : [],
-  }))
+function finishUndo() {
+  const pending = pendingUndo
+  pendingUndo = undefined
+  if (!pending || pending.modelId !== templateId.value || pending.session !== editSession) return
+  const entry = editorEntry(pending.modelId, pending.session, pending.before, captureEditor(store.data, pending.modelId))
+  if (entry) undoStack.value.push(entry)
   if (undoStack.value.length > 40) undoStack.value.shift()
 }
-function undoOutline() {
-  const snap = undoStack.value.pop()
-  if (!snap) return
-  const restored = JSON.parse(snap) as { nodes: ProductSpecNode[]; params?: ParamDef[]; templateParams?: { templateId: string; paramId: string; role: 'common' | 'variant'; required: boolean }[]; structureOrder?: string[] }
-  const nodesSnap = Array.isArray(restored) ? restored : restored.nodes
-  store.data.productSpecNodes = [...store.data.productSpecNodes.filter((item) => item.templateId !== templateId.value), ...nodesSnap]
-  if (!Array.isArray(restored) && restored.params && restored.templateParams) {
-    store.data.params = restored.params
-    store.data.templateParams = restored.templateParams
-    const template = store.data.templates.find((item) => item.id === templateId.value)
-    if (template && restored.structureOrder) template.structureOrder = restored.structureOrder
+function pushUndo() {
+  if (!canEditStructure.value || pendingUndo) return
+  pendingUndo = { ...editContext(), before: captureEditor(store.data, templateId.value) }
+  queueMicrotask(finishUndo)
+}
+function cancelUndo() {
+  const pending = pendingUndo
+  pendingUndo = undefined
+  if (!pending || pending.modelId !== templateId.value || pending.session !== editSession) return
+  const entry = editorEntry(pending.modelId, pending.session, pending.before, captureEditor(store.data, pending.modelId))
+  if (!entry) return
+  // This is the synchronous transaction's own rollback; no awaited work is captured here.
+  store.data.productSpecNodes = [...store.data.productSpecNodes.filter(n => n.templateId !== pending.modelId), ...pending.before.nodes]
+  store.data.templateParams = [...store.data.templateParams.filter(n => n.templateId !== pending.modelId), ...pending.before.bindings]
+  store.data.templates.find(t => t.id === pending.modelId)!.structureOrder = pending.before.order
+  for (const change of entry.dictionary) {
+    const index = store.data.params.findIndex(p => p.id === change.id)
+    if (change.before && index >= 0) store.data.params.splice(index, 1, change.before)
+    else if (change.before) store.data.params.push(change.before)
+    else if (index >= 0) store.data.params.splice(index, 1)
   }
-  reflowTree()
+}
+function undoOutline() {
+  if (!canEditStructure.value) return
+  finishUndo()
+  const entry = undoStack.value.at(-1)
+  if (!entry) return
+  const candidate = prepareEditorUndo(store.data, entry, templateId.value, editSession)
+  if (!candidate.ok) { ElMessage.warning(candidate.message); return }
+  store.data.productSpecNodes = candidate.nodes
+  store.data.templateParams = candidate.bindings
+  store.data.nodeCompatibilityRules = candidate.nodeRules
+  for (const change of entry.dictionary) {
+    const index = store.data.params.findIndex(p => p.id === change.id)
+    const restored = candidate.params.find(p => p.id === change.id)
+    if (restored && index >= 0) store.data.params.splice(index, 1, restored)
+    else if (restored) store.data.params.push(restored)
+    else if (index >= 0) store.data.params.splice(index, 1)
+  }
+  store.data.templates.find(t => t.id === entry.modelId)!.structureOrder = candidate.order
+  undoStack.value.pop()
+  selected.value = ''
+  markWorkingDraft()
+  paint()
 }
 function attachParam(paramId: string) {
   if (!paramId) return undefined
@@ -1605,14 +1697,19 @@ function ensureParam(name: string) {
   return store.data.params.find((item) => item.id === result.id)
 }
 function linkAttribute(node: ProductSpecNode, paramId: string) {
+  const result = rebindSpecNode(store.data, node.id, { attributeId: paramId })
+  if (!result.ok) {
+    cancelUndo()
+    ElMessage.warning(result.message)
+    return false
+  }
   const bound = attachParam(paramId)
-  node.attributeId = paramId
   node.role = bound?.role === 'common' ? 'COMMON' : 'VARIANT'
-  nodes.value.filter((item) => item.parentId === node.id && item.nodeType === 'VALUE').forEach((item) => {
-    item.attributeId = paramId
-  })
+  return true
 }
 async function renameOutline(payload: { id: string; name: string }) {
+  if (!canEditStructure.value) return
+  const context = editContext()
   const node = nodes.value.find((item) => item.id === payload.id)
   const text = payload.name.trim()
   if (!node || !text || text === nodeTitle(node)) return
@@ -1620,7 +1717,7 @@ async function renameOutline(payload: { id: string; name: string }) {
     const found = store.data.params.find((item) => item.name === text)
     if (found) {
       pushUndo()
-      linkAttribute(node, found.id)
+      if (!linkAttribute(node, found.id)) return
       return
     }
     const current = store.data.params.find((item) => item.id === node.attributeId)
@@ -1638,13 +1735,16 @@ async function renameOutline(payload: { id: string; name: string }) {
     }
     try {
       await ElMessageBox.confirm(`属性词典里没有「${text}」。是否创建新的属性？`, '创建属性')
+      if (!validContext(context)) return
     } catch {
       return
     }
+    if (!validContext(context, node.id)) return
+    pushUndo()
     const created = ensureParam(text)
     if (!created) return
     pushUndo()
-    linkAttribute(node, created.id)
+    if (!linkAttribute(node, created.id)) return
     return
   }
   const allowed = store.data.params.find((item) => item.id === node.attributeId)?.values || []
@@ -1661,6 +1761,7 @@ async function renameOutline(payload: { id: string; name: string }) {
   node.valueId = text
 }
 function addOutline(payload: { id: string; kind: 'sibling' | 'child-value' | 'child-attribute' }) {
+  if (!canEditStructure.value) return
   if (viewing.value) return
   const source = payload.id === rootId ? undefined : nodes.value.find((item) => item.id === payload.id)
   if (payload.kind === 'child-value') {
@@ -1694,14 +1795,18 @@ function addOutline(payload: { id: string; kind: 'sibling' | 'child-value' | 'ch
   openAttributeAt(source.parentId)
 }
 async function removeOutline(id: string) {
+  if (!canEditStructure.value) return
+  const context = editContext()
   const hasChildren = nodes.value.some((item) => item.parentId === id)
   if (hasChildren) {
     try {
       await ElMessageBox.confirm('是否删除当前节点以及所有子节点？', '删除节点')
+      if (!validContext(context)) return
     } catch {
       return
     }
   }
+  if (!validContext(context, id)) return
   const ids = outlineIds()
   const index = ids.indexOf(id)
   const neighbor = ids[index - 1] || rootId
@@ -1709,7 +1814,7 @@ async function removeOutline(id: string) {
   pushUndo()
   const message = current.value ? store.removeSpecNode(current.value.id) : '请选择节点'
   if (message) {
-    undoStack.value.pop()
+    cancelUndo()
     ElMessage.warning(message)
     return
   }
@@ -1717,6 +1822,7 @@ async function removeOutline(id: string) {
   cueOutline(neighbor)
 }
 function promoteOutline(id: string) {
+  if (!canEditStructure.value) return
   const node = nodes.value.find((item) => item.id === id)
   if (!node?.parentId) {
     ElMessage.warning('已经是第一层')
@@ -1741,6 +1847,7 @@ function promoteOutline(id: string) {
   cueOutline(node.id)
 }
 function shiftOutline(payload: { id: string; direction: -1 | 1 }) {
+  if (!canEditStructure.value) return
   const node = nodes.value.find((item) => item.id === payload.id)
   if (!node) return
   const siblings = nodes.value.filter((item) => item.parentId === node.parentId).sort((a, b) => a.sort - b.sort)
@@ -1756,38 +1863,47 @@ function shiftOutline(payload: { id: string; direction: -1 | 1 }) {
   cueOutline(node.id)
 }
 function openNodeDraft() {
+  if (!canEditStructure.value) return
   nodeDraft.value = { type: 'ATTRIBUTE', name: '' }
   nodeDraftOpen.value = true
 }
-async function confirmNodeDraft() {
+async function confirmNodeDraft(event?: Event) {
+  if (event instanceof KeyboardEvent && event.isComposing) return
+  event?.preventDefault()
+  if (!validDialog('node', dialogContexts.get('node')?.nodeId)) return
+  if (!canEditStructure.value) return
+  const context = editContext()
   const name = nodeDraft.value.name.trim()
+  const nodeType = nodeDraft.value.type
   if (!name) {
     ElMessage.warning('请填写名称')
     return
   }
-  const source = selected.value && selected.value !== rootId ? nodes.value.find((item) => item.id === selected.value) : undefined
+  const sourceId = dialogContexts.get('node')?.nodeId
+  const source = nodes.value.find(item => item.id === sourceId)
   let parentId: string | null = null
-  if (nodeDraft.value.type === 'VALUE') {
+  if (nodeType === 'VALUE') {
     const parent = source?.nodeType === 'ATTRIBUTE' ? source : nodes.value.find((item) => item.id === source?.parentId && item.nodeType === 'ATTRIBUTE')
     if (!parent) {
       ElMessage.warning('属性值只能挂在属性下面')
       return
     }
     parentId = parent.id
-    parent.expanded = true
   } else if (source?.nodeType === 'VALUE' || source?.nodeType === 'ATTRIBUTE') {
     parentId = source.id
-    source.expanded = true
   }
-  if (nodeDraft.value.type === 'ATTRIBUTE' && !store.data.params.some((item) => item.name === name)) {
+  if (nodeType === 'ATTRIBUTE' && !store.data.params.some((item) => item.name === name)) {
     try {
       await ElMessageBox.confirm(`属性词典里没有「${name}」。是否创建并绑定到当前模型？`, '创建属性')
+      if (!validContext(context)) return
     } catch {
       return
     }
   }
+  if (!validContext(context, source?.id)) return
+  pushUndo()
   let valueText = name
-  if (nodeDraft.value.type === 'VALUE') {
+  if (nodeType === 'VALUE') {
     const ownerId = nodes.value.find((row) => row.id === parentId)?.attributeId || ''
     if (!ownerId) {
       ElMessage.warning('请先为上一级选择属性')
@@ -1806,7 +1922,7 @@ async function confirmNodeDraft() {
     valueText = created.value
     if (created.created) ElMessage.success(`${created.message} 模型不会因此发布。`)
   }
-  const attributeId = nodeDraft.value.type === 'VALUE'
+  const attributeId = nodeType === 'VALUE'
     ? nodes.value.find((item) => item.id === parentId)?.attributeId || ''
     : ensureParam(name)?.id || ''
   if (!attributeId) return
@@ -1817,26 +1933,28 @@ async function confirmNodeDraft() {
     id,
     templateId: templateId.value,
     parentId,
-    nodeType: nodeDraft.value.type,
+    nodeType: nodeType,
     attributeId,
-    valueId: nodeDraft.value.type === 'VALUE' ? valueText : '',
-    role: nodeDraft.value.type === 'ATTRIBUTE' ? (bound?.role === 'common' ? 'COMMON' : 'VARIANT') : undefined,
+    valueId: nodeType === 'VALUE' ? valueText : '',
+    role: nodeType === 'ATTRIBUTE' ? (bound?.role === 'common' ? 'COMMON' : 'VARIANT') : undefined,
     sort: nextSort(parentId),
     positionX: 0,
     positionY: 0,
   })
+  if (source) source.expanded = true
   reflowTree()
   nodeDraftOpen.value = false
   cueOutline(id)
 }
 function moveOutline(payload: { id: string; targetId: string; place: 'before' | 'after' | 'inside' }) {
+  if (!canEditStructure.value) return
   const node = nodes.value.find((item) => item.id === payload.id)
   if (!node || viewing.value) return
   pushUndo()
   if (payload.place === 'inside') {
     const message = reparent(node, payload.targetId)
     if (message) {
-      undoStack.value.pop()
+      cancelUndo()
       ElMessage.warning(message)
       paint()
       return
@@ -1854,7 +1972,7 @@ function moveOutline(payload: { id: string; targetId: string; place: 'before' | 
   if (!target) return
   const message = reparent(node, target.parentId || rootId)
   if (message) {
-    undoStack.value.pop()
+    cancelUndo()
     ElMessage.warning(message)
     paint()
     return
@@ -1867,8 +1985,9 @@ function moveOutline(payload: { id: string; targetId: string; place: 'before' | 
   cueOutline(node.id)
 }
 function commitInline(id: string, kind: 'attribute' | 'value', event: Event) {
+  if (!canEditStructure.value) return
   const value = (event.target as HTMLSelectElement).value
-  const node = store.data.productSpecNodes.find((item) => item.id === id)
+  const node = nodes.value.find((item) => item.id === id)
   if (!node || !value) return
   if (value === '__create__') {
     editingId.value = ''
@@ -1891,19 +2010,20 @@ function commitInline(id: string, kind: 'attribute' | 'value', event: Event) {
   if (kind === 'attribute' && node.nodeType === 'ATTRIBUTE') {
     if (node.attributeId !== value) {
       pushUndo()
-      linkAttribute(node, value)
+      if (!linkAttribute(node, value)) return
     }
   }
   if (kind === 'value' && node.nodeType === 'VALUE' && node.valueId !== value) {
     pushUndo()
     const result = rebindSpecNode(store.data, node.id, { valueId: value })
-    if (!result.ok || !result.changed) undoStack.value.pop()
+    if (!result.ok || !result.changed) cancelUndo()
     if (!result.ok) ElMessage.warning(result.message)
   }
   editingId.value = ''
   reflowTree()
 }
 function openNodeMenu(payload: { id: string; x: number; y: number }) {
+  if (!canEditStructure.value) return
   if (viewing.value) return
   selected.value = payload.id
   revealAncestors(payload.id)
@@ -1914,6 +2034,7 @@ function onNodeMenu(payload: { event: { preventDefault: () => void; clientX?: nu
   openNodeMenu({ id: payload.node.id, x: payload.event.clientX || 0, y: payload.event.clientY || 0 })
 }
 function runMenu(action: 'add-attribute' | 'add-child' | 'add-value' | 'sibling' | 'rename' | 'delete' | 'bind' | 'naming' | 'hosts') {
+  if (!canEditStructure.value) return
   menu.value.open = false
   const id = selected.value || rootId
   if (action === 'hosts') {
@@ -1959,34 +2080,47 @@ function illegalStructure() {
     return []
   })
 }
+let dragStart: { context: ReturnType<typeof editContext>; id: string; before: EditorSnapshot } | undefined
+function onNodeDragStart(event: { node: { id: string } }) {
+  dragStart = undefined
+  if (!canEditStructure.value || event.node.id === rootId) return
+  finishUndo()
+  dragStart = { context: editContext(), id: event.node.id, before: captureEditor(store.data, templateId.value) }
+}
 function onNodeDragStop(event: { node: { id: string; position: { x: number; y: number } } }) {
-  if (viewing.value || event.node.id === rootId) return
-  const row = store.data.productSpecNodes.find((item) => item.id === event.node.id)
-  if (!row) return
-  const hit = hitNode(event.node.position.x + 36, event.node.position.y + 16, row.id)
-    if (!hit) {
-    if (viewMode.value !== 'all') {
-      paint()
-      return
-    }
-    if (manualHold()) {
-      row.positionX = event.node.position.x
-      row.positionY = event.node.position.y
-      return
-    }
-    reflowTree()
-    return
-  }
-  const message = reparent(row, hit)
-  if (message) {
-    ElMessage.warning(message)
+  const start = dragStart
+  dragStart = undefined
+  if (!start || start.id !== event.node.id || !validContext(start.context, start.id)) { paint(); return }
+  if (!sameEditorModel(start.before, captureEditor(store.data, templateId.value))) {
+    ElMessage.warning('拖动期间模型已变化，请重新操作。')
     paint()
     return
   }
+  const row = nodes.value.find(item => item.id === start.id)!
+  const hit = hitNode(event.node.position.x + 36, event.node.position.y + 16, row.id)
+  if (!hit) {
+    if (manualHold()) {
+      row.positionX = event.node.position.x
+      row.positionY = event.node.position.y
+    } else paint()
+    return
+  }
+  if ((row.parentId || rootId) === hit) { paint(); return }
+  // reparent validates before touching this detached candidate.
+  const candidate = { ...row }
+  const message = reparent(candidate, hit)
+  if (message) { ElMessage.warning(message); paint(); return }
+  candidate.sort = nextSort(candidate.parentId)
+  Object.assign(row, candidate)
   if (manualHold()) {
     row.positionX = event.node.position.x
     row.positionY = event.node.position.y
   } else reflowTree()
+  const after = captureEditor(store.data, templateId.value)
+  // A drag never owns dictionary edits that happened independently during the gesture.
+  const entry = editorEntry(start.context.modelId, start.context.session, { ...start.before, params: after.params }, after)
+  if (entry) undoStack.value.push(entry)
+  if (undoStack.value.length > 40) undoStack.value.shift()
   ElMessage.success('已调整层级')
 }
 function hitNode(x: number, y: number, selfId: string) {
@@ -2001,6 +2135,7 @@ function hitNode(x: number, y: number, selfId: string) {
   return target?.id || ''
 }
 function reparent(node: ProductSpecNode, targetId: string) {
+  if (!canEditStructure.value) return '当前视图只读'
   if (targetId === node.id) return '不能拖到自己下面'
   if (descendantIds(node.id).includes(targetId)) return '不能拖到自己的子节点下面'
   if (targetId === rootId) {
@@ -2019,6 +2154,7 @@ function reparent(node: ProductSpecNode, targetId: string) {
     return ''
   }
   if (node.nodeType === 'VALUE' && target.nodeType !== 'ATTRIBUTE') return target.nodeType === 'VALUE' ? SPEC_VALUE_TO_VALUE : '属性值只能挂在属性下面'
+  if (node.nodeType === 'VALUE' && !store.data.params.find(p => p.id === target.attributeId)?.values.includes(node.valueId)) return '目标属性没有这个取值'
   node.parentId = target.id
   if (node.nodeType === 'VALUE') node.attributeId = target.attributeId
   return ''
@@ -2028,13 +2164,14 @@ function onViewportMove(event: { flowTransform: { x: number; y: number; zoom: nu
 }
 function onMoveEnd(event: { flowTransform: { x: number; y: number; zoom: number } }) {
   zoomRatio.value = event.flowTransform.zoom
-  if (viewing.value) return
+  if (!canEditStructure.value) return
   const row = ensureCanvas()
   row.panX = event.flowTransform.x
   row.panY = event.flowTransform.y
   row.zoom = event.flowTransform.zoom
 }
 function tidy() {
+  if (!canEditStructure.value) return
   const row = ensureCanvas()
   row.layoutLocked = false
   row.direction = 'logic'
@@ -2042,6 +2179,7 @@ function tidy() {
   ElMessage.success('已按产品结构整理')
 }
 function useManualLayout() {
+  if (!canEditStructure.value) return
   const row = ensureCanvas()
   row.direction = 'custom'
   row.layoutLocked = true
@@ -2052,7 +2190,7 @@ const anyCollapsed = computed(() => {
   return branches.some((item) => !nodeOpen(item))
 })
 function setExpanded(expanded: boolean) {
-  if (viewing.value) {
+  if (!canEditStructure.value) {
     viewClosed.value = expanded ? [] : nodes.value.filter((item) => childCount(item.id)).map((item) => item.id)
     return
   }
@@ -2063,7 +2201,7 @@ function setExpanded(expanded: boolean) {
 }
 function toggleExpand(id: string) {
   if (!childCount(id)) return
-  if (viewing.value) {
+  if (!canEditStructure.value) {
     viewClosed.value = viewClosed.value.includes(id) ? viewClosed.value.filter((item) => item !== id) : [...viewClosed.value, id]
     return
   }
@@ -2170,14 +2308,12 @@ async function saveModel() {
     return
   }
   markWorkingDraft()
-  const row = ensureCanvas()
-  if (row.status === 'published') {
-    ElMessage.success('当前内容和已发布版本一致。')
-    return
-  }
+  ensureCanvas()
+  const context = editContext()
   modelSaving.value = true
   try {
-  const result = (await store.saveModelDraft(templateId.value))
+  const result = (await store.saveModelDraft(context.modelId, () => context.modelId === templateId.value && context.session === editSession))
+  if (context.modelId !== templateId.value || context.session !== editSession) return
   if (!result.ok) { ElMessage.error(result.message || '保存失败，画布草稿已保留。'); return }
   const published = store.data.specModelVersions.some((item) => item.templateId === templateId.value && item.status === 'published')
   ElMessage.success(published ? '已保存草稿，尚未发布。新商品仍使用最近一次发布的版本。' : '已保存草稿，尚未发布。')
@@ -2216,6 +2352,7 @@ function markWorkingDraft() {
   row.updatedAt = new Date().toISOString()
 }
 function openAttributeAt(parentId: string | null) {
+  if (!canEditStructure.value) return
   if (viewing.value) return
   attributeBindId.value = ''
   attachParent.value = parentId
@@ -2234,11 +2371,18 @@ function resetAttrComposer() {
   globalName.value = ''
 }
 function openGlobalRename() {
+  if (!canEditStructure.value) return
   globalName.value = boundParam.value?.name || ''
   globalRenameOpen.value = true
 }
 async function saveGlobalName() {
+  if (!validDialog('attribute', attributeBindId.value || undefined)) return
+  if (!canEditStructure.value) return
+  const context = editContext()
   if (viewing.value || dictBusy.value || !boundParam.value) return
+  const target = boundParam.value
+  const name = globalName.value.trim()
+  const original = JSON.stringify(target)
   const decision = attributeRenameDecision(store.data, boundParam.value.id, globalName.value)
   if (!decision.ok) {
     ElMessage.warning(decision.message)
@@ -2247,17 +2391,21 @@ async function saveGlobalName() {
   if (decision.needsConfirm) {
     try {
       await ElMessageBox.confirm(decision.message, '编辑全局词典')
+      if (!validContext(context)) return
     } catch {
       return
     }
   }
   dictBusy.value = true
-  boundParam.value.name = globalName.value.trim()
+  if (!target || !validContext(context) || !store.data.params.includes(target) || JSON.stringify(target) !== original || !validDialog('attribute', attributeBindId.value || undefined)) { dictBusy.value = false; return }
+  pushUndo()
+  target.name = name
   dictBusy.value = false
   globalRenameOpen.value = false
   ElMessage.success('已修改全局属性名称。节点引用和已发布快照没有改写。')
 }
 function openValuePicker(attributeNodeId: string) {
+  if (!canEditStructure.value) return
   if (viewing.value) return
   const node = nodes.value.find((item) => item.id === attributeNodeId && item.nodeType === 'ATTRIBUTE')
   if (!node) {
@@ -2279,6 +2427,7 @@ function openValuePicker(attributeNodeId: string) {
   valueOpen.value = true
 }
 function openBindAttribute(id: string) {
+  if (!canEditStructure.value) return
   if (viewing.value || !id || id === rootId) return
   const node = nodes.value.find((item) => item.id === id && item.nodeType === 'ATTRIBUTE')
   if (!node) return
@@ -2292,6 +2441,7 @@ function nextSort(parentId: string | null) {
   return nodes.value.filter((item) => item.parentId === parentId).reduce((max, item) => Math.max(max, item.sort), 0) + 1
 }
 function insertAttributeNodes(paramIds: string[]) {
+  if (!canEditStructure.value) return
   const parentId = attachParent.value
   const parent = nodes.value.find((item) => item.id === parentId)
   if (parent && parent.expanded === false) parent.expanded = true
@@ -2325,8 +2475,13 @@ function insertAttributeNodes(paramIds: string[]) {
   attributeBindId.value = ''
   revealNode(lastId)
 }
-function createDictionaryAttribute() {
+function createDictionaryAttribute(event?: Event) {
+  if (event instanceof KeyboardEvent && event.isComposing) return
+  event?.preventDefault()
+  if (!validDialog('attribute', attributeBindId.value || attachParent.value || undefined)) return
+  if (!canEditStructure.value) return
   if (viewing.value || dictBusy.value) return
+  pushUndo()
   dictBusy.value = true
   const result = createDictionaryParam(store.data, newAttrName.value, () => uid('p'))
   if (!result.ok || !result.id) {
@@ -2338,6 +2493,7 @@ function createDictionaryAttribute() {
   if (attributeBindId.value) {
     const node = nodes.value.find((item) => item.id === attributeBindId.value && item.nodeType === 'ATTRIBUTE')
     if (!node) {
+      cancelUndo()
       dictBusy.value = false
       ElMessage.warning('请选择属性节点')
       return
@@ -2345,12 +2501,12 @@ function createDictionaryAttribute() {
     pushUndo()
     const rebound = rebindSpecNode(store.data, node.id, { attributeId: result.id })
     if (!rebound.ok) {
-      undoStack.value.pop()
+      cancelUndo()
       dictBusy.value = false
       ElMessage.warning(rebound.message)
       return
     }
-    linkAttribute(node, result.id)
+    if (!linkAttribute(node, result.id)) return
     attributeOpen.value = false
     attributeBindId.value = ''
   } else {
@@ -2362,13 +2518,18 @@ function createDictionaryAttribute() {
   dictBusy.value = false
   ElMessage.success(`${result.message} 当前节点已引用。模型不会因此发布。`)
 }
-function createDictionaryValueForNode() {
+function createDictionaryValueForNode(event?: Event) {
+  if (event instanceof KeyboardEvent && event.isComposing) return
+  event?.preventDefault()
+  if (!validDialog('value', valueParentId.value)) return
+  if (!canEditStructure.value) return
   if (viewing.value || dictBusy.value) return
   const parent = nodes.value.find((item) => item.id === valueParentId.value && item.nodeType === 'ATTRIBUTE')
   if (!parent?.attributeId) {
     ElMessage.warning('请先为上一级选择属性')
     return
   }
+  pushUndo()
   dictBusy.value = true
   const result = createDictionaryValue(store.data, parent.attributeId, newDictValue.value || valueQuery.value)
   if (!result.ok || !result.value) {
@@ -2380,7 +2541,7 @@ function createDictionaryValueForNode() {
     pushUndo()
     const rebound = rebindSpecNode(store.data, valueBindNodeId.value, { valueId: result.value })
     if (!rebound.ok) {
-      undoStack.value.pop()
+      cancelUndo()
       dictBusy.value = false
       ElMessage.warning(rebound.message)
       return
@@ -2396,11 +2557,13 @@ function createDictionaryValueForNode() {
   ElMessage.success(`${result.message} 当前节点已引用。模型不会因此发布。`)
 }
 function rebindPickedValue() {
+  if (!validDialog('value', valueBindNodeId.value)) return
+  if (!canEditStructure.value) return
   if (viewing.value || !valueBindNodeId.value || !valueBindPick.value) return
   pushUndo()
   const result = rebindSpecNode(store.data, valueBindNodeId.value, { valueId: valueBindPick.value })
   if (!result.ok) {
-    undoStack.value.pop()
+    cancelUndo()
     ElMessage.warning(result.message)
     return
   }
@@ -2408,6 +2571,8 @@ function rebindPickedValue() {
   if (result.changed) ElMessage.success('已更换当前节点的取值引用，原词典没有修改。')
 }
 function addAttribute() {
+  if (!validDialog('attribute', attributeBindId.value || attachParent.value || undefined)) return
+  if (!canEditStructure.value) return
   if (attributeBindId.value) {
     const paramId = attributePick.value
     const node = nodes.value.find((item) => item.id === attributeBindId.value && item.nodeType === 'ATTRIBUTE')
@@ -2421,20 +2586,22 @@ function addAttribute() {
       return
     }
     pushUndo()
-    linkAttribute(node, paramId)
+    if (!linkAttribute(node, paramId)) return
     attributeOpen.value = false
     attributeBindId.value = ''
     return
   }
   const ids = [...new Set(attributeIds.value.filter(Boolean))]
-  if (!ids.length) {
-    ElMessage.warning('请至少选择一个属性')
+  if (!ids.length || ids.some(id => !store.data.params.some(p => p.id === id))) {
+    ElMessage.warning('请选择仍存在的属性词典项')
     return
   }
   pushUndo()
   insertAttributeNodes(ids)
 }
 function addValues() {
+  if (!validDialog('value', valueParentId.value)) return
+  if (!canEditStructure.value) return
   const parent = nodes.value.find((item) => item.id === valueParentId.value && item.nodeType === 'ATTRIBUTE')
   const allowed = new Set(store.data.params.find((item) => item.id === parent?.attributeId)?.values || [])
   const fresh = [...new Set(valuePicks.value.filter((item) => allowed.has(item)))]
@@ -2471,15 +2638,10 @@ function descendantIds(id: string): string[] {
   return children.flatMap((item) => [item.id, ...descendantIds(item.id)])
 }
 function remove() {
-  if (!current.value) return
-  const message = store.removeSpecNode(current.value.id)
-  if (message) ElMessage.warning(message)
-  else {
-    selected.value = ''
-    reflowTree()
-    ElMessage.success('已删除')
-  }
+  if (!canEditStructure.value || !current.value) return
+  void removeOutline(current.value.id)
 }
+
 const copySourceName = computed(() => {
   const canvasRow = store.data.specCanvases.find((item) => item.templateId === copySourceId.value)
   return canvasRow?.name?.trim() || store.data.templates.find((item) => item.id === copySourceId.value)?.name || '未命名模型'
@@ -2505,8 +2667,11 @@ function openCopyPicker() {
   copyName.value = ''
   copyOpen.value = true
 }
-async function confirmCopy() {
+async function confirmCopy(event?: Event) {
+  if (event instanceof KeyboardEvent && event.isComposing) return
+  event?.preventDefault()
   if (copying.value || modelSaving.value || publishing.value) return
+  const context = editContext()
   const name = copyName.value.trim()
   const sourceId = copySourceId.value
   const productTypeId = copyTargetTypeId.value
@@ -2530,6 +2695,7 @@ async function confirmCopy() {
   copying.value = true
   try {
   const result = (await store.copyProductModel(sourceId, { name, productTypeId, direction: 'logic' }))
+  if (!sameContext(context)) return
   if (!result.ok || !('templateId' in result)) {
     ElMessage.warning(result.message || '复制失败，原模型和输入均已保留。')
     return
@@ -2547,8 +2713,8 @@ function pickNode(id: string) {
 function focusBoard(event: PointerEvent) {
   const board = event.currentTarget as HTMLElement
   const target = event.target as HTMLElement | null
-  if (target?.closest('input, textarea, select, button, a')) return
-  board.focus()
+  if (target?.closest('input, textarea, select, button, a, label, .el-segmented, .el-select, [contenteditable]')) return
+  board.focus({ preventScroll: true })
 }
 function openMaterialDetail(item: { familyId: string; skuId: string }) {
   if (!item.familyId) return
@@ -2665,6 +2831,7 @@ function onKey(event: KeyboardEvent) {
     saveModel()
     return
   }
+  if (!canEditStructure.value) return
   if ((event.ctrlKey || event.metaKey) && key === 'z' && !event.shiftKey) {
     if (!undoStack.value.length) return
     event.preventDefault()
@@ -2673,6 +2840,8 @@ function onKey(event: KeyboardEvent) {
   }
   if (editorMode.value === 'outline' || editorMode.value === 'document') return
   if (event.key === 'Escape') {
+    dragStart = undefined
+    paint()
     closeFloating()
     editingId.value = ''
     return
@@ -2724,6 +2893,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.work-main.with-materials { overflow-y: auto; }
+.work-main.with-materials .board { flex: 1 0 240px; }
+.structure-material-toggle { padding: 4px 12px; }
+.model-value.is-material-combo, .model-attr.is-material-combo { outline: 3px solid var(--el-color-success); outline-offset: 3px; }
 .designer { display: flex; flex-direction: column; height: calc(100vh - 132px); min-height: 520px; color: var(--text-primary, #253044); }
 .studio-switch { margin-bottom: 8px; }
 .dict-global { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border-default, #e4e8ef); }

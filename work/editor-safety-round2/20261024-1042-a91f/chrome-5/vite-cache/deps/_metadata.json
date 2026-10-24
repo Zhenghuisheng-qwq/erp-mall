@@ -1,0 +1,88 @@
+{
+  "hash": "a8b6bf5f",
+  "configHash": "a7aabb43",
+  "lockfileHash": "3a674239",
+  "browserHash": "29da37bf",
+  "optimized": {
+    "@element-plus/icons-vue": {
+      "src": "../../../../../../node_modules/@element-plus/icons-vue/dist/index.js",
+      "file": "@element-plus_icons-vue.js",
+      "fileHash": "f5eb0060",
+      "needsInterop": false
+    },
+    "@vue-flow/background": {
+      "src": "../../../../../../node_modules/@vue-flow/background/dist/vue-flow-background.mjs",
+      "file": "@vue-flow_background.js",
+      "fileHash": "8f4475d2",
+      "needsInterop": false
+    },
+    "@vue-flow/core": {
+      "src": "../../../../../../node_modules/@vue-flow/core/dist/vue-flow-core.mjs",
+      "file": "@vue-flow_core.js",
+      "fileHash": "e173cc16",
+      "needsInterop": false
+    },
+    "@vue-flow/minimap": {
+      "src": "../../../../../../node_modules/@vue-flow/minimap/dist/vue-flow-minimap.mjs",
+      "file": "@vue-flow_minimap.js",
+      "fileHash": "f6ffce92",
+      "needsInterop": false
+    },
+    "element-plus": {
+      "src": "../../../../../../node_modules/element-plus/es/index.mjs",
+      "file": "element-plus.js",
+      "fileHash": "1c9a5b27",
+      "needsInterop": false
+    },
+    "element-plus/es/locale/lang/zh-cn": {
+      "src": "../../../../../../node_modules/element-plus/es/locale/lang/zh-cn.mjs",
+      "file": "element-plus_es_locale_lang_zh-cn.js",
+      "fileHash": "7614fda5",
+      "needsInterop": false
+    },
+    "jszip": {
+      "src": "../../../../../../node_modules/jszip/dist/jszip.min.js",
+      "file": "jszip.js",
+      "fileHash": "0e6bd75b",
+      "needsInterop": true
+    },
+    "pinia": {
+      "src": "../../../../../../node_modules/pinia/dist/pinia.js",
+      "file": "pinia.js",
+      "fileHash": "afa0ee08",
+      "needsInterop": false
+    },
+    "vue-router": {
+      "src": "../../../../../../node_modules/vue-router/dist/vue-router.js",
+      "file": "vue-router.js",
+      "fileHash": "0ab6b069",
+      "needsInterop": false
+    },
+    "vue": {
+      "src": "../../../../../../node_modules/vue/dist/vue.runtime.esm-bundler.js",
+      "file": "vue.js",
+      "fileHash": "6ab94006",
+      "needsInterop": false
+    },
+    "xlsx": {
+      "src": "../../../../../../node_modules/xlsx/xlsx.mjs",
+      "file": "xlsx.js",
+      "fileHash": "a68b22b8",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "dist-C9iN58Rj": {
+      "file": "dist-C9iN58Rj.js",
+      "isDynamicEntry": false
+    },
+    "rolldown-runtime-DUp30N8C": {
+      "file": "rolldown-runtime-DUp30N8C.js",
+      "isDynamicEntry": false
+    },
+    "vue.runtime.esm-bundler-gokwEkci": {
+      "file": "vue.runtime.esm-bundler-gokwEkci.js",
+      "isDynamicEntry": false
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import { createCatalogIdentityContext } from './catalogIdentity'
 import { legalPlanningCombinations } from './planning'
 import type { AppData, PlanningRecord, Sku } from './types'
 
@@ -25,6 +26,7 @@ export interface UnmatchedComboMaterial {
 
 export interface LegalComboMaterialRow {
   identityKey: string
+  valueNodeIds: string[]
   /** 当前发布版本快照上的完整规格路径。 */
   label: string
   /** 展示用规划编号。对上多条时全部列出，不挑选。 */
@@ -66,15 +68,21 @@ export function legalComboMaterialStatus(data: AppData, productModelId: string, 
   const combos = legalPlanningCombinations(data, productModelId, version.nodesSnapshot)
   const records = (data.planningRecords || []).filter((item) => item.productModelId === productModelId && item.origin !== 'temporary')
   const usedPlanningIds = new Set<string>()
+  const index = materialReadIndex(data)
+  const recordsByIdentity = new Map<string, PlanningRecord[]>()
+  for (const record of records) {
+    if (!record.modelVersionIds.includes(version.id)) continue
+    const list = recordsByIdentity.get(record.identityKey) || []; list.push(record); recordsByIdentity.set(record.identityKey, list)
+  }
   const rows = combos.map((combo) => {
-    const linked = records.filter((item) => item.identityKey === combo.identityKey && item.modelVersionIds.includes(version.id))
+    const linked = recordsByIdentity.get(combo.identityKey) || []
     linked.forEach((item) => usedPlanningIds.add(item.planningId))
     const anomalies: string[] = []
     if (linked.length > 1) anomalies.push('本版本有多条规划编号对上同一组合，没有自动合并。')
     const materials: ComboMaterialCard[] = []
     const historical: ComboMaterialCard[] = []
     linked.forEach((record) => {
-      const found = materialsOfRecord(data, record, version.id)
+      const found = materialsOfRecord(data, record, version.id, index)
       materials.push(...found.cards)
       historical.push(...found.historical)
       anomalies.push(...found.notes)
@@ -84,6 +92,7 @@ export function legalComboMaterialStatus(data: AppData, productModelId: string, 
     const sole = linked.length === 1 ? linked[0] : undefined
     return {
       identityKey: combo.identityKey,
+      valueNodeIds: combo.steps.map(step => step.valueNodeId),
       label: combo.label,
       planningLabel: linked.map((item) => item.planningId).join('、'),
       actionPlanningId: sole && sole.status === 'active' ? sole.planningId : '',
@@ -102,50 +111,55 @@ export function legalComboMaterialStatus(data: AppData, productModelId: string, 
     versionName: version.versionName,
     message: '',
     rows,
-    unmatched: unmatchedMaterials(data, productModelId, version.id, usedPlanningIds),
+    unmatched: unmatchedMaterials(data, productModelId, version.id, usedPlanningIds, index),
   }
 }
 
-export function materialsOfRecord(data: AppData, record: PlanningRecord, versionId: string) {
+function materialReadIndex(data: AppData) {
+  const identity = createCatalogIdentityContext(data), byPlan = new Map<string, Sku[]>(), ids = new Set(data.skus.map(sku => sku.id))
+  const materials = data.skus.filter(identity.isMaterialArchive)
+  for (const sku of materials) { const key = sku.planningId || ''; const list = byPlan.get(key) || []; list.push(sku); byPlan.set(key, list) }
+  const missingReceipts = new Map<string, string[]>()
+  for (const receipt of data.materialReceipts || []) {
+    if (receipt.lifecycle === 'deleted' || ids.has(receipt.skuId)) continue
+    const list = missingReceipts.get(receipt.planningId) || []
+    list.push(`回执 ${receipt.materialCode || receipt.requestId} 指向的物料已不在，没有重建。`); missingReceipts.set(receipt.planningId, list)
+  }
+  const versionNames = new Map<string, string>()
+  for (const version of data.specModelVersions) if (!versionNames.has(version.id)) versionNames.set(version.id, version.versionName)
+  return { byPlan, materials, missingReceipts, versionNames }
+}
+export function materialsOfRecord(data: AppData, record: PlanningRecord, versionId: string, index = materialReadIndex(data)) {
   const notes: string[] = []
   const anchor = record.modelVersionIds.includes(record.originModelVersionId) ? record.originModelVersionId : (record.modelVersionIds[0] || '')
   const cards: ComboMaterialCard[] = []
   const historical: ComboMaterialCard[] = []
   let missingVersion = 0
   let foreignVersion = 0
-  data.skus.filter((item) => item.planningId === record.planningId).forEach((sku) => {
+  ;(index.byPlan.get(record.planningId) || []).forEach((sku) => {
     const savedVersion = (sku.modelVersionId || '').trim()
     if (savedVersion === versionId) {
-      cards.push(cardOf(data, sku, ''))
+      cards.push(cardOf(index, sku, ''))
       return
     }
     if (!savedVersion) {
-      if (versionId === anchor) cards.push(cardOf(data, sku, '没有记下建档版本。'))
+      if (versionId === anchor) cards.push(cardOf(index, sku, '没有记下建档版本。'))
       else missingVersion += 1
       return
     }
     if (record.modelVersionIds.includes(savedVersion)) {
-      historical.push(cardOf(data, sku, ''))
+      historical.push(cardOf(index, sku, ''))
       return
     }
     foreignVersion += 1
   })
   if (missingVersion) notes.push(`另有 ${missingVersion} 条物料没有建档版本，只在来源版本里展示，没有改写。`)
   if (foreignVersion) notes.push(`有 ${foreignVersion} 条物料记下了本规划未关联的版本，没有并入，也没有改写。`)
-  ;(data.materialReceipts || []).forEach((receipt) => {
-    if (receipt.planningId !== record.planningId || receipt.lifecycle === 'deleted') return
-    if (data.skus.some((item) => item.id === receipt.skuId)) return
-    notes.push(`回执 ${receipt.materialCode || receipt.requestId} 指向的物料已不在，没有重建。`)
-  })
+  notes.push(...(index.missingReceipts.get(record.planningId) || []))
   return { cards, historical, notes }
 }
 
-function versionNameOf(data: AppData, id: string) {
-  if (!id) return ''
-  return data.specModelVersions.find((item) => item.id === id)?.versionName || ''
-}
-
-function cardOf(data: AppData, sku: Sku, anomaly: string): ComboMaterialCard {
+function cardOf(index: ReturnType<typeof materialReadIndex>, sku: Sku, anomaly: string): ComboMaterialCard {
   const parts = [anomaly]
   if (!(sku.materialCode || '').trim()) parts.push('没有保存物料编号。')
   return {
@@ -155,18 +169,19 @@ function cardOf(data: AppData, sku: Sku, anomaly: string): ComboMaterialCard {
     materialCode: sku.materialCode || '',
     nameSource: sku.nameSource,
     modelVersionId: sku.modelVersionId || '',
-    versionName: versionNameOf(data, sku.modelVersionId || ''),
+    versionName: index.versionNames.get(sku.modelVersionId || '') || '',
     anomaly: parts.filter(Boolean).join(''),
   }
 }
 
-function unmatchedMaterials(data: AppData, productModelId: string, versionId: string, usedPlanningIds: Set<string>): UnmatchedComboMaterial[] {
-  const records = data.planningRecords || []
-  return data.skus.flatMap((sku) => {
+function unmatchedMaterials(data: AppData, productModelId: string, versionId: string, usedPlanningIds: Set<string>, index: ReturnType<typeof materialReadIndex>): UnmatchedComboMaterial[] {
+  const records = new Map<string, PlanningRecord>()
+  for (const record of data.planningRecords || []) if (!records.has(record.planningId)) records.set(record.planningId, record)
+  return index.materials.flatMap((sku) => {
     const planningId = (sku.planningId || '').trim()
     if (!planningId || usedPlanningIds.has(planningId)) return []
     if ((sku.modelVersionId || '').trim() !== versionId) return []
-    const record = records.find((item) => item.planningId === planningId)
+    const record = records.get(planningId)
     if (!record || record.productModelId !== productModelId || record.origin === 'temporary') return []
     return [{
       skuId: sku.id,

@@ -8,7 +8,7 @@
           <div class="crumb">{{ title }}</div>
         </div>
         <div class="row-actions">
-          <PageAssist :path="route.path" :query-panel="route.query.panel" />
+          <PageAssist :path="route.path" :full-path="route.fullPath" :title="String(route.meta.title || route.path)" :query-panel="route.query.panel" />
           <el-select :model-value="store.data.activeRole" :disabled="dataBusy" size="small" style="width: 130px" @change="onRole">
             <el-option label="身份：管理员" value="admin" />
             <el-option label="身份：运营" value="operator" />

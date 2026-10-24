@@ -6,7 +6,9 @@ export interface SkuCondition { kind: 'rule'; id: string; field: string; operato
 export interface SkuConditionGroup { kind: 'group'; id: string; logic: 'all' | 'any'; children: (SkuCondition | SkuConditionGroup)[] }
 export interface SkuColumn { key: string; visible: boolean; width?: number; frozen?: 'left' | 'right' | false }
 export interface SkuOrder { field: string; direction: 'asc' | 'desc' }
+export type SkuQuickFilterRef = { source: 'condition'; ruleId: string } | { source: 'legacy'; filterId: string }
 export interface SkuViewConfig {
+  quickFilters?: SkuQuickFilterRef[]
   version: 1
   conditions: SkuConditionGroup
   /** Original query semantics, including saved keyword. New rules intersect it. */

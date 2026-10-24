@@ -21,6 +21,52 @@ function sheet(title: string, rows: Array<[string, string, string, string, Featu
 }
 
 const sheets: Record<string, PageFeatureSheet> = {
+  '/spus': sheet('SPU 管理', [
+    ['spu.list.query', '筛选与列表设置', '按分类、属性筛选 SPU，配置列、排序和分组；SPU 与真实 SKU 分开管理。', '查看'],
+    ['spu.list.append', '管理与追加 SKU', '打开 SPU 详情或进入指定 SPU 的 SKU 列表、追加规格。MAT 保留独立物料入口。', '维护'],
+  ]),
+  '/spus/new': sheet('新建 SPU', [
+    ['spu.create.save', '保存 SPU', '保存主体及公共信息，可先建立没有 SKU 的 SPU。', '创建'],
+    ['spu.create.sku', '保存并新增 SKU', '保存主体后进入规格创建流程。', '创建'],
+  ]),
+  '/spus/edit': sheet('SPU 详情', [
+    ['spu.edit.save', '维护主体资料', '维护名称、OA 编号等；已有子记录时，身份字段按现有规则锁定。', '维护'],
+    ['spu.edit.children', '查看子记录', '查看真实 SKU 与物料，并通过独立入口管理；删除 SKU 不自动删除 SPU。', '查看'],
+  ]),
+  '/skus': sheet('SKU 管理', [
+    ['sku.workbench.filters', '高级筛选与常用筛选', '条件在原 AND/OR 组中执行；常用筛选引用原条件，顶部改值后应用，保存视图才覆盖正式配置。', '视图'],
+    ['sku.workbench.views', '保存与恢复视图', '配置列、多级排序、分组、收藏、另存及恢复。系统视图需另存，SPU 路由范围默认不写入视图。', '视图'],
+    ['sku.workbench.compatibility', '适用关系与组权益包', '按真实 SKU 进入适用主机或配件查询；设备 SKU 可进入组权益包。MAT 不作为销售 SKU。', '业务'],
+  ]),
+  '/skus/new': sheet('新增 SKU', [
+    ['sku.create.source', '选择 SPU 与生成来源', '先选择 SPU，再手工或从属性方案、发布模型及规划预览追加 SKU。', '创建'],
+    ['sku.create.confirm', '确认追加规格', '按现有身份规则检查重复和无效组合，追加真实销售 SKU，不覆盖已有子记录。', '创建'],
+  ]),
+  '/skus/edit': sheet('编辑 SKU', [
+    ['sku.edit.save', '维护单条 SKU', '编辑指定销售 SKU，保留所属 SPU、来源及版本；受来源约束的规格身份不能随意更换。', '维护'],
+  ]),
+  '/materials/new': sheet('物料建档', [
+    ['material.create.archive', '按组合建档', '通过现有物料流程建立 MAT 档案；PLN 是规划身份，同一 PLN 可以关联多条 MAT。', '物料'],
+    ['material.create.temporary', '临时物料', '对不上正式规划时使用临时物料流程，不冒充正式 PLN 组合。', '物料'],
+  ]),
+  '/materials/edit': sheet('物料档案', [
+    ['material.archive.open', '查看与维护物料', '查看已保存名称、MAT 编号及来源，保留指定物料上下文；物料不是销售 SKU。', '物料'],
+  ]),
+  '/benefit-packages': sheet('权益包', [
+    ['benefit.list.manage', '查找与管理权益包', '在本机查找、收藏、维护权益包并查看交付历史。', '权益包'],
+  ]),
+  '/benefit-packages/new': sheet('新建权益包', [
+    ['benefit.create.contents', '组合商品与服务', '加入真实 SKU 和独立服务；设备选择仅提供适配上下文，交付手机需要明确加入。', '组包'],
+    ['benefit.create.quote', '保存并预览交付', '填写每包报价或留空，保存成功后预览，生成清单仍须独立确认。', '交付'],
+  ]),
+  '/benefit-packages/edit': sheet('权益包详情', [
+    ['benefit.edit.contents', '维护包内内容', '修改商品、服务、报价和选配规则，条件确认仅属于当前包与当前依据。', '组包'],
+    ['benefit.edit.delivery', '确认交付清单', '按本次包数预览并确认生成本机清单，不进行支付、库存扣减、出库或服务激活。', '交付'],
+  ]),
+  '/benefit-packages/deliveries/detail': sheet('交付清单', [
+    ['benefit.delivery.snapshot', '查看交付快照', '查看生成时保存的商品、服务、数量和报价，不以当前包改写历史。', '清单'],
+    ['benefit.delivery.export', '打印与导出 Excel', '打印或导出本机交付清单，不代表付款、出库或服务已激活。', '清单'],
+  ]),
   '/categories': sheet('商品分类', [
     ['browse', '查看分类', '查看模式下单击节点，查看信息和展开收起。', '查看'],
     ['mode', '查看和编辑模式', '查看时不能改分类。编辑时才能新增、改名、移动和拖拽。', '查看'],
@@ -81,8 +127,10 @@ const sheets: Record<string, PageFeatureSheet> = {
     ['combo', '管理合法组合', '查看组合，已建物料整行高亮，并可创建物料。', '物料'],
     ['grade', '标记商品档次', '把组合标成核心或一般。', '物料'],
     ['temp', '创建临时物料', '为对不上正式规划的组合建临时物料。', '物料'],
-    ['naming', '命名规则', '在节点上打开命名规则。', '规则'],
-    ['host', '节点适用配置', '把适用主机记在模型草稿节点上。不会自动写成物料适用关系。', '规则'],
+    ['spec.naming.node', '命名规则入口', '在节点上打开命名规则。', '规则'],
+    ['host', '节点适用配置', '节点入口维护同一套模板默认及规格例外；发布后新 SKU/MAT 带入各自声明。', '规则'],
+    ['spec.compatibility.template', '配置适用设备', '维护整体默认与规格例外，冲突需要处理；旧商品检查模板更新后预览确认，保护人工修改和取消记录。', '规则'],
+    ['spec.materials.inline', '完整结构关联物料', '在结构工作区查看完整组合、PLN 和全部关联 MAT，区分当前发布版、历史物料和草稿，点击档案查看真实名称。', '物料'],
   ]),
   '/params': sheet('属性词典', [
     ['create', '新建参数', '增加词典里的属性。', '词典'],
@@ -171,13 +219,25 @@ const sheets: Record<string, PageFeatureSheet> = {
 }
 
 export function featurePageKey(path: string, query: { panel?: unknown } = {}) {
+  path = path.split('?')[0] || '/'
+  if (path === '/spus' && query.panel === 'columns') return '/products?panel=columns'
+  if (/^\/benefit-packages\/deliveries\/[^/]+$/.test(path)) return '/benefit-packages/deliveries/detail'
+  for (const base of ['spus', 'skus', 'materials', 'benefit-packages']) {
+    if (path === `/${base}/new`) return path
+    if (new RegExp(`^/${base}/[^/]+$`).test(path)) return `/${base}/edit`
+  }
+  if (path === '/products/new') return '/spus/new'
   if (path === '/products' && query.panel === 'columns') return '/products?panel=columns'
   if (path.startsWith('/products/') && path !== '/products') return '/products/edit'
   return path || '/'
 }
 
 export function featureSheet(path: string, query: { panel?: unknown } = {}) {
-  return sheets[featurePageKey(path, query)] || null
+  const key = featurePageKey(path, query), found = sheets[key]
+  if (!found) return null
+  // Existing feedback keeps its saved feature ID/name. New feedback uses a
+  // page-scoped stable identity for the older short IDs (create/edit/etc.).
+  return { ...found, features: found.features.map(feature => ({ ...feature, id: feature.id.includes('.') ? feature.id : `${key}:${feature.id}` })) }
 }
 
 export function featureStatusText(status: FeatureStatus) {

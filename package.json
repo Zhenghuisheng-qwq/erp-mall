@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build",
+    "build": "node scripts/run-typecheck.mjs && vite build",
     "preview": "vite preview",
-    "typecheck": "vue-tsc -b",
+    "typecheck": "node scripts/run-typecheck.mjs",
     "check:frontend": "node scripts/check-frontend.mjs",
     "check:integration": "node scripts/browser-frontend-final.mjs",
     "check:spu-sku": "node scripts/run-domain-check.mjs scripts/spu-sku-check.ts && node scripts/browser-spu-sku.mjs",

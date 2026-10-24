@@ -1,0 +1,6 @@
+{
+  "extends": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\tsconfig.node.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "D:\\单子\\商城erp\\mock\\iyge-v2-mock\\work\\editor-safety-round2\\20261024-1042-a91f\\domain\\typecheck-final\\node.tsbuildinfo"
+  }
+}

@@ -7,6 +7,7 @@ const baseline = process.argv.includes('--baseline')
   : undefined
 const server = await createServer({
   configFile: false,
+  ...(process.env.DOMAIN_CHECK_CACHE_DIR ? { cacheDir: process.env.DOMAIN_CHECK_CACHE_DIR } : {}),
   server: { middlewareMode: true, hmr: false },
   appType: 'custom',
   plugins: baseline ? [{

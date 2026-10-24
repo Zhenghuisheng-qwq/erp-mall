@@ -1,0 +1,39 @@
+{
+  "checks": [
+    {
+      "name": "A ArrowDown → same-component query B → real Ctrl+Z",
+      "corruptionReproduced": false,
+      "bNodesAfter": 6
+    },
+    {
+      "name": "A→B→A clears old history; same-model undo remains valid",
+      "ok": true
+    },
+    {
+      "name": "left model selection and overview invalidate history",
+      "ok": true
+    },
+    {
+      "name": "属性 projection: real keys, double-click, menu, drag and expansion are readonly",
+      "ok": true
+    },
+    {
+      "name": "值 projection: real keys, double-click, menu, drag and expansion are readonly",
+      "ok": true
+    },
+    {
+      "name": "outline and document edit despite hidden value projection",
+      "ok": true
+    },
+    {
+      "name": "real structural drag is one undo; descendant/value-invalid targets and click/no-op add no history",
+      "ok": true
+    },
+    {
+      "name": "Escape cancels real drag; route change during gesture cannot affect B; viewing blocks drag and undo",
+      "ok": true
+    }
+  ],
+  "errors": [],
+  "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n0 !== 2\n"
+}
