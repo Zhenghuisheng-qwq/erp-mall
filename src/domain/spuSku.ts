@@ -1,3 +1,4 @@
+import { rejectGuide } from './guide/failure'
 import { boundParams, generateSkuFromModel, inspectFamily, modelSpecColumns, planSkuLines, projectAttrs } from './logic'
 import { legalPlanningCombinations } from './planning'
 import { compatibilityFamilyBlock } from './compatibility'
@@ -29,17 +30,17 @@ export function spuIdentityLocked(data: AppData, family: ProductFamily) {
 
 export function saveSpu(data: AppData, family: ProductFamily, now: string): Result<{ id: string }> {
   const old = data.families.find(item => item.id === family.id)
-  if (!family.name.trim()) return { ok: false, message: '请填写 SPU 名称。' }
+  if (!family.name.trim()) return rejectGuide('spu.save.name', '请填写 SPU 名称。')
   const category = data.categories.find(item => item.id === family.categoryId)
-  if (!category) return { ok: false, message: '请选择有效的商品分类。' }
-  if (family.productTypeId && !data.productTypes.some(item => item.id === family.productTypeId && item.categoryId === family.categoryId)) return { ok: false, message: '产品类型与 SPU 分类不一致。' }
-  if (family.templateId && !data.templates.some(item => item.id === family.templateId)) return { ok: false, message: '属性方案已不存在，请重新选择。' }
-  if (family.modelVersionId && !data.specModelVersions.some(item => item.id === family.modelVersionId && item.templateId === family.templateId && item.status === 'published')) return { ok: false, message: '请选择该模型的有效发布版本。' }
-  if (family.productModelId && family.productModelId !== family.templateId) return { ok: false, message: '商品模型与属性方案不一致。' }
+  if (!category) return rejectGuide('spu.save.category', '请选择有效的商品分类。')
+  if (family.productTypeId && !data.productTypes.some(item => item.id === family.productTypeId && item.categoryId === family.categoryId)) return rejectGuide('spu.save.type-category', '产品类型与 SPU 分类不一致。')
+  if (family.templateId && !data.templates.some(item => item.id === family.templateId)) return rejectGuide('spu.save.template', '属性方案已不存在，请重新选择。')
+  if (family.modelVersionId && !data.specModelVersions.some(item => item.id === family.modelVersionId && item.templateId === family.templateId && item.status === 'published')) return rejectGuide('spu.save.version', '请选择该模型的有效发布版本。')
+  if (family.productModelId && family.productModelId !== family.templateId) return rejectGuide('spu.save.model', '商品模型与属性方案不一致。')
   const owner = data.specCanvases.find(item => item.templateId === family.templateId)?.productTypeId
-  if (owner && (!old || old.templateId !== family.templateId || old.productTypeId !== family.productTypeId) && family.productTypeId !== owner) return { ok: false, message: '所选模型不属于这个产品类型。' }
+  if (owner && (!old || old.templateId !== family.templateId || old.productTypeId !== family.productTypeId) && family.productTypeId !== owner) return rejectGuide('spu.save.owner', '所选模型不属于这个产品类型。')
   const identity = (item: ProductFamily) => JSON.stringify([item.categoryId, item.productTypeId || '', item.templateId, item.productModelId || '', item.modelVersionId || '', attrsKey(item.commonAttrs)])
-  if (old && spuIdentityLocked(data, old) && identity(old) !== identity(family)) return { ok: false, message: '已有 SKU、物料或历史关联，不能直接修改分类、类型、模型版本和公共属性。请新建 SPU；现有记录不会被重生成。' }
+  if (old && spuIdentityLocked(data, old) && identity(old) !== identity(family)) return rejectGuide('spu.save.locked', '已有 SKU、物料或历史关联，不能直接修改分类、类型、模型版本和公共属性。请新建 SPU；现有记录不会被重生成。')
   // Only public fields are editable. Historical source, line and identity signature stay intact.
   const next: ProductFamily = { ...(old || family), name: family.name.trim(), oaProductId: family.oaProductId.trim(), categoryId: family.categoryId, productTypeId: family.productTypeId,
     templateId: family.templateId, productModelId: family.productModelId, modelVersionId: family.modelVersionId, commonAttrs: { ...family.commonAttrs }, productGroupIds: [...family.productGroupIds],
@@ -155,7 +156,7 @@ export function appendSkuBatch(data: AppData, input: { familyId: string; generat
   const preview = previewSkuAppend(data, family.id, input.generation)
   if (preview.problem) return { ok: false, message: preview.problem }
   const selected = new Set(input.selectedKeys)
-  if (preview.rows.some(row => selected.has(row.key) && row.state === 'invalid') || [...selected].some(key => !preview.rows.some(row => row.key === key))) return { ok: false, message: '候选已变化或包含无效规格，请重新预览。未写入任何 SKU。' }
+  if (preview.rows.some(row => selected.has(row.key) && row.state === 'invalid') || [...selected].some(key => !preview.rows.some(row => row.key === key))) return rejectGuide('sku.append.stale', '候选已变化或包含无效规格，请重新预览。未写入任何 SKU。')
   const rows = preview.rows.filter(row => selected.has(row.key) && row.state === 'new')
   if (!rows.length) return { ok: true, ids: [], skipped: selected.size }
   const plan = data.productPlans.find(item => item.id === input.generation.planId)
@@ -172,16 +173,16 @@ export function appendSkuBatch(data: AppData, input: { familyId: string; generat
 export function editSku(data: AppData, id: string, draft: SkuDraft, now: string): Result {
   const sku = data.skus.find(item => item.id === id && isRealSku(data, item))
   const family = sku && data.families.find(item => item.id === sku.familyId)
-  if (!sku || !family) return { ok: false, message: '找不到真实 SKU，请到物料管理处理物料档案。' }
-  if (!['draft', 'on_sale', 'off_sale'].includes(draft.status)) return { ok: false, message: 'SKU 状态无效。' }
+  if (!sku || !family) return rejectGuide('sku.save.identity', '找不到真实 SKU，请到物料管理处理物料档案。')
+  if (!['draft', 'on_sale', 'off_sale'].includes(draft.status)) return rejectGuide('sku.save.status', 'SKU 状态无效。')
   const changedSpec = attrsKey(sku.variantAttrs) !== attrsKey(draft.variantAttrs)
   // Historical bound/generated identities stay traceable; ordinary template SKU can edit its spec.
-  if (changedSpec && (sku.sourceNodeIds?.length || sku.creationSource?.kind === 'plan' || sku.planningId)) return { ok: false, message: '这条 SKU 保留模型或规划来源，规格身份不可直接改写。请追加新规格。' }
+  if (changedSpec && (sku.sourceNodeIds?.length || sku.creationSource?.kind === 'plan' || sku.planningId)) return rejectGuide('sku.save.source-locked', '这条 SKU 保留模型或规划来源，规格身份不可直接改写。请追加新规格。')
   if (changedSpec) {
     const allowed = family.modelVersionId ? new Set(modelRows(data, family).map(item => skuSpecKey(data, family, item.variantAttrs))) : undefined
     const error = validateSkuDraft(data, family, draft, allowed)
     if (error) return { ok: false, message: error }
-    if (data.skus.some(item => item.id !== id && item.familyId === family.id && isRealSku(data, item) && skuSpecKey(data, family, item.variantAttrs) === skuSpecKey(data, family, draft.variantAttrs))) return { ok: false, message: '该 SPU 已有相同规格。' }
+    if (data.skus.some(item => item.id !== id && item.familyId === family.id && isRealSku(data, item) && skuSpecKey(data, family, item.variantAttrs) === skuSpecKey(data, family, draft.variantAttrs))) return rejectGuide('sku.save.duplicate', '该 SPU 已有相同规格。')
   }
   Object.assign(sku, { code: draft.code.trim(), skuName: draft.skuName?.trim(), oaSkuId: draft.oaSkuId.trim(), status: draft.status, variantAttrs: { ...draft.variantAttrs }, projectedAttrs: projected(family, draft), updatedAt: now })
   family.updatedAt = now

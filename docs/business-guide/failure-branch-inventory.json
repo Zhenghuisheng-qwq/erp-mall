@@ -1,0 +1,1688 @@
+{
+  "scope": "G4 first-batch refusal source sites; independent of guide article counts",
+  "denominator": {
+    "registeredBindings": 71,
+    "registeredBindingsWithDedicatedStoreEvidence": 32,
+    "scopedSyntacticRefusalSites": 132,
+    "explicitSites": 64,
+    "callbackSites": 14,
+    "legacyUnknownSites": 54
+  },
+  "notes": [
+    "The source-site denominator counts refusal statements in the named first-batch functions, not articles, route totals, or every boolean subexpression. Pass-through validators and their deeper internals are explicit gaps; this does not claim every ERP business branch is precisely bound.",
+    "Some refusal sites invoke one shared rule binding; registered binding count and syntactic source-site count are deliberately separate.",
+    "Dedicated Store evidence does not imply browser verification. Browser evidence is reported separately.",
+    "Legacy text-return helpers retain the original message. Unknown failures are never reclassified from message text."
+  ],
+  "branches": [
+    {
+      "id": "category.move.self",
+      "actionId": "action-category-move",
+      "ruleId": "rule-category-cycle",
+      "kind": "business",
+      "source": "src/domain/categoryTree.ts:moveCategoryNode/self",
+      "exact": true,
+      "validation": "default:category self; strict:category self"
+    },
+    {
+      "id": "category.move.descendant",
+      "actionId": "action-category-move",
+      "ruleId": "rule-category-cycle",
+      "kind": "business",
+      "source": "src/domain/categoryTree.ts:moveCategoryNode/descendant",
+      "exact": true,
+      "validation": "default:category descendant; strict:category descendant"
+    },
+    {
+      "id": "category.move.source-missing",
+      "actionId": "action-category-move",
+      "ruleId": "rule-category-stale",
+      "kind": "conflict",
+      "source": "src/domain/categoryTree.ts:moveCategoryNode/source",
+      "exact": true,
+      "validation": "default:category missing source; strict:category missing source"
+    },
+    {
+      "id": "category.move.target-missing",
+      "actionId": "action-category-move",
+      "ruleId": "rule-category-stale",
+      "kind": "conflict",
+      "source": "src/domain/categoryTree.ts:moveCategoryNode/target",
+      "exact": true,
+      "validation": "default:category missing target; strict:category missing target"
+    },
+    {
+      "id": "category.move.target-typed",
+      "actionId": "action-category-move",
+      "ruleId": "rule-category-typed-target",
+      "kind": "business",
+      "source": "src/domain/categoryTree.ts:moveCategoryNode/typed-target",
+      "exact": true,
+      "validation": "default:category typed target; strict:category typed target"
+    },
+    {
+      "id": "model.publish.dictionary-attribute",
+      "actionId": "action-model-publish",
+      "ruleId": "rule-model-dictionary",
+      "kind": "business",
+      "source": "src/domain/logic.ts:specPublishProblems/missing-attribute",
+      "exact": true,
+      "validation": "default:publish missing dictionary; strict:publish missing dictionary"
+    },
+    {
+      "id": "model.publish.dictionary-value",
+      "actionId": "action-model-publish",
+      "ruleId": "rule-model-dictionary",
+      "kind": "business",
+      "source": "src/domain/logic.ts:specPublishProblems/missing-value",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "model.publish.no-attribute",
+      "actionId": "action-model-publish",
+      "ruleId": "rule-model-structure",
+      "kind": "business",
+      "source": "src/domain/logic.ts:specPublishProblems/no-attribute",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "model.publish.parent-missing",
+      "actionId": "action-model-publish",
+      "ruleId": "rule-model-structure",
+      "kind": "business",
+      "source": "src/domain/logic.ts:specPublishProblems/parent-missing",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "model.publish.unreachable",
+      "actionId": "action-model-publish",
+      "ruleId": "rule-model-structure",
+      "kind": "business",
+      "source": "src/domain/logic.ts:specPublishProblems/unreachable",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "model.publish.invalid-root",
+      "actionId": "action-model-publish",
+      "ruleId": "rule-model-structure",
+      "kind": "business",
+      "source": "src/domain/logic.ts:specPublishProblems/invalid-root",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "model.publish.value-child",
+      "actionId": "action-model-publish",
+      "ruleId": "rule-model-structure",
+      "kind": "business",
+      "source": "src/domain/logic.ts:specPublishProblems/value-child",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "model.publish.mixed-children",
+      "actionId": "action-model-publish",
+      "ruleId": "rule-model-structure",
+      "kind": "business",
+      "source": "src/domain/logic.ts:specPublishProblems/mixed-children",
+      "exact": true,
+      "validation": "default:publish mixed attribute/value children; strict:publish mixed attribute/value children"
+    },
+    {
+      "id": "model.publish.empty-attribute",
+      "actionId": "action-model-publish",
+      "ruleId": "rule-model-structure",
+      "kind": "business",
+      "source": "src/domain/logic.ts:specPublishProblems/empty-attribute",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "model.publish.no-combination",
+      "actionId": "action-model-publish",
+      "ruleId": "rule-model-structure",
+      "kind": "business",
+      "source": "src/domain/logic.ts:specPublishProblems/no-combination",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "material.create.model-type",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-source",
+      "kind": "business",
+      "source": "src/domain/material.ts:createV3Material/model-type",
+      "exact": true,
+      "validation": "default:material product type mismatch; strict:material product type mismatch"
+    },
+    {
+      "id": "material.create.category-type",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-source",
+      "kind": "business",
+      "source": "src/domain/material.ts:createV3Material/category-type",
+      "exact": true,
+      "validation": "default:material category type mismatch; strict:material category type mismatch"
+    },
+    {
+      "id": "material.plan.missing",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-planning",
+      "kind": "business",
+      "source": "src/domain/material.ts:resolveV3MaterialSpec/plan-missing",
+      "exact": true,
+      "validation": "default:material missing PLN; strict:material missing PLN"
+    },
+    {
+      "id": "material.plan.temporary",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-planning",
+      "kind": "business",
+      "source": "src/domain/material.ts:resolveV3MaterialSpec/temporary-plan",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "material.plan.model",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-source",
+      "kind": "business",
+      "source": "src/domain/material.ts:resolveV3MaterialSpec/plan-model",
+      "exact": true,
+      "validation": "default:material source model mismatch; strict:material source model mismatch"
+    },
+    {
+      "id": "material.plan.retired",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-planning",
+      "kind": "business",
+      "source": "src/domain/material.ts:resolveV3MaterialSpec/retired",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "material.plan.version",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-planning",
+      "kind": "business",
+      "source": "src/domain/material.ts:resolveV3MaterialSpec/version-missing",
+      "exact": true,
+      "validation": "default:material version unavailable; strict:material version unavailable"
+    },
+    {
+      "id": "material.plan.unpublished",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-planning",
+      "kind": "business",
+      "source": "src/domain/material.ts:resolveV3MaterialSpec/unpublished",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "material.plan.not-in-version",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-planning",
+      "kind": "business",
+      "source": "src/domain/material.ts:resolveV3MaterialSpec/not-in-version",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "material.plan.not-alive",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-planning",
+      "kind": "business",
+      "source": "src/domain/material.ts:resolveV3MaterialSpec/not-alive",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "material.temporary.category-type",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-source",
+      "kind": "business",
+      "source": "src/domain/material.ts:createTemporaryMaterial/category-type",
+      "exact": true,
+      "validation": "default:temporary material category type mismatch; strict:temporary material category type mismatch"
+    },
+    {
+      "id": "material.temporary.version",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-source",
+      "kind": "business",
+      "source": "src/domain/material.ts:createTemporaryMaterial/version",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "spu.save.name",
+      "actionId": "action-spu-save",
+      "ruleId": "rule-spu-input",
+      "kind": "input",
+      "source": "src/domain/spuSku.ts:saveSpu/name",
+      "exact": true,
+      "validation": "default:SPU required name; strict:SPU required name"
+    },
+    {
+      "id": "spu.save.category",
+      "actionId": "action-spu-save",
+      "ruleId": "rule-spu-input",
+      "kind": "input",
+      "source": "src/domain/spuSku.ts:saveSpu/category",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "spu.save.type-category",
+      "actionId": "action-spu-save",
+      "ruleId": "rule-spu-identity",
+      "kind": "business",
+      "source": "src/domain/spuSku.ts:saveSpu/type-category",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "spu.save.template",
+      "actionId": "action-spu-save",
+      "ruleId": "rule-spu-identity",
+      "kind": "business",
+      "source": "src/domain/spuSku.ts:saveSpu/template",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "spu.save.version",
+      "actionId": "action-spu-save",
+      "ruleId": "rule-spu-identity",
+      "kind": "business",
+      "source": "src/domain/spuSku.ts:saveSpu/version",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "spu.save.model",
+      "actionId": "action-spu-save",
+      "ruleId": "rule-spu-identity",
+      "kind": "business",
+      "source": "src/domain/spuSku.ts:saveSpu/model",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "spu.save.owner",
+      "actionId": "action-spu-save",
+      "ruleId": "rule-spu-identity",
+      "kind": "business",
+      "source": "src/domain/spuSku.ts:saveSpu/owner",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "spu.save.locked",
+      "actionId": "action-spu-save",
+      "ruleId": "rule-spu-identity",
+      "kind": "business",
+      "source": "src/domain/spuSku.ts:saveSpu/locked",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "sku.save.identity",
+      "actionId": "action-sku-save",
+      "ruleId": "rule-sku-identity",
+      "kind": "business",
+      "source": "src/domain/spuSku.ts:editSku/not-sales-sku",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "sku.save.status",
+      "actionId": "action-sku-save",
+      "ruleId": "rule-sku-input",
+      "kind": "input",
+      "source": "src/domain/spuSku.ts:editSku/status",
+      "exact": true,
+      "validation": "default:SKU invalid status; strict:SKU invalid status"
+    },
+    {
+      "id": "sku.save.source-locked",
+      "actionId": "action-sku-save",
+      "ruleId": "rule-sku-identity",
+      "kind": "business",
+      "source": "src/domain/spuSku.ts:editSku/source-locked",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "sku.save.duplicate",
+      "actionId": "action-sku-save",
+      "ruleId": "rule-sku-identity",
+      "kind": "business",
+      "source": "src/domain/spuSku.ts:editSku/duplicate-spec",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "sku.append.stale",
+      "actionId": "action-sku-save",
+      "ruleId": "rule-sku-identity",
+      "kind": "conflict",
+      "source": "src/domain/spuSku.ts:appendSkuBatch/stale-candidate",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "compatibility.bind.target",
+      "actionId": "action-compatibility-bind",
+      "ruleId": "rule-compatibility-binding",
+      "kind": "business",
+      "source": "src/stores/catalog.ts:commitDeviceBinding/target",
+      "exact": true,
+      "validation": "default:device MAT/nonhost target; strict:device MAT/nonhost target"
+    },
+    {
+      "id": "compatibility.bind.type",
+      "actionId": "action-compatibility-bind",
+      "ruleId": "rule-compatibility-binding",
+      "kind": "business",
+      "source": "src/stores/catalog.ts:commitDeviceBinding/type",
+      "exact": true,
+      "validation": "default:device binding mismatched type; strict:device binding mismatched type"
+    },
+    {
+      "id": "compatibility.bind.scope",
+      "actionId": "action-compatibility-bind",
+      "ruleId": "rule-compatibility-binding",
+      "kind": "business",
+      "source": "src/stores/catalog.ts:commitDeviceBinding/scope",
+      "exact": true,
+      "validation": "default:device binding requires model scope; strict:device binding requires model scope"
+    },
+    {
+      "id": "compatibility.bind.basis",
+      "actionId": "action-compatibility-bind",
+      "ruleId": "rule-compatibility-basis",
+      "kind": "conflict",
+      "source": "src/stores/catalog.ts:commitDeviceBinding/source-stamp",
+      "exact": true,
+      "validation": "default:device binding source stamp changed; strict:device binding source stamp changed"
+    },
+    {
+      "id": "compatibility.bind.replace",
+      "actionId": "action-compatibility-bind",
+      "ruleId": "rule-compatibility-binding",
+      "kind": "business",
+      "source": "src/stores/catalog.ts:commitDeviceBinding/replace-confirmation",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "compatibility.sync.basis",
+      "actionId": "action-compatibility-sync",
+      "ruleId": "rule-compatibility-basis",
+      "kind": "conflict",
+      "source": "src/domain/templateCompatibilitySync.ts:applyTemplateCompatibilitySync/basis",
+      "exact": true,
+      "validation": "default:compatibility sync actual stale preview; strict:compatibility sync actual stale preview"
+    },
+    {
+      "id": "compatibility.sync.manual",
+      "actionId": "action-compatibility-sync",
+      "ruleId": "rule-compatibility-manual-protection",
+      "kind": "business",
+      "source": "src/domain/templateCompatibilitySync.ts:applyTemplateCompatibilitySync/manual-protection",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "benefit.save.revision",
+      "actionId": "action-benefit-save",
+      "ruleId": "rule-benefit-preview",
+      "kind": "conflict",
+      "source": "src/stores/catalog.ts:saveBenefitPackage/revision",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "benefit.save.validation",
+      "actionId": "action-benefit-save",
+      "ruleId": "rule-benefit-validation",
+      "kind": "business",
+      "source": "src/stores/catalog.ts:saveBenefitPackage/validation",
+      "exact": true,
+      "validation": "default:benefit actual validation; strict:benefit actual validation"
+    },
+    {
+      "id": "benefit.deliver.revision",
+      "actionId": "action-benefit-deliver",
+      "ruleId": "rule-benefit-preview",
+      "kind": "conflict",
+      "source": "src/stores/catalog.ts:generateBenefitDelivery/revision",
+      "exact": true,
+      "validation": "default:delivery stale package revision; strict:delivery stale package revision"
+    },
+    {
+      "id": "benefit.deliver.validation",
+      "actionId": "action-benefit-deliver",
+      "ruleId": "rule-benefit-validation",
+      "kind": "business",
+      "source": "src/stores/catalog.ts:generateBenefitDelivery/validation",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "benefit.deliver.basis",
+      "actionId": "action-benefit-deliver",
+      "ruleId": "rule-benefit-preview",
+      "kind": "conflict",
+      "source": "src/stores/catalog.ts:generateBenefitDelivery/basis",
+      "exact": true,
+      "validation": "default:delivery changed basis; strict:delivery changed basis"
+    },
+    {
+      "id": "benefit.quote.invalid",
+      "actionId": "action-benefit-save",
+      "ruleId": "rule-benefit-quote",
+      "kind": "input",
+      "source": "src/stores/catalog.ts:saveBenefitPackage/validation.quote",
+      "exact": true,
+      "validation": "default:benefit invalid quote; strict:benefit invalid quote"
+    },
+    {
+      "id": "benefit.deliver.quote",
+      "actionId": "action-benefit-deliver",
+      "ruleId": "rule-benefit-quote",
+      "kind": "input",
+      "source": "src/stores/catalog.ts:generateBenefitDelivery/preview.quote",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "import.material.basis",
+      "actionId": "action-json-import",
+      "ruleId": "rule-conflict",
+      "kind": "conflict",
+      "source": "src/stores/catalog.ts:commitMaterialImport/basis",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "import.json.parse",
+      "actionId": "action-json-import",
+      "ruleId": "rule-json-import",
+      "kind": "input",
+      "source": "src/stores/catalog.ts:importJson/JSON.parse",
+      "exact": true,
+      "validation": "default:JSON syntax; strict:JSON syntax"
+    },
+    {
+      "id": "import.json.missing",
+      "actionId": "action-json-import",
+      "ruleId": "rule-json-import",
+      "kind": "input",
+      "source": "src/stores/catalog.ts:importJson/required-containers",
+      "exact": true,
+      "validation": "default:JSON missing containers; strict:JSON missing containers"
+    },
+    {
+      "id": "persistence.set-item",
+      "actionId": "action-business-save",
+      "ruleId": "rule-persistence",
+      "kind": "persistence",
+      "source": "src/stores/catalogPersistence.ts:write/setItem",
+      "exact": true,
+      "validation": "default:real setItem failure; default:saved view actual setItem failure; default:watcher failure distinguishes memory-only state; strict:real setItem failure; strict:saved view actual setItem failure; strict:watcher failure distinguishes memory-only state"
+    },
+    {
+      "id": "persistence.external",
+      "actionId": "action-business-save",
+      "ruleId": "rule-conflict",
+      "kind": "conflict",
+      "source": "src/stores/catalogPersistence.ts:run/acceptedRaw",
+      "exact": true,
+      "validation": "default:acceptedRaw conflict; strict:acceptedRaw conflict"
+    },
+    {
+      "id": "persistence.disposed",
+      "actionId": "action-business-save",
+      "ruleId": "rule-conflict",
+      "kind": "conflict",
+      "source": "src/stores/catalogPersistence.ts:run/disposed",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "route.permission",
+      "actionId": "action-rbac-authorize",
+      "ruleId": "rule-permission",
+      "kind": "permission",
+      "source": "src/router/index.ts:beforeEach/canRoute",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "import.json.validation",
+      "actionId": "action-json-import",
+      "ruleId": "rule-json-import",
+      "kind": "input",
+      "source": "src/stores/catalog.ts:importJson/validation",
+      "exact": true,
+      "validation": "default:JSON damaged business config; strict:JSON damaged business config"
+    },
+    {
+      "id": "material.identity.formal-code",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-identity",
+      "kind": "business",
+      "source": "src/domain/material.ts:createV3Material/material-code",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "material.identity.temporary-code",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-identity",
+      "kind": "business",
+      "source": "src/domain/material.ts:createTemporaryMaterial/material-code",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "material.identity.deleted",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-identity",
+      "kind": "business",
+      "source": "src/domain/material.ts:deletedReceiptResult",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "material.scope.source",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-source",
+      "kind": "business",
+      "source": "src/domain/materialRelationCommands.ts:previewMaterialScope/source",
+      "exact": true,
+      "validation": "default:material unavailable published scope; strict:material unavailable published scope"
+    },
+    {
+      "id": "material.scope.planning",
+      "actionId": "action-material-create",
+      "ruleId": "rule-material-planning",
+      "kind": "business",
+      "source": "src/domain/materialRelationCommands.ts:previewMaterialScope/planning",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "material.scope.manual-origin",
+      "actionId": "action-material-create",
+      "ruleId": "rule-compatibility-manual-protection",
+      "kind": "business",
+      "source": "src/domain/materialRelationCommands.ts:previewMaterialScope/protected-origin",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    },
+    {
+      "id": "material.scope.manual-contribution",
+      "actionId": "action-material-create",
+      "ruleId": "rule-compatibility-manual-protection",
+      "kind": "business",
+      "source": "src/domain/materialRelationCommands.ts:previewMaterialScope/protected-contribution",
+      "exact": true,
+      "validation": "default:human cancelled contribution remains protected after V2 note change; strict:human cancelled contribution remains protected after V2 note change"
+    },
+    {
+      "id": "command.permission",
+      "actionId": "action-rbac-authorize",
+      "ruleId": "rule-permission",
+      "kind": "permission",
+      "source": "src/stores/catalog.ts:api-command-wrapper/can",
+      "exact": true,
+      "validation": "strict:strict Store command authorization; strict:SKU-create-only cannot publish model"
+    },
+    {
+      "id": "command.authorization-changed",
+      "actionId": "action-rbac-authorize",
+      "ruleId": "rule-permission",
+      "kind": "permission",
+      "source": "src/stores/catalog.ts:command/queued-actor",
+      "exact": true,
+      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
+    }
+  ],
+  "gaps": [
+    {
+      "id": "gap.legacy.string",
+      "actionId": "action-business-save",
+      "kind": "unknown",
+      "source": "legacy string-valued validation helpers (dictionary/model/material compatibility/reference checks)",
+      "exact": false,
+      "validation": "not precisely bound",
+      "note": "Original message retained; no message matching or inferred business rule."
+    },
+    {
+      "id": "gap.material.path",
+      "actionId": "action-business-save",
+      "kind": "unknown",
+      "source": "material.ts:verifySteps and legacy naming/identity string helpers",
+      "exact": false,
+      "validation": "not precisely bound",
+      "note": "Original message retained; no message matching or inferred business rule."
+    },
+    {
+      "id": "gap.sku.preview",
+      "actionId": "action-business-save",
+      "kind": "unknown",
+      "source": "spuSku.ts:previewSkuAppend and legacy SKU configuration strings",
+      "exact": false,
+      "validation": "not precisely bound",
+      "note": "Original message retained; no message matching or inferred business rule."
+    },
+    {
+      "id": "gap.category.drag",
+      "actionId": "action-business-save",
+      "kind": "unknown",
+      "source": "categoryTree.ts:relocateBlockMessage legacy drag/drop strings",
+      "exact": false,
+      "validation": "not precisely bound",
+      "note": "Original message retained; no message matching or inferred business rule."
+    },
+    {
+      "id": "gap.unexpected.exception",
+      "actionId": "action-business-save",
+      "kind": "unknown",
+      "source": "unexpected exceptions without explicit branch metadata",
+      "exact": false,
+      "validation": "not precisely bound",
+      "note": "Original message retained; no message matching or inferred business rule."
+    }
+  ],
+  "sites": [
+    {
+      "source": "src/domain/categoryTree.ts",
+      "function": "moveCategoryNode",
+      "line": 320,
+      "syntax": "return '不能移动到自己下面'",
+      "binding": "callback"
+    },
+    {
+      "source": "src/domain/categoryTree.ts",
+      "function": "moveCategoryNode",
+      "line": 321,
+      "syntax": "return '不能移动到自己的子分类下面'",
+      "binding": "callback"
+    },
+    {
+      "source": "src/domain/categoryTree.ts",
+      "function": "moveCategoryNode",
+      "line": 323,
+      "syntax": "return '分类不存在'",
+      "binding": "callback"
+    },
+    {
+      "source": "src/domain/categoryTree.ts",
+      "function": "moveCategoryNode",
+      "line": 324,
+      "syntax": "return '父分类不存在'",
+      "binding": "callback"
+    },
+    {
+      "source": "src/domain/logic.ts",
+      "function": "specPublishProblems",
+      "line": 346,
+      "syntax": "problems.push('还没有属性节点，不能发布。')",
+      "binding": "callback"
+    },
+    {
+      "source": "src/domain/logic.ts",
+      "function": "specPublishProblems",
+      "line": 359,
+      "syntax": "problems.push(`「${label}」找不到父节点，属于孤立节点。`)",
+      "binding": "callback"
+    },
+    {
+      "source": "src/domain/logic.ts",
+      "function": "specPublishProblems",
+      "line": 362,
+      "syntax": "problems.push(`「${label}」没有连到模型根上，属于孤立节点。`)",
+      "binding": "callback"
+    },
+    {
+      "source": "src/domain/logic.ts",
+      "function": "specPublishProblems",
+      "line": 365,
+      "syntax": "problems.push(`「${label}」引用的属性已不在属性词典中。`)",
+      "binding": "callback"
+    },
+    {
+      "source": "src/domain/logic.ts",
+      "function": "specPublishProblems",
+      "line": 366,
+      "syntax": "problems.push(`「${label}」引用的属性值已不在属性词典中。`)",
+      "binding": "callback"
+    },
+    {
+      "source": "src/domain/logic.ts",
+      "function": "specPublishProblems",
+      "line": 367,
+      "syntax": "problems.push(`「${label}」不能作为根节点，根上只能放属性。`)",
+      "binding": "callback"
+    },
+    {
+      "source": "src/domain/logic.ts",
+      "function": "specPublishProblems",
+      "line": 368,
+      "syntax": "problems.push(SPEC_VALUE_TO_VALUE)",
+      "binding": "callback"
+    },
+    {
+      "source": "src/domain/logic.ts",
+      "function": "specPublishProblems",
+      "line": 391,
+      "syntax": "problems.push(`属性「${locate(attribute)}」同时挂了属性值和子属性。请把子属性放到属性值下面，或只保留其中一种，否则规格路径不明确，不能发布。`)",
+      "binding": "callback"
+    },
+    {
+      "source": "src/domain/logic.ts",
+      "function": "specPublishProblems",
+      "line": 393,
+      "syntax": "problems.push(`属性「${locate(attribute)}」下面没有取值。`)",
+      "binding": "callback"
+    },
+    {
+      "source": "src/domain/logic.ts",
+      "function": "specPublishProblems",
+      "line": 396,
+      "syntax": "problems.push('当前结构生成不出完整规格路径，不能发布。')",
+      "binding": "callback"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "resolveV3MaterialSpec",
+      "line": 161,
+      "syntax": "return rejectGuide('material.plan.missing', '找不到这个规格编号。')",
+      "binding": "explicit",
+      "branchId": "material.plan.missing"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "resolveV3MaterialSpec",
+      "line": 162,
+      "syntax": "return rejectGuide('material.plan.temporary', '这是临时物料，不能按正式规格创建。')",
+      "binding": "explicit",
+      "branchId": "material.plan.temporary"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "resolveV3MaterialSpec",
+      "line": 163,
+      "syntax": "return rejectGuide('material.plan.model', '这个规格不属于当前商品模型。')",
+      "binding": "explicit",
+      "branchId": "material.plan.model"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "resolveV3MaterialSpec",
+      "line": 164,
+      "syntax": "return rejectGuide('material.plan.retired', '这条规格已经停用，不能再建档。')",
+      "binding": "explicit",
+      "branchId": "material.plan.retired"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "resolveV3MaterialSpec",
+      "line": 166,
+      "syntax": "return rejectGuide('material.plan.version', '找不到对应的模型版本。')",
+      "binding": "explicit",
+      "branchId": "material.plan.version"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "resolveV3MaterialSpec",
+      "line": 167,
+      "syntax": "return rejectGuide('material.plan.unpublished', '模型还没发布，不能按这个版本建档。')",
+      "binding": "explicit",
+      "branchId": "material.plan.unpublished"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "resolveV3MaterialSpec",
+      "line": 168,
+      "syntax": "return rejectGuide('material.plan.not-in-version', '这个版本里没有这条规格。')",
+      "binding": "explicit",
+      "branchId": "material.plan.not-in-version"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "resolveV3MaterialSpec",
+      "line": 172,
+      "syntax": "return rejectGuide('material.plan.not-alive', '这个版本里已经没有这条规格。')",
+      "binding": "explicit",
+      "branchId": "material.plan.not-alive"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "verifySteps",
+      "line": 200,
+      "syntax": "return { ok: false, message: '规格来源和发布版本不一致。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "verifySteps",
+      "line": 202,
+      "syntax": "return { ok: false, message: '规格的条件路径已经变了。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "verifySteps",
+      "line": 209,
+      "syntax": "return { ok: false, message: '这条规格没有可用的取值。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createV3Material",
+      "line": 245,
+      "syntax": "return { ok: false, message: '创建请求无效。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createV3Material",
+      "line": 256,
+      "syntax": "return rejectGuide('material.create.model-type', '产品类型和商品模型不一致。')",
+      "binding": "explicit",
+      "branchId": "material.create.model-type"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createV3Material",
+      "line": 258,
+      "syntax": "return rejectGuide('material.create.category-type', '商品分类和产品类型不一致。')",
+      "binding": "explicit",
+      "branchId": "material.create.category-type"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createV3Material",
+      "line": 268,
+      "syntax": "return { ok: false, message: suggestion.message || '请填写物料名称。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createV3Material",
+      "line": 270,
+      "syntax": "return { ok: false, message: '请填写物料名称。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createV3Material",
+      "line": 274,
+      "syntax": "return { ok: false, message: '有多款商品都能放下这条规格，请选一款。', choices: choices.map((item) => ({ id: item.id, name: item.name })) }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createV3Material",
+      "line": 304,
+      "syntax": "return rejectGuide('material.identity.formal-code', occupied)",
+      "binding": "explicit",
+      "branchId": "material.identity.formal-code"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createTemporaryMaterial",
+      "line": 493,
+      "syntax": "return { ok: false, message: '创建请求无效。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createTemporaryMaterial",
+      "line": 503,
+      "syntax": "return { ok: false, message: '请填写物料编码。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createTemporaryMaterial",
+      "line": 505,
+      "syntax": "return rejectGuide('material.identity.temporary-code', occupied)",
+      "binding": "explicit",
+      "branchId": "material.identity.temporary-code"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createTemporaryMaterial",
+      "line": 507,
+      "syntax": "return rejectGuide('material.temporary.category-type', '商品分类和产品类型不一致。')",
+      "binding": "explicit",
+      "branchId": "material.temporary.category-type"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createTemporaryMaterial",
+      "line": 512,
+      "syntax": "return rejectGuide('material.temporary.version', '找不到对应的已发布模型版本。')",
+      "binding": "explicit",
+      "branchId": "material.temporary.version"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createTemporaryMaterial",
+      "line": 520,
+      "syntax": "return { ok: false, message: '有属性不在属性词典里。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createTemporaryMaterial",
+      "line": 521,
+      "syntax": "return { ok: false, message: `${param.name} 不在正式取值里。临时填写请改成手工输入。` }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createTemporaryMaterial",
+      "line": 524,
+      "syntax": "return { ok: false, message: '请至少填写一项属性。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createTemporaryMaterial",
+      "line": 609,
+      "syntax": "return { ok: false, message: '临时值不应写入属性词典。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/material.ts",
+      "function": "createTemporaryMaterial",
+      "line": 610,
+      "syntax": "return { ok: false, message: '临时建档不应改动正式模型。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "saveSpu",
+      "line": 33,
+      "syntax": "return rejectGuide('spu.save.name', '请填写 SPU 名称。')",
+      "binding": "explicit",
+      "branchId": "spu.save.name"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "saveSpu",
+      "line": 35,
+      "syntax": "return rejectGuide('spu.save.category', '请选择有效的商品分类。')",
+      "binding": "explicit",
+      "branchId": "spu.save.category"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "saveSpu",
+      "line": 36,
+      "syntax": "return rejectGuide('spu.save.type-category', '产品类型与 SPU 分类不一致。')",
+      "binding": "explicit",
+      "branchId": "spu.save.type-category"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "saveSpu",
+      "line": 37,
+      "syntax": "return rejectGuide('spu.save.template', '属性方案已不存在，请重新选择。')",
+      "binding": "explicit",
+      "branchId": "spu.save.template"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "saveSpu",
+      "line": 38,
+      "syntax": "return rejectGuide('spu.save.version', '请选择该模型的有效发布版本。')",
+      "binding": "explicit",
+      "branchId": "spu.save.version"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "saveSpu",
+      "line": 39,
+      "syntax": "return rejectGuide('spu.save.model', '商品模型与属性方案不一致。')",
+      "binding": "explicit",
+      "branchId": "spu.save.model"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "saveSpu",
+      "line": 41,
+      "syntax": "return rejectGuide('spu.save.owner', '所选模型不属于这个产品类型。')",
+      "binding": "explicit",
+      "branchId": "spu.save.owner"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "saveSpu",
+      "line": 43,
+      "syntax": "return rejectGuide('spu.save.locked', '已有 SKU、物料或历史关联，不能直接修改分类、类型、模型版本和公共属性。请新建 SPU；现有记录不会被重生成。')",
+      "binding": "explicit",
+      "branchId": "spu.save.locked"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "skuConfigurationProblem",
+      "line": 77,
+      "syntax": "return 'SPU 的分类已不存在，请先补全 SPU 配置。'",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "skuConfigurationProblem",
+      "line": 78,
+      "syntax": "return 'SPU 尚未选择有效属性方案，请先补全 SPU 配置。'",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "skuConfigurationProblem",
+      "line": 79,
+      "syntax": "return 'SPU 的模型尚未绑定发布版本，请先发布模型并补全 SPU 配置。'",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "skuConfigurationProblem",
+      "line": 80,
+      "syntax": "return 'SPU 的产品类型与分类不一致，请先处理主体配置。'",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "skuConfigurationProblem",
+      "line": 81,
+      "syntax": "return 'SPU 绑定的历史发布版本已不可用；不会自动切换到最新版本。'",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "appendSkuBatch",
+      "line": 155,
+      "syntax": "return { ok: false, message: 'SPU 已不存在，请重新选择。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "appendSkuBatch",
+      "line": 157,
+      "syntax": "return { ok: false, message: preview.problem }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "appendSkuBatch",
+      "line": 159,
+      "syntax": "return rejectGuide('sku.append.stale', '候选已变化或包含无效规格，请重新预览。未写入任何 SKU。')",
+      "binding": "explicit",
+      "branchId": "sku.append.stale"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "appendSkuBatch",
+      "line": 167,
+      "syntax": "return { ok: false, message: '新记录标识冲突，未写入任何 SKU，请重试。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "editSku",
+      "line": 176,
+      "syntax": "return rejectGuide('sku.save.identity', '找不到真实 SKU，请到物料管理处理物料档案。')",
+      "binding": "explicit",
+      "branchId": "sku.save.identity"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "editSku",
+      "line": 177,
+      "syntax": "return rejectGuide('sku.save.status', 'SKU 状态无效。')",
+      "binding": "explicit",
+      "branchId": "sku.save.status"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "editSku",
+      "line": 180,
+      "syntax": "return rejectGuide('sku.save.source-locked', '这条 SKU 保留模型或规划来源，规格身份不可直接改写。请追加新规格。')",
+      "binding": "explicit",
+      "branchId": "sku.save.source-locked"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "editSku",
+      "line": 184,
+      "syntax": "return { ok: false, message: error }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/spuSku.ts",
+      "function": "editSku",
+      "line": 185,
+      "syntax": "return rejectGuide('sku.save.duplicate', '该 SPU 已有相同规格。')",
+      "binding": "explicit",
+      "branchId": "sku.save.duplicate"
+    },
+    {
+      "source": "src/domain/materialRelationCommands.ts",
+      "function": "previewMaterialScope",
+      "line": 57,
+      "syntax": "reject('material.scope.source','请选择真实的已发布模型版本及产品类型。')",
+      "binding": "explicit",
+      "branchId": "material.scope.source"
+    },
+    {
+      "source": "src/domain/materialRelationCommands.ts",
+      "function": "previewMaterialScope",
+      "line": 64,
+      "syntax": "reject('material.scope.planning','完整规划不属于指定版本的有效合法组合。')",
+      "binding": "explicit",
+      "branchId": "material.scope.planning"
+    },
+    {
+      "source": "src/domain/materialRelationCommands.ts",
+      "function": "previewMaterialScope",
+      "line": 120,
+      "syntax": "reject('material.scope.manual-origin',`${c.planningId} 命中人工保护来源 ${origin.key}，不能自动覆盖。`)",
+      "binding": "explicit",
+      "branchId": "material.scope.manual-origin"
+    },
+    {
+      "source": "src/domain/materialRelationCommands.ts",
+      "function": "previewMaterialScope",
+      "line": 127,
+      "syntax": "reject('material.scope.manual-contribution',`${c.planningId} 的兼容贡献曾被人工修改或取消，不能自动恢复；确认版本范围不代表恢复声明，请保留人工决定。`)",
+      "binding": "explicit",
+      "branchId": "material.scope.manual-contribution"
+    },
+    {
+      "source": "src/domain/materialRelationCommands.ts",
+      "function": "executeMaterialRelation",
+      "line": 140,
+      "syntax": "return fail('缺少请求 ID。')",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/materialRelationCommands.ts",
+      "function": "executeMaterialRelation",
+      "line": 144,
+      "syntax": "return fail('请求 ID 已用于其他关系，不能改写原请求。')",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/materialRelationCommands.ts",
+      "function": "executeMaterialRelation",
+      "line": 145,
+      "syntax": "return fail('原请求已解除或物料已删除，请发起新的请求。')",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/materialRelationCommands.ts",
+      "function": "executeMaterialRelation",
+      "line": 148,
+      "syntax": "return fail('该请求已用于原物料建档，不能改作新的范围关联请求。')",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/materialRelationCommands.ts",
+      "function": "executeMaterialRelation",
+      "line": 149,
+      "syntax": "return fail('预览后数据已变化，请重新预览并确认；没有写入。')",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/materialRelationCommands.ts",
+      "function": "executeMaterialRelation",
+      "line": 152,
+      "syntax": "return fail('请确认新版本范围变化；旧版本关系不会扩张。')",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/materialRelationCommands.ts",
+      "function": "executeMaterialRelation",
+      "line": 161,
+      "syntax": "return fail('完整规划请沿用创建物料入口。')",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/materialRelationCommands.ts",
+      "function": "executeMaterialRelation",
+      "line": 163,
+      "syntax": "return fail(p.suggestion.message||'请填写物料名称。')",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/materialRelationCommands.ts",
+      "function": "executeMaterialRelation",
+      "line": 165,
+      "syntax": "return fail(conflict)",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/materialRelationCommands.ts",
+      "function": "revokeMaterialRelation",
+      "line": 189,
+      "syntax": "return {ok:false,message:'数据已变化，请刷新后重新确认。'}",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/materialRelationCommands.ts",
+      "function": "revokeMaterialRelation",
+      "line": 191,
+      "syntax": "return {ok:false,message:'原始建档或不支持的关系不能作为普通关联解除。'}",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/domain/templateCompatibilitySync.ts",
+      "function": "applyTemplateCompatibilitySync",
+      "line": 386,
+      "syntax": "return rejectGuide('compatibility.sync.basis', '预览后商品、声明或版本已变化，请重新预览；未写入任何内容。')",
+      "binding": "explicit",
+      "branchId": "compatibility.sync.basis"
+    },
+    {
+      "source": "src/domain/templateCompatibilitySync.ts",
+      "function": "applyTemplateCompatibilitySync",
+      "line": 387,
+      "syntax": "return rejectGuide('compatibility.sync.manual', '所选整组含人工修改、删除或相反结论保护，不能整组覆盖；请先维护对应声明并重新预览。')",
+      "binding": "explicit",
+      "branchId": "compatibility.sync.manual"
+    },
+    {
+      "source": "src/domain/templateCompatibilitySync.ts",
+      "function": "applyTemplateCompatibilitySync",
+      "line": 389,
+      "syntax": "return { ok: false, message: conflicts.join('；') + '。请维护对应声明并重新预览，未写入任何内容。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "command",
+      "line": 329,
+      "syntax": "return rejectGuide('command.authorization-changed','操作者或授权已变化，本次提交被拒绝，草稿保留。',{actionId,savedState:'unchanged',context:{requiredPermissions:context.codes.join('、'),mode:RBAC_ENFORCEMENT_ENABLED?'enforced':'unrestricted'}})",
+      "binding": "explicit",
+      "branchId": "command.authorization-changed"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "saveBenefitPackage",
+      "line": 543,
+      "syntax": "return { ok: false, message: '保存请求缺少标识，请重新打开权益包后重试。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "saveBenefitPackage",
+      "line": 544,
+      "syntax": "return { ok: false, message: '请选择保存草稿或保存为可用权益包。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "saveBenefitPackage",
+      "line": 549,
+      "syntax": "return { ok: false, message: '权益包已不存在，未重新创建已删除的配置。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "saveBenefitPackage",
+      "line": 550,
+      "syntax": "return rejectGuide('benefit.save.revision', '权益包已被更新，请重新打开并核对最新配置；当前草稿保留。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
+      "binding": "explicit",
+      "branchId": "benefit.save.revision"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "saveBenefitPackage",
+      "line": 551,
+      "syntax": "return { ok: false, message: '权益包修订版本已超出安全范围，当前配置未改变。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "saveBenefitPackage",
+      "line": 552,
+      "syntax": "return { ok: false, message: '保存请求已属于另一权益包，请重新发起当前保存操作。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "saveBenefitPackage",
+      "line": 555,
+      "syntax": "return {ok:false,message:problem}",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "saveBenefitPackage",
+      "line": 558,
+      "syntax": "return {ok:false,message:'框架已变更或停用，请重新选择当前修订；原成员和报价保留。'}",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "saveBenefitPackage",
+      "line": 573,
+      "syntax": "return { ok: false, message: error instanceof Error ? error.message : String(error), validation }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "generateBenefitDelivery",
+      "line": 608,
+      "syntax": "return { ok: false, message: '本次生成请求缺少标识，请重新预览。' }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "generateBenefitDelivery",
+      "line": 612,
+      "syntax": "return rejectGuide('benefit.deliver.revision', '权益包已更新或不存在，请重新预览完整组成和报价。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
+      "binding": "explicit",
+      "branchId": "benefit.deliver.revision"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "generateBenefitDelivery",
+      "line": 614,
+      "syntax": "return rejectGuide(preview.issues.some(issue=>['quote','quote-review','delivery-quote'].includes(issue.code))?'benefit.deliver.quote':'benefit.deliver.validation',message,{actionId:'action-benefit-deliver',savedState:'unchanged',context:{pa",
+      "binding": "explicit"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "generateBenefitDelivery",
+      "line": 615,
+      "syntax": "return rejectGuide('benefit.deliver.basis', '商品、兼容条件或报价依据已变化，请重新预览并确认。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
+      "binding": "explicit",
+      "branchId": "benefit.deliver.basis"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "generateBenefitDelivery",
+      "line": 622,
+      "syntax": "return { ok: false, message: error instanceof Error ? error.message : String(error) }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "commitDeviceBinding",
+      "line": 674,
+      "syntax": "return rejectGuide('compatibility.bind.target', '请选择真实的主机销售 SKU，不能绑定 MAT 或配件。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
+      "binding": "explicit",
+      "branchId": "compatibility.bind.target"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "commitDeviceBinding",
+      "line": 675,
+      "syntax": "return rejectGuide('compatibility.bind.type', '设备型号与当前 SKU 的产品类型不一致，请选择相同主机类型的型号。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
+      "binding": "explicit",
+      "branchId": "compatibility.bind.type"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "commitDeviceBinding",
+      "line": 676,
+      "syntax": "return rejectGuide('compatibility.bind.scope', '绑定设备型号时请选择型号级目标，规划范围由设备自己的来源确认。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
+      "binding": "explicit",
+      "branchId": "compatibility.bind.scope"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "commitDeviceBinding",
+      "line": 678,
+      "syntax": "return { ok: false, message: problem }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "commitDeviceBinding",
+      "line": 680,
+      "syntax": "return rejectGuide('compatibility.bind.basis', '设备来源已变化，请重新打开型号配置后确认。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
+      "binding": "explicit",
+      "branchId": "compatibility.bind.basis"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "commitDeviceBinding",
+      "line": 682,
+      "syntax": "return rejectGuide('compatibility.bind.replace', '这条设备已有绑定；重新绑定会改变查询适用配件的型号，请明确确认原绑定及影响。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
+      "binding": "explicit",
+      "branchId": "compatibility.bind.replace"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 809,
+      "syntax": "throw failureError(message,branchFailure('import.json.parse',message,{savedState:'unchanged',recovery:['edit-input','feedback']}))",
+      "binding": "explicit"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 810,
+      "syntax": "throw failureError('导入文件缺少商品数据，当前数据没有被替换。',branchFailure('import.json.missing','导入文件缺少商品数据，当前数据没有被替换。',{savedState:'unchanged',recovery:['edit-input']}))",
+      "binding": "explicit"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 811,
+      "syntax": "throw failureError('导入文件缺少有效的商品数组，当前数据没有被替换。',branchFailure('import.json.missing','导入文件缺少有效的商品数组，当前数据没有被替换。',{savedState:'unchanged',recovery:['edit-input']}))",
+      "binding": "explicit"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 813,
+      "syntax": "throwImportValidation(`节点业务配置结构校验失败：${businessProblems.join(' ')} 当前数据没有被替换。`)",
+      "binding": "explicit",
+      "branchId": "import.json.validation"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 815,
+      "syntax": "throwImportValidation(`物料关联校验失败：${relationProblems.join(' ')} 当前数据没有被替换。`)",
+      "binding": "explicit",
+      "branchId": "import.json.validation"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 817,
+      "syntax": "throwImportValidation(`模板兼容导入校验失败：${templateProblems.join(' ')} 当前数据没有被替换。`)",
+      "binding": "explicit",
+      "branchId": "import.json.validation"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 819,
+      "syntax": "throwImportValidation(`权益包导入校验失败：${benefitProblems.join(' ')} 当前数据没有被替换。`)",
+      "binding": "explicit",
+      "branchId": "import.json.validation"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 821,
+      "syntax": "throwImportValidation(`适用关系导入校验失败：${compatibilityProblems.join(' ')} 当前数据没有被替换。`)",
+      "binding": "explicit",
+      "branchId": "import.json.validation"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 823,
+      "syntax": "throwImportValidation('演示数据版本不匹配，当前数据没有被替换')",
+      "binding": "explicit",
+      "branchId": "import.json.validation"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 826,
+      "syntax": "throwImportPermission('导入不能修改当前操作者无权维护的授权或用户角色绑定。')",
+      "binding": "explicit",
+      "branchId": "command.permission"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 828,
+      "syntax": "throwImportPermission('导入不能取得超级管理员身份或超出操作者委派范围。')",
+      "binding": "explicit",
+      "branchId": "command.permission"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 835,
+      "syntax": "throwImportValidation(`导入含未登记的变更字段：${key}`)",
+      "binding": "explicit",
+      "branchId": "import.json.validation"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 837,
+      "syntax": "throwImportPermission('无权导入或改写模型发布快照。')",
+      "binding": "explicit",
+      "branchId": "command.permission"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 841,
+      "syntax": "throwImportPermission('导入不能绕过商品编辑或发布权限。')",
+      "binding": "explicit",
+      "branchId": "command.permission"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 841,
+      "syntax": "throwImportPermission('导入不能跨越 SKU/MAT 身份权限。')",
+      "binding": "explicit",
+      "branchId": "command.permission"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 841,
+      "syntax": "throwImportPermission(`导入被拒绝：没有 ${resource}:${action}，当前数据及会话未改变。`)",
+      "binding": "explicit",
+      "branchId": "command.permission"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 842,
+      "syntax": "throwImportPermission(`导入被拒绝：没有 ${prefix}:update。`)",
+      "binding": "explicit",
+      "branchId": "command.permission"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 845,
+      "syntax": "throwImportValidation(authIssues.join(' '))",
+      "binding": "explicit",
+      "branchId": "import.json.validation"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 847,
+      "syntax": "throw new Error(migrationStorageError)",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "importJson",
+      "line": 849,
+      "syntax": "throw failureError(message,caughtFailure(error,message,'unchanged'))",
+      "binding": "explicit"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "publishSpecModel",
+      "line": 1276,
+      "syntax": "return { ok: false, message: configProblems[0]!.message }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "publishSpecModel",
+      "line": 1279,
+      "syntax": "return { ok: false, message: effective.message }",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalog.ts",
+      "function": "commitCategoryMove",
+      "line": 1441,
+      "syntax": "return rejectGuide(`category.move.${branch}`,problem,{savedState:'unchanged',context:{categoryId:sourceId,categoryName:data.categories.find(c=>c.id===sourceId)?.name||'',targetId:parentId||'',targetName:data.categories.find(c=>c.id===parent",
+      "binding": "explicit"
+    },
+    {
+      "source": "src/stores/catalogPersistence.ts",
+      "function": "run",
+      "line": 46,
+      "syntax": "return fail(message, branchFailure('persistence.disposed', message, { ...context, recovery: ['read-latest'] }))",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalogPersistence.ts",
+      "function": "run",
+      "line": 47,
+      "syntax": "return fail(conflictMessage,failure)",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalogPersistence.ts",
+      "function": "run",
+      "line": 57,
+      "syntax": "return fail(message,failure)",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalogPersistence.ts",
+      "function": "write",
+      "line": 66,
+      "syntax": "throw new Error('共享数据写入必须在持久化互斥事务内执行。')",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalogPersistence.ts",
+      "function": "write",
+      "line": 69,
+      "syntax": "throw new Error('存储提交版本已超出安全范围，请导出备份后恢复。')",
+      "binding": "legacy-unknown"
+    },
+    {
+      "source": "src/stores/catalogPersistence.ts",
+      "function": "write",
+      "line": 73,
+      "syntax": "throw failureError(message, branchFailure('persistence.set-item', message, { ...activeContext, recovery: ['retry', 'feedback'] }))",
+      "binding": "explicit"
+    }
+  ]
+}

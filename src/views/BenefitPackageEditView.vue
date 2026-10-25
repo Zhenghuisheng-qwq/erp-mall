@@ -5,7 +5,7 @@
     <template v-else>
       <el-alert v-if="!store.can(draft.id ? 'product:benefit:update' : 'product:benefit:create')" title="当前角色可查看配置与已有清单；组包、保存和生成清单需维护权限。" type="info" :closable="false" class="editor-alert" />
       <el-alert v-if="stale" title="这份包配置已有新的修订。当前编辑已保留，请读取最新配置后再保存或生成清单。" type="warning" :closable="false" class="editor-alert"><el-button link @click="reload">读取最新配置</el-button></el-alert>
-      <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon class="editor-alert" data-benefit-error />
+      <RuleExplanation v-if="guideFailure" :failure="guideFailure" :supported-recovery="['edit-input','repreview']" @recover="action => action === 'edit-input' ? (validation.issues[0] && locateIssue(validation.issues[0])) : makeDeliveryPreview()" /><el-alert v-else-if="error" :title="error" type="error" :closable="false" show-icon class="editor-alert" data-benefit-error />
       <section class="package-summary" aria-label="权益包摘要" data-benefit-summary>
         <div><strong>{{ draft.goods.length }} 种商品 · {{ validation.physicalCount }} 件 / 包</strong><span>{{ draft.services.length }} 项服务 · 按各自计量方式</span></div>
         <div><strong>{{ formatBenefitCents(draft.quote.amountCents) }}</strong><span>每包人工报价</span></div>
@@ -66,6 +66,7 @@
   </div>
 </template>
 <script setup lang="ts">
+import RuleExplanation from '../components/guide/RuleExplanation.vue'
 import { computed } from 'vue'
 import BenefitReferenceInput from '../components/benefit-package/BenefitReferenceInput.vue'
 import BenefitReferenceSummary from '../components/benefit-package/BenefitReferenceSummary.vue'
@@ -82,7 +83,7 @@ import { useBenefitPackageEditor } from '../components/benefit-package/useBenefi
 import { capabilityLabels, compatibilityLabels, compatibilityTag, formatBenefitCents, packageStatusLabels } from '../components/benefit-package/benefitPackagePresentation'
 import { queryDeviceAccessories, queryModelAccessories } from '../domain/accessoryCompatibilityQuery'
 const route = useRoute(), router = useRouter()
-const { membersOpen,frameworkId,useFramework,busy, serviceDialog, serviceDirty, requestServiceClose, leaveIntent, ruleEditor, advancedOpen, narrowPane, unsaved, saveAndPreview, locateIssue, manageCompatibility, store, draft, missing, dirty, stale, error, saving, keyword, productTypeId, candidateTab, candidates, allCandidates, commonPackages, types, models, deviceSkus, deviceValue, currentPhone, includedPhone, currentIsIncluded, validation, quoteText, quoteError, serviceOpen, editedService, replaceOpen, replaceSkuId, deviceSwitchOpen, pendingDevice, conditionNotes, deliveryCount, deliveryPreview, deliveryConfirmed, generating, canGenerate, relatedDeliveries, leaveOpen, leaving, addSku, quantity, removeSku, chooseReplacement, replace, requestDevice, finishDeviceSwitch, includePhone, editService, saveService, removeService, updateQuote, reviewQuote, confirmCondition, isConditionConfirmed, save, makeDeliveryPreview, generate, back, useCommon, openDelivery, setStatus, reload, continueEditing, discardAndLeave, saveAndLeave } = useBenefitPackageEditor()
+const { guideFailure, membersOpen,frameworkId,useFramework,busy, serviceDialog, serviceDirty, requestServiceClose, leaveIntent, ruleEditor, advancedOpen, narrowPane, unsaved, saveAndPreview, locateIssue, manageCompatibility, store, draft, missing, dirty, stale, error, saving, keyword, productTypeId, candidateTab, candidates, allCandidates, commonPackages, types, models, deviceSkus, deviceValue, currentPhone, includedPhone, currentIsIncluded, validation, quoteText, quoteError, serviceOpen, editedService, replaceOpen, replaceSkuId, deviceSwitchOpen, pendingDevice, conditionNotes, deliveryCount, deliveryPreview, deliveryConfirmed, generating, canGenerate, relatedDeliveries, leaveOpen, leaving, addSku, quantity, removeSku, chooseReplacement, replace, requestDevice, finishDeviceSwitch, includePhone, editService, saveService, removeService, updateQuote, reviewQuote, confirmCondition, isConditionConfirmed, save, makeDeliveryPreview, generate, back, useCommon, openDelivery, setStatus, reload, continueEditing, discardAndLeave, saveAndLeave } = useBenefitPackageEditor()
 const frameworkEmptyReasons=computed(()=>draft.value.framework?resolveBenefitRange(store.data,draft.value).emptyReasons:[])
 const referenceTotals=computed(()=>{try{return benefitReferenceTotals(draft.value,deliveryCount.value)}catch{return undefined}})
 function setReference(id:string,price:BenefitReferencePrice){if(!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create')||busy.value)return;const line=draft.value.goods.find(l=>l.id===id);if(line)line.referencePrice=price}

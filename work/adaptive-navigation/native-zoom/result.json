@@ -1,0 +1,326 @@
+{
+  "results": [
+    {
+      "factor": 1,
+      "native": true,
+      "method": "Chrome Settings chrome.settingsPrivate.setDefaultZoom in isolated profile; viewport:null; no CDP emulation",
+      "innerWidth": 1350,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "main": {
+        "x": 432,
+        "width": 918,
+        "right": 1350
+      },
+      "rail": {
+        "x": 0,
+        "width": 96,
+        "right": 96
+      },
+      "panel": {
+        "x": 96,
+        "width": 336,
+        "right": 432
+      },
+      "docked": true,
+      "labels": [
+        {
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "factor": 1.25,
+      "native": true,
+      "method": "Chrome Settings chrome.settingsPrivate.setDefaultZoom in isolated profile; viewport:null; no CDP emulation",
+      "innerWidth": 1080,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1.25,
+      "visualViewportScale": 1,
+      "main": {
+        "x": 432,
+        "width": 648,
+        "right": 1080
+      },
+      "rail": {
+        "x": 0,
+        "width": 96,
+        "right": 96
+      },
+      "panel": {
+        "x": 96,
+        "width": 336,
+        "right": 432
+      },
+      "docked": true,
+      "labels": [
+        {
+          "scroll": 285,
+          "width": 285
+        },
+        {
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "scroll": 100,
+          "width": 100
+        }
+      ]
+    },
+    {
+      "factor": 1.5,
+      "native": true,
+      "method": "Chrome Settings chrome.settingsPrivate.setDefaultZoom in isolated profile; viewport:null; no CDP emulation",
+      "innerWidth": 900,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1.5,
+      "visualViewportScale": 1,
+      "main": {
+        "x": 96,
+        "width": 804,
+        "right": 900
+      },
+      "rail": {
+        "x": 0,
+        "width": 96,
+        "right": 96
+      },
+      "panel": {
+        "x": 96,
+        "width": 336,
+        "right": 432
+      },
+      "docked": false,
+      "labels": [
+        {
+          "scroll": 285,
+          "width": 285
+        },
+        {
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "scroll": 100,
+          "width": 100
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

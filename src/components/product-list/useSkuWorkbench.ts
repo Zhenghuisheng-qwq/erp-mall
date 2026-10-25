@@ -1,3 +1,5 @@
+import {getFailure} from '../../domain/guide/failure'
+import type {GuideFailure} from '../../domain/guide/types'
 import { repairQuickFilters } from '../../domain/skuQuickFilters'
 import { computed, ref, watch } from 'vue'
 import type { Ref } from 'vue'
@@ -21,6 +23,8 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     return value
   })
   const error = ref(catalogMigrationError())
+  const guideFailure=ref<GuideFailure>()
+  watch(error,value=>{if(!value)guideFailure.value=undefined})
   const pending = ref(false)
   const localWork = ref<Record<string, SkuViewConfig>>(cloneSku(state.value?.working || {}))
   const navigation = typeof performance === 'undefined' ? undefined : performance.getEntriesByType('navigation')[0]
@@ -47,7 +51,7 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     pending.value = true
     try {
       const result = await store.commitSkuPage(next)
-      if (!result.ok) { error.value = result.message; return result }
+      if (!result.ok) { guideFailure.value=getFailure(result);error.value = result.message; return result }
       error.value = ''
       return { ok: true }
     } finally { pending.value = false }
@@ -198,5 +202,5 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
   }
   watch(scopeId, id => { activeId.value = id ? SYSTEM_SKU_VIEW_ID : state.value?.activeId || SYSTEM_SKU_VIEW_ID })
   if (!scopeId.value && activeId.value !== state.value.activeId) select(activeId.value)
-  return { views, currentView, activeId, config, dirty, error, pending, state, select, apply, save, create, rename, copy, remove, favorite, setDefault, moveFavorite, restore }
+  return { guideFailure, views, currentView, activeId, config, dirty, error, pending, state, select, apply, save, create, rename, copy, remove, favorite, setDefault, moveFavorite, restore }
 }

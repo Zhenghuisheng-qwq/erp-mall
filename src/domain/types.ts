@@ -409,6 +409,12 @@ export interface FeedbackItem {
   route?: string
   featureId?: string
   featureName?: string
+  /** Optional knowledge source; old feedback identities and attachment storage stay unchanged. */
+  articleId?: string
+  ruleId?: string
+  pageId?: string
+  actionId?: string
+  contentRevision?: number
   attachmentRefs?: FeedbackAttachmentRef[]
   /** 导出过反馈包的时间。只说明本机导出过，不代表开发人员已收到。 */
   exportedAt?: string

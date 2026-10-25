@@ -1,0 +1,2418 @@
+{
+  "result": "PASS",
+  "checks": [
+    "40 page/theme/desktop combinations, long titles and unsaved search/editor input retained; single/dual/pin/fold compatible",
+    "page drawer fits five desktop widths and both themes; URL/SPU draft/business storage preserved",
+    "real model mixed-children Publish rejection opens exact rule with nodePath and unchanged data",
+    "native Chrome 125% article and page drawer",
+    "native Chrome 150% article and page drawer"
+  ],
+  "measurements": [
+    {
+      "name": "home-light-1280",
+      "innerWidth": 1280,
+      "outerWidth": 1280,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1280,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1144,
+        "right": 1260,
+        "bottom": 5591
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1184,
+        "right": 1280,
+        "bottom": 1000,
+        "scroll": 1184,
+        "client": 1184
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "home-light-1366",
+      "innerWidth": 1366,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1366,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1230,
+        "right": 1346,
+        "bottom": 5591
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1270,
+        "right": 1366,
+        "bottom": 1000,
+        "scroll": 1270,
+        "client": 1270
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "home-light-1440",
+      "innerWidth": 1440,
+      "outerWidth": 1440,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1440,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1304,
+        "right": 1420,
+        "bottom": 5591
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1344,
+        "right": 1440,
+        "bottom": 1000,
+        "scroll": 1344,
+        "client": 1344
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "home-light-1920",
+      "innerWidth": 1920,
+      "outerWidth": 1920,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1920,
+      "root": {
+        "x": 308,
+        "y": 105,
+        "width": 1400,
+        "right": 1708,
+        "bottom": 5591
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1824,
+        "right": 1920,
+        "bottom": 1000,
+        "scroll": 1824,
+        "client": 1824
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "home-light-2560",
+      "innerWidth": 2560,
+      "outerWidth": 2560,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 2560,
+      "root": {
+        "x": 628,
+        "y": 105,
+        "width": 1400,
+        "right": 2028,
+        "bottom": 5591
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 2464,
+        "right": 2560,
+        "bottom": 1000,
+        "scroll": 2464,
+        "client": 2464
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "home-dark-1280",
+      "innerWidth": 1280,
+      "outerWidth": 1280,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1280,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1144,
+        "right": 1260,
+        "bottom": 5591
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1184,
+        "right": 1280,
+        "bottom": 1000,
+        "scroll": 1184,
+        "client": 1184
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "home-dark-1366",
+      "innerWidth": 1366,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1366,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1230,
+        "right": 1346,
+        "bottom": 5591
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1270,
+        "right": 1366,
+        "bottom": 1000,
+        "scroll": 1270,
+        "client": 1270
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "home-dark-1440",
+      "innerWidth": 1440,
+      "outerWidth": 1440,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1440,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1304,
+        "right": 1420,
+        "bottom": 5591
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1344,
+        "right": 1440,
+        "bottom": 1000,
+        "scroll": 1344,
+        "client": 1344
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "home-dark-1920",
+      "innerWidth": 1920,
+      "outerWidth": 1920,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1920,
+      "root": {
+        "x": 308,
+        "y": 105,
+        "width": 1400,
+        "right": 1708,
+        "bottom": 5591
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1824,
+        "right": 1920,
+        "bottom": 1000,
+        "scroll": 1824,
+        "client": 1824
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "home-dark-2560",
+      "innerWidth": 2560,
+      "outerWidth": 2560,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 2560,
+      "root": {
+        "x": 628,
+        "y": 105,
+        "width": 1400,
+        "right": 2028,
+        "bottom": 5591
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 2464,
+        "right": 2560,
+        "bottom": 1000,
+        "scroll": 2464,
+        "client": 2464
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "article-light-1280",
+      "innerWidth": 1280,
+      "outerWidth": 1280,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1280,
+      "root": {
+        "x": 138,
+        "y": 105,
+        "width": 1100,
+        "right": 1238,
+        "bottom": 2833.625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1184,
+        "right": 1280,
+        "bottom": 1000,
+        "scroll": 1184,
+        "client": 1184
+      },
+      "article": {
+        "x": 258,
+        "y": 205,
+        "width": 860,
+        "right": 1118,
+        "bottom": 2307.625
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "article-light-1366",
+      "innerWidth": 1366,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1366,
+      "root": {
+        "x": 181,
+        "y": 105,
+        "width": 1100,
+        "right": 1281,
+        "bottom": 2833.625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1270,
+        "right": 1366,
+        "bottom": 1000,
+        "scroll": 1270,
+        "client": 1270
+      },
+      "article": {
+        "x": 301,
+        "y": 205,
+        "width": 860,
+        "right": 1161,
+        "bottom": 2307.625
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "article-light-1440",
+      "innerWidth": 1440,
+      "outerWidth": 1440,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1440,
+      "root": {
+        "x": 218,
+        "y": 105,
+        "width": 1100,
+        "right": 1318,
+        "bottom": 2833.625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1344,
+        "right": 1440,
+        "bottom": 1000,
+        "scroll": 1344,
+        "client": 1344
+      },
+      "article": {
+        "x": 338,
+        "y": 205,
+        "width": 860,
+        "right": 1198,
+        "bottom": 2307.625
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "article-light-1920",
+      "innerWidth": 1920,
+      "outerWidth": 1920,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1920,
+      "root": {
+        "x": 458,
+        "y": 105,
+        "width": 1100,
+        "right": 1558,
+        "bottom": 2833.625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1824,
+        "right": 1920,
+        "bottom": 1000,
+        "scroll": 1824,
+        "client": 1824
+      },
+      "article": {
+        "x": 578,
+        "y": 205,
+        "width": 860,
+        "right": 1438,
+        "bottom": 2307.625
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "article-light-2560",
+      "innerWidth": 2560,
+      "outerWidth": 2560,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 2560,
+      "root": {
+        "x": 778,
+        "y": 105,
+        "width": 1100,
+        "right": 1878,
+        "bottom": 2833.625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 2464,
+        "right": 2560,
+        "bottom": 1000,
+        "scroll": 2464,
+        "client": 2464
+      },
+      "article": {
+        "x": 898,
+        "y": 205,
+        "width": 860,
+        "right": 1758,
+        "bottom": 2307.625
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "article-dark-1280",
+      "innerWidth": 1280,
+      "outerWidth": 1280,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1280,
+      "root": {
+        "x": 138,
+        "y": 105,
+        "width": 1100,
+        "right": 1238,
+        "bottom": 2833.625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1184,
+        "right": 1280,
+        "bottom": 1000,
+        "scroll": 1184,
+        "client": 1184
+      },
+      "article": {
+        "x": 258,
+        "y": 205,
+        "width": 860,
+        "right": 1118,
+        "bottom": 2307.625
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "article-dark-1366",
+      "innerWidth": 1366,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1366,
+      "root": {
+        "x": 181,
+        "y": 105,
+        "width": 1100,
+        "right": 1281,
+        "bottom": 2833.625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1270,
+        "right": 1366,
+        "bottom": 1000,
+        "scroll": 1270,
+        "client": 1270
+      },
+      "article": {
+        "x": 301,
+        "y": 205,
+        "width": 860,
+        "right": 1161,
+        "bottom": 2307.625
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "article-dark-1440",
+      "innerWidth": 1440,
+      "outerWidth": 1440,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1440,
+      "root": {
+        "x": 218,
+        "y": 105,
+        "width": 1100,
+        "right": 1318,
+        "bottom": 2833.625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1344,
+        "right": 1440,
+        "bottom": 1000,
+        "scroll": 1344,
+        "client": 1344
+      },
+      "article": {
+        "x": 338,
+        "y": 205,
+        "width": 860,
+        "right": 1198,
+        "bottom": 2307.625
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "article-dark-1920",
+      "innerWidth": 1920,
+      "outerWidth": 1920,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1920,
+      "root": {
+        "x": 458,
+        "y": 105,
+        "width": 1100,
+        "right": 1558,
+        "bottom": 2833.625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1824,
+        "right": 1920,
+        "bottom": 1000,
+        "scroll": 1824,
+        "client": 1824
+      },
+      "article": {
+        "x": 578,
+        "y": 205,
+        "width": 860,
+        "right": 1438,
+        "bottom": 2307.625
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "article-dark-2560",
+      "innerWidth": 2560,
+      "outerWidth": 2560,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 2560,
+      "root": {
+        "x": 778,
+        "y": 105,
+        "width": 1100,
+        "right": 1878,
+        "bottom": 2833.625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 2464,
+        "right": 2560,
+        "bottom": 1000,
+        "scroll": 2464,
+        "client": 2464
+      },
+      "article": {
+        "x": 898,
+        "y": 205,
+        "width": 860,
+        "right": 1758,
+        "bottom": 2307.625
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "learn-light-1280",
+      "innerWidth": 1280,
+      "outerWidth": 1280,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1280,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1144,
+        "right": 1260,
+        "bottom": 3350.421875
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1184,
+        "right": 1280,
+        "bottom": 1000,
+        "scroll": 1184,
+        "client": 1184
+      },
+      "article": {
+        "x": 393,
+        "y": 655.796875,
+        "width": 850,
+        "right": 1243,
+        "bottom": 2758.421875
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": "240px 884px"
+    },
+    {
+      "name": "learn-light-1366",
+      "innerWidth": 1366,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1366,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1230,
+        "right": 1346,
+        "bottom": 3350.421875
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1270,
+        "right": 1366,
+        "bottom": 1000,
+        "scroll": 1270,
+        "client": 1270
+      },
+      "article": {
+        "x": 431,
+        "y": 655.796875,
+        "width": 860,
+        "right": 1291,
+        "bottom": 2758.421875
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": "240px 970px"
+    },
+    {
+      "name": "learn-light-1440",
+      "innerWidth": 1440,
+      "outerWidth": 1440,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1440,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1304,
+        "right": 1420,
+        "bottom": 3350.421875
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1344,
+        "right": 1440,
+        "bottom": 1000,
+        "scroll": 1344,
+        "client": 1344
+      },
+      "article": {
+        "x": 468,
+        "y": 655.796875,
+        "width": 860,
+        "right": 1328,
+        "bottom": 2758.421875
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": "240px 1044px"
+    },
+    {
+      "name": "learn-light-1920",
+      "innerWidth": 1920,
+      "outerWidth": 1920,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1920,
+      "root": {
+        "x": 308,
+        "y": 105,
+        "width": 1400,
+        "right": 1708,
+        "bottom": 3350.421875
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1824,
+        "right": 1920,
+        "bottom": 1000,
+        "scroll": 1824,
+        "client": 1824
+      },
+      "article": {
+        "x": 708,
+        "y": 655.796875,
+        "width": 860,
+        "right": 1568,
+        "bottom": 2758.421875
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": "240px 1140px"
+    },
+    {
+      "name": "learn-light-2560",
+      "innerWidth": 2560,
+      "outerWidth": 2560,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 2560,
+      "root": {
+        "x": 628,
+        "y": 105,
+        "width": 1400,
+        "right": 2028,
+        "bottom": 3350.421875
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 2464,
+        "right": 2560,
+        "bottom": 1000,
+        "scroll": 2464,
+        "client": 2464
+      },
+      "article": {
+        "x": 1028,
+        "y": 655.796875,
+        "width": 860,
+        "right": 1888,
+        "bottom": 2758.421875
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": "240px 1140px"
+    },
+    {
+      "name": "learn-dark-1280",
+      "innerWidth": 1280,
+      "outerWidth": 1280,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1280,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1144,
+        "right": 1260,
+        "bottom": 3350.421875
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1184,
+        "right": 1280,
+        "bottom": 1000,
+        "scroll": 1184,
+        "client": 1184
+      },
+      "article": {
+        "x": 393,
+        "y": 655.796875,
+        "width": 850,
+        "right": 1243,
+        "bottom": 2758.421875
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": "240px 884px"
+    },
+    {
+      "name": "learn-dark-1366",
+      "innerWidth": 1366,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1366,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1230,
+        "right": 1346,
+        "bottom": 3350.421875
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1270,
+        "right": 1366,
+        "bottom": 1000,
+        "scroll": 1270,
+        "client": 1270
+      },
+      "article": {
+        "x": 431,
+        "y": 655.796875,
+        "width": 860,
+        "right": 1291,
+        "bottom": 2758.421875
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": "240px 970px"
+    },
+    {
+      "name": "learn-dark-1440",
+      "innerWidth": 1440,
+      "outerWidth": 1440,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1440,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1304,
+        "right": 1420,
+        "bottom": 3350.421875
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1344,
+        "right": 1440,
+        "bottom": 1000,
+        "scroll": 1344,
+        "client": 1344
+      },
+      "article": {
+        "x": 468,
+        "y": 655.796875,
+        "width": 860,
+        "right": 1328,
+        "bottom": 2758.421875
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": "240px 1044px"
+    },
+    {
+      "name": "learn-dark-1920",
+      "innerWidth": 1920,
+      "outerWidth": 1920,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1920,
+      "root": {
+        "x": 308,
+        "y": 105,
+        "width": 1400,
+        "right": 1708,
+        "bottom": 3350.421875
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1824,
+        "right": 1920,
+        "bottom": 1000,
+        "scroll": 1824,
+        "client": 1824
+      },
+      "article": {
+        "x": 708,
+        "y": 655.796875,
+        "width": 860,
+        "right": 1568,
+        "bottom": 2758.421875
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": "240px 1140px"
+    },
+    {
+      "name": "learn-dark-2560",
+      "innerWidth": 2560,
+      "outerWidth": 2560,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 2560,
+      "root": {
+        "x": 628,
+        "y": 105,
+        "width": 1400,
+        "right": 2028,
+        "bottom": 3350.421875
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 2464,
+        "right": 2560,
+        "bottom": 1000,
+        "scroll": 2464,
+        "client": 2464
+      },
+      "article": {
+        "x": 1028,
+        "y": 655.796875,
+        "width": 860,
+        "right": 1888,
+        "bottom": 2758.421875
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": "240px 1140px"
+    },
+    {
+      "name": "manage-light-1280",
+      "innerWidth": 1280,
+      "outerWidth": 1280,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1280,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1144,
+        "right": 1260,
+        "bottom": 1678.90625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1184,
+        "right": 1280,
+        "bottom": 1000,
+        "scroll": 1184,
+        "client": 1184
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": "270px 854px",
+      "learningColumns": null
+    },
+    {
+      "name": "manage-light-1366",
+      "innerWidth": 1366,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1366,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1230,
+        "right": 1346,
+        "bottom": 1654.90625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1270,
+        "right": 1366,
+        "bottom": 1000,
+        "scroll": 1270,
+        "client": 1270
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": "270px 940px",
+      "learningColumns": null
+    },
+    {
+      "name": "manage-light-1440",
+      "innerWidth": 1440,
+      "outerWidth": 1440,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1440,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1304,
+        "right": 1420,
+        "bottom": 1654.90625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1344,
+        "right": 1440,
+        "bottom": 1000,
+        "scroll": 1344,
+        "client": 1344
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": "270px 1014px",
+      "learningColumns": null
+    },
+    {
+      "name": "manage-light-1920",
+      "innerWidth": 1920,
+      "outerWidth": 1920,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1920,
+      "root": {
+        "x": 308,
+        "y": 105,
+        "width": 1400,
+        "right": 1708,
+        "bottom": 1654.90625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1824,
+        "right": 1920,
+        "bottom": 1000,
+        "scroll": 1824,
+        "client": 1824
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": "270px 1110px",
+      "learningColumns": null
+    },
+    {
+      "name": "manage-light-2560",
+      "innerWidth": 2560,
+      "outerWidth": 2560,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 2560,
+      "root": {
+        "x": 628,
+        "y": 105,
+        "width": 1400,
+        "right": 2028,
+        "bottom": 1654.90625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 2464,
+        "right": 2560,
+        "bottom": 1000,
+        "scroll": 2464,
+        "client": 2464
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": "270px 1110px",
+      "learningColumns": null
+    },
+    {
+      "name": "manage-dark-1280",
+      "innerWidth": 1280,
+      "outerWidth": 1280,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1280,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1144,
+        "right": 1260,
+        "bottom": 1678.90625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1184,
+        "right": 1280,
+        "bottom": 1000,
+        "scroll": 1184,
+        "client": 1184
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": "270px 854px",
+      "learningColumns": null
+    },
+    {
+      "name": "manage-dark-1366",
+      "innerWidth": 1366,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1366,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1230,
+        "right": 1346,
+        "bottom": 1654.90625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1270,
+        "right": 1366,
+        "bottom": 1000,
+        "scroll": 1270,
+        "client": 1270
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": "270px 940px",
+      "learningColumns": null
+    },
+    {
+      "name": "manage-dark-1440",
+      "innerWidth": 1440,
+      "outerWidth": 1440,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1440,
+      "root": {
+        "x": 116,
+        "y": 105,
+        "width": 1304,
+        "right": 1420,
+        "bottom": 1654.90625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1344,
+        "right": 1440,
+        "bottom": 1000,
+        "scroll": 1344,
+        "client": 1344
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": "270px 1014px",
+      "learningColumns": null
+    },
+    {
+      "name": "manage-dark-1920",
+      "innerWidth": 1920,
+      "outerWidth": 1920,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1920,
+      "root": {
+        "x": 308,
+        "y": 105,
+        "width": 1400,
+        "right": 1708,
+        "bottom": 1654.90625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1824,
+        "right": 1920,
+        "bottom": 1000,
+        "scroll": 1824,
+        "client": 1824
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": "270px 1110px",
+      "learningColumns": null
+    },
+    {
+      "name": "manage-dark-2560",
+      "innerWidth": 2560,
+      "outerWidth": 2560,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 2560,
+      "root": {
+        "x": 628,
+        "y": 105,
+        "width": 1400,
+        "right": 2028,
+        "bottom": 1654.90625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 2464,
+        "right": 2560,
+        "bottom": 1000,
+        "scroll": 2464,
+        "client": 2464
+      },
+      "article": null,
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": "270px 1110px",
+      "learningColumns": null
+    },
+    {
+      "name": "article-single",
+      "innerWidth": 1366,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1366,
+      "root": {
+        "x": 248,
+        "y": 105,
+        "width": 1098,
+        "right": 1346,
+        "bottom": 2833.625
+      },
+      "content": {
+        "x": 228,
+        "y": 89,
+        "width": 1138,
+        "right": 1366,
+        "bottom": 1000,
+        "scroll": 1138,
+        "client": 1138
+      },
+      "article": {
+        "x": 367,
+        "y": 205,
+        "width": 860,
+        "right": 1227,
+        "bottom": 2307.625
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "article-dual-pinned",
+      "innerWidth": 1366,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1366,
+      "root": {
+        "x": 452,
+        "y": 105,
+        "width": 894,
+        "right": 1346,
+        "bottom": 2860.625
+      },
+      "content": {
+        "x": 432,
+        "y": 89,
+        "width": 934,
+        "right": 1366,
+        "bottom": 1000,
+        "scroll": 934,
+        "client": 934
+      },
+      "article": {
+        "x": 489,
+        "y": 205,
+        "width": 820,
+        "right": 1309,
+        "bottom": 2334.625
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "article-icons-pinned",
+      "innerWidth": 1366,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1366,
+      "root": {
+        "x": 414,
+        "y": 105,
+        "width": 932,
+        "right": 1346,
+        "bottom": 2833.625
+      },
+      "content": {
+        "x": 394,
+        "y": 89,
+        "width": 972,
+        "right": 1366,
+        "bottom": 1000,
+        "scroll": 972,
+        "client": 972
+      },
+      "article": {
+        "x": 451,
+        "y": 205,
+        "width": 858,
+        "right": 1309,
+        "bottom": 2307.625
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "article-dual-unpinned",
+      "innerWidth": 1366,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1366,
+      "root": {
+        "x": 181,
+        "y": 105,
+        "width": 1100,
+        "right": 1281,
+        "bottom": 2833.625
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1270,
+        "right": 1366,
+        "bottom": 1000,
+        "scroll": 1270,
+        "client": 1270
+      },
+      "article": {
+        "x": 301,
+        "y": 205,
+        "width": 860,
+        "right": 1161,
+        "bottom": 2307.625
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "drawer-light-1280",
+      "innerWidth": 1280,
+      "outerWidth": 1280,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1280,
+      "root": {
+        "x": 698.390625,
+        "y": 0,
+        "width": 581.609375,
+        "right": 1280,
+        "bottom": 1000
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1184,
+        "right": 1280,
+        "bottom": 1000,
+        "scroll": 1184,
+        "client": 1184
+      },
+      "article": {
+        "x": 720.390625,
+        "y": 166,
+        "width": 537.609375,
+        "right": 1258,
+        "bottom": 1819.03125
+      },
+      "drawer": {
+        "x": 698.390625,
+        "y": 0,
+        "width": 581.609375,
+        "right": 1280,
+        "bottom": 1000
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "drawer-light-1366",
+      "innerWidth": 1366,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1366,
+      "root": {
+        "x": 785.953125,
+        "y": 0,
+        "width": 580.046875,
+        "right": 1366,
+        "bottom": 1000
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1270,
+        "right": 1366,
+        "bottom": 1000,
+        "scroll": 1270,
+        "client": 1270
+      },
+      "article": {
+        "x": 807.953125,
+        "y": 166,
+        "width": 536.046875,
+        "right": 1344,
+        "bottom": 1819.03125
+      },
+      "drawer": {
+        "x": 785.953125,
+        "y": 0,
+        "width": 580.046875,
+        "right": 1366,
+        "bottom": 1000
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "drawer-light-1440",
+      "innerWidth": 1440,
+      "outerWidth": 1440,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1440,
+      "root": {
+        "x": 833.515625,
+        "y": 0,
+        "width": 606.484375,
+        "right": 1440,
+        "bottom": 1000
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1344,
+        "right": 1440,
+        "bottom": 1000,
+        "scroll": 1344,
+        "client": 1344
+      },
+      "article": {
+        "x": 855.515625,
+        "y": 166,
+        "width": 562.484375,
+        "right": 1418,
+        "bottom": 1790.234375
+      },
+      "drawer": {
+        "x": 833.515625,
+        "y": 0,
+        "width": 606.484375,
+        "right": 1440,
+        "bottom": 1000
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "drawer-light-1920",
+      "innerWidth": 1920,
+      "outerWidth": 1920,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1920,
+      "root": {
+        "x": 1276.265625,
+        "y": 0,
+        "width": 643.734375,
+        "right": 1920,
+        "bottom": 1000
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1824,
+        "right": 1920,
+        "bottom": 1000,
+        "scroll": 1824,
+        "client": 1824
+      },
+      "article": {
+        "x": 1298.265625,
+        "y": 166,
+        "width": 599.734375,
+        "right": 1898,
+        "bottom": 1761.4375
+      },
+      "drawer": {
+        "x": 1276.265625,
+        "y": 0,
+        "width": 643.734375,
+        "right": 1920,
+        "bottom": 1000
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "drawer-light-2560",
+      "innerWidth": 2560,
+      "outerWidth": 2560,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 2560,
+      "root": {
+        "x": 1888.1875,
+        "y": 0,
+        "width": 671.8125,
+        "right": 2560,
+        "bottom": 1000
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 2464,
+        "right": 2560,
+        "bottom": 1000,
+        "scroll": 2464,
+        "client": 2464
+      },
+      "article": {
+        "x": 1910.1875,
+        "y": 166,
+        "width": 627.8125,
+        "right": 2538,
+        "bottom": 1761.4375
+      },
+      "drawer": {
+        "x": 1888.1875,
+        "y": 0,
+        "width": 671.8125,
+        "right": 2560,
+        "bottom": 1000
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "drawer-dark-1280",
+      "innerWidth": 1280,
+      "outerWidth": 1280,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1280,
+      "root": {
+        "x": 659.96875,
+        "y": 0,
+        "width": 620.03125,
+        "right": 1280,
+        "bottom": 1000
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1184,
+        "right": 1280,
+        "bottom": 1000,
+        "scroll": 1184,
+        "client": 1184
+      },
+      "article": {
+        "x": 681.96875,
+        "y": 166,
+        "width": 576.03125,
+        "right": 1258,
+        "bottom": 1761.4375
+      },
+      "drawer": {
+        "x": 659.96875,
+        "y": 0,
+        "width": 620.03125,
+        "right": 1280,
+        "bottom": 1000
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "drawer-dark-1366",
+      "innerWidth": 1366,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1366,
+      "root": {
+        "x": 784.21875,
+        "y": 0,
+        "width": 581.78125,
+        "right": 1366,
+        "bottom": 1000
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1270,
+        "right": 1366,
+        "bottom": 1000,
+        "scroll": 1270,
+        "client": 1270
+      },
+      "article": {
+        "x": 806.21875,
+        "y": 166,
+        "width": 537.78125,
+        "right": 1344,
+        "bottom": 1819.03125
+      },
+      "drawer": {
+        "x": 784.21875,
+        "y": 0,
+        "width": 581.78125,
+        "right": 1366,
+        "bottom": 1000
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "drawer-dark-1440",
+      "innerWidth": 1440,
+      "outerWidth": 1440,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1440,
+      "root": {
+        "x": 831.921875,
+        "y": 0,
+        "width": 608.078125,
+        "right": 1440,
+        "bottom": 1000
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1344,
+        "right": 1440,
+        "bottom": 1000,
+        "scroll": 1344,
+        "client": 1344
+      },
+      "article": {
+        "x": 853.921875,
+        "y": 166,
+        "width": 564.078125,
+        "right": 1418,
+        "bottom": 1790.234375
+      },
+      "drawer": {
+        "x": 831.921875,
+        "y": 0,
+        "width": 608.078125,
+        "right": 1440,
+        "bottom": 1000
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "drawer-dark-1920",
+      "innerWidth": 1920,
+      "outerWidth": 1920,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1920,
+      "root": {
+        "x": 1276.546875,
+        "y": 0,
+        "width": 643.453125,
+        "right": 1920,
+        "bottom": 1000
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1824,
+        "right": 1920,
+        "bottom": 1000,
+        "scroll": 1824,
+        "client": 1824
+      },
+      "article": {
+        "x": 1298.546875,
+        "y": 166,
+        "width": 599.453125,
+        "right": 1898,
+        "bottom": 1761.4375
+      },
+      "drawer": {
+        "x": 1276.546875,
+        "y": 0,
+        "width": 643.453125,
+        "right": 1920,
+        "bottom": 1000
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "drawer-dark-2560",
+      "innerWidth": 2560,
+      "outerWidth": 2560,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 2560,
+      "root": {
+        "x": 1888.984375,
+        "y": 0,
+        "width": 671.015625,
+        "right": 2560,
+        "bottom": 1000
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 2464,
+        "right": 2560,
+        "bottom": 1000,
+        "scroll": 2464,
+        "client": 2464
+      },
+      "article": {
+        "x": 1910.984375,
+        "y": 166,
+        "width": 627.015625,
+        "right": 2538,
+        "bottom": 1761.4375
+      },
+      "drawer": {
+        "x": 1888.984375,
+        "y": 0,
+        "width": 671.015625,
+        "right": 2560,
+        "bottom": 1000
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "actual-model-publish-failure-rule-drawer",
+      "innerWidth": 1366,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1,
+      "visualViewportScale": 1,
+      "pageScroll": 1366,
+      "root": {
+        "x": 764.96875,
+        "y": 0,
+        "width": 601.03125,
+        "right": 1366,
+        "bottom": 1000
+      },
+      "content": {
+        "x": 96,
+        "y": 89,
+        "width": 1270,
+        "right": 1366,
+        "bottom": 1000,
+        "scroll": 1270,
+        "client": 1270
+      },
+      "article": {
+        "x": 786.96875,
+        "y": 412.1875,
+        "width": 557.03125,
+        "right": 1344,
+        "bottom": 1695.234375
+      },
+      "drawer": {
+        "x": 764.96875,
+        "y": 0,
+        "width": 601.03125,
+        "right": 1366,
+        "bottom": 1000
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "native-1.25-article",
+      "innerWidth": 1080,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1.25,
+      "visualViewportScale": 1,
+      "pageScroll": 1080,
+      "root": {
+        "x": 116,
+        "y": 105.5999984741211,
+        "width": 944,
+        "right": 1060,
+        "bottom": 2853.200096130371
+      },
+      "content": {
+        "x": 96,
+        "y": 89.5999984741211,
+        "width": 984,
+        "right": 1080,
+        "bottom": 724.0000228881836,
+        "scroll": 984,
+        "client": 984
+      },
+      "article": {
+        "x": 158,
+        "y": 206,
+        "width": 860,
+        "right": 1018,
+        "bottom": 2308.800048828125
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "native-1.25-drawer",
+      "innerWidth": 1080,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1.25,
+      "visualViewportScale": 1,
+      "pageScroll": 1080,
+      "root": {
+        "x": 604.7999877929688,
+        "y": 0,
+        "width": 475.20001220703125,
+        "right": 1080,
+        "bottom": 724
+      },
+      "content": {
+        "x": 96,
+        "y": 89.5999984741211,
+        "width": 984,
+        "right": 1080,
+        "bottom": 724.0000228881836,
+        "scroll": 984,
+        "client": 984
+      },
+      "article": {
+        "x": 626.7999877929688,
+        "y": 166,
+        "width": 431.20001220703125,
+        "right": 1058,
+        "bottom": 1992
+      },
+      "drawer": {
+        "x": 604.7999877929688,
+        "y": 0,
+        "width": 475.20001220703125,
+        "right": 1080,
+        "bottom": 724
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "native-1.5-article",
+      "innerWidth": 900,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1.5,
+      "visualViewportScale": 1,
+      "pageScroll": 900,
+      "root": {
+        "x": 116,
+        "y": 105.33333587646484,
+        "width": 764,
+        "right": 880,
+        "bottom": 2934.916831970215
+      },
+      "content": {
+        "x": 96,
+        "y": 89.33333587646484,
+        "width": 804,
+        "right": 900,
+        "bottom": 603.3333358764648,
+        "scroll": 804,
+        "client": 804
+      },
+      "article": {
+        "x": 152.6666717529297,
+        "y": 205.33334350585938,
+        "width": 690.6666870117188,
+        "right": 843.3333587646484,
+        "bottom": 2404.9168395996094
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "name": "native-1.5-drawer",
+      "innerWidth": 900,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1.5,
+      "visualViewportScale": 1,
+      "pageScroll": 900,
+      "root": {
+        "x": 504,
+        "y": 0,
+        "width": 396,
+        "right": 900,
+        "bottom": 603.3333740234375
+      },
+      "content": {
+        "x": 96,
+        "y": 89.33333587646484,
+        "width": 804,
+        "right": 900,
+        "bottom": 603.3333358764648,
+        "scroll": 804,
+        "client": 804
+      },
+      "article": {
+        "x": 526,
+        "y": 166,
+        "width": 352,
+        "right": 878,
+        "bottom": 2049.3333740234375
+      },
+      "drawer": {
+        "x": 504,
+        "y": 0,
+        "width": 396,
+        "right": 900,
+        "bottom": 603.3333740234375
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    }
+  ],
+  "nativeZoom": [
+    {
+      "factor": 1.25,
+      "method": "Chrome Settings chrome.settingsPrivate.setDefaultZoom; isolated profile; viewport:null; no emulation",
+      "name": "native-1.25-article",
+      "innerWidth": 1080,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1.25,
+      "visualViewportScale": 1,
+      "pageScroll": 1080,
+      "root": {
+        "x": 116,
+        "y": 105.5999984741211,
+        "width": 944,
+        "right": 1060,
+        "bottom": 2853.200096130371
+      },
+      "content": {
+        "x": 96,
+        "y": 89.5999984741211,
+        "width": 984,
+        "right": 1080,
+        "bottom": 724.0000228881836,
+        "scroll": 984,
+        "client": 984
+      },
+      "article": {
+        "x": 158,
+        "y": 206,
+        "width": 860,
+        "right": 1018,
+        "bottom": 2308.800048828125
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    },
+    {
+      "factor": 1.5,
+      "method": "Chrome Settings chrome.settingsPrivate.setDefaultZoom; isolated profile; viewport:null; no emulation",
+      "name": "native-1.5-article",
+      "innerWidth": 900,
+      "outerWidth": 1366,
+      "devicePixelRatio": 1.5,
+      "visualViewportScale": 1,
+      "pageScroll": 900,
+      "root": {
+        "x": 116,
+        "y": 105.33333587646484,
+        "width": 764,
+        "right": 880,
+        "bottom": 2934.916831970215
+      },
+      "content": {
+        "x": 96,
+        "y": 89.33333587646484,
+        "width": 804,
+        "right": 900,
+        "bottom": 603.3333358764648,
+        "scroll": 804,
+        "client": 804
+      },
+      "article": {
+        "x": 152.6666717529297,
+        "y": 205.33334350585938,
+        "width": 690.6666870117188,
+        "right": 843.3333587646484,
+        "bottom": 2404.9168395996094
+      },
+      "drawer": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "offending": [],
+      "managementColumns": null,
+      "learningColumns": null
+    }
+  ],
+  "failures": [
+    {
+      "kind": "business",
+      "actionId": "action-model-publish",
+      "ruleId": "rule-model-structure",
+      "message": "属性「R01品牌」同时挂了属性值和子属性。请把子属性放到属性值下面，或只保留其中一种，否则规格路径不明确，不能发布。",
+      "savedState": "unchanged",
+      "context": {
+        "modelId": "r01-model",
+        "nodeId": "r01-model-brand",
+        "nodePath": "R01品牌",
+        "attributeId": "r01-brand"
+      },
+      "recovery": [
+        "edit-input"
+      ]
+    }
+  ],
+  "errors": []
+}

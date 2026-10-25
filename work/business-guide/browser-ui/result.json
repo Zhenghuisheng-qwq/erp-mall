@@ -1,0 +1,20 @@
+{
+  "result": "FAIL",
+  "error": "AssertionError [ERR_ASSERTION]: false == true",
+  "checks": [
+    "default: search/no-result/learning route and explicit separate read/practice/favorite only write personal guide storage",
+    "default: learning practice is a real permitted navigation and personal-write failure preserves reading and previous progress",
+    "default: unsaved SPU survives open/search/read/Escape, exact URL and business memory/disk unchanged, focus returns",
+    "default: actual sidebar navigation to full guide keeps the original unsaved-leave guard; cancel preserves business input and route",
+    "default: unsaved SKU and benefit package draft fields and URLs survive the same shared guide drawer",
+    "default: real typed-target move refusal opens exact rule with object/state; choosing another target preserves staged source and then succeeds",
+    "default: article feedback uses original local attachment flow and preserves optional article/page/revision plus historical featureId",
+    "default: editor local draft/failed setItem/retry/preview/publish preserves business data, published content stays unchanged until explicit publish",
+    "default: two real pages reject stale revision, retain local text, require read-latest and explicit reconciliation before retry",
+    "default: guide-only import preview rejects business/extra payload, valid backup restores atomically without touching business data",
+    "default: administrator structured editor keeps built-in rule conditions read-only while explanations remain editable",
+    "default: article direct-route, missing article/safe return, 1280–2560 desktop and 900 widths, dark theme and 125/150% rendering remain readable without page overflow",
+    "strict: search/no-result/learning route and explicit separate read/practice/favorite only write personal guide storage"
+  ],
+  "errors": []
+}

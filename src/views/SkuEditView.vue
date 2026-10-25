@@ -7,13 +7,17 @@
       <p>来源：{{ sourceText }} · 绑定版本：{{ versionName }}</p>
       <el-button v-if="compatibilityRole !== 'other'" data-detail-compatibility @click="compatibilityOpen = true">{{ compatibilityRole === 'host' ? '适用配件' : '适用主机' }}</el-button>
       <div style="max-width: 760px"><SkuFields :disabled="!(store.can('product:sku:update'))" v-model="draft" :family="family" :spec-locked="Boolean(sku.sourceNodeIds?.length || sku.planningId || sku.creationSource?.kind === 'plan')" /></div>
-      <p v-if="error" class="issue-error" role="alert">{{ error }}</p>
+      <RuleExplanation v-if="guideFailure" :failure="guideFailure" :supported-recovery="['edit-input']" @recover="recoverGuide" />
+      <p v-else-if="error" class="issue-error" role="alert">{{ error }}</p>
       <div class="row-actions"><el-button @click="back">取消</el-button><el-button type="primary" :loading="saving" @click="save" :disabled="!(store.can('product:sku:update'))">保存 SKU</el-button></div>
     </section>
     <AccessoryCompatibilityDrawer v-model="compatibilityOpen" :sku-id="sku?.id || ''" />
   </div>
 </template>
 <script setup lang="ts">
+import RuleExplanation from '../components/guide/RuleExplanation.vue'
+import { getFailure } from '../domain/guide/failure'
+import type { GuideFailure } from '../domain/guide/types'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -30,6 +34,8 @@ const route = useRoute()
 const router = useRouter()
 const dirty = ref(false)
 const error = ref('')
+const guideFailure = ref<GuideFailure>()
+watch(error, value => { if (!value) guideFailure.value=undefined })
 const saving = ref(false)
 const compatibilityOpen = ref(false)
 const sku = computed(() => store.data.skus.find(item => item.id === route.params.id && isRealSku(store.data, item)))
@@ -49,8 +55,9 @@ async function save() {
   if (saving.value || !sku.value || !draft.value) return
   saving.value = true
   const result = (await store.editSku(sku.value.id, draft.value))
-  if (!result.ok) { error.value = result.message; saving.value = false; return }
+  if (!result.ok) { guideFailure.value=getFailure(result); error.value = result.message; saving.value = false; return }
   dirty.value = false; ElMessage.success('SKU 已保存'); await back(); saving.value = false
 }
 function back() { return router.push({ path: '/skus', query: typeof route.query.spu === 'string' ? { spu: route.query.spu } : {} }) }
+function recoverGuide(action:string) { if(action==='edit-input') requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.spu-form input, .el-dialog.is-in-viewport input, .el-dialog input, .panel input')?.focus()) }
 </script>

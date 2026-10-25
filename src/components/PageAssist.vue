@@ -1,25 +1,9 @@
 <template>
-  <el-button size="small" @click="featureOpen = true">页面功能</el-button>
-  <el-button size="small" @click="openFeedback()">反馈问题</el-button>
-  <el-drawer v-model="featureOpen" title="页面功能" size="420px" :modal="false" modal-class="assist-mask">
-    <p class="assist-page">{{ pageTitle }}</p>
-    <p v-if="!sheet" class="assist-note">功能清单待完善。这里不编造没有核对过的功能。</p>
-    <template v-else>
-      <section v-for="group in groups" :key="group" class="assist-group">
-        <h3>{{ group }}</h3>
-        <article v-for="item in featuresIn(group)" :key="item.id" class="assist-item">
-          <div>
-            <strong>{{ item.name }}</strong>
-            <em>{{ featureStatusText(item.status) }}</em>
-            <p>{{ item.summary }}</p>
-          </div>
-          <el-button size="small" @click="openFeedback(item)">反馈</el-button>
-        </article>
-      </section>
-    </template>
-  </el-drawer>
+  <el-button size="small" :disabled="!store.can('system:guide:read')" @click="openPageGuide">本页指南</el-button>
+  <el-button size="small" :disabled="!store.can('system:feedback:create')" :title="store.can('system:feedback:create') ? '' : '需要反馈新增权限'" @click="openFeedback()">反馈问题</el-button>
+  <PageGuideDrawer />
   <el-dialog v-model="formOpen" class="feedback-dialog" title="反馈问题" width="480px" align-center append-to-body :close-on-click-modal="false">
-    <p class="assist-note">保存后只留在本机。导出反馈包后，可发送给开发人员。不会送到服务器。</p>
+    <el-alert v-if="!store.can('system:feedback:create')" title="当前身份没有反馈新增权限。指南阅读或维护不会授予反馈权限，当前输入保留。" type="warning" :closable="false"/><p class="assist-note">保存后只留在本机。导出反馈包后，可发送给开发人员。不会送到服务器。</p>
     <el-form label-position="top">
       <el-form-item label="反馈类型" required>
         <el-radio-group v-model="form.kind">
@@ -32,13 +16,13 @@
         <el-input :model-value="`${sourceTitle}（${sourceKey}）`" disabled />
       </el-form-item>
       <el-form-item label="对应功能">
-        <el-input :model-value="form.featureName || '整个页面'" disabled />
+        <el-select v-model="form.featureId" clearable placeholder="整个页面" aria-label="对应历史功能" @change="syncFeatureName"><el-option v-for="feature in sheet?.features || []" :key="feature.id" :value="feature.id" :label="feature.name"/></el-select>
       </el-form-item>
       <el-form-item label="标题" required>
-        <el-input v-model="form.title" maxlength="80" />
+        <el-input v-model="form.title" maxlength="80" aria-label="反馈标题" />
       </el-form-item>
       <el-form-item label="详细说明" required>
-        <el-input v-model="form.content" type="textarea" :rows="5" placeholder="可以直接输入，也可以 Ctrl+V 粘贴文字或图片" @paste="onPaste" />
+        <el-input v-model="form.content" aria-label="反馈详细说明" type="textarea" :rows="5" placeholder="可以直接输入，也可以 Ctrl+V 粘贴文字或图片" @paste="onPaste" />
       </el-form-item>
       <el-form-item label="附件">
         <input ref="fileRef" type="file" accept="image/*,video/*" multiple hidden @change="onPick" />
@@ -61,31 +45,35 @@
 
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, onUnmounted } from 'vue'
 import { checkAttachment, fileSize, saveAttachment } from '../domain/feedbackFiles'
-import { featureSheet, featureStatusText, type PageFeature } from '../domain/pageFeatures'
+import { featureSheet, type PageFeature } from '../domain/pageFeatures'
 import type { FeedbackItem, FeedbackKind } from '../domain/types'
 import { uid, useCatalogStore } from '../stores/catalog'
+import {useGuideStore} from '../stores/guide'
+import {guidePageFor} from '../domain/guide/routeMap'
+import {guideUI,openGuide,closeGuide,type GuideFeedbackSource} from '../domain/guide/presentation'
+import PageGuideDrawer from './guide/PageGuideDrawer.vue'
 
 const props = defineProps<{ path: string; queryPanel?: unknown; fullPath?: string; title?: string }>()
 const store = useCatalogStore()
-const featureOpen = ref(false)
+const guide = useGuideStore()
+const guideSource = ref<GuideFeedbackSource>({})
 const formOpen = ref(false)
 const saving = ref(false)
 const fileRef = ref<HTMLInputElement>()
 const sheet = computed(() => featureSheet(props.path, { panel: props.queryPanel }))
 const pageTitle = computed(() => sheet.value?.title || props.title || props.path)
 const pageKey = computed(() => props.fullPath || (props.path === '/products' && props.queryPanel === 'columns' ? '/products?panel=columns' : props.path || '/'))
-const groups = computed(() => [...new Set((sheet.value?.features || []).map((item) => item.group))])
+
 const sourceTitle = ref('')
 const sourceKey = ref('')
 const form = reactive({ kind: 'bug' as FeedbackKind, title: '', content: '', featureId: '', featureName: '' })
 const pending = ref<Array<{ id: string; name: string; type: string; size: number; file: File; url: string }>>([])
 let pendingFeedbackId = ''
 
-function featuresIn(group: string) {
-  return (sheet.value?.features || []).filter((item) => item.group === group)
-}
+function openPageGuide() { openGuide({ pageId: guidePageFor(props.path, {panel:props.queryPanel}, store.data)?.id }) }
+function syncFeatureName() { form.featureName=sheet.value?.features.find(item=>item.id===form.featureId)?.name || '' }
 function resetForm() {
   pendingFeedbackId = ''
   form.kind = 'bug'
@@ -93,16 +81,19 @@ function resetForm() {
   form.content = ''
   form.featureId = ''
   form.featureName = ''
+  guideSource.value = {}
   pending.value.forEach((item) => URL.revokeObjectURL(item.url))
   pending.value = []
 }
-function openFeedback(feature?: PageFeature) {
+function openFeedback(feature?: PageFeature, source:GuideFeedbackSource={}) {
   resetForm()
   sourceTitle.value = pageTitle.value
   sourceKey.value = pageKey.value
   form.featureId = feature?.id || ''
   form.featureName = feature?.name || ''
-  featureOpen.value = false
+  guideSource.value = {...source}
+  if (source.articleId) form.title = `指南反馈：${guide.article(source.articleId)?.title || source.articleId}`
+  closeGuide()
   formOpen.value = true
 }
 function addPending(file: File) {
@@ -136,6 +127,8 @@ function dropPending(id: string) {
 }
 async function save() {
   if (saving.value) return
+  const required=store.data.feedbacks.some(item=>item.id===pendingFeedbackId)?'system:feedback:update':'system:feedback:create'
+  if (!store.can(required)) { ElMessage.error(`当前身份没有 ${required} 权限，反馈输入和附件保留。`); return }
   if (!form.kind || !form.title.trim() || !form.content.trim()) {
     ElMessage.warning('请选择类型，并填写标题和说明')
     return
@@ -157,6 +150,7 @@ async function save() {
       featureId: form.featureId,
       featureName: form.featureName,
       attachmentRefs: refs,
+      ...guideSource.value,
     }
     pendingFeedbackId = record.id
     if (existing) Object.assign(existing, record)
@@ -165,15 +159,14 @@ async function save() {
     if (!saved.ok) { ElMessage.error(store.persistenceState.message || '反馈尚未保存，当前输入和附件已保留。'); return }
     formOpen.value = false
     ElMessage.success('已保存到本机。导出反馈包后，可发送给开发人员')
-  } catch {
-    ElMessage.error('附件没能保存到本机，这条反馈没有写入')
+  } catch (cause) {
+    ElMessage.error(`反馈未完成：${cause instanceof Error ? cause.message : String(cause)}。当前输入和附件保留，请核对本机保存状态。`)
   } finally {
     saving.value = false
   }
 }
-watch(() => props.path, () => {
-  featureOpen.value = false
-})
+watch(() => guideUI.feedbackRequest, (request) => { if (request) { const {sequence:_,...source}=request; openFeedback(undefined,source) } })
+onUnmounted(() => pending.value.forEach(item=>URL.revokeObjectURL(item.url)))
 defineExpose({ openFeedback })
 </script>
 

@@ -26,13 +26,14 @@ export interface RbacRole {
   superAdmin?: boolean
   permissionCodes: string[]
 }
-export interface RbacState { version: 1; roles: RbacRole[]; permissions: RbacPermission[] }
+export interface RbacState { version: 1; guideAccessVersion?: 1; roles: RbacRole[]; permissions: RbacPermission[] }
 type AuthorizationData = AppData & { rbac?: RbacState }
 export const SUPER_ROLE_ID = 'role:super-admin'
 export const OPERATOR_ROLE_ID = 'role:operator'
 export const RECOVERY_PERMISSIONS = ['system:menu:read', 'system:menu:update', 'system:role:read', 'system:role:grant', 'system:user:read', 'system:user:bind', 'system:permission:read', 'system:permission:update']
 
 const resources: { module: string; resource: string; label: string; route: string; actions: string[] }[] = [
+  { module: '系统管理', resource: 'guide', label: '业务指南', route: '/guide', actions: ['update'] },
   { module: '商品中心', resource: 'workbench', label: '商品工作台', route: '/', actions: [] },
   { module: '商品中心', resource: 'spu', label: 'SPU', route: '/spus', actions: ['create','update','delete','publish'] },
   { module: '商品中心', resource: 'sku', label: '销售 SKU', route: '/skus', actions: ['create','update','delete'] },
@@ -83,6 +84,8 @@ export function permissionRegistry(): RbacPermission[] {
 /** Canonical access requirements for actual routes, independent of navigation visibility. */
 export function routePermissions(path: string, query: Record<string,unknown> = {}): string[] | null {
   const clean = path.split('?')[0] || '/'
+  if(clean==='/guide/manage')return ['system:guide:read','system:guide:update']
+  if(clean==='/guide'||/^\/guide\/(articles|learn)\/[^/]+$/.test(clean))return ['system:guide:read']
   if (clean === '/forbidden') return []
   if (clean === '/columns' || (['/products','/spus','/skus'].includes(clean) && query.panel === 'columns')) return ['product:view:read', clean === '/skus' ? 'product:sku:read' : 'product:spu:read']
   if (clean === '/products/new') return ['product:spu:read','product:spu:create']
@@ -139,6 +142,17 @@ function legacyAllowed(nodes: MenuNode[], route: string) {
 /** Pure candidate migration: callers validate and persist the candidate before switching live memory. */
 export function ensureRbac(data: AppData, legacyMenus: MenuNode[] = defaultMenuNodes()): void {
   if (Object.prototype.hasOwnProperty.call(data,'rbac')) {
+    // One-time additive capability migration. Existing/custom grants remain authoritative.
+    const saved=state(data), additions=permissionRegistry().filter(permission=>permission.resource==='guide')
+    if(saved&&saved.guideAccessVersion===undefined&&Array.isArray(saved.permissions)&&Array.isArray(saved.roles)&&additions.every(permission=>!saved.permissions.some(old=>old?.code===permission.code))){
+      saved.permissions.push(...additions)
+      for(const role of saved.roles){
+        if(!role||!Array.isArray(role.permissionCodes)||!role.builtIn)continue
+        const codes=role.id===SUPER_ROLE_ID&&role.code==='super-admin'&&role.superAdmin?additions.map(p=>p.code):role.id===OPERATOR_ROLE_ID&&role.code==='operator'?['system:guide:read']:[]
+        role.permissionCodes=[...new Set([...role.permissionCodes,...codes])]
+      }
+    }
+    if(saved&&saved.guideAccessVersion===undefined)saved.guideAccessVersion=1
     const problems = rbacProblems(data)
     if (problems.length) throw new Error(`授权数据校验失败：${problems.join(' ')}`)
     return
@@ -146,7 +160,7 @@ export function ensureRbac(data: AppData, legacyMenus: MenuNode[] = defaultMenuN
   if (!Array.isArray(data.users)) throw new Error('授权迁移失败：用户数组损坏，原始内容应保留。')
   const permissions = permissionRegistry()
   const operatorCodes = permissions.filter(permission => permission.action === 'read' && permission.route && legacyAllowed(legacyMenus,permission.resource === 'material' ? '/spus' : permission.route)).map(permission => permission.code)
-  ;(data as AuthorizationData).rbac = { version:1, permissions, roles:[
+  ;(data as AuthorizationData).rbac = { version:1, guideAccessVersion:1, permissions, roles:[
     { id:SUPER_ROLE_ID,code:'super-admin',name:'超级管理员',description:'受保护的内置恢复身份。',enabled:true,builtIn:true,superAdmin:true,permissionCodes:permissions.map(permission => permission.code) },
     { id:OPERATOR_ROLE_ID,code:'operator',name:'只读运营',description:'由旧运营菜单访问范围迁移，只读；新增功能不会自动授权。',enabled:true,builtIn:true,superAdmin:false,permissionCodes:operatorCodes },
   ] }
@@ -170,6 +184,7 @@ export function rbacProblems(data: AppData): string[] {
   }
   const problems: string[] = [], rbac: unknown = state(data)
   if (!object(rbac) || rbac.version !== 1 || !Array.isArray(rbac.roles) || !Array.isArray(rbac.permissions)) return ['授权容器或版本无效。']
+  if(rbac.guideAccessVersion!==undefined&&rbac.guideAccessVersion!==1)problems.push('指南授权迁移标记无效。')
   const registered = new Map(permissionRegistry().map(permission => [permission.code,permission]))
   const codes = new Set<string>(), roleSet = new Set<string>(), roleCodes = new Set<string>()
   for (const value of rbac.permissions) {
@@ -246,6 +261,11 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
     return codes
   }
   if (name === 'saveRule') return save('rule',Boolean(data?.rules.some(rule => rule.id === first?.id)))
+  if (name === 'saveTemplateScheme') {
+    const id=typeof first?.id==='string'?first.id:''
+    const resource=id&&data?templateAccessResource(data,id):'template'
+    return [`product:${resource}:${id?'update':'create'}`,...(first?.sourceId?[`product:${data?templateAccessResource(data,String(first.sourceId)):'template'}:read`]:[])]
+  }
   if (name === 'restoreSuperAdminAccess') return ['system:role:grant']
   if (['removeSku','patchSku','editSku'].includes(name)) {
     const sku = data?.skus.find(item => item.id === args[0])

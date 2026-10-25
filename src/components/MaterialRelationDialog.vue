@@ -21,15 +21,18 @@
         <p v-for="note in result.compatibilityNotes" :key="note">{{ note }}</p>
         <p v-if="result.suggestion.message">命名：{{ result.suggestion.message }}</p>
         <p v-if="result.previous.length">新版本范围：新增 {{ result.added.join('、') || '无' }}；移出 {{ result.removed.join('、') || '无' }}。旧版本关联保持原样。</p>
-        <el-alert v-for="problem in result.problems" :key="problem" :title="problem" type="error" :closable="false" />
+        <RuleExplanation v-for="(failure,index) in result.failures" :key="index" :failure="failure" :supported-recovery="[]" /><el-alert v-for="problem in result.problems" :key="problem" :title="problem" type="error" :closable="false" />
         <el-checkbox v-if="!result.problems.length" v-model="confirmed">确认上述发布版本、范围和目标；不自动扩张旧版本关联</el-checkbox>
       </section>
-      <el-alert v-if="error" :title="error" type="error" :closable="false" />
+      <RuleExplanation v-if="guideFailure" :failure="guideFailure" :supported-recovery="['repreview']" @recover="preview" /><el-alert v-else-if="error" :title="error" type="error" :closable="false" />
     </div>
     <template #footer><el-button :disabled="busy" @click="emit('close')">关闭</el-button><el-button type="primary" :loading="busy" :disabled="!store.can(mode === 'create' ? 'product:material:create' : 'product:material:update') || !result || !!result.problems.length || !confirmed" @click="save">确认执行</el-button></template>
   </el-dialog>
 </template>
 <script setup lang="ts">
+import RuleExplanation from './guide/RuleExplanation.vue'
+import {getFailure} from '../domain/guide/failure'
+import type {GuideFailure} from '../domain/guide/types'
 import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { uid, useCatalogStore } from '../stores/catalog'
@@ -39,13 +42,14 @@ import { previewMaterialScope, type MaterialScopePreview } from '../domain/mater
 import { sameSpecSnapshot } from '../domain/logic'
 const props=defineProps<{open:boolean;source:MaterialScope}>(),emit=defineEmits<{close:[];saved:[id:string]}>()
 const store=useCatalogStore(),form=ref<MaterialScope>({...props.source}),mode=ref('link'),target=ref(''),name=ref(''),error=ref(''),busy=ref(false),confirmed=ref(false),request=ref(''),result=ref<MaterialScopePreview>()
+const guideFailure=ref<GuideFailure>()
 const versions=computed(()=>store.data.specModelVersions.filter(v=>v.templateId===form.value.modelId&&v.status==='published'))
 const draftDiffers=computed(()=>{const v=versions.value.find(v=>v.id===form.value.versionId);return v&&!sameSpecSnapshot(store.data.productSpecNodes.filter(n=>n.templateId===v.templateId),v.nodesSnapshot)})
 const candidates=computed(()=>{const type=store.data.specCanvases.find(c=>c.templateId===form.value.modelId)?.productTypeId;return store.data.skus.filter(s=>isMaterialArchive(store.data,s)&&store.data.families.some(f=>f.id===s.familyId&&f.productTypeId===type))})
 const targetSources=computed(()=>materialSources(store.data,target.value).map(s=>`${s.label} ${s.source.modelId} / ${s.source.versionId} / ${s.source.planningId || s.source.anchorNodeId}`).join('；'))
-function clear(){result.value=undefined;confirmed.value=false;error.value='';request.value=uid('relation-request')}
+function clear(){guideFailure.value=undefined;result.value=undefined;confirmed.value=false;error.value='';request.value=uid('relation-request')}
 watch(()=>props.open,open=>{if(open){form.value={...props.source};mode.value=props.source.kind==='node'?'create':'link';target.value='';name.value='';clear()}},{immediate:true})
 function preview(){result.value=previewMaterialScope(store.data,form.value,mode.value==='link'?target.value:'');confirmed.value=false;error.value='';if(mode.value==='create'&&!name.value&&result.value.suggestion.canAuto)name.value=result.value.suggestion.name}
-async function save(){if(!result.value||busy.value)return;busy.value=true;try{const r=await store.saveMaterialRelation({source:{...form.value},materialId:mode.value==='link'?target.value:undefined,name:name.value,requestId:request.value,basis:result.value.basis,confirmVersionChange:confirmed.value});if(r.ok){ElMessage.success(r.message);emit('saved',r.materialId);emit('close')}else error.value=r.message||'保存失败，输入保留。'}finally{busy.value=false}}
+async function save(){if(!result.value||busy.value)return;busy.value=true;try{const r=await store.saveMaterialRelation({source:{...form.value},materialId:mode.value==='link'?target.value:undefined,name:name.value,requestId:request.value,basis:result.value.basis,confirmVersionChange:confirmed.value});if(r.ok){ElMessage.success(r.message);emit('saved',r.materialId);emit('close')}else {guideFailure.value=getFailure(r);error.value=r.message||'保存失败，输入保留。'}}finally{busy.value=false}}
 </script>
 <style>.material-relation-dialog{max-width:calc(100vw - 24px)}.material-relation-dialog .el-dialog__body{max-height:65vh;overflow:auto}.material-relation-dialog .el-select{width:100%}.material-relation-dialog section{margin-top:14px}.material-relation-dialog p{overflow-wrap:anywhere}</style>

@@ -1,0 +1,267 @@
+{
+  "result": "PASS",
+  "strict": true,
+  "checks": [
+    {
+      "name": "category typed target",
+      "kind": "business",
+      "rule": "rule-category-typed-target",
+      "state": "unchanged",
+      "branchId": "category.move.target-typed"
+    },
+    {
+      "name": "category self",
+      "kind": "business",
+      "rule": "rule-category-cycle",
+      "state": "unchanged",
+      "branchId": "category.move.self"
+    },
+    {
+      "name": "category descendant",
+      "kind": "business",
+      "rule": "rule-category-cycle",
+      "state": "unchanged",
+      "branchId": "category.move.descendant"
+    },
+    {
+      "name": "category missing source",
+      "kind": "conflict",
+      "rule": "rule-category-stale",
+      "state": "unchanged",
+      "branchId": "category.move.source-missing"
+    },
+    {
+      "name": "category missing target",
+      "kind": "conflict",
+      "rule": "rule-category-stale",
+      "state": "unchanged",
+      "branchId": "category.move.target-missing"
+    },
+    {
+      "name": "publish missing dictionary",
+      "kind": "business",
+      "rule": "rule-model-dictionary",
+      "state": "unchanged",
+      "branchId": "model.publish.dictionary-attribute"
+    },
+    {
+      "name": "publish mixed attribute/value children",
+      "kind": "business",
+      "rule": "rule-model-structure",
+      "state": "unchanged",
+      "branchId": "model.publish.mixed-children"
+    },
+    {
+      "name": "material missing PLN",
+      "kind": "business",
+      "rule": "rule-material-planning",
+      "state": "unchanged",
+      "branchId": "material.plan.missing"
+    },
+    {
+      "name": "material unavailable published scope",
+      "kind": "business",
+      "rule": "rule-material-source",
+      "state": "unchanged",
+      "branchId": "material.scope.source"
+    },
+    {
+      "name": "material source model mismatch",
+      "kind": "business",
+      "rule": "rule-material-source",
+      "state": "unchanged",
+      "branchId": "material.plan.model"
+    },
+    {
+      "name": "material version unavailable",
+      "kind": "business",
+      "rule": "rule-material-planning",
+      "state": "unchanged",
+      "branchId": "material.plan.version"
+    },
+    {
+      "name": "material product type mismatch",
+      "kind": "business",
+      "rule": "rule-material-source",
+      "state": "unchanged",
+      "branchId": "material.create.model-type"
+    },
+    {
+      "name": "material category type mismatch",
+      "kind": "business",
+      "rule": "rule-material-source",
+      "state": "unchanged",
+      "branchId": "material.create.category-type"
+    },
+    {
+      "name": "temporary material category type mismatch",
+      "kind": "business",
+      "rule": "rule-material-source",
+      "state": "unchanged",
+      "branchId": "material.temporary.category-type"
+    },
+    {
+      "name": "human cancelled contribution remains protected after V2 note change",
+      "kind": "business",
+      "rule": "rule-compatibility-manual-protection",
+      "state": "unchanged",
+      "branchId": "material.scope.manual-contribution"
+    },
+    {
+      "name": "compatibility sync actual stale preview",
+      "kind": "conflict",
+      "rule": "rule-compatibility-basis",
+      "state": "unchanged",
+      "branchId": "compatibility.sync.basis"
+    },
+    {
+      "name": "SPU required name",
+      "kind": "input",
+      "rule": "rule-spu-input",
+      "state": "unchanged",
+      "branchId": "spu.save.name"
+    },
+    {
+      "name": "SKU invalid status",
+      "kind": "input",
+      "rule": "rule-sku-input",
+      "state": "unchanged",
+      "branchId": "sku.save.status"
+    },
+    {
+      "name": "device MAT/nonhost target",
+      "kind": "business",
+      "rule": "rule-compatibility-binding",
+      "state": "unchanged",
+      "branchId": "compatibility.bind.target"
+    },
+    {
+      "name": "device binding mismatched type",
+      "kind": "business",
+      "rule": "rule-compatibility-binding",
+      "state": "unchanged",
+      "branchId": "compatibility.bind.type"
+    },
+    {
+      "name": "device binding requires model scope",
+      "kind": "business",
+      "rule": "rule-compatibility-binding",
+      "state": "unchanged",
+      "branchId": "compatibility.bind.scope"
+    },
+    {
+      "name": "device binding source stamp changed",
+      "kind": "conflict",
+      "rule": "rule-compatibility-basis",
+      "state": "unchanged",
+      "branchId": "compatibility.bind.basis"
+    },
+    {
+      "name": "benefit actual validation",
+      "kind": "business",
+      "rule": "rule-benefit-validation",
+      "state": "unchanged",
+      "branchId": "benefit.save.validation"
+    },
+    {
+      "name": "benefit invalid quote",
+      "kind": "input",
+      "rule": "rule-benefit-quote",
+      "state": "unchanged",
+      "branchId": "benefit.quote.invalid"
+    },
+    {
+      "name": "delivery stale package revision",
+      "kind": "conflict",
+      "rule": "rule-benefit-preview",
+      "state": "unchanged",
+      "branchId": "benefit.deliver.revision"
+    },
+    {
+      "name": "delivery changed basis",
+      "kind": "conflict",
+      "rule": "rule-benefit-preview",
+      "state": "unchanged",
+      "branchId": "benefit.deliver.basis"
+    },
+    {
+      "name": "JSON syntax",
+      "kind": "input",
+      "rule": "rule-json-import",
+      "state": "unchanged",
+      "branchId": "import.json.parse"
+    },
+    {
+      "name": "JSON missing containers",
+      "kind": "input",
+      "rule": "rule-json-import",
+      "state": "unchanged",
+      "branchId": "import.json.missing"
+    },
+    {
+      "name": "JSON damaged business config",
+      "kind": "input",
+      "rule": "rule-json-import",
+      "state": "unchanged",
+      "branchId": "import.json.validation"
+    },
+    {
+      "name": "setItem failure preserves category draft and data",
+      "kind": "business",
+      "rule": "rule-category-cycle",
+      "state": "unchanged"
+    },
+    {
+      "name": "real setItem failure",
+      "kind": "persistence",
+      "rule": "rule-persistence",
+      "state": "unchanged",
+      "branchId": "persistence.set-item"
+    },
+    {
+      "name": "saved view actual setItem failure",
+      "kind": "persistence",
+      "rule": "rule-persistence",
+      "state": "unchanged",
+      "branchId": "persistence.set-item"
+    },
+    {
+      "name": "watcher failure distinguishes memory-only state",
+      "kind": "persistence",
+      "rule": "rule-persistence",
+      "state": "memory-only",
+      "branchId": "persistence.set-item"
+    },
+    {
+      "name": "acceptedRaw conflict",
+      "kind": "conflict",
+      "rule": "rule-conflict",
+      "state": "unchanged",
+      "branchId": "persistence.external"
+    },
+    {
+      "name": "strict Store command authorization",
+      "kind": "permission",
+      "rule": "rule-permission",
+      "state": "unchanged",
+      "branchId": "command.permission"
+    },
+    {
+      "name": "SKU-create-only cannot publish model",
+      "kind": "permission",
+      "rule": "rule-permission",
+      "state": "unchanged",
+      "branchId": "command.permission"
+    },
+    {
+      "name": "SKU-create-only actual append succeeds without model:update",
+      "kind": "business",
+      "state": "saved"
+    },
+    {
+      "name": "unknown is not inferred from words; permission context whitelist",
+      "kind": "unknown",
+      "state": "unconfirmed"
+    }
+  ]
+}

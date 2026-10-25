@@ -1,0 +1,1526 @@
+{
+  "baseline": "current working tree on 2026-10-25; see root implementation report",
+  "routes": [
+    {
+      "pattern": "/guide",
+      "source": "src/views/guide/GuideHomeView.vue",
+      "title": "业务指南"
+    },
+    {
+      "pattern": "/guide/manage",
+      "source": "src/views/guide/GuideManageView.vue",
+      "title": "指南内容维护"
+    },
+    {
+      "pattern": "/guide/articles/:articleId",
+      "source": "src/views/guide/GuideArticleView.vue",
+      "title": "业务指南文章"
+    },
+    {
+      "pattern": "/guide/learn/:flowId",
+      "source": "src/views/guide/GuideLearnView.vue",
+      "title": "新人学习"
+    },
+    {
+      "pattern": "/",
+      "source": "src/views/WorkbenchView.vue",
+      "title": "商品工作台"
+    },
+    {
+      "pattern": "/spus",
+      "source": "src/views/ProductListView.vue",
+      "title": "SPU 管理"
+    },
+    {
+      "pattern": "/skus",
+      "source": "src/views/SkuWorkbenchView.vue",
+      "title": "SKU 管理"
+    },
+    {
+      "pattern": "/benefit-packages",
+      "source": "src/views/BenefitPackageListView.vue",
+      "title": "权益包"
+    },
+    {
+      "pattern": "/benefit-packages/new",
+      "source": "src/views/BenefitPackageEditView.vue",
+      "title": "新建权益包"
+    },
+    {
+      "pattern": "/benefit-packages/deliveries/:id",
+      "source": "src/views/BenefitDeliveryView.vue",
+      "title": "交付清单"
+    },
+    {
+      "pattern": "/benefit-packages/:id",
+      "source": "src/views/BenefitPackageEditView.vue",
+      "title": "权益包详情"
+    },
+    {
+      "pattern": "/spus/new",
+      "source": "src/views/SpuEditView.vue",
+      "title": "新建 SPU"
+    },
+    {
+      "pattern": "/spus/:id",
+      "source": "src/views/SpuEditView.vue",
+      "title": "SPU 详情"
+    },
+    {
+      "pattern": "/skus/new",
+      "source": "src/views/SkuCreateView.vue",
+      "title": "新增 SKU"
+    },
+    {
+      "pattern": "/skus/:id",
+      "source": "src/views/SkuEditView.vue",
+      "title": "编辑 SKU"
+    },
+    {
+      "pattern": "/materials/new",
+      "source": "src/views/MaterialCreateView.vue",
+      "title": "物料建档"
+    },
+    {
+      "pattern": "/materials/:id",
+      "source": "src/views/ProductEditView.vue",
+      "title": "物料管理"
+    },
+    {
+      "pattern": "/import",
+      "source": "src/views/ProductIoView.vue",
+      "title": "导入导出"
+    },
+    {
+      "pattern": "/compatibility",
+      "source": "src/views/CompatibilityView.vue",
+      "title": "适用关系"
+    },
+    {
+      "pattern": "/check",
+      "source": "src/views/CheckView.vue",
+      "title": "商品质量检查"
+    },
+    {
+      "pattern": "/overview",
+      "source": "src/views/OverviewView.vue",
+      "title": "商品总览"
+    },
+    {
+      "pattern": "/categories",
+      "source": "src/views/CategoryView.vue",
+      "title": "商品分类中心"
+    },
+    {
+      "pattern": "/product-types",
+      "source": "src/views/ProductTypeView.vue",
+      "title": "产品类型"
+    },
+    {
+      "pattern": "/templates",
+      "source": "src/views/TemplateView.vue",
+      "title": "属性方案"
+    },
+    {
+      "pattern": "/models",
+      "source": "src/views/ModelListView.vue",
+      "title": "商品模型"
+    },
+    {
+      "pattern": "/plans",
+      "source": "src/views/ProductPlanView.vue",
+      "title": "商品规划"
+    },
+    {
+      "pattern": "/specs",
+      "source": "src/views/SpecConfigView.vue",
+      "title": "商品模型设计"
+    },
+    {
+      "pattern": "/params",
+      "source": "src/views/ParamView.vue",
+      "title": "属性词典"
+    },
+    {
+      "pattern": "/brands",
+      "source": "src/views/BrandView.vue",
+      "title": "品牌中心"
+    },
+    {
+      "pattern": "/groups",
+      "source": "src/views/GroupView.vue",
+      "title": "运营分组"
+    },
+    {
+      "pattern": "/rules",
+      "source": "src/views/RuleView.vue",
+      "title": "规格约束"
+    },
+    {
+      "pattern": "/mappings",
+      "source": "src/views/MappingView.vue",
+      "title": "属性方案绑定"
+    },
+    {
+      "pattern": "/tree",
+      "source": "src/views/TreePage.vue",
+      "title": "商品结构视图"
+    },
+    {
+      "pattern": "/users",
+      "source": "src/views/UserView.vue",
+      "title": "用户管理"
+    },
+    {
+      "pattern": "/feedback",
+      "source": "src/views/FeedbackView.vue",
+      "title": "反馈管理"
+    },
+    {
+      "pattern": "/account",
+      "source": "src/views/AccountView.vue",
+      "title": "账号设置"
+    },
+    {
+      "pattern": "/roles",
+      "source": "src/views/RoleView.vue",
+      "title": "角色管理"
+    },
+    {
+      "pattern": "/permissions",
+      "source": "src/views/PermissionView.vue",
+      "title": "权限管理"
+    },
+    {
+      "pattern": "/forbidden",
+      "source": "src/views/ForbiddenView.vue",
+      "title": "无访问权限"
+    },
+    {
+      "pattern": "/menus",
+      "source": "src/views/MenuConfigView.vue",
+      "title": "菜单配置"
+    }
+  ],
+  "aliases": [
+    {
+      "pattern": "/products",
+      "canonical": "/spus",
+      "queryPreserved": true
+    },
+    {
+      "pattern": "/products/new",
+      "canonical": "/spus/new",
+      "queryPreserved": true
+    },
+    {
+      "pattern": "/products/:id",
+      "canonical": "identity-dependent /spus/:id, /skus/:id or /materials/:id",
+      "note": "sku query chooses true record kind; add/copySku enters SKU creation"
+    },
+    {
+      "pattern": "/columns",
+      "canonical": "/spus?panel=columns",
+      "note": "through /products redirect"
+    }
+  ],
+  "sourceInventory": [
+    {
+      "source": "src/views/AccountView.vue",
+      "buttons": [
+        "保存资料",
+        "检查"
+      ],
+      "functions": [
+        "saveProfile",
+        "checkPassword"
+      ],
+      "storeCommands": [
+        "can",
+        "flushPersistence"
+      ]
+    },
+    {
+      "source": "src/views/BenefitDeliveryView.vue",
+      "buttons": [
+        "返回权益包",
+        "查看当前包配置",
+        "返回原页面",
+        "打印清单",
+        "导出 Excel"
+      ],
+      "functions": [
+        "print",
+        "download"
+      ],
+      "storeCommands": [
+        "can"
+      ]
+    },
+    {
+      "source": "src/views/BenefitPackageEditView.vue",
+      "buttons": [
+        "{{ typeof route.query.returnTo === 'string' ? '返回原页面' : '返回权益包' }}",
+        "复制组包",
+        "读取最新配置",
+        "{{ membersOpen ? '收起全部成员' : '展开全部成员' }}",
+        "移除原包内手机",
+        "前往设备详情处理型号",
+        "预览并应用框架变更",
+        "维护适用关系",
+        "管理选配框架",
+        "添加服务权益",
+        "{{ draft.goods.some(line => line.skuId === sku.skuId) ? '已加入 · 继续添加' : '加入' }}",
+        "复制组包",
+        "移除",
+        "替换 SKU",
+        "确认按此前提交付",
+        "维护这件商品的适用关系",
+        "编辑服务",
+        "移除服务",
+        "添加服务权益",
+        "已复核当前报价",
+        "管理适用关系",
+        "{{ draft.status === 'disabled' ? '重新启用' : '停用权益包' }}",
+        "{{ deliveryPreview ? '重新预览本次交付' : '预览本次交付' }}",
+        "确认生成清单",
+        "取消",
+        "保存草稿",
+        "保存权益包",
+        "保存并预览交付",
+        "取消",
+        "确认替换",
+        "取消",
+        "仅更换适配对象",
+        "同时替换包内手机",
+        "继续编辑",
+        "{{ leaveIntent === 'service' ? '放弃服务输入' : '放弃并离开' }}",
+        "{{ leaveIntent === 'service' ? '加入包内清单' : '保存草稿并离开' }}"
+      ],
+      "functions": [
+        "setReference",
+        "candidateMatch",
+        "candidateStatus"
+      ],
+      "storeCommands": [
+        "can"
+      ]
+    },
+    {
+      "source": "src/views/BenefitPackageListView.vue",
+      "buttons": [
+        "新建权益包",
+        "开始组包",
+        "{{ store.can('product:benefit:update') ? '打开权益包' : '查看权益包' }}",
+        "复制组包",
+        "{{ row.item.favorite ? '取消常用' : '设为常用' }}",
+        "{{ row.item.status === 'disabled' ? '启用' : '停用' }}",
+        "查看清单"
+      ],
+      "functions": [
+        "edit",
+        "copy",
+        "favorite",
+        "setStatus"
+      ],
+      "storeCommands": [
+        "can",
+        "setBenefitPackageFavorite",
+        "setBenefitPackageStatus"
+      ]
+    },
+    {
+      "source": "src/views/BrandView.vue",
+      "buttons": [
+        "新增品牌",
+        "编辑",
+        "取消",
+        "保存"
+      ],
+      "functions": [
+        "openCreate",
+        "edit",
+        "save",
+        "setStatus"
+      ],
+      "storeCommands": [
+        "can",
+        "saveBrand"
+      ]
+    },
+    {
+      "source": "src/views/CategoryView.vue",
+      "buttons": [
+        "打开待移动区",
+        "新增根分类",
+        "{{ detailsOpen ? '收起详情' : '查看详情' }}",
+        "定位来源",
+        "选择顶级分类",
+        "取消移动",
+        "重试保存当前结果",
+        "取消移动",
+        "{{ moveError ? '重试移动' : '确认移动' }}",
+        "新增子分类",
+        "编辑",
+        "移动",
+        "删除",
+        "取消",
+        "保存",
+        "取消",
+        "保存"
+      ],
+      "functions": [
+        "recoverMove",
+        "panelCategories",
+        "chooseMoveTarget",
+        "cancelMove",
+        "confirmStagedMove",
+        "bindPanel",
+        "openPanel",
+        "closePanel",
+        "selectInPanel",
+        "pick",
+        "reveal",
+        "stageSource",
+        "openMove",
+        "locateSource",
+        "targetBlock",
+        "panelAction",
+        "cancelDrag",
+        "startDrag",
+        "validDrag",
+        "dragOver",
+        "drop",
+        "flushChanges",
+        "performMove",
+        "retrySave",
+        "renameCategory",
+        "escape",
+        "openCreate",
+        "create",
+        "openEdit",
+        "saveEdit",
+        "copyNode",
+        "openProduct",
+        "openProducts",
+        "remove",
+        "openScheme"
+      ],
+      "storeCommands": [
+        "addCategory",
+        "can",
+        "categoryRemovalBlock",
+        "commitCategoryMove",
+        "copyCategory",
+        "flushPersistence",
+        "moveCategory",
+        "relocateCategory",
+        "removeCategory",
+        "setCategoryMapping",
+        "updateCategory"
+      ]
+    },
+    {
+      "source": "src/views/CheckView.vue",
+      "buttons": [
+        "去修改"
+      ],
+      "functions": [],
+      "storeCommands": [
+        "skusOf"
+      ]
+    },
+    {
+      "source": "src/views/CompatibilityView.vue",
+      "buttons": [
+        "{{ returnPath.startsWith('/benefit-packages') ? '返回权益包草稿' : '返回 SKU 管理' }}"
+      ],
+      "functions": [],
+      "storeCommands": [
+        "can"
+      ]
+    },
+    {
+      "source": "src/views/FeedbackView.vue",
+      "buttons": [
+        "导入反馈包",
+        "导出反馈包",
+        "详情",
+        "编辑",
+        "打开页面",
+        "删除",
+        "取消",
+        "保存到本机"
+      ],
+      "functions": [
+        "kindText",
+        "canOpen",
+        "openDetail",
+        "openEdit",
+        "flushChanges",
+        "saveEdit",
+        "remove",
+        "exportAll",
+        "pickPack",
+        "onImport"
+      ],
+      "storeCommands": [
+        "can",
+        "canRoute",
+        "flushPersistence",
+        "importFeedbackPack",
+        "markFeedbacksExported"
+      ]
+    },
+    {
+      "source": "src/views/ForbiddenView.vue",
+      "buttons": [
+        "退出权限预览／模拟"
+      ],
+      "functions": [],
+      "storeCommands": [
+        "stopPermissionPreview"
+      ]
+    },
+    {
+      "source": "src/views/GroupView.vue",
+      "buttons": [
+        "新建分组",
+        "新增子组",
+        "删除",
+        "保存关联"
+      ],
+      "functions": [
+        "walk",
+        "onPick",
+        "create",
+        "link"
+      ],
+      "storeCommands": [
+        "can",
+        "removeGroup"
+      ]
+    },
+    {
+      "source": "src/views/MappingView.vue",
+      "buttons": [],
+      "functions": [
+        "mapping",
+        "onMap"
+      ],
+      "storeCommands": [
+        "can",
+        "setCategoryMapping"
+      ]
+    },
+    {
+      "source": "src/views/MaterialCreateView.vue",
+      "buttons": [
+        "返回 SPU 管理",
+        "创建临时物料"
+      ],
+      "functions": [
+        "openMaterial"
+      ],
+      "storeCommands": [
+        "can",
+        "productTypesOf"
+      ]
+    },
+    {
+      "source": "src/views/MenuConfigView.vue",
+      "buttons": [
+        "预览菜单",
+        "恢复默认结构",
+        "新增菜单",
+        "展开全部",
+        "收起全部",
+        "编辑",
+        "添加下级",
+        "更多",
+        "取消",
+        "保存菜单"
+      ],
+      "functions": [
+        "required",
+        "permissionFor",
+        "parentPath",
+        "kindText",
+        "setExpanded",
+        "open",
+        "onRoute",
+        "closeDrawer",
+        "commit",
+        "save",
+        "canMove",
+        "shift",
+        "remove",
+        "restore"
+      ],
+      "storeCommands": [
+        "can",
+        "resetMenuStructure",
+        "saveMenuStructure"
+      ]
+    },
+    {
+      "source": "src/views/ModelListView.vue",
+      "buttons": [
+        "新建模型",
+        "查看模型",
+        "编辑模型",
+        "适用设备配置",
+        "创建 SKU",
+        "复制模型",
+        "发布模型",
+        "下线模型",
+        "取消",
+        "创建"
+      ],
+      "functions": [
+        "statusText",
+        "ensure",
+        "open",
+        "openCreate",
+        "onCategoryValue",
+        "onCategory",
+        "create",
+        "setStatus",
+        "copy"
+      ],
+      "storeCommands": [
+        "can",
+        "copyProductModel",
+        "createProductModel",
+        "flushPersistence",
+        "productTypesOf",
+        "publishSpecModel"
+      ]
+    },
+    {
+      "source": "src/views/OverviewView.vue",
+      "buttons": [],
+      "functions": [
+        "groupLabel",
+        "cellClass",
+        "openCell"
+      ],
+      "storeCommands": [
+        "skusOf"
+      ]
+    },
+    {
+      "source": "src/views/ParamView.vue",
+      "buttons": [
+        "新建参数",
+        "维护品牌",
+        "编辑",
+        "删除",
+        "保存名称",
+        "添加",
+        "删除",
+        "新增分组"
+      ],
+      "functions": [
+        "usedTemplates",
+        "edit",
+        "saveName",
+        "openBrand",
+        "openCreate",
+        "flushChanges",
+        "addValue",
+        "removeValue",
+        "remove"
+      ],
+      "storeCommands": [
+        "can",
+        "flushPersistence",
+        "removeParam",
+        "removeParamValue"
+      ]
+    },
+    {
+      "source": "src/views/PermissionView.vue",
+      "buttons": [
+        "{{ references(row.code).length }}",
+        "编辑",
+        "引用",
+        "复制权限码",
+        "取消",
+        "保存权限信息"
+      ],
+      "functions": [
+        "references",
+        "showReferences",
+        "open",
+        "closeEdit",
+        "copyCode",
+        "save"
+      ],
+      "storeCommands": [
+        "can",
+        "saveRbacPermission"
+      ]
+    },
+    {
+      "source": "src/views/ProductEditView.vue",
+      "buttons": [
+        "创建临时物料",
+        "按公共信息生成",
+        "新增",
+        "新增规格",
+        "批量添加",
+        "新增",
+        "复制",
+        " item.id !== row.id)\">删除",
+        "取消",
+        "下架",
+        "保存草稿",
+        "{{ shelf === 'online' ? '保存' : '发布商品' }}",
+        "取消",
+        "确认并选中",
+        "取消",
+        "生成"
+      ],
+      "functions": [
+        "colorOf",
+        "blankFamily",
+        "cloneSku",
+        "categoryBlock",
+        "onCategoryValue",
+        "onCategory",
+        "savedVariantColumns",
+        "fillName",
+        "onCommonChange",
+        "fieldChoices",
+        "choices",
+        "decorateHint",
+        "commonHint",
+        "skuHint",
+        "errorText",
+        "issueKey",
+        "issueValue",
+        "issueReason",
+        "issueAdvice",
+        "toggleIssue",
+        "onSelection",
+        "resetSelection",
+        "truncateSelection",
+        "rowTitle",
+        "specEntries",
+        "columnChoices",
+        "variantKey",
+        "modelDraft",
+        "openTemporary",
+        "syncFromModel",
+        "addSku",
+        "copySku",
+        "openValue",
+        "confirmValue",
+        "applyBatch",
+        "locate",
+        "setShelf",
+        "save",
+        "cancel",
+        "loadRoutedFamily"
+      ],
+      "storeCommands": [
+        "blankSku",
+        "can",
+        "saveBundle",
+        "skusOf"
+      ]
+    },
+    {
+      "source": "src/views/ProductIoView.vue",
+      "buttons": [
+        "下载导入模板",
+        "导出商品和规格",
+        "预览导入",
+        "补上已核对的手机、平板、保护壳模型",
+        "重新匹配",
+        "确认导入 {{ readyCount }} 行"
+      ],
+      "functions": [
+        "attrText",
+        "blockCount",
+        "sheetRows",
+        "downloadTemplate",
+        "exportBooks",
+        "onFile",
+        "toggleSheet",
+        "buildPreview",
+        "toggleAlias",
+        "toggleTemporary",
+        "chooseModel",
+        "installModels",
+        "confirm"
+      ],
+      "storeCommands": [
+        "can",
+        "commitMaterialImport",
+        "materialImportBasis",
+        "skusOf"
+      ]
+    },
+    {
+      "source": "src/views/ProductListView.vue",
+      "buttons": [
+        "{{ mode === 'spu' ? 'SKU 管理' : 'SPU 管理' }}",
+        "物料建档",
+        "{{ mode === 'spu' ? '新建 SPU' : '新增 SKU' }}",
+        "查看 SPU",
+        "查看全部 SKU",
+        "收起分类栏",
+        "管理分类条件",
+        "清除分类",
+        "另存视图",
+        "恢复默认列",
+        "{{ categoryButtonText }}",
+        "管理分类条件",
+        "清除分类",
+        "展开分类栏",
+        "{{ field.label }}：高级条件",
+        "清空筛选",
+        "批量发布",
+        "批量下架",
+        "批量删除",
+        "批量在售",
+        "批量停售",
+        "批量删除",
+        "加入排序暂存区",
+        "展开暂存",
+        "清空暂存",
+        "编辑 SPU",
+        "新增 SKU",
+        " 0\" size=\"small\" :disabled=\"selected[row.id]?.length === 0\" @click=\"batchStatus(row.id, 'on_sale')\">所选改在售",
+        " 0\" size=\"small\" :disabled=\"selected[row.id]?.length === 0\" @click=\"batchStatus(row.id, 'off_sale')\">所选改停售",
+        "编辑",
+        "复制",
+        "删除",
+        "编辑",
+        "新增 SKU",
+        "更多",
+        "编辑 SKU",
+        "删除",
+        "插到前面",
+        "插到后面",
+        "取消",
+        "创建",
+        "保存名称",
+        "复制",
+        "删除",
+        "移除",
+        "清空暂存"
+      ],
+      "functions": [
+        "openCompatibilityFamily",
+        "onSkuSelect",
+        "removeSkuMany",
+        "applyPreset",
+        "removePreset",
+        "realSkus",
+        "realCount",
+        "brandText",
+        "saleCount",
+        "materialSummary",
+        "planSource",
+        "warn",
+        "switchDisplayView",
+        "onKeyword",
+        "quickState",
+        "chosen",
+        "setExposedValue",
+        "quickText",
+        "setQuickText",
+        "toggleCategory",
+        "clearCategory",
+        "removeSummary",
+        "clearFilters",
+        "kindOf",
+        "fieldOptions",
+        "operatorsFor",
+        "liveQuery",
+        "touchFilters",
+        "addCondition",
+        "changeFilterField",
+        "changeFilterOperator",
+        "categoryConditionId",
+        "categoryConditionIds",
+        "textValue",
+        "setConditionValue",
+        "removeCondition",
+        "dateRange",
+        "setDate",
+        "toggleGroup",
+        "onSortMode",
+        "stageLabel",
+        "toggleColumn",
+        "moveColumn",
+        "manageView",
+        "resetColumns",
+        "openCreate",
+        "confirmCreate",
+        "openSettings",
+        "confirmRename",
+        "confirmCopy",
+        "confirmDelete",
+        "saveFilter",
+        "familyRole",
+        "compatTitle",
+        "compatTarget",
+        "copyFamily",
+        "removeFamily",
+        "onFamilySelect",
+        "flushListChanges",
+        "setShelfMany",
+        "removeMany",
+        "removeSku",
+        "copySku",
+        "onSelect",
+        "batchStatus"
+      ],
+      "storeCommands": [
+        "can",
+        "defaultColumns",
+        "flushPersistence",
+        "patchSku",
+        "removeFamily",
+        "removeSku",
+        "setSkuStatus"
+      ]
+    },
+    {
+      "source": "src/views/ProductPlanView.vue",
+      "buttons": [
+        "返回模型列表",
+        "查看 SPU",
+        "创建 SKU",
+        "继续编辑",
+        "删除",
+        "保存规划",
+        "查看 SPU",
+        "创建 SKU"
+      ],
+      "functions": [
+        "attrName",
+        "skuCount",
+        "modelName",
+        "productOf",
+        "generateProduct",
+        "enter",
+        "choose",
+        "openPlan",
+        "save",
+        "removePlan"
+      ],
+      "storeCommands": [
+        "can"
+      ]
+    },
+    {
+      "source": "src/views/ProductTypeView.vue",
+      "buttons": [
+        "新增产品类型",
+        "查看",
+        "查看模型",
+        "编辑",
+        "删除",
+        "取消",
+        "保存"
+      ],
+      "functions": [
+        "walk",
+        "categoryLinks",
+        "modelsOf",
+        "typeMoveBlock",
+        "onTargetCategory",
+        "onPick",
+        "onExpand",
+        "reveal",
+        "onViewModels",
+        "openModel",
+        "nextSort",
+        "openCreate",
+        "openEdit",
+        "save",
+        "onStatus",
+        "onRemove"
+      ],
+      "storeCommands": [
+        "can",
+        "canRoute",
+        "flushPersistence",
+        "productTypesOf",
+        "removeProductType",
+        "saveProductType",
+        "setProductTypeStatus"
+      ]
+    },
+    {
+      "source": "src/views/RoleView.vue",
+      "buttons": [
+        "新增角色",
+        "{{ usersOf(row.id).length }}",
+        "编辑",
+        "配置权限",
+        "更多",
+        "取消",
+        "保存角色",
+        "展开全部",
+        "收起全部",
+        "取消",
+        "保存授权"
+      ],
+      "functions": [
+        "usersOf",
+        "openRole",
+        "closeEdit",
+        "closeGrant",
+        "saveRole",
+        "toggleRole",
+        "removeRole",
+        "showUsers",
+        "openGrants",
+        "checked",
+        "filterPermission",
+        "expandPermissions",
+        "saveGrants",
+        "restoreSuperAdmin"
+      ],
+      "storeCommands": [
+        "can",
+        "grantRbacRole",
+        "removeRbacRole",
+        "restoreSuperAdminAccess",
+        "saveRbacRole"
+      ]
+    },
+    {
+      "source": "src/views/RuleView.vue",
+      "buttons": [
+        "新增规则",
+        "编辑",
+        "复制",
+        " item.id !== row.id)\" :disabled=\"!(store.can('product:rule:delete'))\">删除",
+        "删除",
+        "增加条件",
+        "保存"
+      ],
+      "functions": [
+        "blank",
+        "paramName",
+        "templateName",
+        "valuesOf",
+        "conditionText",
+        "edit",
+        "create",
+        "copy",
+        "save",
+        "setEnabled"
+      ],
+      "storeCommands": [
+        "can",
+        "saveRule"
+      ]
+    },
+    {
+      "source": "src/views/SkuCreateView.vue",
+      "buttons": [
+        "返回 SKU 管理",
+        "新建 SPU",
+        "{{ family.name }}",
+        "补全 SPU 配置",
+        "预览规格",
+        "查看已有 SKU",
+        "取消",
+        "确认新增 {{ selected.length }} 条 SKU"
+      ],
+      "functions": [
+        "selectFamily",
+        "setFamily",
+        "preview",
+        "toggle",
+        "toggleAll",
+        "submit",
+        "openSpu",
+        "spuSaved",
+        "back",
+        "recoverGuide"
+      ],
+      "storeCommands": [
+        "appendSkus",
+        "can"
+      ]
+    },
+    {
+      "source": "src/views/SkuEditView.vue",
+      "buttons": [
+        "返回 SKU 管理",
+        "{{ family.name }}",
+        "{{ compatibilityRole === 'host' ? '适用配件' : '适用主机' }}",
+        "取消",
+        "保存 SKU"
+      ],
+      "functions": [
+        "save",
+        "back",
+        "recoverGuide"
+      ],
+      "storeCommands": [
+        "can",
+        "editSku"
+      ]
+    },
+    {
+      "source": "src/views/SkuWorkbenchView.vue",
+      "buttons": [
+        "SPU 管理",
+        "新增 SKU",
+        "查看 SPU",
+        "查看全部 SKU",
+        "新建视图",
+        "字段 {{ visibleColumns.length }}",
+        "更多",
+        "分组与显示",
+        "新建视图",
+        "{{ state.favorites.includes(activeId) ? '取消收藏' : '收藏视图' }}",
+        "设为默认视图",
+        "常用视图前移",
+        "常用视图后移",
+        "重命名",
+        "复制视图",
+        "删除视图",
+        "导入导出",
+        "保存视图",
+        "另存为",
+        "恢复已保存配置",
+        "收起分类栏",
+        "管理分类条件",
+        "商品分类{{ categoryIds.length ? ` ${categoryIds.length}` : '' }}",
+        "管理分类条件",
+        "展开分类栏",
+        "{{ expandedSummary ? summary : summary.slice(0, 180) }}{{ !expandedSummary && summary.length > 180 ? '…' : '' }}",
+        " 180\" link @click=\"expandedSummary = !expandedSummary\">{{ expandedSummary ? '折叠' : '完整条件' }}",
+        "清空筛选",
+        "修复筛选",
+        "恢复已保存配置",
+        "重建工作配置",
+        "批量在售",
+        "批量停售",
+        "批量删除",
+        "取消选择",
+        "加入排序暂存区",
+        "展开暂存 {{ stageIds.length }}",
+        "{{ collapsed[parentKey(group.keys, level + 1)] ? '▸' : '▾' }} {{ label }} · {{ group.totals[level] }}",
+        "编辑",
+        "更多",
+        "新增 SKU",
+        "取消",
+        "{{ nameAction === '重命名视图' ? '保存名称' : '创建' }}",
+        "移除",
+        "清空暂存"
+      ],
+      "functions": [
+        "openCompatibility",
+        "manualOrder",
+        "orderResult",
+        "displayRows",
+        "fieldLabel",
+        "displayCell",
+        "toggleSelected",
+        "togglePage",
+        "parentKey",
+        "toggleGroup",
+        "isCollapsed",
+        "result",
+        "flushQuick",
+        "applyQuickConfig",
+        "openFilters",
+        "applyConfig",
+        "openDisplay",
+        "selectView",
+        "restoreView",
+        "rebuildInvalid",
+        "clearFilters",
+        "nodeSummary",
+        "removeSummary",
+        "clearCategory",
+        "toggleCategory",
+        "changeScope",
+        "rememberPackageReturn",
+        "openBenefitPackage",
+        "onPage",
+        "openName",
+        "saveCurrent",
+        "submitName",
+        "copyView",
+        "deleteView",
+        "onColumnWidth",
+        "validSelection",
+        "setSelectedStatus",
+        "removeOne",
+        "removeSelected",
+        "updateDate"
+      ],
+      "storeCommands": [
+        "can",
+        "patchSku",
+        "removeSku",
+        "setSkuStatus"
+      ]
+    },
+    {
+      "source": "src/views/SpecConfigView.vue",
+      "buttons": [
+        "{{ viewing || !store.can('product:model:update') ? '查看适用设备' : '配置适用设备' }}",
+        "返回总览",
+        "进入编辑",
+        "保存模型",
+        "发布模型",
+        "自动布局",
+        "手工摆放",
+        "适应全部",
+        "{{ zoomLabel }}",
+        "{{ anyCollapsed ? '全部展开' : '全部收起' }}",
+        "结构检查",
+        "发布记录",
+        "添加属性",
+        "添加子属性",
+        "添加属性值",
+        "命名规则",
+        "节点适用配置",
+        "删除",
+        "添加条件属性",
+        "添加属性值",
+        "命名规则",
+        "节点适用配置",
+        "删除",
+        "查看命名规则",
+        "业务配置",
+        "业务配置问题 {{ businessProblems.length }} · 定位",
+        "管理合法组合",
+        "节点范围建档／关联",
+        "添加属性",
+        "复制已有模型",
+        "添加属性",
+        "添加子属性",
+        "添加属性值",
+        "添加同级属性",
+        "命名规则",
+        "节点适用配置",
+        "删除节点",
+        "添加同级属性值",
+        "添加条件属性",
+        "命名规则",
+        "节点适用配置",
+        "删除节点",
+        "新增属性：{{ attrQuery.trim() }}",
+        "新增属性",
+        "保存到词典并引用",
+        "编辑全局词典名称",
+        "保存全局名称",
+        "取消",
+        "确定",
+        "新增属性值：{{ valueQuery.trim() }}",
+        "保存到词典并引用",
+        "取消",
+        "引用所选",
+        "确定",
+        "取消",
+        "确认",
+        "取消",
+        "确认复制"
+      ],
+      "functions": [
+        "storedFold",
+        "setTreeFold",
+        "setRailFold",
+        "toggleCategory",
+        "clearOpenModel",
+        "belongsToLeaf",
+        "selectCategory",
+        "focusType",
+        "openModel",
+        "createModelFor",
+        "editContext",
+        "sameContext",
+        "validContext",
+        "captureAddAnchor",
+        "dictSelects",
+        "selectExpanded",
+        "closeDictDropdown",
+        "onDictEsc",
+        "locateBusiness",
+        "saveBusiness",
+        "openTemplateCompatibility",
+        "validDialog",
+        "invalidateEditorDialogs",
+        "layoutOriginX",
+        "freshNodes",
+        "placeFreshNodes",
+        "manualHold",
+        "ensureTreeLayout",
+        "reflowTree",
+        "ensureCanvas",
+        "attributeSourceLabel",
+        "attributeValueText",
+        "attributeHint",
+        "outlineOptions",
+        "applyOutlineCreate",
+        "rememberAttrQuery",
+        "rememberValueQuery",
+        "beginCreateAttribute",
+        "beginCreateValue",
+        "resetValueComposer",
+        "applyOutlineChoice",
+        "openHostConfig",
+        "ruleMark",
+        "nodeTitle",
+        "valueOptions",
+        "attributeOptions",
+        "childCount",
+        "matchesView",
+        "nodeOpen",
+        "isShown",
+        "visibleAnchor",
+        "viewChildCount",
+        "pathIds",
+        "toggleMap",
+        "paint",
+        "measuredBox",
+        "treeBusPath",
+        "closeFloating",
+        "revealAncestors",
+        "onNodeClick",
+        "canvasSize",
+        "contentBounds",
+        "frameCanvas",
+        "fitAll",
+        "zoomReset",
+        "onZoomCommand",
+        "toggleAllBranches",
+        "revealNode",
+        "onNodesReady",
+        "onNodeDoubleClick",
+        "beginEdit",
+        "cueOutline",
+        "outlineIds",
+        "orderSiblings",
+        "finishUndo",
+        "pushUndo",
+        "cancelUndo",
+        "undoOutline",
+        "attachParam",
+        "ensureParam",
+        "linkAttribute",
+        "renameOutline",
+        "addOutline",
+        "removeOutline",
+        "promoteOutline",
+        "shiftOutline",
+        "openNodeDraft",
+        "confirmNodeDraft",
+        "moveOutline",
+        "commitInline",
+        "openNodeMenu",
+        "onNodeMenu",
+        "runMenu",
+        "illegalStructure",
+        "onNodeDragStart",
+        "onNodeDragStop",
+        "hitNode",
+        "reparent",
+        "reparentUnchecked",
+        "onViewportMove",
+        "onMoveEnd",
+        "tidy",
+        "useManualLayout",
+        "setExpanded",
+        "toggleExpand",
+        "queryText",
+        "sessionValue",
+        "carriedOverview",
+        "setOverviewView",
+        "setOverviewRoot",
+        "restoreOverviewMemory",
+        "setSurface",
+        "openFromOverview",
+        "backToOverview",
+        "enterEdit",
+        "saveModel",
+        "recoverPublish",
+        "publish",
+        "markWorkingDraft",
+        "openAttributeAt",
+        "resetAttrComposer",
+        "openGlobalRename",
+        "saveGlobalName",
+        "openValuePicker",
+        "openBindAttribute",
+        "nextSort",
+        "insertAttributeNodes",
+        "createDictionaryAttribute",
+        "createDictionaryValueForNode",
+        "rebindPickedValue",
+        "addAttribute",
+        "addValues",
+        "descendantIds",
+        "remove",
+        "openCopyCurrent",
+        "openCopyPicker",
+        "confirmCopy",
+        "pickNode",
+        "focusBoard",
+        "openMaterialDetail",
+        "visibleSelectableIds",
+        "selectAllCombos",
+        "invertComboSelection",
+        "openComboMaterial",
+        "batchCreateMaterials",
+        "markGrade",
+        "openTemporary",
+        "visibleOverlay",
+        "shortcutBlocked",
+        "isTypingTarget",
+        "onKey"
+      ],
+      "storeCommands": [
+        "can",
+        "copyProductModel",
+        "createMaterial",
+        "createProductModel",
+        "flushPersistence",
+        "markPlanningGrades",
+        "publishSpecModel",
+        "removeSpecNode",
+        "saveModelDraft",
+        "saveNodeBusiness"
+      ]
+    },
+    {
+      "source": "src/views/SpuEditView.vue",
+      "buttons": [
+        "返回 SPU 管理",
+        "管理 SKU（{{ children.length }}）",
+        "新增 SKU",
+        "管理物料（{{ materials.length }}）",
+        "查看历史快照",
+        "适用配件",
+        "{{ row.skuName || '未记录' }}"
+      ],
+      "functions": [
+        "saved"
+      ],
+      "storeCommands": [
+        "can"
+      ]
+    },
+    {
+      "source": "src/views/TemplateView.vue",
+      "buttons": [
+        "新建方案",
+        "配置",
+        "复制",
+        "预览录入",
+        "创建 SKU",
+        "删除",
+        "上移",
+        "= draft.structureOrder.length - 1\" @click=\"move(index, 1)\">下移",
+        "移出",
+        "加入",
+        "取消",
+        "保存"
+      ],
+      "functions": [
+        "canTemplate",
+        "names",
+        "paramName",
+        "refCount",
+        "productCount",
+        "categoryNames",
+        "impactText",
+        "bindOf",
+        "roleOf",
+        "requiredOf",
+        "onRoleChange",
+        "onRequiredChange",
+        "dropBind",
+        "edit",
+        "move",
+        "addParam",
+        "save",
+        "onEnabled",
+        "schemeBinds",
+        "create",
+        "flushChanges",
+        "copy",
+        "preview",
+        "remove"
+      ],
+      "storeCommands": [
+        "can",
+        "copyProductModel",
+        "flushPersistence",
+        "removeTemplate",
+        "saveTemplateScheme"
+      ]
+    },
+    {
+      "source": "src/views/TreePage.vue",
+      "buttons": [
+        "查看商品"
+      ],
+      "functions": [
+        "filterTree"
+      ],
+      "storeCommands": []
+    },
+    {
+      "source": "src/views/UserView.vue",
+      "buttons": [
+        "新增用户",
+        "{{ effectivePermissions(store.data,row.id).size }}",
+        "编辑",
+        "模拟用户",
+        "更多",
+        "取消",
+        "保存用户"
+      ],
+      "functions": [
+        "delegable",
+        "userRoles",
+        "open",
+        "closeEdit",
+        "save",
+        "toggle",
+        "remove",
+        "simulate",
+        "showPermissions"
+      ],
+      "storeCommands": [
+        "can",
+        "removeRbacUser",
+        "saveRbacUser",
+        "simulateUser"
+      ]
+    },
+    {
+      "source": "src/views/WorkbenchView.vue",
+      "buttons": [
+        "搜索",
+        "新增商品",
+        "待处理问题",
+        "{{ item.name }}"
+      ],
+      "functions": [
+        "goSearch"
+      ],
+      "storeCommands": [
+        "can",
+        "skusOf"
+      ]
+    }
+  ],
+  "scopeNote": "All router component routes including hidden/dynamic pages are inventoried; guide routes and columns query are registered in guide content. Forbidden is an auxiliary state; aliases are separate and do not duplicate canonical denominators."
+}

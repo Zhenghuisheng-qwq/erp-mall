@@ -1,5 +1,5 @@
 import { installCatalogTestLocks } from './catalog-storage-test-env'
-installCatalogTestLocks()
+const restoreLocks = installCatalogTestLocks()
 import assert from 'node:assert/strict'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -15,18 +15,21 @@ import { reconcilePlanningRecords } from '../src/domain/planning'
 import { createV3Material } from '../src/domain/material'
 import { DATA_VERSION, STORAGE_KEY, type AppData, type ProductFamily } from '../src/domain/types'
 import { normalizeStored, useCatalogStore } from '../src/stores/catalog'
+import { RBAC_ENFORCEMENT_ENABLED } from '../src/domain/accessMode'
 
-const out = resolve(process.env.TEMPLATE_COMPATIBILITY_OUTPUT_DIR || 'work/template-compatibility/state')
+const strict = RBAC_ENFORCEMENT_ENABLED
+const out = resolve(process.env.TEMPLATE_COMPATIBILITY_OUTPUT_DIR || `work/compact-menu-template/regression/template-compatibility-state/${strict ? 'strict' : 'default'}`)
 mkdirSync(out, { recursive: true })
-const NativeDate = Date, epoch = Date.parse(fixed), originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+const NativeDate = Date, epoch = Date.parse(fixed), originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage'), originalSession = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage')
 globalThis.Date = class extends NativeDate { constructor(value?: string | number) { super(value === undefined ? epoch : value) } static now() { return epoch } } as DateConstructor
-const disk = new Map<string, string>(), evidence: { name: string; passed: boolean; detail: string }[] = []
+const disk = new Map<string, string>(), session = new Map<string, string>(), evidence: { name: string; passed: boolean; detail: string }[] = []
 let failNext = false, writes = 0, attempts = 0, current: ReturnType<typeof useCatalogStore> | undefined
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
   getItem: (key: string) => disk.get(key) ?? null,
   setItem: (key: string, value: string) => { attempts++; if (failNext) { failNext = false; throw new DOMException('Template compatibility quota fixture', 'QuotaExceededError') }; writes++; disk.set(key, value) },
   removeItem: (key: string) => disk.delete(key), clear: () => disk.clear(),
 } })
+Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: (key: string) => session.get(key) ?? null, setItem: (key: string, value: string) => session.set(key, value), removeItem: (key: string) => session.delete(key) } })
 const mark = (name: string, detail: string) => { evidence.push({ name, passed: true, detail }); console.log(`PASS template state ${name}: ${detail}`) }
 function fixture() {
   const result = createTemplateCompatibilityFixture(), { data, modelId, versionId } = result
@@ -40,7 +43,7 @@ function fixture() {
 }
 function mount(data?: AppData) {
   current?.$dispose()
-  if (data) disk.set(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data }))
+  if (data) { disk.set(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data })); session.set('iyge-rbac-simulated-user', 'u-admin') }
   setActivePinia(createPinia()); current = useCatalogStore(); return current
 }
 function firstKey(store: ReturnType<typeof useCatalogStore>, familyId = 'template-test-spu') {
@@ -48,6 +51,21 @@ function firstKey(store: ReturnType<typeof useCatalogStore>, familyId = 'templat
   assert.equal(preview.problem, '')
   const row = preview.rows.find(item => item.state === 'new')
   assert.ok(row); return row.key
+}
+async function appendFrozenVersion(store: ReturnType<typeof useCatalogStore>, version: AppData['specModelVersions'][number]) {
+  const original = JSON.stringify(store.data.specModelVersions), count = store.data.specModelVersions.length
+  const backup = JSON.parse(store.exportJson()) as { version: number; data: AppData }
+  backup.data.specModelVersions.push(cloneCompatibility(version))
+  await store.importJson(JSON.stringify(backup)); await nextTick(); await store.waitForPersistence()
+  assert.equal(JSON.stringify(store.data.specModelVersions.slice(0, count)), original, 'restoring a prepared new-version fixture must not rewrite prior frozen versions')
+}
+async function permissionRejects(store: ReturnType<typeof useCatalogStore>, operation: () => unknown) {
+  const memory = JSON.stringify(store.data), raw = disk.get(STORAGE_KEY), count = writes
+  let message = ''
+  try { const result = await operation() as {ok?: boolean; message?: string}; if (result?.ok === false) message = result.message || '' }
+  catch (cause) { message = cause instanceof Error ? cause.message : String(cause) }
+  assert.match(message, /未授权|权限|当前角色|仅可查看/, 'the rejection must come from actual authorization, not an unrelated invalid fixture')
+  await nextTick(); await store.waitForPersistence(); assert.equal(JSON.stringify(store.data), memory); assert.equal(disk.get(STORAGE_KEY), raw); assert.equal(writes, count)
 }
 try {
   const f = fixture()
@@ -159,10 +177,18 @@ try {
   assert.ok(normalizeStored(JSON.parse(backup), { persist: false }))
   ;(await store.importJson(backup)); await nextTick(); await store.waitForPersistence(); assert.equal(JSON.stringify(store.data), backupText)
   const corrupt = JSON.parse(backup); corrupt.data.templateCompatibilityOrigins[0].baseline.host = {}; await assert.rejects(async () => (await store.importJson(JSON.stringify(corrupt))), /模板兼容/)
-  store.data.activeRole = 'operator'; await nextTick(); await store.waitForPersistence()
-  assert.equal((await store.saveTemplateCompatibility(config)).ok, false); assert.equal((await store.publishSpecModel(f.modelId)).ok, false); assert.equal((await store.applyTemplateCompatibilitySync(preview, {})).ok, false); assert.equal((await store.copyProductModel(f.modelId)).ok, false)
-  const protectedBackup = JSON.parse(backup); protectedBackup.data.templateCompatibilityOrigins = []; await assert.rejects(async () => (await store.importJson(JSON.stringify(protectedBackup))), /当前角色/)
-  mark('copy-backup-import-and-command-permissions', 'copy remaps rule/claim/node identities without products or published versions; version-15 backup round trip preserves suppression; malformed origin rejected; operator cannot save/publish/sync/copy/import-protect')
+  assert.equal(store.startPermissionPreview('u-op').ok, true)
+  if (strict) {
+    for (const code of ['product:model:update', 'product:model:publish', 'product:compatibility:update', 'product:model:create', 'product:import:execute']) assert.equal(store.can(code), false)
+    await permissionRejects(store, () => store.saveTemplateCompatibility(config)); await permissionRejects(store, () => store.publishSpecModel(f.modelId)); await permissionRejects(store, () => store.applyTemplateCompatibilitySync(preview, {})); await permissionRejects(store, () => store.copyProductModel(f.modelId))
+    const protectedBackup = JSON.parse(backup); protectedBackup.data.templateCompatibilityOrigins = []; await permissionRejects(store, () => store.importJson(JSON.stringify(protectedBackup)))
+  } else {
+    for (const code of ['product:model:update', 'product:model:publish', 'product:compatibility:update', 'product:model:create', 'product:import:execute']) assert.equal(store.can(code), true)
+    assert.equal((await store.copyProductModel(f.modelId)).ok, true, 'default mock operator remains an unrestricted administrator')
+    await store.importJson(backup); await nextTick(); await store.waitForPersistence()
+  }
+  store.stopPermissionPreview()
+  mark('copy-backup-import-and-command-permissions', strict ? 'copy remaps stable identities without products/published versions; backup preserves suppression; malformed origin rejected; real operator preview refuses save/publish/sync/copy/import atomically' : 'copy remaps stable identities without products/published versions; backup preserves suppression; malformed origin rejected; default operator preview retains administrator access')
 
   // A manual SKU with a provable original snapshot can edit specs under existing rules.
   const ordinary = fixture(), ctx = createTemplateCompatibilityContext(ordinary.data, { modelId: ordinary.modelId, versionId: ordinary.versionId })
@@ -227,24 +253,26 @@ try {
   const sourceVersion = cloneCompatibility(store.data.specModelVersions.find(item => item.id === lineage.versionId)!), sameRule = cloneCompatibility(sourceVersion.templateCompatibilitySnapshot!.config.exceptions[0]!)
   sameRule.id = 'additional-identical-source'; sameRule.claims[0]!.id = 'additional-identical-claim'
   sourceVersion.id = 'template-lineage-v2'; sourceVersion.version = 2; sourceVersion.templateCompatibilitySnapshot!.config.exceptions.push(sameRule)
-  store.data.specModelVersions.push(sourceVersion); await nextTick(); await store.waitForPersistence()
+  await appendFrozenVersion(store, sourceVersion)
   let lineagePreview = store.previewTemplateCompatibilitySync({ modelId: lineage.modelId, targetVersionId: sourceVersion.id, targetIds: [lineageId] })
   assert.equal(lineagePreview.counts.update, 1); assert.equal(lineagePreview.counts.remove, 0); assert.equal(lineagePreview.counts.add, 0)
   assert.equal((await store.applyTemplateCompatibilitySync(lineagePreview, {})).ok, true); await nextTick(); await store.waitForPersistence()
   assert.equal(store.data.templateCompatibilityOrigins!.find(item => item.target.id === lineageId)?.key, beforeKey)
   assert.equal(store.data.compatibilities.filter(item => item.targetId === lineageId).length, 1)
   const emptyVersion = cloneCompatibility(sourceVersion); emptyVersion.id = 'template-lineage-empty'; emptyVersion.version = 3; emptyVersion.templateCompatibilitySnapshot!.config.exceptions.forEach(rule => { rule.claims = [] })
-  store.data.specModelVersions.push(emptyVersion); await nextTick(); await store.waitForPersistence()
+  await appendFrozenVersion(store, emptyVersion)
   lineagePreview = store.previewTemplateCompatibilitySync({ modelId: lineage.modelId, targetVersionId: emptyVersion.id, targetIds: [lineageId] })
   assert.equal(lineagePreview.counts.remove, 1); assert.equal((await store.applyTemplateCompatibilitySync(lineagePreview, {})).ok, true); await nextTick(); await store.waitForPersistence()
   assert.equal(store.data.compatibilities.some(item => item.targetId === lineageId), false)
   const broken = cloneCompatibility(sourceVersion); broken.id = 'template-lineage-broken'; broken.version = 4; broken.nodesSnapshot = broken.nodesSnapshot.filter(node => node.id !== 'compat-style-1')
-  store.data.specModelVersions.push(broken); await nextTick(); await store.waitForPersistence()
+  await appendFrozenVersion(store, broken)
   lineagePreview = store.previewTemplateCompatibilitySync({ modelId: lineage.modelId, targetVersionId: broken.id, targetIds: [lineageId] })
   assert(lineagePreview.counts.invalid > 0); assert.equal(lineagePreview.counts.remove, 0)
-  store.data.activeRole = 'operator'; await nextTick(); await store.waitForPersistence()
-  assert.equal((await store.appendSkus(lineage.family.id, { kind: 'model' }, [firstKey(store)])).ok, false)
-  mark('stable-merged-lineage-empty-and-invalid-mapping', 'adding identical exception origins updates one existing declaration and keeps its key; explicit empty safely removes managed claim; deleted structure is invalid without clearing; read-only creation is refused')
+  assert.equal(store.startPermissionPreview('u-op').ok, true)
+  if (strict) { assert.equal(store.can('product:sku:create'), false); await permissionRejects(store, () => store.appendSkus(lineage.family.id, { kind: 'model' }, [firstKey(store)])) }
+  else { assert.equal(store.can('product:sku:create'), true); assert.equal((await store.appendSkus(lineage.family.id, { kind: 'model' }, [firstKey(store)])).ok, true) }
+  store.stopPermissionPreview()
+  mark('stable-merged-lineage-empty-and-invalid-mapping', strict ? 'adding identical exception origins updates one declaration/key; explicit empty removes managed claim; deleted structure stays invalid; real read-only user creation refused' : 'adding identical exception origins updates one declaration/key; explicit empty removes managed claim; deleted structure stays invalid; default administrator creation remains available')
 
   const independent = fixture(), secondClaim = independent.claim('independent-template-claim')
   secondClaim.source += '；另一独立核验资料'; secondClaim.note = '第二条独立声明'
@@ -258,7 +286,7 @@ try {
   const editedIndependent = (await store.commitCompatibilityChanges([{ kind: 'edit', id: firstIndependent.id, draft: { ...declarationDraft(firstIndependent), note: '人工只修改第一条' } }])); assert.ok(editedIndependent.ok)
   assert.equal(editedIndependent.preview?.edited, 1); await nextTick(); await store.waitForPersistence()
   const nextIndependent = cloneCompatibility(independent.version); nextIndependent.id = 'independent-v2'; nextIndependent.version = 2; nextIndependent.templateCompatibilitySnapshot!.config.defaultRule.claims.forEach(claim => { claim.note += '新版' })
-  store.data.specModelVersions.push(nextIndependent); await nextTick(); await store.waitForPersistence()
+  await appendFrozenVersion(store, nextIndependent)
   const independentPreview = store.previewTemplateCompatibilitySync({ modelId: independent.modelId, targetVersionId: nextIndependent.id, targetIds: [independentId] })
   assert.equal(independentPreview.counts.protected, 1); assert.equal(independentPreview.counts.update, 1)
   assert.equal((await store.applyTemplateCompatibilitySync(independentPreview, {})).ok, true); await nextTick(); await store.waitForPersistence()
@@ -311,10 +339,12 @@ try {
   mark('deleted-model-draft-save-is-rejected', 'concurrent model/canvas removal invalidates an open compatibility draft; valid claim content does not recreate an orphan configuration and performs zero writes')
 
   assert.ok(origin.key)
-  writeFileSync(resolve(out, 'evidence.json'), JSON.stringify({ time: fixed, checks: evidence, attempts, writes }, null, 2))
+  writeFileSync(resolve(out, 'evidence.json'), JSON.stringify({ time: fixed, rbacEnforced: strict, checks: evidence, attempts, writes }, null, 2))
   console.log(`PASS ${evidence.length} template compatibility state scenarios`)
 } finally {
-  current?.$dispose(); globalThis.Date = NativeDate
+  current?.$dispose(); globalThis.Date = NativeDate; restoreLocks()
   if (originalStorage) Object.defineProperty(globalThis, 'localStorage', originalStorage)
   else Reflect.deleteProperty(globalThis, 'localStorage')
+  if (originalSession) Object.defineProperty(globalThis, 'sessionStorage', originalSession)
+  else Reflect.deleteProperty(globalThis, 'sessionStorage')
 }

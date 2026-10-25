@@ -1,0 +1,2187 @@
+{
+  "summary": {
+    "pageFamilies": 42,
+    "formalPageFamilies": 41,
+    "auxiliaryPages": [
+      "forbidden"
+    ],
+    "historicalPageFamilies": [
+      "plans",
+      "tree",
+      "mappings"
+    ],
+    "keyActions": 92,
+    "realRules": 47,
+    "learningFlows": 9,
+    "articles": 190,
+    "pageVerified": 34,
+    "pageHistorical": 3,
+    "pageReview": 4,
+    "ruleVerified": 42,
+    "ruleReview": 5,
+    "warning": "Static content/reference review is separate from actual failure-branch and Chrome verification; denominator includes hidden/dynamic/query/guide pages."
+  },
+  "pages": [
+    {
+      "id": "page-home",
+      "title": "商品工作台",
+      "patterns": [
+        "/"
+      ],
+      "articleId": "manual-home",
+      "actionIds": [
+        "action-workbench-search",
+        "action-workbench-issues"
+      ],
+      "source": [
+        "src/views/WorkbenchView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-categories",
+      "title": "商品分类中心",
+      "patterns": [
+        "/categories"
+      ],
+      "articleId": "manual-categories",
+      "actionIds": [
+        "action-category-create",
+        "action-category-rename",
+        "action-category-move",
+        "action-category-copy",
+        "action-category-delete",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/CategoryView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-product-types",
+      "title": "产品类型",
+      "patterns": [
+        "/product-types"
+      ],
+      "articleId": "manual-product-types",
+      "actionIds": [
+        "action-type-save",
+        "action-type-models",
+        "action-type-delete",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/ProductTypeView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-params",
+      "title": "属性词典",
+      "patterns": [
+        "/params"
+      ],
+      "articleId": "manual-params",
+      "actionIds": [
+        "action-dictionary-save",
+        "action-dictionary-value-remove",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/ParamView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-templates",
+      "title": "属性方案",
+      "patterns": [
+        "/templates"
+      ],
+      "articleId": "manual-templates",
+      "actionIds": [
+        "action-template-create",
+        "action-template-save",
+        "action-template-copy",
+        "action-template-delete",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/TemplateView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-models",
+      "title": "商品模型列表",
+      "patterns": [
+        "/models"
+      ],
+      "articleId": "manual-models",
+      "actionIds": [
+        "action-model-create",
+        "action-model-copy",
+        "action-model-publish",
+        "action-model-offline"
+      ],
+      "source": [
+        "src/views/ModelListView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-specs",
+      "title": "商品模型设计",
+      "patterns": [
+        "/specs"
+      ],
+      "articleId": "manual-specs",
+      "actionIds": [
+        "action-model-edit",
+        "action-model-publish",
+        "action-node-business-save",
+        "action-node-naming-save",
+        "action-material-relation"
+      ],
+      "source": [
+        "src/views/SpecConfigView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-plans",
+      "title": "商品规划（保留入口）",
+      "patterns": [
+        "/plans"
+      ],
+      "articleId": "manual-plans",
+      "actionIds": [
+        "action-planning-save",
+        "action-planning-create-sku",
+        "action-planning-delete"
+      ],
+      "source": [
+        "src/views/ProductPlanView.vue"
+      ],
+      "formal": true,
+      "historical": true
+    },
+    {
+      "id": "page-tree",
+      "title": "商品结构视图",
+      "patterns": [
+        "/tree"
+      ],
+      "articleId": "manual-tree",
+      "actionIds": [
+        "action-tree-query"
+      ],
+      "source": [
+        "src/views/TreePage.vue"
+      ],
+      "formal": true,
+      "historical": true
+    },
+    {
+      "id": "page-spus",
+      "title": "SPU 管理",
+      "patterns": [
+        "/spus"
+      ],
+      "articleId": "manual-spus",
+      "actionIds": [
+        "action-spu-query",
+        "action-spu-view",
+        "action-spu-delete"
+      ],
+      "source": [
+        "src/views/ProductListView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-spu-create",
+      "title": "新建 SPU",
+      "patterns": [
+        "/spus/new"
+      ],
+      "articleId": "manual-spu-create",
+      "actionIds": [
+        "action-spu-save",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/SpuEditView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-spu-edit",
+      "title": "SPU 详情",
+      "patterns": [
+        "/spus/:id"
+      ],
+      "articleId": "manual-spu-edit",
+      "actionIds": [
+        "action-spu-save",
+        "action-spu-history",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/SpuEditView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-skus",
+      "title": "SKU 管理",
+      "patterns": [
+        "/skus"
+      ],
+      "articleId": "manual-skus",
+      "actionIds": [
+        "action-sku-query",
+        "action-view-save",
+        "action-view-restore",
+        "action-sku-manual-order",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/SkuWorkbenchView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-sku-create",
+      "title": "新增 SKU",
+      "patterns": [
+        "/skus/new"
+      ],
+      "articleId": "manual-sku-create",
+      "actionIds": [
+        "action-sku-preview",
+        "action-sku-save"
+      ],
+      "source": [
+        "src/views/SkuCreateView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-sku-edit",
+      "title": "编辑 SKU",
+      "patterns": [
+        "/skus/:id"
+      ],
+      "articleId": "manual-sku-edit",
+      "actionIds": [
+        "action-sku-save",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/SkuEditView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-material-create",
+      "title": "物料建档",
+      "patterns": [
+        "/materials/new"
+      ],
+      "articleId": "manual-material-create",
+      "actionIds": [
+        "action-material-create",
+        "action-material-temporary",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/MaterialCreateView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-material-edit",
+      "title": "物料档案",
+      "patterns": [
+        "/materials/:id"
+      ],
+      "articleId": "manual-material-edit",
+      "actionIds": [
+        "action-material-edit",
+        "action-material-relation",
+        "action-material-unlink"
+      ],
+      "source": [
+        "src/views/ProductEditView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-compatibility",
+      "title": "适用关系",
+      "patterns": [
+        "/compatibility"
+      ],
+      "articleId": "manual-compatibility",
+      "actionIds": [
+        "action-compatibility-bind",
+        "action-compatibility-declare",
+        "action-compatibility-sync",
+        "action-compatibility-cancel"
+      ],
+      "source": [
+        "src/views/CompatibilityView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-benefits",
+      "title": "权益包与框架",
+      "patterns": [
+        "/benefit-packages"
+      ],
+      "articleId": "manual-benefits",
+      "actionIds": [
+        "action-framework-save",
+        "action-benefit-copy",
+        "action-benefit-query"
+      ],
+      "source": [
+        "src/views/BenefitPackageListView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-benefit-create",
+      "title": "新建权益包",
+      "patterns": [
+        "/benefit-packages/new"
+      ],
+      "articleId": "manual-benefit-create",
+      "actionIds": [
+        "action-benefit-save",
+        "action-benefit-select",
+        "action-benefit-quote"
+      ],
+      "source": [
+        "src/views/BenefitPackageEditView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-benefit-edit",
+      "title": "权益包详情",
+      "patterns": [
+        "/benefit-packages/:id"
+      ],
+      "articleId": "manual-benefit-edit",
+      "actionIds": [
+        "action-benefit-save",
+        "action-benefit-deliver",
+        "action-benefit-quote",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/BenefitPackageEditView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-benefit-delivery",
+      "title": "交付清单",
+      "patterns": [
+        "/benefit-packages/deliveries/:id"
+      ],
+      "articleId": "manual-benefit-delivery",
+      "actionIds": [
+        "action-delivery-export"
+      ],
+      "source": [
+        "src/views/BenefitDeliveryView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-brands",
+      "title": "品牌中心",
+      "patterns": [
+        "/brands"
+      ],
+      "articleId": "manual-brands",
+      "actionIds": [
+        "action-brand-save",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/BrandView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-groups",
+      "title": "运营分组",
+      "patterns": [
+        "/groups"
+      ],
+      "articleId": "manual-groups",
+      "actionIds": [
+        "action-group-link",
+        "action-group-create",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/GroupView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-rules",
+      "title": "规格约束",
+      "patterns": [
+        "/rules"
+      ],
+      "articleId": "manual-rules",
+      "actionIds": [
+        "action-constraint-save",
+        "action-constraint-test",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/RuleView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-mappings",
+      "title": "属性方案绑定（历史入口）",
+      "patterns": [
+        "/mappings"
+      ],
+      "articleId": "manual-mappings",
+      "actionIds": [
+        "action-mapping-save"
+      ],
+      "source": [
+        "src/views/MappingView.vue"
+      ],
+      "formal": true,
+      "historical": true
+    },
+    {
+      "id": "page-overview",
+      "title": "商品总览",
+      "patterns": [
+        "/overview"
+      ],
+      "articleId": "manual-overview",
+      "actionIds": [
+        "action-overview-query"
+      ],
+      "source": [
+        "src/views/OverviewView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-check",
+      "title": "商品质量检查",
+      "patterns": [
+        "/check"
+      ],
+      "articleId": "manual-check",
+      "actionIds": [
+        "action-check-locate"
+      ],
+      "source": [
+        "src/views/CheckView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-import",
+      "title": "商品导入导出",
+      "patterns": [
+        "/import"
+      ],
+      "articleId": "manual-import",
+      "actionIds": [
+        "action-json-import",
+        "action-table-import",
+        "action-backup-export",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/ProductIoView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-columns-spu",
+      "title": "SPU 列配置与视图",
+      "patterns": [
+        "/spus?panel=columns"
+      ],
+      "articleId": "manual-columns-spu",
+      "actionIds": [
+        "action-spu-view"
+      ],
+      "source": [
+        "src/views/ProductListView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-columns-sku",
+      "title": "SKU 字段与视图设置",
+      "patterns": [
+        "/skus?panel=columns"
+      ],
+      "articleId": "manual-columns-sku",
+      "actionIds": [
+        "action-view-save",
+        "action-view-restore"
+      ],
+      "source": [
+        "src/views/SkuWorkbenchView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-menus",
+      "title": "菜单配置",
+      "patterns": [
+        "/menus"
+      ],
+      "articleId": "manual-menus",
+      "actionIds": [
+        "action-menu-save",
+        "action-menu-restore",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/MenuConfigView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-roles",
+      "title": "角色管理",
+      "patterns": [
+        "/roles"
+      ],
+      "articleId": "manual-roles",
+      "actionIds": [
+        "action-role-save",
+        "action-rbac-authorize",
+        "action-role-delete",
+        "action-rbac-recover",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/RoleView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-permissions",
+      "title": "权限目录",
+      "patterns": [
+        "/permissions"
+      ],
+      "articleId": "manual-permissions",
+      "actionIds": [
+        "action-permission-save",
+        "action-permission-reference",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/PermissionView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-users",
+      "title": "用户管理",
+      "patterns": [
+        "/users"
+      ],
+      "articleId": "manual-users",
+      "actionIds": [
+        "action-user-save",
+        "action-user-bind",
+        "action-user-preview",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/UserView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-account",
+      "title": "账号设置",
+      "patterns": [
+        "/account"
+      ],
+      "articleId": "manual-account",
+      "actionIds": [
+        "action-account-save",
+        "action-account-password",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/AccountView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-feedback",
+      "title": "反馈管理",
+      "patterns": [
+        "/feedback"
+      ],
+      "articleId": "manual-feedback",
+      "actionIds": [
+        "action-feedback-save",
+        "action-feedback-export",
+        "action-feedback-import",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/FeedbackView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-forbidden",
+      "title": "无访问权限",
+      "patterns": [
+        "/forbidden"
+      ],
+      "articleId": "manual-forbidden",
+      "actionIds": [
+        "action-access-explain"
+      ],
+      "source": [
+        "src/views/ForbiddenView.vue"
+      ],
+      "formal": false
+    },
+    {
+      "id": "page-guide",
+      "title": "业务指南首页",
+      "patterns": [
+        "/guide"
+      ],
+      "articleId": "manual-guide",
+      "actionIds": [
+        "action-guide-search",
+        "action-guide-progress"
+      ],
+      "source": [
+        "src/views/guide/GuideHomeView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-guide-article",
+      "title": "指南文章",
+      "patterns": [
+        "/guide/articles/:articleId"
+      ],
+      "articleId": "manual-guide-article",
+      "actionIds": [
+        "action-guide-read",
+        "action-guide-progress"
+      ],
+      "source": [
+        "src/views/guide/GuideArticleView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-guide-learn",
+      "title": "新人学习路线",
+      "patterns": [
+        "/guide/learn/:flowId"
+      ],
+      "articleId": "manual-guide-learn",
+      "actionIds": [
+        "action-guide-learn",
+        "action-guide-progress"
+      ],
+      "source": [
+        "src/views/guide/GuideLearnView.vue"
+      ],
+      "formal": true
+    },
+    {
+      "id": "page-guide-manage",
+      "title": "指南内容维护",
+      "patterns": [
+        "/guide/manage"
+      ],
+      "articleId": "manual-guide-manage",
+      "actionIds": [
+        "action-guide-draft",
+        "action-guide-publish",
+        "action-guide-import",
+        "action-guide-maintain",
+        "action-business-save"
+      ],
+      "source": [
+        "src/views/guide/GuideManageView.vue"
+      ],
+      "formal": true
+    }
+  ],
+  "actions": [
+    {
+      "id": "action-workbench-search",
+      "title": "从工作台查商品",
+      "pageIds": [
+        "page-home"
+      ],
+      "ruleIds": []
+    },
+    {
+      "id": "action-workbench-issues",
+      "title": "从工作台定位问题",
+      "pageIds": [
+        "page-home"
+      ],
+      "ruleIds": []
+    },
+    {
+      "id": "action-category-create",
+      "title": "新建分类",
+      "pageIds": [
+        "page-categories"
+      ],
+      "ruleIds": [
+        "rule-category-typed-target",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-category-rename",
+      "title": "改分类名",
+      "pageIds": [
+        "page-categories"
+      ],
+      "ruleIds": [
+        "rule-category-input",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-category-move",
+      "title": "移动分类子树",
+      "pageIds": [
+        "page-categories"
+      ],
+      "ruleIds": [
+        "rule-category-typed-target",
+        "rule-category-cycle",
+        "rule-category-stale",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-category-copy",
+      "title": "复制分类树",
+      "pageIds": [
+        "page-categories"
+      ],
+      "ruleIds": [
+        "rule-category-stale",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-category-delete",
+      "title": "删除分类",
+      "pageIds": [
+        "page-categories"
+      ],
+      "ruleIds": [
+        "rule-category-reference",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-type-save",
+      "title": "保存产品类型",
+      "pageIds": [
+        "page-product-types"
+      ],
+      "ruleIds": [
+        "rule-type-category",
+        "rule-type-reference",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-type-models",
+      "title": "查看类型模型",
+      "pageIds": [
+        "page-product-types"
+      ],
+      "ruleIds": [
+        "rule-type-category",
+        "rule-type-reference",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-type-delete",
+      "title": "删除产品类型",
+      "pageIds": [
+        "page-product-types"
+      ],
+      "ruleIds": [
+        "rule-type-category",
+        "rule-type-reference",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-dictionary-save",
+      "title": "保存全局属性与取值",
+      "pageIds": [
+        "page-params"
+      ],
+      "ruleIds": [
+        "rule-dictionary-reference",
+        "rule-model-dictionary",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-dictionary-value-remove",
+      "title": "删除或改名词典取值",
+      "pageIds": [
+        "page-params"
+      ],
+      "ruleIds": [
+        "rule-dictionary-reference",
+        "rule-model-dictionary",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-template-create",
+      "title": "新建属性方案",
+      "pageIds": [
+        "page-templates"
+      ],
+      "ruleIds": [
+        "rule-template-bindings",
+        "rule-dictionary-reference",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-template-save",
+      "title": "配置方案绑定",
+      "pageIds": [
+        "page-templates"
+      ],
+      "ruleIds": [
+        "rule-template-bindings",
+        "rule-dictionary-reference",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-template-copy",
+      "title": "复制属性方案",
+      "pageIds": [
+        "page-templates"
+      ],
+      "ruleIds": [
+        "rule-template-bindings",
+        "rule-dictionary-reference",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-template-delete",
+      "title": "删除属性方案",
+      "pageIds": [
+        "page-templates"
+      ],
+      "ruleIds": [
+        "rule-template-bindings",
+        "rule-dictionary-reference",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-model-create",
+      "title": "新建模型",
+      "pageIds": [
+        "page-models"
+      ],
+      "ruleIds": [
+        "rule-model-structure",
+        "rule-model-dictionary",
+        "rule-model-history",
+        "rule-material-source"
+      ]
+    },
+    {
+      "id": "action-model-copy",
+      "title": "复制模型",
+      "pageIds": [
+        "page-models"
+      ],
+      "ruleIds": [
+        "rule-model-structure",
+        "rule-model-dictionary",
+        "rule-model-history",
+        "rule-material-source"
+      ]
+    },
+    {
+      "id": "action-model-publish",
+      "title": "发布模型版本",
+      "pageIds": [
+        "page-models",
+        "page-specs"
+      ],
+      "ruleIds": [
+        "rule-model-dictionary",
+        "rule-model-structure",
+        "rule-node-config",
+        "rule-model-history",
+        "rule-permission",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-model-offline",
+      "title": "下线模型",
+      "pageIds": [
+        "page-models"
+      ],
+      "ruleIds": [
+        "rule-model-structure",
+        "rule-model-dictionary",
+        "rule-model-history",
+        "rule-material-source"
+      ]
+    },
+    {
+      "id": "action-model-edit",
+      "title": "编辑模型节点",
+      "pageIds": [
+        "page-specs"
+      ],
+      "ruleIds": [
+        "rule-model-structure",
+        "rule-model-dictionary",
+        "rule-model-history",
+        "rule-node-config",
+        "rule-material-source"
+      ]
+    },
+    {
+      "id": "action-node-business-save",
+      "title": "保存值节点业务配置",
+      "pageIds": [
+        "page-specs"
+      ],
+      "ruleIds": [
+        "rule-model-structure",
+        "rule-model-dictionary",
+        "rule-model-history",
+        "rule-node-config",
+        "rule-material-source"
+      ]
+    },
+    {
+      "id": "action-node-naming-save",
+      "title": "设置节点命名",
+      "pageIds": [
+        "page-specs"
+      ],
+      "ruleIds": [
+        "rule-model-structure",
+        "rule-model-dictionary",
+        "rule-model-history",
+        "rule-node-config",
+        "rule-material-source"
+      ]
+    },
+    {
+      "id": "action-planning-save",
+      "title": "保存规划范围",
+      "pageIds": [
+        "page-plans"
+      ],
+      "ruleIds": [
+        "rule-model-history",
+        "rule-sku-identity"
+      ]
+    },
+    {
+      "id": "action-planning-create-sku",
+      "title": "从规划追加 SKU",
+      "pageIds": [
+        "page-plans"
+      ],
+      "ruleIds": [
+        "rule-model-history",
+        "rule-sku-identity"
+      ]
+    },
+    {
+      "id": "action-planning-delete",
+      "title": "删除保存规划",
+      "pageIds": [
+        "page-plans"
+      ],
+      "ruleIds": [
+        "rule-model-history",
+        "rule-sku-identity"
+      ]
+    },
+    {
+      "id": "action-tree-query",
+      "title": "在结构视图定位商品",
+      "pageIds": [
+        "page-tree"
+      ],
+      "ruleIds": [
+        "rule-identity-separation"
+      ]
+    },
+    {
+      "id": "action-spu-query",
+      "title": "查询 SPU",
+      "pageIds": [
+        "page-spus"
+      ],
+      "ruleIds": [
+        "rule-identity-separation",
+        "rule-view-isolation",
+        "rule-spu-reference"
+      ]
+    },
+    {
+      "id": "action-spu-view",
+      "title": "配置 SPU 视图",
+      "pageIds": [
+        "page-spus",
+        "page-columns-spu"
+      ],
+      "ruleIds": [
+        "rule-identity-separation",
+        "rule-view-isolation",
+        "rule-spu-reference"
+      ]
+    },
+    {
+      "id": "action-spu-delete",
+      "title": "删除 SPU",
+      "pageIds": [
+        "page-spus"
+      ],
+      "ruleIds": [
+        "rule-identity-separation",
+        "rule-view-isolation",
+        "rule-spu-reference"
+      ]
+    },
+    {
+      "id": "action-spu-save",
+      "title": "保存 SPU 主体",
+      "pageIds": [
+        "page-spu-create",
+        "page-spu-edit"
+      ],
+      "ruleIds": [
+        "rule-spu-input",
+        "rule-spu-identity",
+        "rule-permission",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-spu-history",
+      "title": "查看主体历史依据",
+      "pageIds": [
+        "page-spu-edit"
+      ],
+      "ruleIds": [
+        "rule-spu-identity",
+        "rule-model-history",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-sku-query",
+      "title": "查询销售 SKU",
+      "pageIds": [
+        "page-skus"
+      ],
+      "ruleIds": [
+        "rule-view-isolation",
+        "rule-view-conditions",
+        "rule-sku-identity",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-view-save",
+      "title": "保存 SKU 列表视图",
+      "pageIds": [
+        "page-skus",
+        "page-columns-sku"
+      ],
+      "ruleIds": [
+        "rule-view-isolation",
+        "rule-view-conditions",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-view-restore",
+      "title": "恢复 SKU 正式视图",
+      "pageIds": [
+        "page-skus",
+        "page-columns-sku"
+      ],
+      "ruleIds": [
+        "rule-view-isolation",
+        "rule-view-conditions",
+        "rule-sku-identity",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-sku-manual-order",
+      "title": "跨页手工排序",
+      "pageIds": [
+        "page-skus"
+      ],
+      "ruleIds": [
+        "rule-view-isolation",
+        "rule-view-conditions",
+        "rule-sku-identity",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-sku-preview",
+      "title": "预览新增 SKU",
+      "pageIds": [
+        "page-sku-create"
+      ],
+      "ruleIds": [
+        "rule-sku-input",
+        "rule-sku-identity"
+      ]
+    },
+    {
+      "id": "action-sku-save",
+      "title": "保存销售 SKU",
+      "pageIds": [
+        "page-sku-create",
+        "page-sku-edit"
+      ],
+      "ruleIds": [
+        "rule-sku-input",
+        "rule-sku-identity",
+        "rule-permission",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-material-create",
+      "title": "正式物料建档",
+      "pageIds": [
+        "page-material-create"
+      ],
+      "ruleIds": [
+        "rule-material-source",
+        "rule-material-planning",
+        "rule-material-identity",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-material-temporary",
+      "title": "创建临时物料",
+      "pageIds": [
+        "page-material-create"
+      ],
+      "ruleIds": [
+        "rule-material-source",
+        "rule-material-planning",
+        "rule-material-identity",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-material-edit",
+      "title": "维护物料档案",
+      "pageIds": [
+        "page-material-edit"
+      ],
+      "ruleIds": [
+        "rule-material-identity",
+        "rule-material-source",
+        "rule-material-request",
+        "rule-model-history"
+      ]
+    },
+    {
+      "id": "action-material-relation",
+      "title": "节点范围建档或关联现有 MAT",
+      "pageIds": [
+        "page-specs",
+        "page-material-edit"
+      ],
+      "ruleIds": [
+        "rule-material-source",
+        "rule-material-request",
+        "rule-compatibility-manual-protection",
+        "rule-conflict"
+      ]
+    },
+    {
+      "id": "action-material-unlink",
+      "title": "解除新增物料关联",
+      "pageIds": [
+        "page-material-edit"
+      ],
+      "ruleIds": [
+        "rule-material-identity",
+        "rule-material-source",
+        "rule-material-request",
+        "rule-model-history"
+      ]
+    },
+    {
+      "id": "action-compatibility-bind",
+      "title": "绑定明确设备型号",
+      "pageIds": [
+        "page-compatibility"
+      ],
+      "ruleIds": [
+        "rule-compatibility-binding",
+        "rule-permission"
+      ]
+    },
+    {
+      "id": "action-compatibility-declare",
+      "title": "维护适用声明",
+      "pageIds": [
+        "page-compatibility"
+      ],
+      "ruleIds": [
+        "rule-compatibility-binding",
+        "rule-compatibility-basis"
+      ]
+    },
+    {
+      "id": "action-compatibility-sync",
+      "title": "同步模板适用更新",
+      "pageIds": [
+        "page-compatibility"
+      ],
+      "ruleIds": [
+        "rule-compatibility-basis",
+        "rule-compatibility-manual-protection",
+        "rule-conflict"
+      ]
+    },
+    {
+      "id": "action-compatibility-cancel",
+      "title": "人工取消适用声明",
+      "pageIds": [
+        "page-compatibility"
+      ],
+      "ruleIds": [
+        "rule-compatibility-manual-protection",
+        "rule-permission"
+      ]
+    },
+    {
+      "id": "action-framework-save",
+      "title": "保存独立选配框架",
+      "pageIds": [
+        "page-benefits"
+      ],
+      "ruleIds": [
+        "rule-framework-members",
+        "rule-model-history"
+      ]
+    },
+    {
+      "id": "action-benefit-copy",
+      "title": "复制常用权益包",
+      "pageIds": [
+        "page-benefits"
+      ],
+      "ruleIds": [
+        "rule-framework-members",
+        "rule-model-history"
+      ]
+    },
+    {
+      "id": "action-benefit-query",
+      "title": "查找权益包与历史",
+      "pageIds": [
+        "page-benefits"
+      ],
+      "ruleIds": [
+        "rule-framework-members",
+        "rule-model-history"
+      ]
+    },
+    {
+      "id": "action-benefit-select",
+      "title": "选配商品和服务",
+      "pageIds": [
+        "page-benefit-create"
+      ],
+      "ruleIds": [
+        "rule-benefit-validation",
+        "rule-benefit-quote",
+        "rule-framework-members",
+        "rule-compatibility-binding"
+      ]
+    },
+    {
+      "id": "action-benefit-save",
+      "title": "保存权益包",
+      "pageIds": [
+        "page-benefit-create",
+        "page-benefit-edit"
+      ],
+      "ruleIds": [
+        "rule-benefit-validation",
+        "rule-framework-members",
+        "rule-benefit-quote",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-benefit-quote",
+      "title": "填写并复核报价",
+      "pageIds": [
+        "page-benefit-create",
+        "page-benefit-edit"
+      ],
+      "ruleIds": [
+        "rule-benefit-quote"
+      ]
+    },
+    {
+      "id": "action-benefit-deliver",
+      "title": "预览并确认本机清单",
+      "pageIds": [
+        "page-benefit-edit"
+      ],
+      "ruleIds": [
+        "rule-benefit-validation",
+        "rule-benefit-quote",
+        "rule-benefit-preview",
+        "rule-conflict",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-delivery-export",
+      "title": "打印或导出历史清单",
+      "pageIds": [
+        "page-benefit-delivery"
+      ],
+      "ruleIds": [
+        "rule-delivery-snapshot",
+        "rule-benefit-preview"
+      ]
+    },
+    {
+      "id": "action-brand-save",
+      "title": "保存品牌目录",
+      "pageIds": [
+        "page-brands"
+      ],
+      "ruleIds": [
+        "rule-catalog-names",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-group-create",
+      "title": "建立运营分组",
+      "pageIds": [
+        "page-groups"
+      ],
+      "ruleIds": [
+        "rule-identity-separation",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-group-link",
+      "title": "保存分组商品关联",
+      "pageIds": [
+        "page-groups"
+      ],
+      "ruleIds": [
+        "rule-identity-separation",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-constraint-save",
+      "title": "保存规格允许值规则",
+      "pageIds": [
+        "page-rules"
+      ],
+      "ruleIds": [
+        "rule-constraint-definition",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-constraint-test",
+      "title": "测试规则覆盖",
+      "pageIds": [
+        "page-rules"
+      ],
+      "ruleIds": [
+        "rule-constraint-definition",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-mapping-save",
+      "title": "修改分类方案绑定",
+      "pageIds": [
+        "page-mappings"
+      ],
+      "ruleIds": [
+        "rule-template-bindings"
+      ]
+    },
+    {
+      "id": "action-overview-query",
+      "title": "查看商品矩阵",
+      "pageIds": [
+        "page-overview"
+      ],
+      "ruleIds": [
+        "rule-identity-separation"
+      ]
+    },
+    {
+      "id": "action-check-locate",
+      "title": "定位质量问题",
+      "pageIds": [
+        "page-check"
+      ],
+      "ruleIds": [
+        "rule-identity-separation",
+        "rule-sku-input"
+      ]
+    },
+    {
+      "id": "action-json-import",
+      "title": "恢复 JSON 备份",
+      "pageIds": [
+        "page-import"
+      ],
+      "ruleIds": [
+        "rule-json-import",
+        "rule-material-identity",
+        "rule-permission",
+        "rule-persistence",
+        "rule-conflict"
+      ]
+    },
+    {
+      "id": "action-table-import",
+      "title": "确认表格导入",
+      "pageIds": [
+        "page-import"
+      ],
+      "ruleIds": [
+        "rule-json-import",
+        "rule-material-identity",
+        "rule-persistence",
+        "rule-conflict",
+        "rule-permission"
+      ]
+    },
+    {
+      "id": "action-backup-export",
+      "title": "导出业务备份",
+      "pageIds": [
+        "page-import"
+      ],
+      "ruleIds": [
+        "rule-json-import",
+        "rule-material-identity",
+        "rule-persistence",
+        "rule-conflict",
+        "rule-permission"
+      ]
+    },
+    {
+      "id": "action-menu-save",
+      "title": "保存菜单结构",
+      "pageIds": [
+        "page-menus"
+      ],
+      "ruleIds": [
+        "rule-menu-structure",
+        "rule-permission",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-menu-restore",
+      "title": "恢复默认菜单结构",
+      "pageIds": [
+        "page-menus"
+      ],
+      "ruleIds": [
+        "rule-menu-structure",
+        "rule-permission",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-role-save",
+      "title": "保存角色资料",
+      "pageIds": [
+        "page-roles"
+      ],
+      "ruleIds": [
+        "rule-role-protection",
+        "rule-permission",
+        "rule-conflict",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-rbac-authorize",
+      "title": "显式保存角色授权",
+      "pageIds": [
+        "page-roles"
+      ],
+      "ruleIds": [
+        "rule-permission",
+        "rule-role-protection",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-role-delete",
+      "title": "删除普通角色",
+      "pageIds": [
+        "page-roles"
+      ],
+      "ruleIds": [
+        "rule-role-protection",
+        "rule-permission",
+        "rule-conflict",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-rbac-recover",
+      "title": "恢复内置管理授权",
+      "pageIds": [
+        "page-roles"
+      ],
+      "ruleIds": [
+        "rule-role-protection",
+        "rule-permission",
+        "rule-conflict",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-permission-save",
+      "title": "维护权限说明和状态",
+      "pageIds": [
+        "page-permissions"
+      ],
+      "ruleIds": [
+        "rule-permission",
+        "rule-role-protection",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-permission-reference",
+      "title": "查看权限引用",
+      "pageIds": [
+        "page-permissions"
+      ],
+      "ruleIds": [
+        "rule-permission",
+        "rule-role-protection",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-user-save",
+      "title": "保存本机用户",
+      "pageIds": [
+        "page-users"
+      ],
+      "ruleIds": [
+        "rule-permission",
+        "rule-role-protection",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-user-bind",
+      "title": "绑定用户角色",
+      "pageIds": [
+        "page-users"
+      ],
+      "ruleIds": [
+        "rule-permission",
+        "rule-role-protection",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-user-preview",
+      "title": "模拟并退出身份",
+      "pageIds": [
+        "page-users"
+      ],
+      "ruleIds": [
+        "rule-permission",
+        "rule-role-protection",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-account-save",
+      "title": "保存账号资料",
+      "pageIds": [
+        "page-account"
+      ],
+      "ruleIds": [
+        "rule-permission",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-account-password",
+      "title": "演示密码校验",
+      "pageIds": [
+        "page-account"
+      ],
+      "ruleIds": [
+        "rule-permission",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-feedback-save",
+      "title": "保存问题反馈",
+      "pageIds": [
+        "page-feedback"
+      ],
+      "ruleIds": [
+        "rule-feedback-local",
+        "rule-permission",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-feedback-export",
+      "title": "导出本机反馈包",
+      "pageIds": [
+        "page-feedback"
+      ],
+      "ruleIds": [
+        "rule-feedback-local",
+        "rule-permission",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-feedback-import",
+      "title": "导入反馈包",
+      "pageIds": [
+        "page-feedback"
+      ],
+      "ruleIds": [
+        "rule-feedback-local",
+        "rule-permission",
+        "rule-persistence"
+      ]
+    },
+    {
+      "id": "action-access-explain",
+      "title": "理解不可访问入口",
+      "pageIds": [
+        "page-forbidden"
+      ],
+      "ruleIds": [
+        "rule-permission"
+      ]
+    },
+    {
+      "id": "action-guide-search",
+      "title": "搜索业务知识",
+      "pageIds": [
+        "page-guide"
+      ],
+      "ruleIds": [
+        "rule-guide-isolation",
+        "rule-permission",
+        "rule-guide-storage",
+        "rule-guide-permission"
+      ]
+    },
+    {
+      "id": "action-guide-read",
+      "title": "阅读页面与规则",
+      "pageIds": [
+        "page-guide-article"
+      ],
+      "ruleIds": [
+        "rule-guide-isolation",
+        "rule-guide-storage",
+        "rule-guide-permission"
+      ]
+    },
+    {
+      "id": "action-guide-learn",
+      "title": "按路线学习和练习",
+      "pageIds": [
+        "page-guide-learn"
+      ],
+      "ruleIds": [
+        "rule-guide-isolation",
+        "rule-guide-storage",
+        "rule-guide-permission"
+      ]
+    },
+    {
+      "id": "action-guide-progress",
+      "title": "保存个人收藏与进度",
+      "pageIds": [
+        "page-guide",
+        "page-guide-article",
+        "page-guide-learn"
+      ],
+      "ruleIds": [
+        "rule-guide-isolation",
+        "rule-guide-storage"
+      ]
+    },
+    {
+      "id": "action-guide-maintain",
+      "title": "维护指南说明",
+      "pageIds": [
+        "page-guide-manage"
+      ],
+      "ruleIds": [
+        "rule-guide-permission",
+        "rule-guide-publication",
+        "rule-guide-storage",
+        "rule-guide-conflict"
+      ]
+    },
+    {
+      "id": "action-guide-draft",
+      "title": "保存说明草稿",
+      "pageIds": [
+        "page-guide-manage"
+      ],
+      "ruleIds": [
+        "rule-guide-isolation",
+        "rule-guide-publication",
+        "rule-permission",
+        "rule-persistence",
+        "rule-guide-storage",
+        "rule-guide-permission",
+        "rule-guide-conflict"
+      ]
+    },
+    {
+      "id": "action-guide-publish",
+      "title": "发布核验说明",
+      "pageIds": [
+        "page-guide-manage"
+      ],
+      "ruleIds": [
+        "rule-guide-permission",
+        "rule-guide-publication",
+        "rule-guide-storage",
+        "rule-guide-conflict"
+      ]
+    },
+    {
+      "id": "action-guide-import",
+      "title": "导入指南内容备份",
+      "pageIds": [
+        "page-guide-manage"
+      ],
+      "ruleIds": [
+        "rule-guide-permission",
+        "rule-guide-publication",
+        "rule-guide-storage",
+        "rule-guide-conflict"
+      ]
+    },
+    {
+      "id": "action-business-save",
+      "title": "处理本机保存结果",
+      "pageIds": [
+        "page-categories",
+        "page-product-types",
+        "page-params",
+        "page-templates",
+        "page-spu-create",
+        "page-spu-edit",
+        "page-skus",
+        "page-sku-edit",
+        "page-material-create",
+        "page-benefit-edit",
+        "page-brands",
+        "page-groups",
+        "page-rules",
+        "page-import",
+        "page-menus",
+        "page-roles",
+        "page-permissions",
+        "page-users",
+        "page-account",
+        "page-feedback",
+        "page-guide-manage"
+      ],
+      "ruleIds": [
+        "rule-persistence",
+        "rule-conflict"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "rule-category-typed-target",
+      "title": "绑定类型的目标不接收子分类",
+      "source": "src/domain/categoryTree.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-category-cycle",
+      "title": "分类移动不得形成循环",
+      "source": "src/domain/categoryTree.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-category-stale",
+      "title": "分类来源与目标须仍有效",
+      "source": "src/domain/categoryMovement.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-model-dictionary",
+      "title": "模型发布须保有真实词典引用",
+      "source": "src/domain/dictionaryGuard.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-model-structure",
+      "title": "发布树必须满足真实结构",
+      "source": "src/domain/logic.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-model-history",
+      "title": "发布依据与历史快照保持",
+      "source": "src/stores/catalog.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-node-config",
+      "title": "值业务配置是附属实例",
+      "source": "src/domain/nodeBusiness.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-material-source",
+      "title": "正式物料来源必须一致",
+      "source": "src/domain/material.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-material-planning",
+      "title": "正式规划必须可用且完整",
+      "source": "src/domain/material.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-material-identity",
+      "title": "MAT 与销售 SKU 身份分离",
+      "source": "src/domain/catalogIdentity.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-material-request",
+      "title": "物料关联请求回执与原始来源保留",
+      "source": "src/domain/materialRelationCommands.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-spu-input",
+      "title": "SPU 输入与有效引用",
+      "source": "src/domain/spuSku.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-spu-identity",
+      "title": "有下游的 SPU 身份锁定",
+      "source": "src/domain/spuSku.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-spu-reference",
+      "title": "SPU 删除不级联清子记录",
+      "source": "src/domain/spuSku.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-sku-input",
+      "title": "SKU 规格必须属于主体方案",
+      "source": "src/domain/spuSku.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-sku-identity",
+      "title": "SKU 追加去重和来源锁定",
+      "source": "src/domain/spuSku.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-view-isolation",
+      "title": "视图、临时范围与业务数据分离",
+      "source": "src/components/product-list/useSkuWorkbench.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-view-conditions",
+      "title": "筛选逻辑与手工顺序保持",
+      "source": "src/domain/skuWorkbenchQuery.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-compatibility-binding",
+      "title": "适用绑定须有明确对象与主机",
+      "source": "src/domain/deviceResolution.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-compatibility-basis",
+      "title": "适用声明按有效依据维护",
+      "source": "src/domain/accessoryCompatibilityCommands.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-compatibility-manual-protection",
+      "title": "人工修改与取消跨版本保留",
+      "source": "src/domain/materialRelationCommands.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-framework-members",
+      "title": "框架类型范围与修订保护",
+      "source": "src/domain/benefitFrameworks.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-benefit-validation",
+      "title": "可用权益包通过当前成员与条件校验",
+      "source": "src/domain/benefitPackages.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-benefit-quote",
+      "title": "人工报价与参考合计分别记录",
+      "source": "src/domain/benefitPricing.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-benefit-preview",
+      "title": "交付须基于最新保存与确认预览",
+      "source": "src/domain/benefitPackages.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-delivery-snapshot",
+      "title": "历史交付只读冻结内容",
+      "source": "src/domain/benefitPackageExport.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-json-import",
+      "title": "导入校验与当前角色保护",
+      "source": "src/stores/catalog.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-persistence",
+      "title": "真实写盘状态与失败恢复",
+      "source": "src/stores/catalogPersistence.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-conflict",
+      "title": "外部修订或预览依据变化需重新核对",
+      "source": "src/stores/catalog.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-permission",
+      "title": "默认模式与严格授权分开",
+      "source": "src/domain/rbac.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-identity-separation",
+      "title": "业务对象与来源各有身份",
+      "source": "src/domain/catalogIdentity.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-catalog-names",
+      "title": "目录名称维护不重写历史商品",
+      "source": "src/views/BrandView.vue",
+      "status": "verified"
+    },
+    {
+      "id": "rule-constraint-definition",
+      "title": "现行允许值规则与旧参考分开",
+      "source": "src/views/RuleView.vue",
+      "status": "verified"
+    },
+    {
+      "id": "rule-menu-structure",
+      "title": "菜单结构不改变执行授权",
+      "source": "src/domain/menuConfig.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-role-protection",
+      "title": "角色依赖与恢复能力受保护",
+      "source": "src/domain/rbac.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-feedback-local",
+      "title": "反馈只在本机保存和导出",
+      "source": "src/domain/feedbackFiles.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-guide-isolation",
+      "title": "指南与业务存储及草稿隔离",
+      "source": "src/domain/guide/types.ts",
+      "status": "review"
+    },
+    {
+      "id": "rule-guide-publication",
+      "title": "说明发布不修改内置业务条件",
+      "source": "src/domain/guide/validation.ts",
+      "status": "review"
+    },
+    {
+      "id": "rule-guide-storage",
+      "title": "指南独立存储必须合法原子",
+      "source": "src/domain/guide/validation.ts",
+      "status": "review"
+    },
+    {
+      "id": "rule-guide-conflict",
+      "title": "指南修订冲突不可静默覆盖",
+      "source": "src/domain/guide/types.ts",
+      "status": "review"
+    },
+    {
+      "id": "rule-guide-permission",
+      "title": "阅读与说明维护能力独立",
+      "source": "src/domain/rbac.ts",
+      "status": "review"
+    },
+    {
+      "id": "rule-type-category",
+      "title": "产品类型只关联有效末级分类",
+      "source": "src/stores/catalog.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-type-reference",
+      "title": "类型迁移与删除须保留引用",
+      "source": "src/stores/catalog.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-template-bindings",
+      "title": "方案绑定必须是真实词典属性",
+      "source": "src/views/TemplateView.vue",
+      "status": "verified"
+    },
+    {
+      "id": "rule-dictionary-reference",
+      "title": "引用中的词典不能任意删除改名",
+      "source": "src/domain/dictionaryGuard.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-category-input",
+      "title": "分类名称与记录必须有效",
+      "source": "src/domain/categoryTree.ts",
+      "status": "verified"
+    },
+    {
+      "id": "rule-category-reference",
+      "title": "分类删除保留真实下游",
+      "source": "src/stores/catalog.ts",
+      "status": "verified"
+    }
+  ],
+  "aliases": [
+    {
+      "pattern": "/products",
+      "canonical": "/spus",
+      "queryPreserved": true
+    },
+    {
+      "pattern": "/products/new",
+      "canonical": "/spus/new",
+      "queryPreserved": true
+    },
+    {
+      "pattern": "/products/:id",
+      "canonical": "identity-dependent /spus/:id, /skus/:id or /materials/:id",
+      "note": "sku query chooses true record kind; add/copySku enters SKU creation"
+    },
+    {
+      "pattern": "/columns",
+      "canonical": "/spus?panel=columns",
+      "note": "through /products redirect"
+    }
+  ],
+  "pendingArticleIds": [
+    "concept-pending-requirements"
+  ]
+}

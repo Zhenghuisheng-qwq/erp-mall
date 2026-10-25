@@ -2,6 +2,9 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { isMaterialArchive } from '../domain/catalogIdentity'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import { useCatalogStore } from '../stores/catalog'
+import {routePermissions} from '../domain/rbac'
+import {createFailure} from '../domain/guide/failure'
+import {guideRouteFailure} from '../domain/guide/routeFailure'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -10,6 +13,10 @@ const router = createRouter({
       path: '/',
       component: AdminLayout,
       children: [
+        { path: 'guide', name: 'guide', component: () => import('../views/guide/GuideHomeView.vue'), meta: { title: '业务指南' } },
+        { path: 'guide/manage', name: 'guide-manage', component: () => import('../views/guide/GuideManageView.vue'), meta: { title: '指南内容维护' } },
+        { path: 'guide/articles/:articleId', name: 'guide-article', component: () => import('../views/guide/GuideArticleView.vue'), meta: { title: '业务指南文章' } },
+        { path: 'guide/learn/:flowId', name: 'guide-learn', component: () => import('../views/guide/GuideLearnView.vue'), meta: { title: '新人学习' } },
         { path: '', name: 'home', component: () => import('../views/WorkbenchView.vue'), meta: { title: '商品工作台', group: '商品工作台', mode: 'daily' } },
         { path: 'products', redirect: to => ({ path: '/spus', query: to.query }) },
         { path: 'spus', name: 'spus', component: () => import('../views/ProductListView.vue'), props: { mode: 'spu' }, meta: { title: 'SPU 管理' } },
@@ -64,7 +71,9 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const store = useCatalogStore()
   await store.waitForPersistence()
-  return store.canRoute({path:to.path,query:to.query}) ? true : {path:'/forbidden',query:{from:to.fullPath}}
+  if(store.canRoute({path:to.path,query:to.query}))return true
+  guideRouteFailure.value=createFailure({kind:'permission',ruleId:'rule-permission',actionId:'action-rbac-authorize',message:store.rbacEnforced?'当前身份没有此页面的有效访问授权。':'此地址不是已登记的正式页面；当前统一管理员模式仍保留路由登记保护。',savedState:'unchanged',context:{requiredPermissions:(routePermissions(to.path,to.query)||[]).join('、'),mode:store.rbacEnforced?'严格授权':'统一管理员'},recovery:['feedback']})
+  return {path:'/forbidden',query:{from:to.fullPath}}
 })
 
 export default router

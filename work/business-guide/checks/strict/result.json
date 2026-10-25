@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "strict": true,
+  "checks": [
+    "complete route inventory, dynamic/query/legacy mapping, references, ten-part manuals, eight learning paths and safe return URLs",
+    "versioned guide capability migration is idempotent and limited to built-in roles; custom roles and business stay intact",
+    "draft remains private; explicit reviewed publish updates shared readers/search once and never writes business payload",
+    "quota failures retain original publication/state/raw and editable input; retry and explicit previous-publication recovery are atomic",
+    "two independent Store windows reject stale revisions without replacing input; explicit reload and review can continue",
+    "guide-only import preview rejects duplicate IDs, dangerous text, forged bindings, schema and business payload; valid restore stays independent",
+    "strict guide reader/writer and product permissions stay separate; default mode remains uniform administrator",
+    "owner-isolated favorites/read/practice/recent; preview never writes another identity; revision changes preserve old progress and expose review need",
+    "queued writes recheck captured identity inside lock; switching user cannot persist under a different author",
+    "damaged JSON is retained and exportable, built-in reading survives; explicit valid content/personal recovery never alters business data"
+  ],
+  "pages": 42,
+  "formalPages": 41,
+  "articles": 190,
+  "flows": 9
+}

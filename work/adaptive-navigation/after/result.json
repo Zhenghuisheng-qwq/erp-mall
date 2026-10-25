@@ -1,0 +1,4850 @@
+{
+  "before": false,
+  "browser": "156.0.8078.47",
+  "checks": [
+    "1280/1366/1440/1920/2560 have compact readable two-column menus and usable main space; floating never shifts main",
+    "continuous resizing temporarily overlays when main space is insufficient, keeps explicit pin/collapse preferences and restores docking",
+    "temporary pinned overlay closes by Escape, mouse leave or outside click; focus restores and wide layout re-docks without preference writes",
+    "fold and overlay placement share actual primary-column width without rewriting layout or pin",
+    "125/150 percent equivalent CSS viewports verified in real Chrome; this is viewport emulation, not browser toolbar zoom",
+    "width responds to actual content; long labels wrap fully and direct-only center stays compact",
+    "long Chinese and unbroken English center headings wrap without widening or squeezing the pin",
+    "keyboard focus protection, mouse closing and business/history byte equality retained"
+  ],
+  "measurements": [
+    {
+      "label": "floating-1280",
+      "viewport": 1280,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 96,
+        "y": 0,
+        "width": 1184,
+        "height": 900,
+        "right": 1280
+      },
+      "docked": false,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "pinned-1280",
+      "viewport": 1280,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 848,
+        "height": 900,
+        "right": 1280
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "floating-1366",
+      "viewport": 1366,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 96,
+        "y": 0,
+        "width": 1270,
+        "height": 900,
+        "right": 1366
+      },
+      "docked": false,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "pinned-1366",
+      "viewport": 1366,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 934,
+        "height": 900,
+        "right": 1366
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "floating-1440",
+      "viewport": 1440,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 96,
+        "y": 0,
+        "width": 1344,
+        "height": 900,
+        "right": 1440
+      },
+      "docked": false,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "pinned-1440",
+      "viewport": 1440,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 1008,
+        "height": 900,
+        "right": 1440
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "floating-1920",
+      "viewport": 1920,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 96,
+        "y": 0,
+        "width": 1824,
+        "height": 900,
+        "right": 1920
+      },
+      "docked": false,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "pinned-1920",
+      "viewport": 1920,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 1488,
+        "height": 900,
+        "right": 1920
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "floating-2560",
+      "viewport": 2560,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 96,
+        "y": 0,
+        "width": 2464,
+        "height": 900,
+        "right": 2560
+      },
+      "docked": false,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "pinned-2560",
+      "viewport": 2560,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 2128,
+        "height": 900,
+        "right": 2560
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "continuous-2560",
+      "viewport": 2560,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 2128,
+        "height": 900,
+        "right": 2560
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "continuous-1920",
+      "viewport": 1920,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 1488,
+        "height": 900,
+        "right": 1920
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "continuous-1440",
+      "viewport": 1440,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 1008,
+        "height": 900,
+        "right": 1440
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "continuous-1366",
+      "viewport": 1366,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 934,
+        "height": 900,
+        "right": 1366
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "continuous-1280",
+      "viewport": 1280,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 848,
+        "height": 900,
+        "right": 1280
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "continuous-1100",
+      "viewport": 1100,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 668,
+        "height": 900,
+        "right": 1100
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 285,
+          "width": 285
+        },
+        {
+          "text": "商品管理",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "权益包",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "适用关系",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "产品类型",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "属性方案",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "属性词典",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "规格约束",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品运营",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "运营分组",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分析",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "商品总览",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 100,
+          "width": 100
+        }
+      ]
+    },
+    {
+      "label": "continuous-1000",
+      "viewport": 1000,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 96,
+        "y": 0,
+        "width": 904,
+        "height": 900,
+        "right": 1000
+      },
+      "docked": false,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 285,
+          "width": 285
+        },
+        {
+          "text": "商品管理",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "权益包",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "适用关系",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "产品类型",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "属性方案",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "属性词典",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "规格约束",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品运营",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "运营分组",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分析",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "商品总览",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 100,
+          "width": 100
+        }
+      ]
+    },
+    {
+      "label": "continuous-900",
+      "viewport": 900,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 96,
+        "y": 0,
+        "width": 804,
+        "height": 900,
+        "right": 900
+      },
+      "docked": false,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 285,
+          "width": 285
+        },
+        {
+          "text": "商品管理",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "权益包",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "适用关系",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "产品类型",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "属性方案",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "属性词典",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "规格约束",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品运营",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "运营分组",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分析",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "商品总览",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 100,
+          "width": 100
+        }
+      ]
+    },
+    {
+      "label": "continuous-800",
+      "viewport": 800,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 96,
+        "y": 0,
+        "width": 704,
+        "height": 900,
+        "right": 800
+      },
+      "docked": false,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 285,
+          "width": 285
+        },
+        {
+          "text": "商品管理",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "权益包",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "适用关系",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "产品类型",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "属性方案",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "属性词典",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "规格约束",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品运营",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "运营分组",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分析",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "商品总览",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 100,
+          "width": 100
+        }
+      ]
+    },
+    {
+      "label": "continuous-700",
+      "viewport": 700,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 96,
+        "y": 0,
+        "width": 604,
+        "height": 900,
+        "right": 700
+      },
+      "docked": false,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 285,
+          "width": 285
+        },
+        {
+          "text": "商品管理",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "权益包",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "适用关系",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "产品类型",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "属性方案",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "属性词典",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "规格约束",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品运营",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "运营分组",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分析",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "商品总览",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 100,
+          "width": 100
+        }
+      ]
+    },
+    {
+      "label": "continuous-650",
+      "viewport": 650,
+      "panel": {
+        "x": 58,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 394
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 58,
+        "height": 900,
+        "right": 58
+      },
+      "main": {
+        "x": 58,
+        "y": 0,
+        "width": 592,
+        "height": 900,
+        "right": 650
+      },
+      "docked": false,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 285,
+          "width": 285
+        },
+        {
+          "text": "商品管理",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "权益包",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "适用关系",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "产品类型",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "属性方案",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "属性词典",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "规格约束",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品运营",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "运营分组",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分析",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "商品总览",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 100,
+          "width": 100
+        }
+      ]
+    },
+    {
+      "label": "continuous-600",
+      "viewport": 600,
+      "panel": {
+        "x": 58,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 394
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 58,
+        "height": 900,
+        "right": 58
+      },
+      "main": {
+        "x": 58,
+        "y": 0,
+        "width": 542,
+        "height": 900,
+        "right": 600
+      },
+      "docked": false,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 285,
+          "width": 285
+        },
+        {
+          "text": "商品管理",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "权益包",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "适用关系",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "产品类型",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "属性方案",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "属性词典",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "规格约束",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品运营",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "运营分组",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分析",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "商品总览",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 100,
+          "width": 100
+        }
+      ]
+    },
+    {
+      "label": "continuous-500",
+      "viewport": 500,
+      "panel": {
+        "x": 58,
+        "y": 0,
+        "width": 200,
+        "height": 900,
+        "right": 258
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 58,
+        "height": 900,
+        "right": 58
+      },
+      "main": {
+        "x": 58,
+        "y": 0,
+        "width": 442,
+        "height": 900,
+        "right": 500
+      },
+      "docked": false,
+      "columns": 1,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 149,
+          "width": 149
+        },
+        {
+          "text": "商品管理",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "权益包",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "适用关系",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "产品类型",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "属性方案",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品模型",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "属性词典",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "规格约束",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品运营",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "运营分组",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品分析",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "商品总览",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 125,
+          "width": 125
+        }
+      ]
+    },
+    {
+      "label": "continuous-375",
+      "viewport": 375,
+      "panel": {
+        "x": 58,
+        "y": 0,
+        "width": 200,
+        "height": 900,
+        "right": 258
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 58,
+        "height": 900,
+        "right": 58
+      },
+      "main": {
+        "x": 58,
+        "y": 0,
+        "width": 317,
+        "height": 900,
+        "right": 375
+      },
+      "docked": false,
+      "columns": 1,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 149,
+          "width": 149
+        },
+        {
+          "text": "商品管理",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "权益包",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "适用关系",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "产品类型",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "属性方案",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品模型",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "属性词典",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "规格约束",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品运营",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "运营分组",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品分析",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "商品总览",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 125,
+          "width": 125
+        }
+      ]
+    },
+    {
+      "label": "continuous-512",
+      "viewport": 512,
+      "panel": {
+        "x": 58,
+        "y": 0,
+        "width": 200,
+        "height": 900,
+        "right": 258
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 58,
+        "height": 900,
+        "right": 58
+      },
+      "main": {
+        "x": 58,
+        "y": 0,
+        "width": 454,
+        "height": 900,
+        "right": 512
+      },
+      "docked": false,
+      "columns": 1,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 149,
+          "width": 149
+        },
+        {
+          "text": "商品管理",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "权益包",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "适用关系",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "产品类型",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "属性方案",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品模型",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "属性词典",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "规格约束",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品运营",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "运营分组",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品分析",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "商品总览",
+          "scroll": 125,
+          "width": 125
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 125,
+          "width": 125
+        }
+      ]
+    },
+    {
+      "label": "continuous-900",
+      "viewport": 900,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 96,
+        "y": 0,
+        "width": 804,
+        "height": 900,
+        "right": 900
+      },
+      "docked": false,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 285,
+          "width": 285
+        },
+        {
+          "text": "商品管理",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "权益包",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "适用关系",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "产品类型",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "属性方案",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "属性词典",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "规格约束",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品运营",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "运营分组",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分析",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "商品总览",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 100,
+          "width": 100
+        }
+      ]
+    },
+    {
+      "label": "continuous-1280",
+      "viewport": 1280,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 848,
+        "height": 900,
+        "right": 1280
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "continuous-1920",
+      "viewport": 1920,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 1488,
+        "height": 900,
+        "right": 1920
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "restored-dock-after-overlay-dismiss",
+      "viewport": 1920,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 1488,
+        "height": 900,
+        "right": 1920
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "expanded",
+      "viewport": 1920,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 1488,
+        "height": 900,
+        "right": 1920
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "folded",
+      "viewport": 1920,
+      "panel": {
+        "x": 58,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 394
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 58,
+        "height": 900,
+        "right": 58
+      },
+      "main": {
+        "x": 394,
+        "y": 0,
+        "width": 1526,
+        "height": 900,
+        "right": 1920
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "unfolded",
+      "viewport": 1920,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 900,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 1488,
+        "height": 900,
+        "right": 1920
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 281,
+          "width": 281
+        },
+        {
+          "text": "商品管理",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "权益包",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "适用关系",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "产品类型",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "属性方案",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "属性词典",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "规格约束",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品运营",
+          "scroll": 113,
+          "width": 113
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "运营分组",
+          "scroll": 93,
+          "width": 93
+        },
+        {
+          "text": "商品分析",
+          "scroll": 114,
+          "width": 114
+        },
+        {
+          "text": "商品总览",
+          "scroll": 94,
+          "width": 94
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 94,
+          "width": 94
+        }
+      ]
+    },
+    {
+      "label": "zoom-equivalent-1.25",
+      "viewport": 1092,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 720,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 720,
+        "right": 96
+      },
+      "main": {
+        "x": 432,
+        "y": 0,
+        "width": 660,
+        "height": 720,
+        "right": 1092
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 285,
+          "width": 285
+        },
+        {
+          "text": "商品管理",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "权益包",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "适用关系",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "产品类型",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "属性方案",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "属性词典",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "规格约束",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品运营",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "运营分组",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分析",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "商品总览",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 100,
+          "width": 100
+        }
+      ]
+    },
+    {
+      "label": "zoom-equivalent-1.5",
+      "viewport": 910,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 336,
+        "height": 600,
+        "right": 432
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 600,
+        "right": 96
+      },
+      "main": {
+        "x": 96,
+        "y": 0,
+        "width": 814,
+        "height": 600,
+        "right": 910
+      },
+      "docked": false,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 285,
+          "width": 285
+        },
+        {
+          "text": "商品管理",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "SKU 管理",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "权益包",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "适用关系",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "产品类型",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "属性方案",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "属性词典",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "规格约束",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品运营",
+          "scroll": 119,
+          "width": 119
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "运营分组",
+          "scroll": 99,
+          "width": 99
+        },
+        {
+          "text": "商品分析",
+          "scroll": 120,
+          "width": 120
+        },
+        {
+          "text": "商品总览",
+          "scroll": 100,
+          "width": 100
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 100,
+          "width": 100
+        }
+      ]
+    },
+    {
+      "label": "long-custom-title",
+      "viewport": 1920,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 368,
+        "height": 900,
+        "right": 464
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 464,
+        "y": 0,
+        "width": 1456,
+        "height": 900,
+        "right": 1920
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 313,
+          "width": 313
+        },
+        {
+          "text": "商品管理",
+          "scroll": 129,
+          "width": 129
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "自定义超长销售规格商品名称完整展示与导航自适应宽度验证",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "权益包",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "适用关系",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "产品类型",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 130,
+          "width": 130
+        },
+        {
+          "text": "属性方案",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "商品模型",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "属性词典",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "规格约束",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "商品运营",
+          "scroll": 129,
+          "width": 129
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "运营分组",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "商品分析",
+          "scroll": 130,
+          "width": 130
+        },
+        {
+          "text": "商品总览",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 110,
+          "width": 110
+        }
+      ]
+    },
+    {
+      "label": "direct-only-system",
+      "viewport": 1920,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 200,
+        "height": 900,
+        "right": 296
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 296,
+        "y": 0,
+        "width": 1624,
+        "height": 900,
+        "right": 1920
+      },
+      "docked": true,
+      "columns": 1,
+      "labels": [
+        {
+          "text": "用户管理",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "反馈管理",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "账号设置",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "菜单管理",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "角色管理",
+          "scroll": 145,
+          "width": 145
+        },
+        {
+          "text": "权限管理",
+          "scroll": 145,
+          "width": 145
+        }
+      ]
+    },
+    {
+      "label": "long-center-title",
+      "viewport": 1920,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 368,
+        "height": 900,
+        "right": 464
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 464,
+        "y": 0,
+        "width": 1456,
+        "height": 900,
+        "right": 1920
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 313,
+          "width": 313
+        },
+        {
+          "text": "商品管理",
+          "scroll": 129,
+          "width": 129
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "自定义超长销售规格商品名称完整展示与导航自适应宽度验证",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "权益包",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "适用关系",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "产品类型",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 130,
+          "width": 130
+        },
+        {
+          "text": "属性方案",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "商品模型",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "属性词典",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "规格约束",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "商品运营",
+          "scroll": 129,
+          "width": 129
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "运营分组",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "商品分析",
+          "scroll": 130,
+          "width": 130
+        },
+        {
+          "text": "商品总览",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 110,
+          "width": 110
+        }
+      ]
+    },
+    {
+      "label": "long-center-title",
+      "viewport": 1920,
+      "panel": {
+        "x": 96,
+        "y": 0,
+        "width": 368,
+        "height": 900,
+        "right": 464
+      },
+      "rail": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 900,
+        "right": 96
+      },
+      "main": {
+        "x": 464,
+        "y": 0,
+        "width": 1456,
+        "height": 900,
+        "right": 1920
+      },
+      "docked": true,
+      "columns": 2,
+      "labels": [
+        {
+          "text": "商品工作台",
+          "scroll": 313,
+          "width": 313
+        },
+        {
+          "text": "商品管理",
+          "scroll": 129,
+          "width": 129
+        },
+        {
+          "text": "SPU 管理",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "自定义超长销售规格商品名称完整展示与导航自适应宽度验证",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "权益包",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "适用关系",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "商品分类中心",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "产品类型",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "商品模型配置",
+          "scroll": 130,
+          "width": 130
+        },
+        {
+          "text": "属性方案",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "商品模型",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "商品模型设计",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "属性词典",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "规格约束",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "商品运营",
+          "scroll": 129,
+          "width": 129
+        },
+        {
+          "text": "品牌中心",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "运营分组",
+          "scroll": 109,
+          "width": 109
+        },
+        {
+          "text": "商品分析",
+          "scroll": 130,
+          "width": 130
+        },
+        {
+          "text": "商品总览",
+          "scroll": 110,
+          "width": 110
+        },
+        {
+          "text": "商品质量检查",
+          "scroll": 110,
+          "width": 110
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "zoomMethod": "CSS viewport equivalent in real headless Chrome; native browser toolbar zoom unverified"
+}

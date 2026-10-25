@@ -3,6 +3,7 @@
     <PageHead title="商品模型" desc="模型挂在产品类型下面。先选分类和产品类型，再创建模型。发布会留下版本快照。">
       <el-button type="primary" :disabled="(saving) || !(store.can('product:model:create'))" @click="openCreate">新建模型</el-button>
     </PageHead>
+    <RuleExplanation v-if="publishFailure" :failure="publishFailure" :supported-recovery="[]" />
     <div class="panel">
       <el-table :data="rows">
         <el-table-column prop="category" label="分类路径" min-width="180" />
@@ -51,6 +52,9 @@
 </template>
 
 <script setup lang="ts">
+import RuleExplanation from '../components/guide/RuleExplanation.vue'
+import { getFailure } from '../domain/guide/failure'
+import type { GuideFailure } from '../domain/guide/types'
 import { ElMessage } from 'element-plus'
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -66,6 +70,7 @@ const store = useCatalogStore()
 const router = useRouter()
 const createOpen = ref(false)
 const saving = ref(false)
+const publishFailure=ref<GuideFailure>()
 const compatibilityOpen = ref(false), compatibilityModelId = ref('')
 const draft = reactive({ categoryId: '', productTypeId: '', name: '' })
 const typeOptions = computed(() => store.productTypesOf(draft.categoryId))
@@ -162,7 +167,7 @@ async function setStatus(id: string, status: SpecModelStatus) {
   saving.value = true
   try {
   if (status === 'published') {
-    const result = (await store.publishSpecModel(id))
+    const result = (await store.publishSpecModel(id));publishFailure.value=getFailure(result)
     if (result.ok) ElMessage.success(result.message)
     else ElMessage.warning(result.message)
     return

@@ -1,3 +1,4 @@
+import {RBAC_ENFORCEMENT_ENABLED} from '../src/domain/accessMode'
 import assert from 'node:assert/strict'
 import {mkdirSync,writeFileSync} from 'node:fs'
 import {createPinia,setActivePinia} from 'pinia'
@@ -115,7 +116,8 @@ for(const mode of ['conditions','in-values','note'] as const){
  assert.equal(materialPlanningIds(s.data,sku.id).length,5);assert.equal(materialPlanningIds(s.data,sku.id,version.id).length,4);assert.equal(materialPlanningIds(s.data,sku.id,v2.id).length,4)
  assert.deepEqual(s.data.materialRelations!.find(r=>r.id===made.relationId),oldRange)
  pass('cross-version digest unions active PLN identities without double counting; version-specific ranges and historical source unchanged')
- s.setRole('operator');await s.waitForPersistence();const memory2=s.exportJson(),raw2=disk.get(STORAGE_KEY),bad=JSON.parse(memory2);bad.data.materialRelations.find((r:{id:string})=>r.id===a.relationId).requestAliases=[];await assert.rejects(()=>s.importJson(JSON.stringify(bad)),/仅可查看/);assert.equal(s.exportJson(),memory2);assert.equal(disk.get(STORAGE_KEY),raw2)
- pass('A/B success receipts atomic, survive restore; revoked A/B cannot revive with fresh basis; new C links existing MAT; invalid/readonly import rejected');s.$dispose()
+ assert(s.startPermissionPreview('u-op').ok);await s.waitForPersistence();const memory2=JSON.stringify({version:DATA_VERSION,data:s.data}),raw2=disk.get(STORAGE_KEY),bad=JSON.parse(memory2);bad.data.materialRelations.find((r:{id:string})=>r.id===a.relationId).requestAliases=[]
+ if(RBAC_ENFORCEMENT_ENABLED){await assert.rejects(async()=>s.importJson(JSON.stringify(bad)),/未授权|导入.*拒绝|无权/);assert.equal(JSON.stringify({version:DATA_VERSION,data:s.data}),memory2);assert.equal(disk.get(STORAGE_KEY),raw2)}else{assert.equal(s.can('product:import:execute'),true);await s.importJson(JSON.stringify(bad));assert.deepEqual(s.data.materialRelations!.find(r=>r.id===a.relationId)!.requestAliases,[]);assert.deepEqual(s.data.specModelVersions,JSON.parse(memory2).data.specModelVersions)}
+ pass('A/B success receipts atomic, survive restore; revoked A/B cannot revive with fresh basis; new C links existing MAT; invalid import rejected; strict readonly denies atomically / default unified import remains operational');s.$dispose()
 }
 const out=process.env.R02_REPAIR_OUTPUT||'work/r02-repair-20261025';mkdirSync(out,{recursive:true});writeFileSync(`${out}/store-checks.json`,JSON.stringify({passed:checks.length,checks},null,2))

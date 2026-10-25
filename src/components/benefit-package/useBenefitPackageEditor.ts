@@ -1,3 +1,5 @@
+import { getFailure } from '../../domain/guide/failure'
+import type { GuideFailure } from '../../domain/guide/types'
 import { resolveBenefitRange, applyBenefitFramework } from '../../domain/benefitFrameworks'
 import { nextTick, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
@@ -22,6 +24,8 @@ export function useBenefitPackageEditor() {
   const store = useCatalogStore(), route = useRoute(), router = useRouter()
   const draft = ref(newBenefitPackageDraft()), original = ref(''), missing = ref(false)
   const error = ref(''), saving = ref(false), saveRequest = ref('')
+  const guideFailure=ref<GuideFailure>()
+  watch(error,value=>{if(!value)guideFailure.value=undefined})
   const keyword = ref(''), productTypeId = ref(''), candidateTab = ref<'recommended' | 'all' | 'common'>('recommended')
   const quoteText = ref(''), quoteError = ref('')
   const serviceOpen = ref(false), editedService = ref<BenefitServiceLine>(), serviceDirty = ref(false)
@@ -99,7 +103,7 @@ export function useBenefitPackageEditor() {
   function change(operation: () => BenefitPackageDraft) {
     if (!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || saving.value || generating.value) return
     try { draft.value = operation(); error.value = '' }
-    catch (problem) { error.value = problem instanceof Error ? problem.message : String(problem) }
+    catch (problem) { guideFailure.value=getFailure(problem);error.value = problem instanceof Error ? problem.message : String(problem) }
   }
   async function useFramework(){
     if(!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create')||busy.value)return
@@ -177,9 +181,9 @@ export function useBenefitPackageEditor() {
     saveRequest.value ||= localBenefitRequest('save-package')
     let result: BenefitCommandResult
     try { result = await store.saveBenefitPackage({ draft: cloneBenefit(draft.value), status, expectedRevision: draft.value.revision, requestId: saveRequest.value }) }
-    catch (problem) { error.value = `保存未完成，当前输入已保留：${problem instanceof Error ? problem.message : String(problem)}`; return false }
+    catch (problem) { guideFailure.value=getFailure(problem);error.value = `保存未完成，当前输入已保留：${problem instanceof Error ? problem.message : String(problem)}`; return false }
     finally { saving.value = false }
-    if (!result.ok || !result.package) { error.value = result.message || '保存失败，输入已保留，可直接重试。'; const first = result.validation?.issues.find(issue => issue.structural || status === 'available' && issue.severity === 'error'); if (first) void locateIssue(first); return false }
+    if (!result.ok || !result.package) { guideFailure.value=getFailure(result);error.value = result.message || '保存失败，输入已保留，可直接重试。'; const first = result.validation?.issues.find(issue => issue.structural || status === 'available' && issue.severity === 'error'); if (first) void locateIssue(first); return false }
     draft.value = cloneBenefit(result.package); original.value = JSON.stringify(draft.value); saveRequest.value = ''; error.value = ''
     ElMessage.success(status === 'available' ? '权益包已保存，可继续生成交付清单' : '权益包草稿已保存')
     if (navigate && route.params.id !== draft.value.id) await router.replace({ path: `/benefit-packages/${draft.value.id}`, query: returnQuery() })
@@ -205,9 +209,9 @@ export function useBenefitPackageEditor() {
     const preview = deliveryPreview.value
     let result: BenefitCommandResult
     try { result = await store.generateBenefitDelivery({ packageId: preview.packageId, expectedRevision: preview.sourceRevision, requestId: generationRequest.value, packageCount: preview.packageCount, expectedBasis: preview.basis }) }
-    catch (problem) { error.value = `清单生成未完成，当前请求已保留：${problem instanceof Error ? problem.message : String(problem)}`; return }
+    catch (problem) { guideFailure.value=getFailure(problem);error.value = `清单生成未完成，当前请求已保留：${problem instanceof Error ? problem.message : String(problem)}`; return }
     finally { generating.value = false }
-    if (!result.ok || !result.delivery) { error.value = result.message || '清单生成失败，当前预览和请求已保留，请重试。'; return }
+    if (!result.ok || !result.delivery) { guideFailure.value=getFailure(result);error.value = result.message || '清单生成失败，当前预览和请求已保留，请重试。'; return }
     error.value = ''; generationRequest.value = ''; ElMessage.success('交付清单已确认保存')
     await router.push({ path: `/benefit-packages/deliveries/${result.delivery.id}`, query: returnQuery() })
   }
@@ -222,9 +226,9 @@ export function useBenefitPackageEditor() {
     saving.value = true
     let result: BenefitCommandResult
     try { result = await store.setBenefitPackageStatus(draft.value.id, status, draft.value.revision) }
-    catch (problem) { error.value = `状态未保存：${problem instanceof Error ? problem.message : String(problem)}`; return }
+    catch (problem) { guideFailure.value=getFailure(problem);error.value = `状态未保存：${problem instanceof Error ? problem.message : String(problem)}`; return }
     finally { saving.value = false }
-    if (!result.ok || !result.package) { error.value = result.message || '状态未保存，可重试。'; return }
+    if (!result.ok || !result.package) { guideFailure.value=getFailure(result);error.value = result.message || '状态未保存，可重试。'; return }
     draft.value = cloneBenefit(result.package); original.value = JSON.stringify(draft.value); error.value = ''
   }
   async function reload() {
@@ -287,5 +291,5 @@ export function useBenefitPackageEditor() {
   const beforeUnload = (event: BeforeUnloadEvent) => { if (unsaved.value && store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') && !store.persistenceState.discardConfirmed) { event.preventDefault(); event.returnValue = '' } }
   onMounted(() => window.addEventListener('beforeunload', beforeUnload))
   onBeforeUnmount(() => { window.removeEventListener('beforeunload', beforeUnload); resolveLeave?.(false); resolveLeave = undefined })
-  return { membersOpen,frameworkId,useFramework,busy, serviceDialog, serviceDirty, requestServiceClose, leaveIntent, ruleEditor, advancedOpen, narrowPane, unsaved, saveAndPreview, locateIssue, manageCompatibility, store, draft, missing, dirty, stale, error, saving, keyword, productTypeId, candidateTab, candidates, allCandidates, commonPackages, types, models, deviceSkus, deviceValue, currentPhone, includedPhone, currentIsIncluded, validation, quoteText, quoteError, serviceOpen, editedService, replaceOpen, replaceSkuId, deviceSwitchOpen, pendingDevice, conditionNotes, deliveryCount, deliveryPreview, deliveryConfirmed, generating, canGenerate, relatedDeliveries, leaveOpen, leaving, addSku, quantity, removeSku, chooseReplacement, replace, requestDevice, finishDeviceSwitch, includePhone, editService, saveService, removeService, updateQuote, reviewQuote, confirmCondition, isConditionConfirmed, save, makeDeliveryPreview, generate, back, useCommon, openDelivery, setStatus, reload, continueEditing, discardAndLeave, saveAndLeave }
+  return { guideFailure, membersOpen,frameworkId,useFramework,busy, serviceDialog, serviceDirty, requestServiceClose, leaveIntent, ruleEditor, advancedOpen, narrowPane, unsaved, saveAndPreview, locateIssue, manageCompatibility, store, draft, missing, dirty, stale, error, saving, keyword, productTypeId, candidateTab, candidates, allCandidates, commonPackages, types, models, deviceSkus, deviceValue, currentPhone, includedPhone, currentIsIncluded, validation, quoteText, quoteError, serviceOpen, editedService, replaceOpen, replaceSkuId, deviceSwitchOpen, pendingDevice, conditionNotes, deliveryCount, deliveryPreview, deliveryConfirmed, generating, canGenerate, relatedDeliveries, leaveOpen, leaving, addSku, quantity, removeSku, chooseReplacement, replace, requestDevice, finishDeviceSwitch, includePhone, editService, saveService, removeService, updateQuote, reviewQuote, confirmCondition, isConditionConfirmed, save, makeDeliveryPreview, generate, back, useCommon, openDelivery, setStatus, reload, continueEditing, discardAndLeave, saveAndLeave }
 }

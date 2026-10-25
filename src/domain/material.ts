@@ -1,3 +1,4 @@
+import { rejectGuide } from './guide/failure'
 import { isMaterialArchive } from './catalogIdentity'
 import { relatedMaterials, materialPlanningIds } from './materialRelations'
 import { latestPublishedVersion, projectAttrs } from './logic'
@@ -34,7 +35,7 @@ export type MaterialCreateResult =
 export const MATERIAL_DELETED_MESSAGE = '该请求对应的物料已经删除。如需重新建档，请发起新的创建请求。'
 
 function deletedReceiptResult(): MaterialCreateResult {
-  return { ok: false, reason: 'material-deleted', message: MATERIAL_DELETED_MESSAGE }
+  return { ...rejectGuide('material.identity.deleted', MATERIAL_DELETED_MESSAGE), reason: 'material-deleted' }
 }
 
 /** 删除物料后保留原回执，只标记已删除。不改 requestId，不回收物料编码。 */
@@ -157,18 +158,18 @@ export function familyMaterialDigest(skus: { id?: string; materialCode?: string;
 
 export function resolveV3MaterialSpec(data: AppData, input: { productModelId: string; modelVersionId: string; planningId: string }): { ok: true; spec: ResolvedMaterialSpec } | { ok: false; message: string } {
   const record = (data.planningRecords || []).find((item) => item.planningId === input.planningId)
-  if (!record) return { ok: false, message: '找不到这个规格编号。' }
-  if (record.origin === 'temporary') return { ok: false, message: '这是临时物料，不能按正式规格创建。' }
-  if (record.productModelId !== input.productModelId) return { ok: false, message: '这个规格不属于当前商品模型。' }
-  if (record.status !== 'active') return { ok: false, message: '这条规格已经停用，不能再建档。' }
+  if (!record) return rejectGuide('material.plan.missing', '找不到这个规格编号。')
+  if (record.origin === 'temporary') return rejectGuide('material.plan.temporary', '这是临时物料，不能按正式规格创建。')
+  if (record.productModelId !== input.productModelId) return rejectGuide('material.plan.model', '这个规格不属于当前商品模型。')
+  if (record.status !== 'active') return rejectGuide('material.plan.retired', '这条规格已经停用，不能再建档。')
   const version = data.specModelVersions.find((item) => item.id === input.modelVersionId)
-  if (!version || version.templateId !== input.productModelId) return { ok: false, message: '找不到对应的模型版本。' }
-  if (version.status !== 'published') return { ok: false, message: '模型还没发布，不能按这个版本建档。' }
-  if (!record.modelVersionIds.includes(version.id)) return { ok: false, message: '这个版本里没有这条规格。' }
+  if (!version || version.templateId !== input.productModelId) return rejectGuide('material.plan.version', '找不到对应的模型版本。')
+  if (version.status !== 'published') return rejectGuide('material.plan.unpublished', '模型还没发布，不能按这个版本建档。')
+  if (!record.modelVersionIds.includes(version.id)) return rejectGuide('material.plan.not-in-version', '这个版本里没有这条规格。')
   const verified = verifySteps(data, version.nodesSnapshot, record)
   if (!verified.ok) return verified
   const alive = legalPlanningCombinations(data, input.productModelId, version.nodesSnapshot).some((item) => item.identityKey === record.identityKey)
-  if (!alive) return { ok: false, message: '这个版本里已经没有这条规格。' }
+  if (!alive) return rejectGuide('material.plan.not-alive', '这个版本里已经没有这条规格。')
   const canvas = data.specCanvases.find((item) => item.templateId === input.productModelId)
   const fallback = canvas?.name || data.templates.find((item) => item.id === input.productModelId)?.name || '未命名商品'
   return {
@@ -252,9 +253,9 @@ export function createV3Material(data: AppData, input: {
   const resolved = resolveV3MaterialSpec(data, input)
   if (!resolved.ok) return resolved
   const canvas = data.specCanvases.find((item) => item.templateId === input.productModelId)
-  if (!canvas?.productTypeId || canvas.productTypeId !== input.productTypeId) return { ok: false, message: '产品类型和商品模型不一致。' }
+  if (!canvas?.productTypeId || canvas.productTypeId !== input.productTypeId) return rejectGuide('material.create.model-type', '产品类型和商品模型不一致。')
   const productType = data.productTypes.find((item) => item.id === input.productTypeId)
-  if (!productType || productType.categoryId !== input.categoryId) return { ok: false, message: '商品分类和产品类型不一致。' }
+  if (!productType || productType.categoryId !== input.categoryId) return rejectGuide('material.create.category-type', '商品分类和产品类型不一致。')
   const spec = resolved.spec
   const productTypeName = productType?.name || ''
   const suggestion = suggestMaterialName(data, {
@@ -300,7 +301,7 @@ export function createV3Material(data: AppData, input: {
   }
   const materialCode = nextMaterialCode(data)
   const occupied = materialCodeConflict(data, materialCode)
-  if (occupied) return { ok: false, message: occupied }
+  if (occupied) return rejectGuide('material.identity.formal-code', occupied)
   const sku: Sku = {
     recordKind: 'material',
     id: input.nextId('sku'),
@@ -501,14 +502,14 @@ export function createTemporaryMaterial(data: AppData, input: {
   const materialCode = input.materialCode.trim()
   if (!materialCode) return { ok: false, message: '请填写物料编码。' }
   const occupied = materialCodeConflict(data, materialCode)
-  if (occupied) return { ok: false, message: occupied }
+  if (occupied) return rejectGuide('material.identity.temporary-code', occupied)
   const productType = data.productTypes.find((item) => item.id === input.productTypeId)
-  if (!productType || productType.categoryId !== input.categoryId) return { ok: false, message: '商品分类和产品类型不一致。' }
+  if (!productType || productType.categoryId !== input.categoryId) return rejectGuide('material.temporary.category-type', '商品分类和产品类型不一致。')
   const modelId = input.productModelId || ''
   let modelVersionId = ''
   if (input.modelVersionId) {
     const version = data.specModelVersions.find((item) => item.id === input.modelVersionId)
-    if (!version || version.templateId !== modelId || version.status !== 'published') return { ok: false, message: '找不到对应的已发布模型版本。' }
+    if (!version || version.templateId !== modelId || version.status !== 'published') return rejectGuide('material.temporary.version', '找不到对应的已发布模型版本。')
     modelVersionId = version.id
   }
   const manualAttrs: ManualAttr[] = []

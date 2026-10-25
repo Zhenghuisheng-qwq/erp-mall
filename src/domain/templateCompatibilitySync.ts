@@ -1,3 +1,4 @@
+import { rejectGuide } from './guide/failure'
 import { createCatalogIdentityContext } from './catalogIdentity'
 import { compatibilityFamilyRole, sameDeviceHost } from './deviceResolution'
 import { conditionProblem } from './compatibilityValidation'
@@ -382,8 +383,8 @@ export function templateSyncCandidateConflicts(data: AppData, preview: TemplateS
 /** The store supplies a private candidate. Re-preview rejects edited/stale proposals before any mutation. */
 export function applyTemplateCompatibilitySync(data: AppData, preview: TemplateSyncPreview, decisions: Record<string, 'take-template' | 'keep'>, nextId: () => string, now: string): TemplateSyncResult {
   const current = previewTemplateCompatibilitySync(data, { modelId: preview.modelId, targetVersionId: preview.targetVersionId, targetIds: preview.targetIds })
-  if (current.basis !== preview.basis || stable(current.items) !== stable(preview.items)) return { ok: false, message: '预览后商品、声明或版本已变化，请重新预览；未写入任何内容。' }
-  if (current.items.some(item => item.group && !item.group.canAdopt && decisions[item.id] === 'take-template')) return { ok: false, message: '所选整组含人工修改、删除或相反结论保护，不能整组覆盖；请先维护对应声明并重新预览。' }
+  if (current.basis !== preview.basis || stable(current.items) !== stable(preview.items)) return rejectGuide('compatibility.sync.basis', '预览后商品、声明或版本已变化，请重新预览；未写入任何内容。')
+  if (current.items.some(item => item.group && !item.group.canAdopt && decisions[item.id] === 'take-template')) return rejectGuide('compatibility.sync.manual', '所选整组含人工修改、删除或相反结论保护，不能整组覆盖；请先维护对应声明并重新预览。')
   const conflicts = templateSyncCandidateConflicts(data, current, decisions)
   if (conflicts.length) return { ok: false, message: conflicts.join('；') + '。请维护对应声明并重新预览，未写入任何内容。' }
   const result = { ok: true, added: 0, updated: 0, removed: 0, protected: 0 }, used = new Set(data.compatibilities.map(item => item.id))

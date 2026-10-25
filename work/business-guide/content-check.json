@@ -1,0 +1,16 @@
+{
+  "result": "PASS",
+  "componentRoutes": 40,
+  "pageFamilies": 42,
+  "formal": 41,
+  "actions": 92,
+  "rules": 47,
+  "flows": 9,
+  "referenceProblems": [],
+  "statusCounts": {
+    "verified": 169,
+    "historical": 3,
+    "review": 17,
+    "business-pending": 1
+  }
+}

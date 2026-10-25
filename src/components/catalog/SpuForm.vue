@@ -11,7 +11,8 @@
       <el-select v-model="draft.commonAttrs[field.name]" :disabled="(locked) || !(canWrite)" filterable clearable :allow-create="!draft.modelVersionId" default-first-option :placeholder="`选择${field.name}`"><el-option v-for="value in field.values" :key="value" :value="value" :label="value" /></el-select>
     </el-form-item>
     <el-form-item label="商品状态"><el-select v-model="draft.shelfStatus" :disabled="!(canWrite)"><el-option label="草稿" value="draft" /><el-option label="已发布" value="online" /><el-option label="已下架" value="offline" /></el-select></el-form-item>
-    <p v-if="error" class="issue-error" role="alert">{{ error }}</p>
+    <RuleExplanation v-if="guideFailure" :failure="guideFailure" :supported-recovery="['edit-input']" @recover="recoverGuide" />
+      <p v-else-if="error" class="issue-error" role="alert">{{ error }}</p>
     <p v-if="!locked" class="muted">可以先保存空 SPU。新增 SKU 前需补齐适用方案和公共属性。</p>
     <div class="row-actions">
       <el-button @click="emit('cancel')">取消</el-button>
@@ -22,6 +23,9 @@
 </template>
 
 <script setup lang="ts">
+import RuleExplanation from '../../components/guide/RuleExplanation.vue'
+import { getFailure } from '../../domain/guide/failure'
+import type { GuideFailure } from '../../domain/guide/types'
 import { computed, reactive, ref, watch } from 'vue'
 import CategoryTreeSelect from '../CategoryTreeSelect.vue'
 import { boundParams, mappingForCategory, modelSpecColumns } from '../../domain/logic'
@@ -35,6 +39,8 @@ const store = useCatalogStore()
 const draft = reactive<ProductFamily>(JSON.parse(JSON.stringify(props.initial)))
 let original = JSON.stringify(draft)
 const error = ref('')
+const guideFailure = ref<GuideFailure>()
+watch(error, value => { if (!value) guideFailure.value=undefined })
 const saving = ref(false)
 const canWrite = computed(() => store.can(store.data.families.some(item => item.id === draft.id) ? 'product:spu:update' : 'product:spu:create'))
 const locked = computed(() => Boolean(draft.id && store.data.families.some(item => item.id === draft.id) && spuIdentityLocked(store.data, draft)))
@@ -70,17 +76,18 @@ async function save(addSku: boolean) {
   try {
     const now = new Date().toISOString()
     const result = await store.saveSpu({ ...draft, createdAt: draft.createdAt || now, lifecycle: draft.shelfStatus === 'online' ? 'ready' : 'draft' })
-    if (!result.ok) { error.value = result.message; return }
+    if (!result.ok) { guideFailure.value=getFailure(result); error.value = result.message; return }
     draft.id = result.id
     original = JSON.stringify(draft)
     emit('dirty', false)
     emit('saved', result.id, addSku)
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : 'SPU 保存失败，当前输入已保留，可重试。'
+    guideFailure.value=getFailure(cause); error.value = cause instanceof Error ? cause.message : 'SPU 保存失败，当前输入已保留，可重试。'
   } finally {
     saving.value = false
   }
 }
+function recoverGuide(action:string) { if(action==='edit-input') requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.spu-form input, .el-dialog.is-in-viewport input, .el-dialog input, .panel input')?.focus()) }
 </script>
 
 <style scoped>

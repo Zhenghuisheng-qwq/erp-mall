@@ -26,12 +26,15 @@
       </el-form>
     </template>
     <p v-else class="muted">当前角色可以查看；型号绑定和维护需要管理员权限。</p>
-    <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon style="margin-top:12px" data-binding-error />
+    <RuleExplanation v-if="guideFailure" :failure="guideFailure" :supported-recovery="['edit-input']" @recover="focusBinding" /><el-alert v-else-if="error" :title="error" type="error" :closable="false" show-icon style="margin-top:12px" data-binding-error />
     <p v-if="notice" role="status" class="success">{{ notice }}</p>
     <template #footer><el-button :disabled="saving" @click="emit('update:modelValue', false)">关闭</el-button></template>
   </el-dialog>
 </template>
 <script setup lang="ts">
+import RuleExplanation from '../guide/RuleExplanation.vue'
+import {getFailure} from '../../domain/guide/failure'
+import type {GuideFailure} from '../../domain/guide/types'
 import { computed, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useCatalogStore } from '../../stores/catalog'
@@ -44,6 +47,8 @@ const props = defineProps<{ modelValue: boolean; skuId?: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; saved: [] }>()
 const store = useCatalogStore()
 const selectedKey = ref(''), error = ref(''), notice = ref(''), saving = ref(false)
+const guideFailure=ref<GuideFailure>()
+watch(error,value=>{if(!value)guideFailure.value=undefined})
 const creating = ref(false), modelName = ref(''), productTypeId = ref('')
 const sku = computed(() => store.data.skus.find(item => item.id === props.skuId))
 const family = computed(() => store.data.families.find(item => item.id === sku.value?.familyId))
@@ -76,7 +81,7 @@ async function bind() {
   const result = (await store.commitDeviceBinding({ skuId, host, replaceExisting: true, expectedSourceStamp: sourceStamp }))
   if(generation !== contextGeneration)return
   saving.value = false
-  if (!result.ok) { error.value = result.message || '型号未保存，请重试。'; return }
+  if (!result.ok) { guideFailure.value=getFailure(result);error.value = result.message || '型号未保存，请重试。'; return }
   error.value = ''; emit('saved'); emit('update:modelValue', false)
 }
 async function clearBinding() {
@@ -90,7 +95,7 @@ async function clearBinding() {
   const result = (await store.clearDeviceBinding(skuId))
   if(generation !== contextGeneration)return
   saving.value = false
-  if (!result.ok) { error.value = result.message || '绑定未解除，请重试。'; return }
+  if (!result.ok) { guideFailure.value=getFailure(result);error.value = result.message || '绑定未解除，请重试。'; return }
   error.value = ''; ElMessage.success('显式绑定已解除，已按 SKU 实际来源重新解析；原声明保留。'); emit('saved'); emit('update:modelValue', false)
 }
 async function createModel() {
@@ -100,11 +105,12 @@ async function createModel() {
   const result = (await store.saveDeviceModel({ name: modelName.value.trim(), productTypeId: productTypeId.value, attributes: {} }))
   if(generation !== contextGeneration)return
   saving.value = false
-  if (!result.ok) { error.value = result.message || '型号未保存，草稿已保留。'; return }
+  if (!result.ok) { guideFailure.value=getFailure(result);error.value = result.message || '型号未保存，草稿已保留。'; return }
   error.value = ''; notice.value = '独立型号已保存，可以选择它维护兼容声明。'
   selectedKey.value = options.value.find(item => item.host.productModelId === `device:${result.id}`)?.key || ''
   modelName.value = ''; creating.value = !props.skuId; emit('saved')
 }
+function focusBinding(){document.querySelector<HTMLElement>('[data-binding-host] input')?.focus()}
 </script>
 <style scoped>
 .muted { line-height:1.7; }.model-form { margin-top:16px; }.success { color:var(--el-color-success); }h3 { margin:0 0 12px; }

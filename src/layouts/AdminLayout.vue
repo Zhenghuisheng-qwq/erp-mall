@@ -2,6 +2,7 @@
   <div class="layout" :class="{ 'compact-workbench': temporaryCompact }" :inert="dataBusy" :aria-busy="dataBusy" data-nav="flyout">
     <RailNav :groups="groups" :active="active" :current-group="currentPlace.group" :temporary-compact="temporaryCompact" />
     <section class="main">
+      <RuleExplanation v-if="importFailure" :failure="importFailure" :supported-recovery="[]" />
       <header class="topbar">
         <div class="topbar-left">
           <div class="crumb">{{ title }}</div>
@@ -32,6 +33,7 @@
       </header>
       <div class="demo-strip">演示数据只保存在这台浏览器里。不会连接客户数据库，也不会改线上商品。</div>
       <main class="content">
+        <RuleExplanation v-if="store.persistenceState.failure" :failure="store.persistenceState.failure" :supported-recovery="[]" />
         <router-view :key="['spu-new', 'spu-edit', 'sku-new', 'sku-edit', 'benefit-package-new', 'benefit-package-edit', 'benefit-delivery'].includes(String(route.name)) ? route.fullPath : route.name" />
       </main>
     </section>
@@ -39,6 +41,9 @@
 </template>
 
 <script setup lang="ts">
+import RuleExplanation from '../components/guide/RuleExplanation.vue'
+import { getFailure } from '../domain/guide/failure'
+import type { GuideFailure } from '../domain/guide/types'
 import { Goods, Moon, Setting, SetUp, Sunny } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, markRaw, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -57,6 +62,7 @@ const store = useCatalogStore()
 const route = useRoute(), router = useRouter()
 const canSwitchUser=computed(()=>isSuperAdmin(store.data,store.activeUserId))
 const dataBusy = ref(false)
+const importFailure=ref<GuideFailure>()
 const workbenchMedia = window.matchMedia('(max-width: 700px)')
 const narrowWorkbench = ref(workbenchMedia.matches)
 const temporaryCompact = computed(() => narrowWorkbench.value && (route.path.startsWith('/benefit-packages') || route.path === '/compatibility'))
@@ -154,9 +160,9 @@ async function onImport(event: Event) {
   dataBusy.value = true
   try {
     ;(await store.importJson(await file.text()))
-    ElMessage.success('已导入演示数据')
+    importFailure.value=undefined;ElMessage.success('已导入演示数据')
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '导入失败')
+    importFailure.value=getFailure(error);ElMessage.error(error instanceof Error ? error.message : '导入失败')
   } finally { dataBusy.value = false; (event.target as HTMLInputElement).value = '' }
 }
 onBeforeRouteLeave(() => !dataBusy.value)

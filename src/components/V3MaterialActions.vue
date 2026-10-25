@@ -13,7 +13,7 @@
       </div>
       <p v-if="lastCode" class="meta">刚创建 {{ lastCode }}。<button type="button" class="linkish" @click="listOpen = true">查看</button></p>
     </template>
-    <p v-else class="warn">{{ previewMessage }}</p>
+    <RuleExplanation v-else-if="getFailure(resolved)" :failure="getFailure(resolved)!" :supported-recovery="[]" /><p v-else class="warn">{{ previewMessage }}</p>
     </template>
 
     <el-dialog v-model="createOpen" class="v3-material-dialog" title="创建物料" width="480px" append-to-body :close-on-click-modal="false" :close-on-press-escape="!saving" :show-close="!saving" @closed="onCreateClosed">
@@ -34,7 +34,8 @@
         <label class="name-label">物料描述<el-input v-model="descDraft" type="textarea" :rows="2" /></label>
         <label class="name-label">供应商编码<el-input v-model="supplierDraft" clearable placeholder="可留空" /></label>
         <p class="meta">规格已经选好，不用再填。系统物料编号确认后自动分配，不能手改。</p>
-        <p v-if="errorText" class="warn">{{ errorText }}</p>
+        <RuleExplanation v-if="guideFailure" :failure="guideFailure" :supported-recovery="['edit-input']" @recover="recoverGuide" />
+      <p v-else-if="errorText" class="warn">{{ errorText }}</p>
       </div>
       <template #footer>
         <el-button :disabled="saving" @click="createOpen = false">取消</el-button>
@@ -76,6 +77,9 @@
 </template>
 
 <script setup lang="ts">
+import RuleExplanation from '../components/guide/RuleExplanation.vue'
+import { getFailure } from '../domain/guide/failure'
+import type { GuideFailure } from '../domain/guide/types'
 import { ElMessage } from 'element-plus'
 import MaterialRelationDialog from './MaterialRelationDialog.vue'
 import { relatedMaterials } from '../domain/materialRelations'
@@ -113,6 +117,8 @@ watch(()=>props.openLinkTick, tick=>{if(tick)relationOpen.value=true},{immediate
 const saving = ref(false)
 const requestId = ref('')
 const errorText = ref('')
+const guideFailure = ref<GuideFailure>()
+watch(errorText, value => { if (!value) guideFailure.value=undefined })
 const choices = ref<MaterialChoice[]>([])
 const pickedFamilyId = ref('')
 const lastCode = ref('')
@@ -224,7 +230,7 @@ async function confirm(keep: boolean) {
   }))
   saving.value = false
   if (!result.ok) {
-    errorText.value = result.message
+    guideFailure.value=getFailure(result); errorText.value = result.message
     choices.value = 'choices' in result ? result.choices || [] : []
     return
   }
@@ -247,6 +253,7 @@ function openHistorical(item: { familyId: string; skuId: string }) {
   listOpen.value = false
   router.push(`/products/${item.familyId}?sku=${item.skuId}`)
 }
+function recoverGuide(action:string) { if(action==='edit-input') requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.spu-form input, .el-dialog.is-in-viewport input, .el-dialog input, .panel input')?.focus()) }
 </script>
 
 <style scoped>

@@ -40,7 +40,7 @@
             </el-popover>
         <div class="view-actions"><el-button :disabled="(!dirty && activeId !== SYSTEM_SKU_VIEW_ID) || !(store.can('product:sku:read'))" @click="saveCurrent">保存视图</el-button><el-button @click="openName('另存为')" :disabled="!(store.can('product:sku:read'))">另存为</el-button><el-button :disabled="(!dirty) || !(store.can('product:sku:read'))" @click="restoreView">恢复已保存配置</el-button></div>
       </div>
-      <el-alert v-if="error" :title="error" type="error" show-icon :closable="false" data-save-error />
+      <RuleExplanation v-if="workbench.guideFailure.value" :failure="workbench.guideFailure.value" :supported-recovery="[]" /><el-alert v-else-if="error" :title="error" type="error" show-icon :closable="false" data-save-error />
       <div class="workbench-body" :class="{ 'has-sidebar': showSidebar }" :data-category-layout="categoryLayout">
         <aside v-if="showSidebar" class="category-side" data-category-side>
           <div class="side-title"><strong>商品分类</strong><el-button link @click="categorySideClosed = true">收起分类栏</el-button></div>
@@ -117,6 +117,7 @@
 </template>
 
 <script setup lang="ts">
+import RuleExplanation from '../components/guide/RuleExplanation.vue'
 import { skuCategorySelection, updateSkuCategorySelection } from '../domain/skuCategoryFilter'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'

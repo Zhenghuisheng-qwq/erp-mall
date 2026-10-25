@@ -1,5 +1,6 @@
 <template>
   <div class="designer" :aria-busy="modelSaving || copying || publishing">
+    <RuleExplanation v-if="publishFailure" :failure="publishFailure" :supported-recovery="['edit-input']" @recover="recoverPublish" />
     <div class="studio-switch">
       <el-radio-group :model-value="surface" size="small" @change="setSurface">
         <el-radio-button value="overview">全局总览</el-radio-button>
@@ -510,6 +511,9 @@
 </template>
 
 <script setup lang="ts">
+import RuleExplanation from '../components/guide/RuleExplanation.vue'
+import { getFailure } from '../domain/guide/failure'
+import type { GuideFailure } from '../domain/guide/types'
 import { Background } from '@vue-flow/background'
 import { Handle, Position, useVueFlow, VueFlow } from '@vue-flow/core'
 import { MiniMap } from '@vue-flow/minimap'
@@ -2417,12 +2421,14 @@ async function saveModel() {
   } finally { modelSaving.value = false }
 }
 const publishing = ref(false)
+const publishFailure=ref<GuideFailure>()
+function recoverPublish(action:string){if(action==='edit-input')document.querySelector<HTMLElement>('[data-spec-node] input, .workbench input')?.focus()}
 async function publish() {
   if (publishing.value || modelSaving.value || copying.value) return
   finishUndo()
   publishing.value = true
   try {
-    const result = (await store.publishSpecModel(templateId.value))
+    const result = (await store.publishSpecModel(templateId.value));publishFailure.value=getFailure(result)
     if (result.ok) ElMessage.success(result.message)
     else ElMessage.warning(result.message)
   } finally {

@@ -339,9 +339,11 @@ function specNodeLabel(data: AppData, node: ProductSpecNode) {
 export const SPEC_VALUE_TO_VALUE = '属性值不能直接关联属性值，请调整商品模型结构'
 
 /** 发布前检查编辑树。属性可以接属性或属性值，属性值只能再接属性。 */
-export function specPublishProblems(data: AppData, nodes: ProductSpecNode[]) {
+export interface SpecPublishDiagnostic { branch: string; index: number; nodeId?: string; nodePath?: string; attributeId?: string }
+export function specPublishProblems(data: AppData, nodes: ProductSpecNode[], rejected?: (issue: SpecPublishDiagnostic) => void) {
   const problems: string[] = businessIssues(data, nodes).map(issue => issue.message)
-  if (!nodes.some((item) => item.nodeType === 'ATTRIBUTE')) problems.push('还没有属性节点，不能发布。')
+  const report = (branch: string, node?: ProductSpecNode, nodePath?: string) => rejected?.({ branch, index: problems.length - 1, nodeId: node?.id, attributeId: node?.attributeId, nodePath })
+  if (!nodes.some((item) => item.nodeType === 'ATTRIBUTE')) { problems.push('还没有属性节点，不能发布。'); report('no-attribute') }
   const ids = new Set(nodes.map((item) => item.id))
   const reachable = new Set<string>()
   const walk = (parentId: string | null) => {
@@ -354,16 +356,16 @@ export function specPublishProblems(data: AppData, nodes: ProductSpecNode[]) {
   nodes.forEach((node) => {
     const label = specNodeLabel(data, node)
     if (node.parentId && !ids.has(node.parentId)) {
-      problems.push(`「${label}」找不到父节点，属于孤立节点。`)
+      problems.push(`「${label}」找不到父节点，属于孤立节点。`); report('parent-missing', node)
       return
     }
-    if (!reachable.has(node.id)) problems.push(`「${label}」没有连到模型根上，属于孤立节点。`)
+    if (!reachable.has(node.id)) { problems.push(`「${label}」没有连到模型根上，属于孤立节点。`); report('unreachable', node) }
     const parent = node.parentId ? nodes.find((item) => item.id === node.parentId) : undefined
     const bound = node.attributeId ? paramById(data, node.attributeId) : undefined
-    if (node.attributeId && !bound) problems.push(`「${label}」引用的属性已不在属性词典中。`)
-    if (node.nodeType === 'VALUE' && bound && node.valueId && !bound.values.includes(node.valueId)) problems.push(`「${label}」引用的属性值已不在属性词典中。`)
-    if (!parent && node.nodeType !== 'ATTRIBUTE') problems.push(`「${label}」不能作为根节点，根上只能放属性。`)
-    if (parent?.nodeType === 'VALUE' && node.nodeType !== 'ATTRIBUTE' && !problems.includes(SPEC_VALUE_TO_VALUE)) problems.push(SPEC_VALUE_TO_VALUE)
+    if (node.attributeId && !bound) { problems.push(`「${label}」引用的属性已不在属性词典中。`); report('dictionary-attribute', node) }
+    if (node.nodeType === 'VALUE' && bound && node.valueId && !bound.values.includes(node.valueId)) { problems.push(`「${label}」引用的属性值已不在属性词典中。`); report('dictionary-value', node) }
+    if (!parent && node.nodeType !== 'ATTRIBUTE') { problems.push(`「${label}」不能作为根节点，根上只能放属性。`); report('invalid-root', node) }
+    if (parent?.nodeType === 'VALUE' && node.nodeType !== 'ATTRIBUTE' && !problems.includes(SPEC_VALUE_TO_VALUE)) { problems.push(SPEC_VALUE_TO_VALUE); report('value-child', node) }
   })
   nodes
     .filter((item) => item.nodeType === 'ATTRIBUTE')
@@ -386,12 +388,12 @@ export function specPublishProblems(data: AppData, nodes: ProductSpecNode[]) {
         return names.filter(Boolean).join(' / ') || specNodeLabel(data, attribute)
       }
       if (values.length > 0 && nested.length > 0) {
-        problems.push(`属性「${locate(attribute)}」同时挂了属性值和子属性。请把子属性放到属性值下面，或只保留其中一种，否则规格路径不明确，不能发布。`)
+        problems.push(`属性「${locate(attribute)}」同时挂了属性值和子属性。请把子属性放到属性值下面，或只保留其中一种，否则规格路径不明确，不能发布。`); report('mixed-children', attribute, locate(attribute))
       }
-      if (values.length === 0 && nested.length === 0) problems.push(`属性「${locate(attribute)}」下面没有取值。`)
+      if (values.length === 0 && nested.length === 0) { problems.push(`属性「${locate(attribute)}」下面没有取值。`); report('empty-attribute', attribute, locate(attribute)) }
     })
   if (problems.length === 0 && specCombinationsFrom(data, nodes[0]?.templateId || '', nodes).length === 0) {
-    problems.push('当前结构生成不出完整规格路径，不能发布。')
+    problems.push('当前结构生成不出完整规格路径，不能发布。'); report('no-combination')
   }
   return problems
 }

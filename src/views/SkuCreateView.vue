@@ -31,7 +31,8 @@
       <p data-candidate-count>候选 {{ candidates.length }} 条，可新增 {{ count('new') }} 条，已存在 {{ count('existing') }} 条，无效 {{ count('invalid') }} 条。</p>
       <p v-if="compatibilitySummary" class="muted" data-sku-template-summary>{{ compatibilitySummary }}</p>
       <p v-for="item in compatibilityProblems" :key="item.key" class="issue-error" data-sku-template-problem>{{ attrsText(item.draft.variantAttrs) }}：{{ item.message }}</p>
-      <p v-if="error" class="issue-error" role="alert">{{ error }}</p>
+      <RuleExplanation v-if="guideFailure" :failure="guideFailure" :supported-recovery="['edit-input']" @recover="recoverGuide" />
+      <p v-else-if="error" class="issue-error" role="alert">{{ error }}</p>
       <p v-if="candidates.length && !count('new')" class="muted">没有可新增规格；已存在的记录不会重复创建。</p>
       <el-table :data="candidates" row-key="key" max-height="500">
         <el-table-column width="55"><template #header><el-checkbox :model-value="allSelected" @change="toggleAll(Boolean($event))" /></template><template #default="{ row }"><el-checkbox :model-value="selected.includes(row.key)" :disabled="row.state !== 'new'" @change="toggle(row.key, Boolean($event))" /></template></el-table-column>
@@ -40,7 +41,7 @@
         <el-table-column label="结果" width="110"><template #default="{ row }">{{ { new: '可新增', existing: '已存在', invalid: '无效' }[row.state as SkuCandidate['state']] }}</template></el-table-column>
         <el-table-column label="说明"><template #default="{ row }">{{ row.reason }} <el-button v-if="row.existingId" link @click="router.push({ path: `/skus/${row.existingId}`, query: { spu: familyId } })">查看已有 SKU</el-button></template></el-table-column>
       </el-table>
-      <div class="row-actions" style="margin-top: 16px"><el-button @click="back">取消</el-button><el-button type="primary" :loading="saving" :disabled="!selected.length || !store.can('product:model:update')" @click="submit">确认新增 {{ selected.length }} 条 SKU</el-button></div>
+      <div class="row-actions" style="margin-top: 16px"><el-button @click="back">取消</el-button><el-button type="primary" :loading="saving" :disabled="!selected.length || !store.can('product:sku:create')" @click="submit">确认新增 {{ selected.length }} 条 SKU</el-button></div>
     </section>
     <el-dialog v-model="spuOpen" title="新建 SPU 并继续" width="min(820px, 94vw)" destroy-on-close :close-on-click-modal="false">
       <SpuForm v-if="spuInitial" :initial="spuInitial" inline @dirty="inlineDirty = $event" @cancel="spuOpen = false" @saved="spuSaved" />
@@ -48,6 +49,9 @@
   </div>
 </template>
 <script setup lang="ts">
+import RuleExplanation from '../components/guide/RuleExplanation.vue'
+import { getFailure } from '../domain/guide/failure'
+import type { GuideFailure } from '../domain/guide/types'
 import { computed, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
@@ -83,6 +87,8 @@ const previewed = ref(false)
 const candidates = ref<SkuCandidate[]>([])
 const selected = ref<string[]>([])
 const error = ref('')
+const guideFailure = ref<GuideFailure>()
+watch(error, value => { if (!value) guideFailure.value=undefined })
 const saving = ref(false)
 const spuOpen = ref(false)
 const inlineDirty = ref(false)
@@ -135,7 +141,7 @@ async function submit() {
   if (saving.value || !submitted || !selected.value.length) return
   saving.value = true
   const result = (await store.appendSkus(familyId.value, submitted, selected.value))
-  if (!result.ok) { error.value = result.message; saving.value = false; return }
+  if (!result.ok) { guideFailure.value=getFailure(result); error.value = result.message; saving.value = false; return }
   if (!result.ids.length) { error.value = '所选规格已经存在，没有新增记录。请重新预览。'; saving.value = false; return }
   dirty.value = false
   ElMessage.success(`已新增 ${result.ids.length} 条 SKU${result.skipped ? `，跳过 ${result.skipped} 条已存在规格` : ''}`)
@@ -150,4 +156,5 @@ async function spuSaved(id: string) {
   await selectFamily(id)
 }
 function back() { router.push({ path: '/skus', query: familyId.value ? { spu: familyId.value } : {} }) }
+function recoverGuide(action:string) { if(action==='edit-input') requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.spu-form input, .el-dialog.is-in-viewport input, .el-dialog input, .panel input')?.focus()) }
 </script>

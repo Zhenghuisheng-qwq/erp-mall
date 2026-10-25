@@ -3,6 +3,7 @@ import { House, Goods, Grid, Present, Connection, FolderOpened, Collection, File
 
 // Display-only route mapping. Menu titles, order, visibility and grouping remain owned by menuConfig.
 const icons: Record<string, Component> = {
+  '/guide': Notebook,
   '/': House, '/spus': Goods, '/skus': Grid, '/benefit-packages': Present,
   '/compatibility': Connection, '/categories': FolderOpened, '/product-types': Collection,
   '/templates': Files, '/models': Collection, '/specs': SetUp, '/params': Notebook,

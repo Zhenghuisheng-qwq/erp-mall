@@ -315,15 +315,16 @@ export function relocateCategoryNodes(categories: Category[], id: string, target
   return ''
 }
 
-export function moveCategoryNode(categories: Category[], id: string, parentId: string | null, typedCategoryIds: ReadonlySet<string> = new Set()) {
-  if (id === parentId) return '不能移动到自己下面'
-  if (parentId && descendantIds(categories, id).includes(parentId)) return '不能移动到自己的子分类下面'
+export type CategoryMoveRejection = 'self' | 'descendant' | 'source-missing' | 'target-missing' | 'target-typed'
+export function moveCategoryNode(categories: Category[], id: string, parentId: string | null, typedCategoryIds: ReadonlySet<string> = new Set(), rejected?: (branch: CategoryMoveRejection) => void) {
+  if (id === parentId) { rejected?.('self'); return '不能移动到自己下面' }
+  if (parentId && descendantIds(categories, id).includes(parentId)) { rejected?.('descendant'); return '不能移动到自己的子分类下面' }
   const category = categories.find((item) => item.id === id)
-  if (!category) return '分类不存在'
-  if (parentId && !categories.some((item) => item.id === parentId)) return '父分类不存在'
+  if (!category) { rejected?.('source-missing'); return '分类不存在' }
+  if (parentId && !categories.some((item) => item.id === parentId)) { rejected?.('target-missing'); return '父分类不存在' }
   if (category.parentId === parentId) return ''
   const blocked = blockChildOfTypedCategory(parentId, typedCategoryIds)
-  if (blocked) return blocked
+  if (blocked) { rejected?.('target-typed'); return blocked }
   const oldParentId = category.parentId
   category.parentId = parentId
   clearDerived(category)

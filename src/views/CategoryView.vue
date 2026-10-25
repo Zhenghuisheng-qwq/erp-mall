@@ -37,8 +37,8 @@
         @drop="(id,position,event) => drop(panel.id,id,position,event)" @dragend="cancelDrag()" />
       <section v-if="staged && panel.id !== panels[0]?.id" class="panel move-confirm-panel" data-category-move-confirm>
         <strong>移动到：{{ moveTargetPath }}</strong>
-        <p v-if="moveTargetProblem" class="issue-error">{{ moveTargetProblem }}</p>
-        <el-alert v-if="moveError" :title="moveError" type="error" :closable="false" data-category-move-error />
+        <RuleExplanation v-if="targetFailure" :failure="targetFailure" :supported-recovery="['choose-target']" @recover="recoverMove" /><p v-else-if="moveTargetProblem" class="issue-error">{{ moveTargetProblem }}</p>
+        <RuleExplanation v-if="moveFailure" :failure="moveFailure" :supported-recovery="['choose-target','retry']" @recover="recoverMove" /><el-alert v-else-if="moveError" :title="moveError" type="error" :closable="false" data-category-move-error />
         <div class="row-actions"><el-button :disabled="saving" @click="cancelMove()">取消移动</el-button><el-button type="primary" :loading="saving" :disabled="!editing || moveTarget === undefined || !!moveTargetProblem" data-category-confirm-move @click="confirmStagedMove">{{ moveError ? '重试移动' : '确认移动' }}</el-button></div>
       </section>
       </div>
@@ -120,6 +120,9 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
+import RuleExplanation from '../components/guide/RuleExplanation.vue'
+import { getFailure } from '../domain/guide/failure'
+import type { GuideFailure } from '../domain/guide/types'
 import PageHead from '../components/PageHead.vue'
 import CategoryBrowsePanel from '../components/category/CategoryBrowsePanel.vue'
 import { categoryChain, subtreeCounts, type DropPosition } from '../domain/categoryTree'
@@ -139,6 +142,10 @@ const saving = ref(false), saveError = ref(''), interactionMessage = ref('')
 const canMutate = () => alive && editing.value && !saving.value && !saveError.value
 const staged = ref<{id:string; panelId:string} | null>(null)
 const moveTarget = ref<string | null | undefined>(), moveError = ref('')
+const moveFailure=ref<GuideFailure>()
+const targetFailure=computed(()=>staged.value&&moveTarget.value!==undefined?getFailure(previewCategoryMove(store.data.categories,{id:staged.value.id,targetId:moveTarget.value},typedIds.value)):undefined)
+watch([moveError,moveTarget],()=>{if(!moveError.value)moveFailure.value=undefined})
+function recoverMove(action:string){if(action==='retry')void confirmStagedMove();if(action==='choose-target')void nextTick(()=>document.querySelector<HTMLButtonElement>('[data-category-root-target]')?.focus())}
 let beforeMove: { panels: {id:string;title:string;initialId:string}[]; selected:string; activePanel:string } | null = null
 const moveTargetPath = computed(() => moveTarget.value === undefined ? '请在左侧选择分类' : moveTarget.value === null ? '顶级分类' : categoryChain(store.data.categories,moveTarget.value).map(item=>item.name).join(' / '))
 const moveTargetProblem = computed(() => {
@@ -165,10 +172,10 @@ async function confirmStagedMove() {
   saving.value=true;moveError.value=''
   try {
     const result=await store.commitCategoryMove(source,target)
-    if(!result.ok){moveError.value=result.message||'移动未保存，来源和目标选择已保留。';return}
+    if(!result.ok){moveFailure.value=getFailure(result);moveError.value=result.message||'移动未保存，来源和目标选择已保留。';return}
     staged.value=null;moveTarget.value=undefined;beforeMove=null;panels.value=previous?.panels||panels.value.slice(0,1);selected.value=source;activePanel.value=panels.value[0]!.id
     await nextTick();panelRefs.get(activePanel.value)?.reveal(source,true);ElMessage.success('分类已移动并保存')
-  } catch(cause) { moveError.value=cause instanceof Error?cause.message:'移动未保存，来源和目标选择已保留。' }
+  } catch(cause) { moveFailure.value=getFailure(cause);moveError.value=cause instanceof Error?cause.message:'移动未保存，来源和目标选择已保留。' }
   finally {saving.value=false}
 }
 

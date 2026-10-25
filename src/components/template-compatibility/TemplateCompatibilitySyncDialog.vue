@@ -34,11 +34,14 @@
       </section>
       <el-pagination v-if="filteredRows.length > pageSize" v-model:current-page="page" :page-size="pageSize" :total="filteredRows.length" layout="prev, pager, next, total" size="small" />
     </template>
-    <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon data-template-sync-error />
+    <RuleExplanation v-if="guideFailure" :failure="guideFailure" :supported-recovery="['repreview']" @recover="() => makePreview(true)" /><el-alert v-else-if="error" :title="error" type="error" :closable="false" show-icon data-template-sync-error />
     <template #footer><span v-if="preview" class="muted">采用 {{ selectedCount }} 项／组 · 保留 {{ keepCount }} 项决定</span><el-button :disabled="saving" @click="emit('update:modelValue',false)">关闭</el-button><el-button type="primary" :disabled="!store.can('product:compatibility:update') || !preview || !actionCount || candidateConflicts.length > 0" :loading="saving" data-template-sync-apply @click="apply">确认更新与保留</el-button></template>
   </el-dialog>
 </template>
 <script setup lang="ts">
+import RuleExplanation from '../guide/RuleExplanation.vue'
+import {getFailure} from '../../domain/guide/failure'
+import type {GuideFailure} from '../../domain/guide/types'
 import { templateSyncCandidateConflicts } from '../../domain/templateCompatibilitySync'
 import { computed, nextTick, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
@@ -55,6 +58,8 @@ import { capabilityLabels, conclusionLabels, conditionText, hostText, scopeText,
 const props = defineProps<{modelValue:boolean; target?:AccessoryTarget}>()
 const emit = defineEmits<{'update:modelValue':[value:boolean]; updated:[]}>()
 const store = useCatalogStore(), modelId=ref(''),versionId=ref(''),targetIds=ref<string[]>([]),preview=ref<TemplateSyncPreview>(),decisions=ref<Record<string,'take-template'|'keep'>>({}),error=ref(''),saving=ref(false),page=ref(1),pageSize=10
+const guideFailure=ref<GuideFailure>()
+watch(error,value=>{if(!value)guideFailure.value=undefined})
 const touchedDecisions=ref<string[]>([])
 const router=useRouter(),route=useRoute()
 const filter=ref('changes'),receipt=ref('')
@@ -79,7 +84,7 @@ function resetPreview(){preview.value=undefined;decisions.value={};touchedDecisi
 function canChoose(item:TemplateSyncItem){return !item.blockingIds?.length && !item.duplicateManual && item.state!=='unchanged'&&item.state!=='invalid'&&(item.state!=='conflict'||!!item.group?.canAdopt)}
 function selectSafe(){for(const item of preview.value?.items||[])if(canChoose(item)&&!item.group&&item.state!=='protected')setDecision(item.id,'take-template')}
 const candidateConflicts = computed(() => preview.value ? templateSyncCandidateConflicts(store.data, preview.value, decisions.value) : [])
-function makePreview(preserve=false){error.value='';try{const old=decisions.value,touched=new Set(touchedDecisions.value),result=store.previewTemplateCompatibilitySync({modelId:modelId.value,targetVersionId:versionId.value,targetIds:[...targetIds.value]});preview.value=result;decisions.value=Object.fromEntries(result.items.map(item => [item.id,preserve&&touched.has(item.id)&&canChoose(item)?old[item.id]||'keep':item.defaultSelected?'take-template':'keep']));touchedDecisions.value=preserve?result.items.filter(item=>touched.has(item.id)&&canChoose(item)).map(item=>item.id):[];page.value=1}catch(cause){error.value=cause instanceof Error?cause.message:'无法生成更新预览。'}}
+function makePreview(preserve=false){error.value='';try{const old=decisions.value,touched=new Set(touchedDecisions.value),result=store.previewTemplateCompatibilitySync({modelId:modelId.value,targetVersionId:versionId.value,targetIds:[...targetIds.value]});preview.value=result;decisions.value=Object.fromEntries(result.items.map(item => [item.id,preserve&&touched.has(item.id)&&canChoose(item)?old[item.id]||'keep':item.defaultSelected?'take-template':'keep']));touchedDecisions.value=preserve?result.items.filter(item=>touched.has(item.id)&&canChoose(item)).map(item=>item.id):[];page.value=1}catch(cause){guideFailure.value=getFailure(cause);error.value=cause instanceof Error?cause.message:'无法生成更新预览。'}}
 function diffFields(item:TemplateSyncItem){const fields=[['型号',(claim:TemplateCompatibilityClaim)=>hostText(claim.host)],['范围',(claim:TemplateCompatibilityClaim)=>scopeText(claim.host)],['能力',(claim:TemplateCompatibilityClaim)=>capabilityLabels[claim.capability]],['结论',(claim:TemplateCompatibilityClaim)=>conclusionLabels[claim.conclusion]],['核验',(claim:TemplateCompatibilityClaim)=>verificationLabels[claim.verification]],['条件',(claim:TemplateCompatibilityClaim)=>claim.conditions.map(condition=>conditionText(store.data,condition)).join('；')||'无'],['依据',(claim:TemplateCompatibilityClaim)=>claim.source],['备注',(claim:TemplateCompatibilityClaim)=>claim.note||'无']] as const;return fields.map(([label,read])=>{const before=item.before?read(item.before):'无声明',after=item.after?read(item.after):'移除声明';return {label,before,after,changed:before!==after}})}
 function setDecision(id:string,value:string|number|boolean|undefined){if(value==='keep'||value==='take-template'){decisions.value={...decisions.value,[id]:value};if(!touchedDecisions.value.includes(id))touchedDecisions.value=[...touchedDecisions.value,id]}}
 async function manageTarget(item:TemplateSyncItem){if(saving.value)return;emit('update:modelValue',false);await router.push({path:'/compatibility',query:{manage:item.target.id,...(typeof route.query.returnTo==='string'?{returnTo:route.query.returnTo}:route.path==='/skus'?{returnTo:route.fullPath}:{})}})}
@@ -87,7 +92,7 @@ function previousBaselineText(item:TemplateSyncItem){if(item.group)return '下�
 function manualDeclarationText(id:string){const link=store.data.compatibilities.find(item=>item.id===id);return link?`${id} · ${claimText({...declarationDraft(link),id:link.id})}`:`人工声明 ${id} 已变化，请重新预览。`}
 function versionName(id:string){return store.data.specModelVersions.find(item=>item.id===id)?.versionName || id}
 function claimText(claim:TemplateCompatibilityClaim){return `${hostText(claim.host)} · ${scopeText(claim.host)} · ${capabilityLabels[claim.capability]} · ${verificationLabels[claim.verification]}${conclusionLabels[claim.conclusion]}${claim.conditions.length?` · ${claim.conditions.map(item=>conditionText(store.data,item)).join('；')}`:''} · 依据：${claim.source || '未填写'}${claim.note?` · 备注：${claim.note}`:''}`}
-async function apply(){if(!store.can('product:compatibility:update')||!preview.value||saving.value||!actionCount.value||candidateConflicts.value.length)return;saving.value=true;try{const result=await store.applyTemplateCompatibilitySync(preview.value,{...decisions.value});if(!result.ok){error.value=result.message || '更新失败，预览与选择已保留；数据可能已变化，请重新预览。';return}receipt.value=`已完成：新增 ${result.added || 0} 条、更新 ${result.updated || 0} 条、移除 ${result.removed || 0} 条、保留 ${result.protected || 0} 项。`;ElMessage.success(receipt.value);emit('updated');makePreview()}catch(cause){error.value=cause instanceof Error?cause.message:'更新失败，选择已保留。'}finally{saving.value=false}}
+async function apply(){if(!store.can('product:compatibility:update')||!preview.value||saving.value||!actionCount.value||candidateConflicts.value.length)return;saving.value=true;try{const result=await store.applyTemplateCompatibilitySync(preview.value,{...decisions.value});if(!result.ok){guideFailure.value=getFailure(result);error.value=result.message || '更新失败，预览与选择已保留；数据可能已变化，请重新预览。';return}receipt.value=`已完成：新增 ${result.added || 0} 条、更新 ${result.updated || 0} 条、移除 ${result.removed || 0} 条、保留 ${result.protected || 0} 项。`;ElMessage.success(receipt.value);emit('updated');makePreview()}catch(cause){guideFailure.value=getFailure(cause);error.value=cause instanceof Error?cause.message:'更新失败，选择已保留。'}finally{saving.value=false}}
 async function returnFocus(){await nextTick();if(opener?.isConnected)opener.focus()}
 </script>
 <style scoped>

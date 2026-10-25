@@ -1,3 +1,5 @@
+import { branchFailure, withFailure } from './guide/failure'
+import type { GuideFailure } from './guide/types'
 import { isMaterialArchive } from './catalogIdentity'
 import { nextMaterialCode, materialCodeConflict } from './material'
 import { businessPath, resolveNodeBusiness } from './nodeBusiness'
@@ -47,16 +49,19 @@ function contributionLineage(data:AppData,c:MaterialContribution) {
 }
 export function previewMaterialScope(data:AppData,source:MaterialScope,materialId='') {
   const problems:string[]=[], version=data.specModelVersions.find(v=>v.id===source.versionId&&v.templateId===source.modelId&&v.status==='published')
+  const failures:GuideFailure[]=[]
+  let firstFailure:GuideFailure|undefined
+  const reject=(branch:string,message:string)=>{const failure=branchFailure(branch,message,{savedState:'unchanged',context:{modelId:source.modelId,versionId:source.versionId,materialId,planningId:source.planningId||'',nodeId:source.anchorNodeId||''},recovery:['view-related','edit-input']});if(!problems.length)firstFailure=failure;failures.push(failure);problems.push(message)}
   const canvas=data.specCanvases.find(c=>c.templateId===source.modelId),type=data.productTypes.find(t=>t.id===canvas?.productTypeId)
   const nodes=version?.nodesSnapshot || [], all=version?legalPlanningCombinations(data,source.modelId,nodes):[]
-  if(!version||!type)problems.push('请选择真实的已发布模型版本及产品类型。')
+  if(!version||!type)reject('material.scope.source','请选择真实的已发布模型版本及产品类型。')
   if((data.materialRelations||[]).some(r=>r.kind!=='scope-v1'&&(r.source.modelId===source.modelId||r.materialId===materialId)))problems.push('存在不支持的未来关联，原文保留；请先确认其语义，不能忽略后执行。')
   let combinations=all, prefix:PlanningStep[]=[]
   if(source.kind==='planning') {
     if(source.anchorNodeId!==undefined)problems.push('完整规划来源不能混入节点锚点。')
     const p=data.planningRecords.find(p=>p.planningId===source.planningId&&p.productModelId===source.modelId&&p.origin!=='temporary'&&p.modelVersionIds.includes(source.versionId))
     combinations=all.filter(c=>c.identityKey===p?.identityKey)
-    if(!p||p.status!=='active'||combinations.length!==1)problems.push('完整规划不属于指定版本的有效合法组合。')
+    if(!p||p.status!=='active'||combinations.length!==1)reject('material.scope.planning','完整规划不属于指定版本的有效合法组合。')
     prefix=combinations[0]?.steps || []
     if(source.scope!=='current')problems.push('完整规划使用 current 精确范围。')
   } else if(source.kind==='node') {
@@ -112,21 +117,21 @@ export function previewMaterialScope(data:AppData,source:MaterialScope,materialI
   for(let i=0;i<claims.length;i++)for(let j=0;j<i;j++)if(incompatible(claims[i]!.claim,claims[j]!.claim))problems.push(`兼容结论或条件冲突：${claims[i]!.planningId} 与 ${claims[j]!.planningId}。`)
   if(materialId)for(const c of claims){
     for(const link of data.compatibilities.filter(l=>(l.targetId||l.accessorySkuId)===materialId))if(incompatible(claimOf(link),c.claim))problems.push(`${c.planningId} 与已有声明 ${link.id} 冲突，保留旧结果。`)
-    for(const origin of data.templateCompatibilityOrigins||[])if(origin.target.id===materialId&&['deleted','modified','kept','stale'].includes(origin.state)&&((origin.modelId===source.modelId&&origin.lineage?.some(pair=>c.origins.some(p=>pairMatches(pair,p))))||signature(origin.baseline)===signature(c.claim)||incompatible(origin.baseline,c.claim)))problems.push(`${c.planningId} 命中人工保护来源 ${origin.key}，不能自动覆盖。`)
+    for(const origin of data.templateCompatibilityOrigins||[])if(origin.target.id===materialId&&['deleted','modified','kept','stale'].includes(origin.state)&&((origin.modelId===source.modelId&&origin.lineage?.some(pair=>c.origins.some(p=>pairMatches(pair,p))))||signature(origin.baseline)===signature(c.claim)||incompatible(origin.baseline,c.claim)))reject('material.scope.manual-origin',`${c.planningId} 命中人工保护来源 ${origin.key}，不能自动覆盖。`)
     for(const contribution of data.materialContributions||[]){
       if(contribution.materialId!==materialId)continue
       const lineage=contributionLineage(data,contribution)
       if(!(lineage.length?lineage.some(pair=>pair.modelId===source.modelId&&c.origins.some(p=>pairMatches(pair,p))):signature(contribution.baseline)===signature(c.claim)))continue
       if(contribution.state==='retired')continue
       const link=data.compatibilities.find(l=>l.id===contribution.declarationId)
-      if(contribution.state!=='managed'||!link||signature(claimOf(link))!==signature(contribution.baseline))problems.push(`${c.planningId} 的兼容贡献曾被人工修改或取消，不能自动恢复；确认版本范围不代表恢复声明，请保留人工决定。`)
+      if(contribution.state!=='managed'||!link||signature(claimOf(link))!==signature(contribution.baseline))reject('material.scope.manual-contribution',`${c.planningId} 的兼容贡献曾被人工修改或取消，不能自动恢复；确认版本范围不代表恢复声明，请保留人工决定。`)
     }
   }
   const suggestion=suggestMaterialName(data,{productModelId:source.modelId,modelVersionId:source.versionId,productTypeName:type?.name||'',steps:prefix})
   const coverage=source.kind==='node'&&source.scope==='current'?[]:proof.map(({label,...p})=>p)
   const earlier=activeMaterialRelations(data).filter(r=>r.materialId===materialId&&r.source.modelId===source.modelId&&r.source.versionId!==source.versionId&&r.source.kind===source.kind&&(source.kind==='node'?r.source.anchorNodeId===source.anchorNodeId:r.source.planningId===source.planningId))
   const previousIds=new Set(earlier.flatMap(r=>r.coverage.map(c=>c.planningId)))
-  return {source:clone(source),materialId,basis:materialRelationBasis(data),problems:[...new Set(problems)],prefix,coverage,proof,policy:policy.hits.map(h=>clone(h.config)),policyValue,policySources:policy.sources,claims,compatibilityNotes,suggestion,type,
+  return {failure:firstFailure,failures,source:clone(source),materialId,basis:materialRelationBasis(data),problems:[...new Set(problems)],prefix,coverage,proof,policy:policy.hits.map(h=>clone(h.config)),policyValue,policySources:policy.sources,claims,compatibilityNotes,suggestion,type,
     versionName:version?.versionName||'',previous:earlier.map(r=>r.id),added:coverage.filter(c=>!previousIds.has(c.planningId)).map(c=>c.planningId),removed:[...previousIds].filter(id=>!coverage.some(c=>c.planningId===id))}
 }
 export type MaterialScopePreview=ReturnType<typeof previewMaterialScope>
@@ -143,7 +148,7 @@ export function executeMaterialRelation(data:AppData,input:{source:MaterialScope
   if(data.materialReceipts.some(r=>r.requestId===input.requestId))return fail('该请求已用于原物料建档，不能改作新的范围关联请求。')
   if(input.basis!==materialRelationBasis(data))return fail('预览后数据已变化，请重新预览并确认；没有写入。')
   const p=previewMaterialScope(data,input.source,input.materialId)
-  if(p.problems.length)return fail(p.problems.join(' '))
+  if(p.problems.length){const result=fail(p.problems.join(' '));return p.failure?withFailure(result,{...p.failure,message:result.message}):result}
   if(p.previous.length&&!input.confirmVersionChange)return fail('请确认新版本范围变化；旧版本关系不会扩张。')
   const same=activeMaterialRelations(data).find(r=>r.materialId===input.materialId&&sourceKey(r.source)===sourceKey(input.source))
   if(same){

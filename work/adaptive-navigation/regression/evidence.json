@@ -1,0 +1,26 @@
+{
+  "browser": "156.0.8078.47",
+  "checks": [
+    "default dual unpinned; hover/focus open, crossing columns stays open, delayed leave closes, rapid switch cancels stale timer and active page stays separate",
+    "rectangle assertions: floating main unchanged, pinned main follows actual rail+content widths with usable body, fold preserves pin/layout",
+    "single original hierarchy retained, icon links named; only two bottom layout choices; hover/click/arrows/Enter/Escape work and layout switching expands/unpins",
+    "all display-only operations leave live AppData and persisted history bytes unchanged",
+    "refresh preserves explicit preferences; 900/375 use constrained overlays; temporary compact never overwrites long-term layout/pin/collapse; wide restores dock",
+    "real href/new tab, router navigation, back/forward and route active highlighting retained",
+    "layout/fold/pin do not remount or lose unsaved input; router leave cancellation keeps route/input and actual menu highlight",
+    "legacy center/icons, missing pin and damaged preferences migrate safely",
+    "preference write failure does not break controls",
+    "actual menuConfig ordering/renaming/hiding and every visible role entry retained in both layouts; permission mode consistently controls route access (uniform administrators while deferred)",
+    "touch opens/pins/changes layout without navigation; module arrow keys enter/return; layout keyboard focus survives pointer leave; 125% equivalent viewport and device scale constrained"
+  ],
+  "rectangles": [
+    {
+      "resting": 96,
+      "floating": 96,
+      "pinned": 432,
+      "iconsPinned": 394,
+      "unpinned": 96
+    }
+  ],
+  "errors": []
+}

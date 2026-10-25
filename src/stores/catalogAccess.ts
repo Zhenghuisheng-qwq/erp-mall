@@ -127,8 +127,15 @@ export function catalogPublicData(data: AppData, can: (code:string)=>boolean): A
       },
       deleteProperty(target,key){
         commandOnly(root)
+        const candidate=Array.isArray(target)?Array.prototype.slice.call(target):{...target}
+        Reflect.deleteProperty(candidate,key)
         if(Array.isArray(target)){const index=indexOf(key);if(index!==null)check(root,top?'delete':'update',top?target[index]:owner);else check(root,'update',owner)}
-        else check(root,'update',owner)
+        else {
+          const nextOwner=owner===target?candidate:owner
+          publication(root,owner,nextOwner)
+          check(root,'update',owner)
+          check(root,'update',nextOwner)
+        }
         return Reflect.deleteProperty(target,key)
       },
     })

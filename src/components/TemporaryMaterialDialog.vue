@@ -23,7 +23,8 @@
       <label>物料描述<el-input v-model="materialDescription" type="textarea" :rows="2" /></label>
       <p class="summary">{{ summary || '填写属性后这里会显示摘要。' }}</p>
       <p class="muted" data-temporary-template-summary>{{ compatibilitySummary }}</p>
-      <p v-if="errorText" class="warn">{{ errorText }}</p>
+      <RuleExplanation v-if="guideFailure" :failure="guideFailure" :supported-recovery="['edit-input']" @recover="recoverGuide" />
+      <p v-else-if="errorText" class="warn">{{ errorText }}</p>
       <p v-if="lastCode" class="muted">刚创建 {{ lastCode }}。可以继续填写下一条，或打开刚创建的物料。</p>
     </div>
     <template #footer>
@@ -35,6 +36,9 @@
 </template>
 
 <script setup lang="ts">
+import RuleExplanation from '../components/guide/RuleExplanation.vue'
+import { getFailure } from '../domain/guide/failure'
+import type { GuideFailure } from '../domain/guide/types'
 import { ElMessage } from 'element-plus'
 import { computed, reactive, ref, watch } from 'vue'
 import { temporaryAttributeFields } from '../domain/material'
@@ -54,6 +58,8 @@ const materialCode = ref('')
 const supplierCode = ref('')
 const materialDescription = ref('')
 const errorText = ref('')
+const guideFailure = ref<GuideFailure>()
+watch(errorText, value => { if (!value) guideFailure.value=undefined })
 const saving = ref(false)
 const requestId = ref('')
 const lastCode = ref('')
@@ -120,7 +126,7 @@ async function save() {
   }))
   saving.value = false
   if (!result.ok) {
-    errorText.value = result.message
+    guideFailure.value=getFailure(result); errorText.value = result.message
     return
   }
   errorText.value = ''
@@ -134,6 +140,7 @@ async function save() {
   nameTouched.value = false
   requestId.value = uid('req')
 }
+function recoverGuide(action:string) { if(action==='edit-input') requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.spu-form input, .el-dialog.is-in-viewport input, .el-dialog input, .panel input')?.focus()) }
 </script>
 
 <style scoped>

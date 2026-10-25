@@ -1,3 +1,4 @@
+import {RBAC_ENFORCEMENT_ENABLED} from '../src/domain/accessMode'
 import assert from 'node:assert/strict'
 import { installCatalogTestLocks } from './catalog-storage-test-env'
 const restoreTestLocks = installCatalogTestLocks()
@@ -179,9 +180,9 @@ try {
   assert.equal(loadedDangling.goods[0]?.snapshot.name, beforeImportPackages?.[0]?.goods[0]?.snapshot.name)
   assert.equal(validateBenefitPackage(store.data, loadedDangling).canDeliver, false)
   assert.deepEqual(store.data.benefitDeliveries, beforeImportDeliveries)
-  const old = fixture(), oldBytes = JSON.stringify(old)
+  const old = fixture(), oldBusiness = (value:AppData) => ({...value,rbac:undefined,users:value.users.map(({roleIds:_,...user})=>user)}),oldBytes=JSON.stringify(oldBusiness(old))
   const normalized = normalizeStored({ version: DATA_VERSION, data: cloneBenefit(old) }, { persist: false })
-  assert.ok(normalized); assert.equal(JSON.stringify(normalized), oldBytes)
+  assert.ok(normalized); assert.equal(JSON.stringify(oldBusiness(normalized)), oldBytes);assert.equal(normalized.benefitPackages,undefined);assert.equal(normalized.benefitDeliveries,undefined);assert(normalized.rbac&&normalized.users.every(user=>Array.isArray(user.roleIds)))
   const normalizedAgain = normalizeStored({ version: DATA_VERSION, data: cloneBenefit(normalized) }, { persist: false })
   assert.deepEqual(normalizedAgain, normalized)
   const broken = fixture(); Object.assign(broken, { benefitPackages: {} })
@@ -190,16 +191,28 @@ try {
   mark('old-data-idempotence-dangling-config-and-no-seed-recovery', 'missing optional collections require no migration/write; dangling configs retain summaries; malformed existing new fields retain bytes without seed')
 
   store = mount(cloneBenefit(exported.data)); await nextTick(); await active?.waitForPersistence()
-  store.setRole('operator'); await nextTick(); await active?.waitForPersistence()
+  assert(store.startPermissionPreview('u-op').ok); await nextTick(); await active?.waitForPersistence()
   const readonlyMemory = JSON.stringify(store.data), readonlyDisk = stored(), readonlyWrites = writes
-  assert.equal((await store.saveBenefitPackage({ draft: input, status: 'draft', requestId: 'readonly-save' })).ok, false)
-  assert.equal((await store.setBenefitPackageFavorite(originalSaved.id, false, 1)).ok, false)
-  assert.equal((await store.setBenefitPackageStatus(originalSaved.id, 'disabled', 1)).ok, false)
-  assert.equal((await store.generateBenefitDelivery(generate)).ok, false)
-  const forbiddenImport = JSON.parse(store.exportJson()) as { version: number; data: AppData }; forbiddenImport.data.benefitPackages![0]!.name = '越权更名'
-  await assert.rejects(async () => (await store.importJson(JSON.stringify(forbiddenImport))), /当前角色仅可查看权益包/)
-  await nextTick(); await active?.waitForPersistence(); assert.equal(JSON.stringify(store.data), readonlyMemory); assert.equal(stored(), readonlyDisk); assert.equal(writes, readonlyWrites)
-  mark('permission-at-write-and-import-boundary', 'readonly caller cannot save/status/favorite/generate or change packages through import; zero writes')
+  const rejectCommand=async(operation:()=>unknown)=>{let denied=false;try{const result=await operation();denied=(result as {ok?:boolean})?.ok===false}catch(error){denied=error instanceof Error};assert(denied)}
+  if(RBAC_ENFORCEMENT_ENABLED){
+    await rejectCommand(()=>store.saveBenefitPackage({draft:input,status:'draft',requestId:'readonly-save'}))
+    await rejectCommand(()=>store.setBenefitPackageFavorite(originalSaved.id,false,1))
+    await rejectCommand(()=>store.setBenefitPackageStatus(originalSaved.id,'disabled',1))
+    await rejectCommand(()=>store.generateBenefitDelivery(generate))
+    const forbiddenImport={version:DATA_VERSION,data:cloneBenefit(store.data)};forbiddenImport.data.benefitPackages![0]!.name='越权更名'
+    await assert.rejects(async()=>store.importJson(JSON.stringify(forbiddenImport)),/未授权|导入.*拒绝|无权/)
+    await nextTick();await active?.waitForPersistence();assert.equal(JSON.stringify(store.data),readonlyMemory);assert.equal(stored(),readonlyDisk);assert.equal(writes,readonlyWrites)
+    mark('permission-at-write-and-import-boundary','strict readonly caller cannot save/status/favorite/generate/import; exact memory and disk retained with zero writes')
+  }else{
+    assert.equal(store.can('product:benefit:create'),true)
+    assert((await store.saveBenefitPackage({draft:input,status:'draft',requestId:'unrestricted-save'})).ok)
+    let current=store.data.benefitPackages!.find(p=>p.id===originalSaved.id)!;assert((await store.setBenefitPackageFavorite(current.id,!current.favorite,current.revision)).ok)
+    current=store.data.benefitPackages!.find(p=>p.id===originalSaved.id)!;assert((await store.setBenefitPackageStatus(current.id,'disabled',current.revision)).ok)
+    assert((await store.generateBenefitDelivery(generate)).ok)
+    const permittedImport=JSON.parse(store.exportJson()) as {version:number;data:AppData};permittedImport.data.benefitPackages![0]!.name='统一管理模式导入名称';await store.importJson(JSON.stringify(permittedImport));assert.equal(store.data.benefitPackages![0]!.name,'统一管理模式导入名称')
+    assert.deepEqual(store.data.benefitDeliveries,JSON.parse(readonlyMemory).benefitDeliveries)
+    mark('permission-at-write-and-import-boundary','default unified mode permits actual save/favorite/status/import and receipt retry; historical deliveries remain unchanged')
+  }
 
   const collisionData = fixture(), p1 = cloneBenefit(originalSaved), p2 = cloneBenefit(originalSaved), d1 = cloneBenefit(snapshot), d2 = cloneBenefit(snapshot)
   Object.assign(p1, { id: 'imported-package-100', code: 'BPK-000100', creationRequestId: 'import-package-100', revision: Number.MAX_SAFE_INTEGER })

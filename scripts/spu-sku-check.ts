@@ -1,3 +1,5 @@
+import {mkdirSync,writeFileSync} from 'node:fs'
+import {RBAC_ENFORCEMENT_ENABLED} from '../src/domain/accessMode'
 import { installCatalogTestLocks } from './catalog-storage-test-env'
 installCatalogTestLocks()
 import assert from 'node:assert/strict'
@@ -22,7 +24,8 @@ const original = clone(data)
 let sequence = 0
 const nextId = () => `appended-sku-${++sequence}`
 let checks = 0
-function pass(name: string) { console.log(`PASS spu-sku ${++checks} ${name}`) }
+const checkNames:string[]=[]
+function pass(name: string) { checkNames.push(name);console.log(`PASS spu-sku ${++checks} ${name}`) }
 const manual = (color: string): SkuGeneration => ({ kind: 'manual', rows: [{ code: '', oaSkuId: '', skuName: '同名 SKU', status: 'draft', variantAttrs: { 颜色: color } }] })
 function append(id: string, generation: SkuGeneration, selectedKeys?: string[]) {
   const preview = previewSkuAppend(data, id, generation)
@@ -150,7 +153,7 @@ assert.equal(loaded.skus.some(item => !oldRecords.skus.find(old => old.id === it
 pass('旧数据加载不补写记录类型、不变更 ID；持久化迁移可重复执行')
 storage.set(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data }))
 setActivePinia(createPinia())
-const store = useCatalogStore()
+const store = useCatalogStore(); await store.waitForPersistence()
 const last = store.data.skus.find(item => item.familyId === 'another')!
 assert.equal(store.removeSku(last.id), '')
 assert.ok(store.data.families.some(item => item.id === 'another'))
@@ -181,7 +184,8 @@ try {
   assert.ok(result.ok && !occupied.includes(result.id))
   assert.equal(store.data.families.filter(item => occupied.includes(item.id)).length, occupied.length)
   const tombstones = Array.from({ length: 40 }, (_, index) => `sku-${stamp}-${index + 1}`)
-  store.data.materialReceipts.push(...tombstones.map(skuId => ({ requestId: `deleted-${skuId}`, skuId, planningId: '', materialCode: '', createdTime: FIXED_NOW, lifecycle: 'deleted' as const })))
+  await nextTick();await store.waitForPersistence()
+  const receiptsBackup=JSON.parse(store.exportJson());receiptsBackup.data.materialReceipts.push(...tombstones.map(skuId => ({ requestId: `deleted-${skuId}`, skuId, planningId: '', materialCode: '', createdTime: FIXED_NOW, lifecycle: 'deleted' as const })));await store.importJson(JSON.stringify(receiptsBackup))
   const generation = manual('橙色')
   const candidate = previewSkuAppend(store.data, family.id, generation)
   const appended = (await store.appendSkus(family.id, generation, candidate.rows.map(row => row.key)))
@@ -202,3 +206,5 @@ assert.deepEqual(data.materialReceipts, original.materialReceipts)
 assert.deepEqual(data.specModelVersions[0], original.specModelVersions[0])
 pass('业务操作不改 PLN、建档回执和发布快照')
 console.log(`PASS ${checks} SPU/SKU regression groups`)
+
+const reportDir=process.env.SPU_SKU_OUTPUT||`work/business-guide/regression/spu-sku-${RBAC_ENFORCEMENT_ENABLED?'strict':'default'}`;mkdirSync(reportDir,{recursive:true});writeFileSync(`${reportDir}/result.json`,JSON.stringify({result:'PASS',strict:RBAC_ENFORCEMENT_ENABLED,checks:checkNames},null,2)+'\n');store.$dispose()

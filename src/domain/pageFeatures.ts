@@ -1,3 +1,5 @@
+import {guideArticles} from './guide/registry'
+import {guidePageFor} from './guide/routeMap'
 export type FeatureStatus = 'done' | 'partial' | 'missing'
 
 export interface PageFeature {
@@ -220,7 +222,7 @@ const sheets: Record<string, PageFeatureSheet> = {
 
 export function featurePageKey(path: string, query: { panel?: unknown } = {}) {
   path = path.split('?')[0] || '/'
-  if (path === '/spus' && query.panel === 'columns') return '/products?panel=columns'
+  if (path === '/columns' || (['/spus','/skus'].includes(path) && query.panel === 'columns')) return '/products?panel=columns'
   if (/^\/benefit-packages\/deliveries\/[^/]+$/.test(path)) return '/benefit-packages/deliveries/detail'
   for (const base of ['spus', 'skus', 'materials', 'benefit-packages']) {
     if (path === `/${base}/new`) return path
@@ -234,10 +236,18 @@ export function featurePageKey(path: string, query: { panel?: unknown } = {}) {
 
 export function featureSheet(path: string, query: { panel?: unknown } = {}) {
   const key = featurePageKey(path, query), found = sheets[key]
-  if (!found) return null
+  const page=guidePageFor(path,query),manual=guideArticles.find(a=>a.id===page?.articleId)
+  if(!found&&!manual)return null
   // Existing feedback keeps its saved feature ID/name. New feedback uses a
   // page-scoped stable identity for the older short IDs (create/edit/etc.).
-  return { ...found, features: found.features.map(feature => ({ ...feature, id: feature.id.includes('.') ? feature.id : `${key}:${feature.id}` })) }
+  const aliases:Record<string,string>={'/menus:role':'action-rbac-authorize','/users:role':'action-user-preview','/categories:move':'action-category-move'}
+  const features=(found?.features||[]).map(feature=>{
+    const id=feature.id.includes('.')?feature.id:`${key}:${feature.id}`,action=guideArticles.find(a=>a.id===aliases[id])
+    // Legacy IDs/status are feedback compatibility only. Active prose comes from the guide.
+    return {...feature,id,name:action?.title||feature.name,summary:action?.summary||manual?.summary||'此历史入口请查看当前页面手册。'}
+  })
+  for(const id of page?.actionIds||[]){const action=guideArticles.find(a=>a.id===id);if(action&&!features.some(f=>f.id===id||aliases[f.id]===id))features.push({id,name:action.title,summary:action.summary,group:'当前操作',status:'done'})}
+  return {title:page?.title||found!.title,features}
 }
 
 export function featureStatusText(status: FeatureStatus) {
