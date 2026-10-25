@@ -1,5 +1,6 @@
+import { createCatalogSimulation } from './catalogSimulation'
 import { RBAC_ENFORCEMENT_ENABLED } from '../domain/accessMode'
-import { ensureRbac, rbacProblems, canPermission, isSuperAdmin, routePermissions, commandPermissions, effectivePermissions } from '../domain/rbac'
+import { ensureRbac, rbacProblems, canPermission, isSuperAdmin, routePermissions, commandPermissions, effectivePermissions, permissionRegistry, templateAccessResource } from '../domain/rbac'
 import { loadMenu, saveMenu, defaultMenuNodes, type MenuNode } from '../domain/menuConfig'
 import { createRbacCommands } from './catalogRbac'
 import { catalogPublicData } from './catalogAccess'
@@ -50,7 +51,7 @@ import type { ProductGrade } from '../domain/types'
 import { arrangeSpecPositions } from '../domain/logic'
 import { activeProductListView, applyPresetToActiveView, currentModeQuery, ensureProductListViews } from '../domain/productListViews'
 import { createSeed, defaultColumns, emptyQuery, phoneCanvas, phoneSpecNodes } from '../domain/seed'
-import { DATA_VERSION, STORAGE_KEY, type AppData, type Category, type ColumnPref, type FeedbackItem, type ListQuery, type ListView, type ParamDef, type ProductFamily, type ProductGroup, type ProductType, type Sku, type SpecRule, type UserRole } from '../domain/types'
+import { DATA_VERSION, STORAGE_KEY, type AppData, type Category, type ColumnPref, type FeedbackItem, type ListQuery, type ListView, type ParamDef, type ProductFamily, type ProductGroup, type ProductType, type Sku, type SpecRule, type Brand, type UserRole } from '../domain/types'
 
 type ModuleName = 'products' | 'categories' | 'templates' | 'params' | 'rules' | 'groups' | 'system'
 type StoredPayload = { version?: number; data?: AppData }
@@ -263,11 +264,12 @@ export const useCatalogStore = defineStore('catalog', () => {
   let storedUser:string|null=null
   try{storedUser=sessionStorage.getItem(SESSION_KEY)||localStorage.getItem(SESSION_KEY)}catch{try{storedUser=localStorage.getItem(SESSION_KEY)}catch{}}
   const activeUserId=ref(storedUser||startupCandidate.users.find(u=>u.enabled&&u.role===startupCandidate.activeRole)?.id||'')
-  const previewUserId=ref(''),simulationReturnId=ref('')
+  const previewUserId=ref('')
   const effectiveUserId=computed(()=>previewUserId.value||activeUserId.value)
   const currentUser=computed(()=>data.users.find(u=>u.id===effectiveUserId.value))
   const authorizationStamp=(value:AppData)=>JSON.stringify([value.rbac?.roles.map(r=>[r.id,r.enabled,r.superAdmin,r.permissionCodes]),value.rbac?.permissions.map(p=>[p.code,p.enabled,p.dependsOn]),value.users.map(u=>[u.id,u.enabled,u.roleIds])])
   function authorizationFresh(){if(!persistence.state.external)return true;try{return authorizationStamp(JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}').data)===authorizationStamp(data)}catch{return false}}
+  const {simulationReturnId,simulateUser,startPermissionPreview,stopPermissionPreview}=createCatalogSimulation(data,activeUserId,previewUserId,authorizationFresh)
   const can=(code:string)=>authorizationReady.value&&(!RBAC_ENFORCEMENT_ENABLED||authorizationFresh())&&canPermission(data,effectiveUserId.value,code)
   function canRoute(location:{path:string;query?:Record<string,unknown>}){
     let path=location.path
@@ -425,13 +427,41 @@ export const useCatalogStore = defineStore('catalog', () => {
   function materialImportBasis() {
     return JSON.stringify([data.families, data.skus, data.planningRecords, data.materialReceipts, data.compatibilities, data.templateCompatibilityOrigins, data.specModelVersions, data.templateCompatibilityConfigs, data.categories, data.productTypes, data.params, data.templates, data.specCanvases, data.productSpecNodes, data.nodeCompatibilityRules])
   }
-  function commitMaterialImport(candidate: AppData, expectedBasis: string) {
-    if (materialImportBasis() !== expectedBasis) return { ok: false, message: '预览后商品或模型数据已变化，请重新预览导入；当前数据未改变。' }
-    const next = cloneCompatibility(data), existing = new Set(data.skus.map(item => item.id))
-    for (const key of creationKeys) {
-      if (candidate[key] !== undefined) Object.assign(next, { [key]: cloneCompatibility(candidate[key]) })
+  function commitMaterialImport(candidate:AppData,expectedBasis:string){
+    if(materialImportBasis()!==expectedBasis)return {ok:false,message:'预览后商品或模型数据已变化，请重新预览导入；当前数据未改变。'}
+    const next=cloneCompatibility(data),existing=new Set(data.skus.map(item=>item.id))
+    for(const key of creationKeys){if(candidate[key]!==undefined){if(!Array.isArray(candidate[key]))return {ok:false,message:`导入候选 ${key} 结构无效。`};Object.assign(next,{[key]:cloneCompatibility(candidate[key])})}}
+    const changed=(a:unknown,b:unknown)=>JSON.stringify(a)!==JSON.stringify(b)
+    const prefix:Partial<Record<keyof AppData,string>>={families:'product:spu',planningRecords:'product:planning',compatibilities:'product:compatibility',templateCompatibilityOrigins:'product:compatibility',materialRelations:'product:material',materialContributions:'product:material',materialReceipts:'product:material'}
+    for(const key of creationKeys){
+      const before=(data[key]||[]) as {id?:string}[],after=(next[key]||[]) as {id?:string}[]
+      const identityOf=(row:{id?:string})=>row?.id||(key==='planningRecords'?(row as {planningId?:string})?.planningId:key==='materialReceipts'?(row as {requestId?:string})?.requestId:key==='templateCompatibilityOrigins'?(row as {key?:string})?.key:undefined)||JSON.stringify(row)
+      type ImportRow=typeof before[number]
+      const groups=new Map<string|undefined,{before:ImportRow[];after:ImportRow[]}>()
+      for(const [side,rows]of [['before',before],['after',after]] as const)for(const row of rows){const identity=identityOf(row),group=groups.get(identity)||{before:[],after:[]};group[side].push(row);groups.set(identity,group)}
+      const differences:{old:ImportRow|undefined;record:ImportRow|undefined}[]=[]
+      for(const [identity,group]of groups){
+        if(group.after.length>1&&group.after.length>group.before.length)return {ok:false,message:`物料导入候选 ${key} 新增或加剧重复身份 ${identity}；本次未写入任何数据。`}
+        // Existing historical duplicates may remain verbatim. Match every unchanged
+        // occurrence, then authorize each changed/deleted occurrence individually.
+        const unmatched=group.before.slice(),updates:ImportRow[]=[]
+        for(const row of group.after){const match=unmatched.findIndex(previous=>!changed(previous,row));if(match>=0)unmatched.splice(match,1);else updates.push(row)}
+        for(let index=0;index<Math.max(unmatched.length,updates.length);index++)differences.push({old:unmatched[index],record:updates[index]})
+      }
+      for(const {old,record}of differences){
+        const action=!old?'create':!record?'delete':'update'
+        let codes:string[]=[]
+        if(key==='skus'){
+          for(const [source,row]of [[data,old],[next,record]] as const){if(!row)continue;const material=isMaterialArchive(source,row as Sku);if(!material)codes.push(`product:sku:${action}`);else if(action==='delete')codes.push('product:material:delete')}
+        }else if(key==='families'){codes=record?commandPermissions('saveSpu',[record],data):['product:spu:delete']}
+        else if(['materialReceipts','materialContributions','materialRelations'].includes(key)){if(old)codes=[`${prefix[key]}:${action}`]}
+        else codes=[`${prefix[key]}:${action}`]
+        if(!codes.every(can))return {ok:false,message:`物料导入含未经授权的其他资源修改（${key}）：${codes.filter(code=>!can(code)).join('、')}。本次未写入任何数据。`}
+      }
     }
-    return commitCreated(next, { ok: true }, next.skus.filter(item => !existing.has(item.id)).map(item => item.id), new Date().toISOString())
+    const problems=[...materialRelationImportProblems(next),...compatibilityImportProblems(next)]
+    if(problems.length)return {ok:false,message:`导入候选校验失败：${problems.join(' ')}`}
+    return commitCreated(next,{ok:true},next.skus.filter(item=>!existing.has(item.id)).map(item=>item.id),new Date().toISOString())
   }
 
   function benefitPermission(): BenefitCommandResult | undefined {
@@ -787,7 +817,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       if(Array.isArray(old)&&Array.isArray(value)){
         const byId=(item:any)=>item.id||JSON.stringify(item)
         const keys=new Set([...old,...value].map(byId))
-        for(const identity of keys){const a=old.find((v:any)=>byId(v)===identity),b=value.find((v:any)=>byId(v)===identity);if(JSON.stringify(a)===JSON.stringify(b))continue;if(key==='families'&&b&&!commandPermissions('saveSpu',[b],data).every(can))throw new Error('导入不能绕过商品编辑或发布权限。');if(key==='skus'&&a&&b&&isMaterialArchive(data,a)!==isMaterialArchive(next,b)&&(!can('product:sku:update')||!can('product:material:update')))throw new Error('导入不能跨越 SKU/MAT 身份权限。');const resource=key==='skus'&&((a||b)?.recordKind==='material'||(a||b)?.materialCode)?'product:material':prefix;const action=!a?'create':!b?'delete':'update';if(!can(`${resource}:${action}`))throw new Error(`导入被拒绝：没有 ${resource}:${action}，当前数据及会话未改变。`)}
+        for(const identity of keys){const a=old.find((v:any)=>byId(v)===identity),b=value.find((v:any)=>byId(v)===identity);if(JSON.stringify(a)===JSON.stringify(b))continue;if(key==='families'&&b&&!commandPermissions('saveSpu',[b],data).every(can))throw new Error('导入不能绕过商品编辑或发布权限。');if(key==='skus'&&a&&b&&isMaterialArchive(data,a)!==isMaterialArchive(next,b)&&(!can('product:sku:update')||!can('product:material:update')))throw new Error('导入不能跨越 SKU/MAT 身份权限。');const templateRow=(key==='templates'||key==='templateParams'||key==='mappings');const templateId=key==='templates'?(b||a)?.id:(b||a)?.templateId;const resource=templateRow?`product:${templateAccessResource(b?next:data,templateId||'')}`:key==='skus'&&((a||b)?.recordKind==='material'||(a||b)?.materialCode)?'product:material':prefix;const action=key==='templateParams'||key==='mappings'?'update':!a?'create':!b?'delete':'update';if(!can(`${resource}:${action}`))throw new Error(`导入被拒绝：没有 ${resource}:${action}，当前数据及会话未改变。`)}
       }else if(!can(`${prefix}:update`))throw new Error(`导入被拒绝：没有 ${prefix}:update。`)
     }
     next.activeRole=data.activeRole // Deprecated backup mirror must never change the current or next mock identity.
@@ -1326,16 +1356,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
-  function simulateUser(id:string){
-    if(id===activeUserId.value){previewUserId.value='';return {ok:true}}
-    if(!isSuperAdmin(data,activeUserId.value))return {ok:false,message:'只有超级管理员模拟会话可以切换其他用户。'}
-    if(!data.users.some(u=>u.id===id&&u.enabled))return {ok:false,message:'用户不存在或已停用。'}
-    if(!simulationReturnId.value)simulationReturnId.value=activeUserId.value
-    activeUserId.value=id;previewUserId.value='';try{sessionStorage.setItem(SESSION_KEY,id);localStorage.setItem(SESSION_KEY,id)}catch{}
-    return {ok:true}
-  }
-  function startPermissionPreview(id:string){if(!isSuperAdmin(data,activeUserId.value))return {ok:false,message:'只有超级管理员可预览其他用户。'};if(!data.users.some(u=>u.id===id&&u.enabled))return {ok:false,message:'用户已停用或不存在。'};previewUserId.value=id;return {ok:true}}
-  function stopPermissionPreview(){previewUserId.value='';if(simulationReturnId.value){if(data.users.some(u=>u.id===simulationReturnId.value&&u.enabled))activeUserId.value=simulationReturnId.value;simulationReturnId.value='';try{sessionStorage.setItem(SESSION_KEY,activeUserId.value);localStorage.setItem(SESSION_KEY,activeUserId.value)}catch{}}return {ok:true}}
   const rbacCommands=createRbacCommands(data,()=>effectiveUserId.value,can,next=>commitCandidate(next,{ok:true,message:'已保存。'},['rbac','users']),()=>uid('access'))
   function saveMenuStructure(nodes:MenuNode[]){
     if(!can('system:menu:update'))return {ok:false,message:'没有菜单管理权限。'}
@@ -1351,9 +1371,44 @@ export const useCatalogStore = defineStore('catalog', () => {
   function resetMenuStructure(){return saveMenuStructure(defaultMenuNodes())}
   function importFeedbackPack(incoming:FeedbackItem[]){const next=cloneCompatibility(data);if(!Array.isArray(incoming)||incoming.some(item=>!item||typeof item.id!=='string'||typeof item.title!=='string'||typeof item.content!=='string'))return {ok:false,message:'反馈包记录结构不合法。'};const known=new Set(next.feedbacks.map(item=>item.id));next.feedbacks.unshift(...cloneCompatibility(incoming.filter(item=>!known.has(item.id))));return commitCandidate(next,{ok:true},['feedbacks'])}
   function markFeedbacksExported(ids:string[]){const next=cloneCompatibility(data),now=new Date().toISOString();next.feedbacks.forEach(item=>{if(ids.includes(item.id))item.exportedAt=now});return commitCandidate(next,{ok:true},['feedbacks'])}
+  function saveBrand(input:Brand){
+    const next=cloneCompatibility(data),old=next.brands.find(b=>b.id===input.id),name=input.name?.trim()
+    if(!name||!['enabled','disabled'].includes(input.status))return {ok:false,message:'请填写品牌名称和有效状态。'}
+    if(input.id&&!old)return {ok:false,message:'品牌已不存在，请重新打开；当前草稿保留。'}
+    const record:Brand={...cloneCompatibility(input),id:old?.id||uid('brand'),name}
+    if(old)Object.assign(old,record);else next.brands.push(record)
+    const dictionary=next.params.find(p=>p.name==='品牌')
+    if(dictionary&&!dictionary.values.includes(name)){
+      if(!can('product:dictionary:update'))return {ok:false,message:'品牌名称需要同步品牌词典，但没有编辑词典权限；品牌与词典均未改变。'}
+      dictionary.values.push(name)
+    }
+    return commitCandidate(next,{ok:true,id:record.id,message:'品牌及关联词典已保存。'},['brands','params'])
+  }
+  function saveRule(input:SpecRule){
+    const next=cloneCompatibility(data),old=next.rules.find(r=>r.id===input.id)
+    if(typeof input.templateId!=='string'||typeof input.targetParamId!=='string'||!Array.isArray(input.sourceParamIds)||!input.sourceParamIds.every(id=>typeof id==='string')||!Array.isArray(input.options)||!input.options.every(value=>typeof value==='string')||!input.conditions||typeof input.conditions!=='object'||Array.isArray(input.conditions)||Object.values(input.conditions).some(value=>typeof value!=='string')||typeof input.enabled!=='boolean')return {ok:false,message:'规则结构无效，当前草稿保留。'}
+    if(input.id&&!old)return {ok:false,message:'规则已不存在，当前草稿保留。'}
+    const record={...cloneCompatibility(input),id:old?.id||uid('rule')}
+    if(old)Object.assign(old,record);else next.rules.push(record)
+    return commitCandidate(next,{ok:true,id:record.id,message:'规则已保存。'},['rules'])
+  }
+  function commitCategoryMove(sourceId:string,parentId:string|null){
+    const next=cloneCompatibility(data)
+    const problem=moveCategoryNode(next.categories,sourceId,parentId,new Set(next.productTypes.map(t=>t.categoryId)))
+    if(problem)return {ok:false,message:problem}
+    return commitCandidate(next,{ok:true,message:'分类已移动。'},['categories'])
+  }
+  function restoreSuperAdminAccess(){
+    if(!isSuperAdmin(data,effectiveUserId.value))return {ok:false,message:'只有有效的内置超级管理员可恢复其权限。'}
+    const next=cloneCompatibility(data),role=next.rbac?.roles.find(r=>r.id==='role:super-admin'&&r.superAdmin&&r.builtIn)
+    if(!role)return {ok:false,message:'内置超级管理员配置已损坏，不能伪造替换。'}
+    role.permissionCodes=[...new Set([...role.permissionCodes,...permissionRegistry().map(p=>p.code)])]
+    const issues=rbacProblems(next);if(issues.length)return {ok:false,message:issues.join(' ')}
+    return commitCandidate(next,{ok:true,message:'已恢复内置超级管理员的登记权限；其他角色及业务保持。'},['rbac'])
+  }
   const api = {
     data:publicData,
-    can,canRoute,currentUser,activeUserId,previewUserId,simulationReturnId,authorizationReady,
+    can,canRoute,currentUser,activeUserId:computed(()=>activeUserId.value),previewUserId:computed(()=>previewUserId.value),simulationReturnId,authorizationReady:computed(()=>authorizationReady.value),
     rbacEnforced: RBAC_ENFORCEMENT_ENABLED,
     simulateUser,startPermissionPreview,stopPermissionPreview,
     saveRbacRole:(...args:Parameters<typeof rbacCommands.saveRbacRole>)=>command(()=>rbacCommands.saveRbacRole(...args)),
@@ -1363,6 +1418,10 @@ export const useCatalogStore = defineStore('catalog', () => {
     saveRbacUser:(...args:Parameters<typeof rbacCommands.saveRbacUser>)=>command(()=>rbacCommands.saveRbacUser(...args)),
     removeRbacUser:(...args:Parameters<typeof rbacCommands.removeRbacUser>)=>command(()=>rbacCommands.removeRbacUser(...args)),
     saveMenuStructure,resetMenuStructure,
+    saveBrand:(...args:Parameters<typeof saveBrand>)=>command(()=>saveBrand(...args)),
+    saveRule:(...args:Parameters<typeof saveRule>)=>command(()=>saveRule(...args)),
+    commitCategoryMove:(...args:Parameters<typeof commitCategoryMove>)=>command(()=>commitCategoryMove(...args)),
+    restoreSuperAdminAccess:()=>command(restoreSuperAdminAccess),
     importFeedbackPack:(...args:Parameters<typeof importFeedbackPack>)=>command(()=>importFeedbackPack(...args)),
     markFeedbacksExported:(...args:Parameters<typeof markFeedbacksExported>)=>command(()=>markFeedbacksExported(...args)),
     persistenceState: persistence.state,

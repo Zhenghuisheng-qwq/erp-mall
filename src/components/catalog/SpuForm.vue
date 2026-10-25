@@ -64,16 +64,22 @@ function templateChanged() {
 }
 async function save(addSku: boolean) {
   if (saving.value) return
+  if (!canWrite.value) { error.value = '没有保存此 SPU 的权限，当前输入已保留。'; return }
   saving.value = true
-  const now = new Date().toISOString()
-  const result = (await store.saveSpu({ ...draft, createdAt: draft.createdAt || now, lifecycle: draft.shelfStatus === 'online' ? 'ready' : 'draft' }))
-  if (!result.ok) { error.value = result.message; saving.value = false; return }
-  draft.id = result.id
-  original = JSON.stringify(draft)
   error.value = ''
-  emit('dirty', false)
-  emit('saved', result.id, addSku)
-  saving.value = false
+  try {
+    const now = new Date().toISOString()
+    const result = await store.saveSpu({ ...draft, createdAt: draft.createdAt || now, lifecycle: draft.shelfStatus === 'online' ? 'ready' : 'draft' })
+    if (!result.ok) { error.value = result.message; return }
+    draft.id = result.id
+    original = JSON.stringify(draft)
+    emit('dirty', false)
+    emit('saved', result.id, addSku)
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : 'SPU 保存失败，当前输入已保留，可重试。'
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 

@@ -1,0 +1,14 @@
+{
+  "strict": false,
+  "checks": [
+    "SKU-delete permission cannot delete MAT in strict; default mode deliberately permits administrators",
+    "default administrators retain authorized mixed-resource import behavior",
+    "legitimate material-only import stays functional; malformed arrays always reject before writes",
+    "brand and dictionary commit atomically; missing dictionary permission and quota failures preserve originals and drafts",
+    "rule create/update permissions are distinct; conditions and IDs preserved; quota failure is atomic",
+    "real super recovery restores registered grants without import/reset, preserves root ID/other roles/business; ordinary strict role denied",
+    "issued super simulation survives Store reopen and has working exit",
+    "unissued, mismatched and matching fake context/proof pairs plus public-ref writes cannot elevate or exit to root",
+    "category move preserves IDs/constraints/subtree and all business; typed/cycle/quota failures leave memory and disk unchanged"
+  ]
+}

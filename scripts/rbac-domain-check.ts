@@ -3,6 +3,18 @@ import { createSeed } from '../src/domain/seed'
 import { defaultMenuNodes } from '../src/domain/menuConfig'
 import { ensureRbac, rbacProblems, canPermission, effectivePermissions, isSuperAdmin, permissionRegistry, routePermissions, commandPermissions, missingPermissionDependencies, type RbacState } from '../src/domain/rbac'
 import type { AppData } from '../src/domain/types'
+import { RBAC_ENFORCEMENT_ENABLED } from '../src/domain/accessMode'
+
+if (!RBAC_ENFORCEMENT_ENABLED) {
+  const current=createSeed();ensureRbac(current)
+  assert(isSuperAdmin(current,'u-op'));assert(isSuperAdmin(current,'deleted-legacy-user'))
+  assert.equal(effectivePermissions(current,'u-op').size,permissionRegistry().length)
+  assert(canPermission(current,'u-op','system:role:grant'))
+  current.rbac!.permissions.push({...permissionRegistry()[0]!,code:'product:benefit:delete',name:'旧目录原文'})
+  assert.deepEqual(rbacProblems(current),[])
+  const preserved=JSON.stringify(current.rbac);ensureRbac(current);assert.equal(JSON.stringify(current.rbac),preserved)
+  console.log('PASS RBAC default remains unrestricted and preserves stale configuration; explicit VITE_RBAC_ENFORCEMENT=true runs every strict rejection below')
+} else {
 
 type Authorized = AppData & {rbac:RbacState}
 const clone = <T>(value:T):T => JSON.parse(JSON.stringify(value))
@@ -85,3 +97,4 @@ const forgedBinding = clone(valid);forgedBinding.rbac.permissions[0]!.route='/fa
 assert.deepEqual(missingPermissionDependencies(['product:spu:update']),['product:spu:read'])
 assert.equal(new Set(permissionRegistry().map(permission=>permission.code)).size,permissionRegistry().length)
 console.log('PASS malformed containers, dangling roles, forged super/admin binding, missing directory/dependencies and recovery loss are rejected')
+}

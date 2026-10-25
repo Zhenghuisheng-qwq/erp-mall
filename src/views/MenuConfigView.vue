@@ -3,6 +3,7 @@
     <PageHead title="菜单管理" desc="维护导航结构和页面访问权限绑定；隐藏菜单不会撤销访问权限。">
       <el-button @click="previewOpen = true">预览菜单</el-button><el-button :disabled="!canEdit" @click="restore">恢复默认结构</el-button><el-button type="primary" :disabled="!canEdit" @click="open()">新增菜单</el-button>
     </PageHead>
+    <RbacModeNotice />
     <section class="panel">
       <div class="rbac-toolbar"><el-input v-model="search" clearable placeholder="搜索菜单名称或路由" aria-label="搜索菜单"/><el-select v-model="kindFilter" clearable placeholder="全部类型" aria-label="菜单类型"><el-option label="业务中心" value="center"/><el-option label="分组" value="group"/><el-option label="页面" value="page"/></el-select><el-select v-model="visibility" clearable placeholder="全部显示状态" aria-label="菜单显示状态"><el-option label="显示" value="shown"/><el-option label="隐藏" value="hidden"/></el-select><el-button @click="setExpanded(true)">展开全部</el-button><el-button @click="setExpanded(false)">收起全部</el-button><span class="rbac-count">{{ nodeCount }} 个菜单节点</span></div>
       <el-alert v-if="pageError" :title="pageError" type="error" :closable="false" class="rbac-error"/>
@@ -33,6 +34,7 @@
   </div>
 </template>
 <script setup lang="ts">
+import RbacModeNotice from '../components/rbac/RbacModeNotice.vue'
 import { computed, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Grid, FolderOpened } from '@element-plus/icons-vue'

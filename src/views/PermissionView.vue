@@ -1,5 +1,6 @@
 <template>
   <div class="rbac-page"><PageHead title="权限管理" desc="目录仅展示已接入的正式页面与操作；权限码和执行绑定由系统登记。"/>
+    <RbacModeNotice />
     <section class="panel"><div class="rbac-toolbar"><el-input v-model="search" clearable placeholder="搜索权限名称、权限码或资源" aria-label="搜索权限"/><el-select v-model="moduleFilter" clearable placeholder="全部模块" aria-label="权限模块"><el-option v-for="module in modules" :key="module" :value="module" :label="module"/></el-select><el-select v-model="kindFilter" clearable placeholder="全部权限类型" aria-label="权限类型"><el-option value="page" label="页面权限"/><el-option value="operation" label="操作权限"/></el-select><el-select v-model="enabledFilter" clearable placeholder="全部状态" aria-label="权限状态"><el-option value="enabled" label="启用"/><el-option value="disabled" label="停用"/></el-select><span class="rbac-count">共 {{ filtered.length }} 个已接入权限</span></div><el-alert v-if="pageError" :title="pageError" type="error" :closable="false" class="rbac-error"/>
       <el-table :data="rows" class="rbac-table" empty-text="没有匹配权限"><el-table-column label="权限名称" min-width="210"><template #default="{row}"><strong :data-permission-code="row.code">{{ row.name }}</strong><div class="technical">{{ row.code }}</div></template></el-table-column><el-table-column prop="module" label="模块" min-width="100"/><el-table-column label="资源" min-width="130"><template #default="{row}">{{ resourceLabel(row.resource) }}</template></el-table-column><el-table-column label="类型 / 动作" width="130"><template #default="{row}"><div>{{ row.kind==='page'?'页面访问':'操作' }}</div><span class="technical">{{ actionLabel(row.action) }}</span></template></el-table-column><el-table-column label="路由或操作绑定" min-width="170"><template #default="{row}"><span class="technical">{{ row.route || row.code }}</span></template></el-table-column><el-table-column label="引用角色" width="100" align="right"><template #default="{row}"><el-button link type="primary" @click="showReferences(row)">{{ references(row.code).length }}</el-button></template></el-table-column><el-table-column label="状态" width="90"><template #default="{row}"><el-tag :type="row.enabled?'success':'info'">{{ row.enabled?'启用':'停用' }}</el-tag></template></el-table-column><el-table-column label="操作" width="150"><template #default="{row}"><div class="rbac-actions"><el-button link type="primary" :disabled="!store.can('system:permission:update')" @click="open(row)">编辑</el-button><el-button link @click="showReferences(row)">引用</el-button></div></template></el-table-column></el-table><div class="rbac-pagination"><el-pagination v-model:current-page="page" :page-size="20" :total="filtered.length" layout="total, prev, pager, next"/></div>
     </section>
@@ -8,6 +9,7 @@
   </div>
 </template>
 <script setup lang="ts">
+import RbacModeNotice from '../components/rbac/RbacModeNotice.vue'
 import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { resourceLabel, actionLabel } from '../components/rbac/presentation'

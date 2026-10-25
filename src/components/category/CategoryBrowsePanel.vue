@@ -8,7 +8,7 @@
         <el-button v-if="closable" link :aria-label="`关闭${title}`" @click="$emit('close')">关闭</el-button>
       </div>
     </header>
-    <el-input v-model="keyword" placeholder="搜索并定位分类" :aria-label="`${title}搜索分类`" clearable />
+    <el-input v-model="keyword" :disabled="!!rootId" placeholder="搜索并定位分类" :aria-label="`${title}搜索分类`" clearable />
     <div ref="scrollBox" class="category-scroll" @dragover.capture="edgeScroll" @dragleave="leaveScroll">
       <div v-for="row in rows" :key="row.id" class="cat-row" :data-id="row.id"
         :class="rowClasses(row.id)" :style="{ paddingLeft: `${8 + row.depth * 16}px` }"
@@ -40,9 +40,9 @@
           </el-dropdown>
         </div>
       </div>
-      <el-empty v-if="!rows.length" :description="keyword ? '没有匹配的分类' : '还没有分类'" :image-size="55" />
+      <el-empty v-if="!rows.length" :description="keyword ? '没有匹配的分类' : emptyDescription || '还没有分类'" :image-size="55" />
     </div>
-    <footer v-if="sourceId && editing" class="move-target">
+    <footer v-if="sourceId && editing && !hideMoveFooter" class="move-target">
       <span>移动「{{ sourceName }}」 · 目标父级：{{ selectedPath || '请在本栏选择分类' }}</span>
       <el-button type="primary" :disabled="busy || !selected || !!targetMessage" @click="$emit('move',selected)">确认移入</el-button>
       <small v-if="targetMessage">{{ targetMessage }}</small>
@@ -59,6 +59,7 @@ const props = defineProps<{
   closable: boolean; badges: Map<string, number>; sourceId: string; dragging: boolean
   drop?: { panelId: string; id: string; position: DropPosition; message: string } | null
   blockTarget: (id: string) => string
+  rootId?: string; hideMoveFooter?: boolean; emptyDescription?: string
 }>()
 const emit = defineEmits<{
   close: []; select: [id: string]; stage: [id: string]; move: [id: string]
@@ -72,7 +73,15 @@ const expanded = ref(new Set(categoryChain(props.categories, props.initialId).sl
 const closed = ref(new Set<string>()), scrollBox = ref<HTMLElement>()
 const renameId = ref(''), renameValue = ref(''), renameInput = ref<HTMLInputElement[]>([])
 let renaming = false, alive = true, suppressClickUntil = 0, scrollFrame = 0, scrollSpeed = 0
-const rows = computed(() => visibleCategoryRows(props.categories, expanded.value, keyword.value, closed.value))
+const browseCategories = computed(() => {
+  if(!props.rootId)return props.categories
+  const ids=new Set<string>([props.rootId]);let changed=true
+  while(changed){changed=false;for(const row of props.categories)if(row.parentId&&ids.has(row.parentId)&&!ids.has(row.id)){ids.add(row.id);changed=true}}
+  return props.categories.filter(row=>ids.has(row.id)).map(row=>row.id===props.rootId?{...row,parentId:null}:row)
+})
+const rows = computed(() => visibleCategoryRows(browseCategories.value, expanded.value, props.rootId?'':keyword.value, closed.value))
+watch(()=>props.rootId,id=>{if(id){keyword.value='';selected.value=id;expanded.value=new Set(branchIds(browseCategories.value));closed.value=new Set()}},{immediate:true})
+function clearSearch(){keyword.value='';located.value=''}
 const sourceName = computed(() => props.categories.find(item => item.id === props.sourceId)?.name || '来源已不存在')
 const selectedPath = computed(() => categoryPathLabel(props.categories, selected.value))
 const targetMessage = computed(() => selected.value ? props.blockTarget(selected.value) : '')
@@ -96,8 +105,8 @@ function toggle(id: string) {
   if (row.expanded) { expanded.value.delete(id); closed.value.add(id) }
   else { expanded.value.add(id); closed.value.delete(id) }
 }
-function expandAll() { expanded.value = new Set(branchIds(props.categories)); closed.value = new Set() }
-function collapseAll() { expanded.value = new Set(); closed.value = new Set(branchIds(props.categories)) }
+function expandAll() { expanded.value = new Set(branchIds(browseCategories.value)); closed.value = new Set() }
+function collapseAll() { expanded.value = new Set(); closed.value = new Set(branchIds(browseCategories.value)) }
 function pick(id: string, toggleInView = false, keyboard = false) {
   if ((!keyboard && Date.now() < suppressClickUntil) || props.dragging) return
   selected.value = id; emit('select',id)
@@ -157,7 +166,7 @@ function edgeScroll(event: DragEvent) {
   }
 }
 onBeforeUnmount(() => { alive = false; stopScroll() })
-defineExpose({ reveal, selectedId: selected })
+defineExpose({ reveal, selectedId: selected, clearSearch })
 </script>
 <style scoped>
 .category-panel{min-width:0;padding:16px;display:flex;flex-direction:column;gap:12px}.category-panel header,.panel-actions{display:flex;align-items:center;justify-content:space-between;gap:8px}.panel-actions{flex-wrap:wrap}.category-scroll{height:clamp(300px,62vh,720px);overflow:auto;overscroll-behavior:contain;position:relative;border:1px solid var(--el-border-color-lighter);border-radius:6px}.cat-row{display:flex;align-items:center;gap:6px;min-height:40px;padding-right:8px;border-bottom:1px solid var(--el-border-color-extra-light);position:relative;color:var(--el-text-color-primary)}.cat-row[draggable=true]{cursor:grab}.cat-row:hover,.cat-row:focus-within{background:var(--el-fill-color-light)}.cat-row.is-active{background:var(--el-color-primary-light-9)}.cat-row.is-located{border-left:3px solid var(--el-color-primary)}.cat-row.is-source .cat-name{font-weight:650}.cat-expand{border:0;background:none;color:var(--el-text-color-secondary);width:24px;flex:none;cursor:pointer}.cat-name{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:14px}.cat-ops{display:flex;gap:6px}.cat-ops .el-button{margin:0}.muted{color:var(--el-text-color-secondary);font-size:12px}.cat-rename{width:100%;min-width:0;background:var(--el-bg-color);color:var(--el-text-color-primary);border:1px solid var(--el-color-primary);padding:4px}.is-drop-before::before,.is-drop-after::after{content:'';position:absolute;left:0;right:0;height:3px;background:var(--el-color-primary);z-index:2}.is-drop-before::before{top:0}.is-drop-after::after{bottom:0}.is-drop-inner{outline:2px dashed var(--el-color-primary);outline-offset:-2px;background:var(--el-color-primary-light-8)}.is-drop-ban{outline:2px dashed var(--el-color-danger);outline-offset:-2px;background:var(--el-color-danger-light-9)}.move-target{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;font-size:13px}.move-target span{overflow-wrap:anywhere}.move-target small{width:100%;color:var(--el-color-warning-dark-2)}mark{background:var(--el-color-warning-light-7);color:inherit}.cat-row:focus-visible{outline:2px solid var(--el-color-primary);outline-offset:-2px}

@@ -6,7 +6,7 @@
     "current remains node-only; subtree inherits to real descendants; sibling isolated until explicit link",
     "export/restore/reload retain relations; MAT/model deletion blocked; original scope filing cannot unlink",
     "unlink affects only explicit relation; original MAT and other paths survive; revoked request cannot resurrect",
-    "stale preview and operator commands/import refused; import role spoof does not authorize",
+    "stale preview and structural protection retained; strict operator commands/import refused, default uniform administrator explicit",
     "malformed association containers/records rejected before memory or storage changes",
     "new-version explicit preview/confirmation adds new relation; V1 snapshot and coverage unchanged",
     "existing full-PLN MAT reused without changing original planningId/version/node IDs/code/family",

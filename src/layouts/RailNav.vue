@@ -52,8 +52,8 @@
     <nav v-if="layout==='dual'&&shownGroup" id="nav-flyout" ref="flyoutRef" class="flyout" :class="{'is-pop':!docked,'is-dock':docked}" :style="!docked?popStyle:undefined" :aria-label="shownGroup.title" @mouseenter="cancelClose" @keydown="onFlyoutKeydown">
       <header class="flyout-head"><strong>{{shownGroup.title}}</strong><button class="nav-pin" data-nav-pin :aria-pressed="pinned" :aria-label="pinned?'取消固定菜单':'固定菜单'" :title="pinned?'取消固定菜单':'固定菜单'" @click="togglePin"><el-icon :size="18"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8l-1 7 3 3v2H6v-2l3-3ZM12 15v7"/></svg></el-icon></button></header>
       <div class="flyout-body">
-        <a v-for="item in shownGroup.items" :key="item.index" class="flyout-link" :class="{'is-current':active===item.index}" :href="hrefOf(item.index)" :aria-current="active===item.index?'page':undefined" :data-index="item.index" @click="go($event,item.index)"><el-icon aria-hidden="true"><component :is="menuRouteIcon(item.index)"/></el-icon><span class="menu-label">{{item.title}}</span></a>
-        <section v-for="section in shownGroup.sections" :key="section.key" class="flyout-section"><h3 :class="{'is-current':section.items.some(item=>item.index===active)}"><el-icon aria-hidden="true"><FolderOpened/></el-icon><span class="menu-label">{{section.title}}</span></h3><a v-for="item in section.items" :key="item.index" class="flyout-link" :class="{'is-current':active===item.index}" :href="hrefOf(item.index)" :aria-current="active===item.index?'page':undefined" :data-index="item.index" @click="go($event,item.index)"><el-icon aria-hidden="true"><component :is="menuRouteIcon(item.index)"/></el-icon><span class="menu-label">{{item.title}}</span></a></section>
+        <div v-if="shownGroup.items.length" class="flyout-direct"><a v-for="item in shownGroup.items" :key="item.index" class="flyout-link" :class="{'is-current':active===item.index}" :href="hrefOf(item.index)" :aria-current="active===item.index?'page':undefined" :data-index="item.index" @click="go($event,item.index)"><el-icon aria-hidden="true"><component :is="menuRouteIcon(item.index)"/></el-icon><span class="menu-label">{{item.title}}</span></a></div>
+        <div class="flyout-sections"><section v-for="(section,sectionIndex) in shownGroup.sections" :key="section.key" :data-section-key="section.key" class="flyout-section" :class="{'is-paired-left':sectionIndex % 2 === 0 && sectionIndex + 1 < shownGroup.sections.length,'is-next-row':sectionIndex >= 2,'is-unpaired':sectionIndex === shownGroup.sections.length - 1 && shownGroup.sections.length % 2 === 1}"><h3 :class="{'is-current':section.items.some(item=>item.index===active)}"><el-icon aria-hidden="true"><FolderOpened/></el-icon><span class="menu-label">{{section.title}}</span></h3><a v-for="item in section.items" :key="item.index" class="flyout-link" :class="{'is-current':active===item.index}" :href="hrefOf(item.index)" :aria-current="active===item.index?'page':undefined" :data-index="item.index" @click="go($event,item.index)"><el-icon aria-hidden="true"><component :is="menuRouteIcon(item.index)"/></el-icon><span class="menu-label">{{item.title}}</span></a></section></div>
       </div>
     </nav>
   </div>
@@ -197,7 +197,7 @@ onBeforeUnmount(()=>{cancelClose();cancelLayoutClose();document.removeEventListe
 .rail-btn:hover, .rail-btn.is-open { background: var(--nav-hover); color: var(--text-primary); }
 .rail-btn.is-current, .rail-btn.is-current:hover { background: var(--nav-current-bg); color: var(--nav-current-text); }
 .rail-btn:focus-visible { outline: 2px solid var(--app-accent); outline-offset: -3px; }
-.flyout { width: 228px; max-width: calc(100vw - 66px); background: var(--flyout-bg); color: var(--flyout-text); display: flex; flex-direction: column; min-height: 0; }
+.flyout { width: 520px; max-width: calc(100vw - 66px); background: var(--flyout-bg); color: var(--flyout-text); display: flex; flex-direction: column; min-height: 0; }
 .flyout.is-pop {
   position: fixed;
   z-index: 30;
@@ -206,7 +206,7 @@ onBeforeUnmount(()=>{cancelClose();cancelLayoutClose();document.removeEventListe
   border-radius: 0 10px 10px 0;
   box-shadow: var(--shadow-pop);
 }
-.flyout.is-dock { position: relative; height: 100%; width: 228px; flex: none; border-right: 1px solid var(--flyout-border); }
+.flyout.is-dock { position: relative; height: 100%; width: 520px; flex: none; border-right: 1px solid var(--flyout-border); }
 .flyout-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 14px 12px 8px; }
 .flyout-head strong { font-size: 15px; font-weight: 700; color: var(--text-primary); }
 .flyout-link:focus-visible, .flyout-shortcut:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 1px; }
@@ -226,7 +226,12 @@ onBeforeUnmount(()=>{cancelClose();cancelLayoutClose();document.removeEventListe
 }
 .flyout-shortcut:hover { background: var(--flyout-hover); }
 .flyout-shortcut.is-current { background: var(--flyout-current-bg); color: var(--flyout-current-text); }
-.flyout-section { min-width: 0; margin-top: 16px; }
+.flyout-direct { width: 100%; padding-bottom: 8px; }
+.flyout-sections { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-auto-flow: row; }
+.flyout-section { min-width: 0; margin: 0; padding: 16px 10px; }
+.flyout-section.is-paired-left { border-right: 1px solid var(--flyout-border); }
+.flyout-section.is-next-row { border-top: 1px solid var(--flyout-border); }
+.flyout-section.is-unpaired { grid-column: 1 / -1; }
 .flyout-section h3 { display: grid; grid-template-columns: 16px minmax(0,1fr); align-items: start; gap: 6px; margin: 0 8px 4px; font-size: 12px; line-height: 20px; font-weight: 500; color: var(--text-secondary); }
 .flyout-section h3 .el-icon { font-size: 14px; height: 20px; }
 .flyout-section h3.is-current { font-weight: 600; }
@@ -267,4 +272,10 @@ onBeforeUnmount(()=>{cancelClose();cancelLayoutClose();document.removeEventListe
 .compact-entry.is-current {background:var(--nav-current-bg);color:var(--nav-current-text)}
 .compact-section {border-top:1px solid var(--border-default);margin-top:5px}
 .menu-recovery:focus-visible,.nav-pin:focus-visible,.compact-entry:focus-visible {outline:2px solid var(--app-accent);outline-offset:-2px}
+@media (max-width: 700px) {
+  .flyout-sections { grid-template-columns: minmax(0,1fr); }
+  .flyout-section.is-paired-left { border-right: 0; }
+  .flyout-section + .flyout-section { border-top: 1px solid var(--flyout-border); }
+  .flyout-section.is-unpaired { grid-column: auto; }
+}
 </style>

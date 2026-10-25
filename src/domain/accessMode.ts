@@ -1,2 +1,2 @@
-/** RBAC is retained for later activation. Current product work runs as one unrestricted mock administrator. */
-export const RBAC_ENFORCEMENT_ENABLED = false
+/** Explicit opt-in for RBAC tests/future activation. Normal development and production builds stay unrestricted. */
+export const RBAC_ENFORCEMENT_ENABLED = import.meta.env.VITE_RBAC_ENFORCEMENT === 'true'

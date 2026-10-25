@@ -1,3 +1,4 @@
+import { RBAC_ENFORCEMENT_ENABLED } from '../src/domain/accessMode'
 import assert from 'node:assert/strict'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { createPinia,setActivePinia } from 'pinia'
@@ -58,12 +59,19 @@ assert(!(await store.saveMaterialRelation({...linkInput,basis:materialRelationBa
 pass('unlink affects only explicit relation; original MAT and other paths survive; revoked request cannot resurrect')
 const stale=materialRelationBasis(store.data);store.data.skus.find(s=>s.id===mat.id)!.materialDescription='later';await store.waitForPersistence()
 assert(!(await store.saveMaterialRelation({...linkInput,requestId:'stale',basis:stale})).ok)
-store.setRole('operator');await store.waitForPersistence();const operatorBefore=store.exportJson(),operatorRaw=disk.get(STORAGE_KEY)
-const altered=JSON.parse(operatorBefore);altered.data.activeRole='admin';altered.data.materialRelations[0].source.scope='current'
-await assert.rejects(()=>store.importJson(JSON.stringify(altered)),/仅可查看物料关联/);assert.equal(store.exportJson(),operatorBefore);assert.equal(disk.get(STORAGE_KEY),operatorRaw)
-assert(!(await store.saveMaterialRelation({...linkInput,requestId:'operator',basis:materialRelationBasis(store.data)})).ok)
-store.setRole('admin');await store.waitForPersistence()
-pass('stale preview and operator commands/import refused; import role spoof does not authorize')
+const operatorBackup=store.exportJson(),operatorBefore=JSON.stringify(store.data),operatorRaw=disk.get(STORAGE_KEY)
+assert(store.startPermissionPreview(store.data.users.find(user=>user.role==='operator')!.id).ok)
+const altered=JSON.parse(operatorBackup);altered.data.activeRole='admin';altered.data.materialRelations[0].source.scope='current'
+if(RBAC_ENFORCEMENT_ENABLED){
+  await assert.rejects(async()=>store.importJson(JSON.stringify(altered)),/未授权|仅可查看|无权/)
+  await assert.rejects(async()=>store.saveMaterialRelation({...linkInput,requestId:'operator',basis:materialRelationBasis(store.data)}),/未授权|仅可查看|无权/)
+}else{
+  assert(store.isAdmin&&store.can('product:material:create'))
+  await assert.rejects(()=>store.importJson(JSON.stringify(altered)),/关联.*校验失败/)
+}
+assert.equal(JSON.stringify(store.data),operatorBefore);assert.equal(disk.get(STORAGE_KEY),operatorRaw)
+store.stopPermissionPreview()
+pass('stale preview and structural protection retained; strict operator commands/import refused, default uniform administrator explicit')
 for(const bad of [{},[null],[{id:'bad'}]]){const broken=JSON.parse(store.exportJson());broken.data.materialRelations=bad;const before=store.exportJson(),raw=disk.get(STORAGE_KEY);await assert.rejects(()=>store.importJson(JSON.stringify(broken)),/关联.*校验失败/);assert.equal(store.exportJson(),before);assert.equal(disk.get(STORAGE_KEY),raw);assert.throws(()=>normalizeStored(broken),/关联.*校验失败/)}
 pass('malformed association containers/records rejected before memory or storage changes')
 const added={...store.data.productSpecNodes.find(n=>n.id==='r02-blue-256')!,id:'r02-new-color',valueId:'颜色2',sort:2};store.data.productSpecNodes.push(added);await store.waitForPersistence();assert((await store.publishSpecModel(f.modelId)).ok)

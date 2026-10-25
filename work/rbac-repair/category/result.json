@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "stage only changes presentation; left excludes source+descendants, right preserves full selected subtree and hierarchy; cancel restores without any write",
+    "closing the source pane cancels the staged move",
+    "typed target and self-descendant moves remain rejected without mutating memory or disk",
+    "write failure keeps source/target and entire original state; retry commits once, opens ancestors and selects source; business/history remain unchanged",
+    "leaf selection shows only that leaf; explicit root target commits and survives refresh",
+    "read-only category identity has no move control and direct atomic command is denied unchanged"
+  ],
+  "errors": [],
+  "browser": "156.0.8078.47"
+}

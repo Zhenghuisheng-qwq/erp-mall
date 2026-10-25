@@ -1,7 +1,7 @@
 <template>
   <div data-category-workspace>
-    <PageHead title="商品分类中心" desc="分别浏览两边的分类，保留来源后拖动或选择目标移动。">
-      <el-button v-if="panels.length === 1" data-open-category-panel @click="openPanel">打开双栏</el-button>
+    <PageHead title="商品分类中心" desc="左侧选择分类并点击移动，在右侧暂存子树，再选择目标父级确认。">
+      <el-button v-if="panels.length === 1" data-open-category-panel @click="openPanel">打开待移动区</el-button>
     </PageHead>
     <div class="workspace-toolbar">
       <el-radio-group v-model="treeMode" aria-label="分类操作模式">
@@ -14,7 +14,7 @@
     </div>
     <div v-if="staged" class="source-strip" data-category-source>
       <div><strong>待移动：{{ sourcePath }}</strong><span>包含 {{ sourceDescendants }} 个子分类</span></div>
-      <div class="source-actions"><el-button link @click="locateSource">定位来源</el-button><el-button v-if="editing" :disabled="saving || !!saveError" @click="performMove({id:staged.id,targetId:null},activePanel)">移为根分类</el-button><el-button link @click="staged = null">取消移动</el-button></div>
+      <div class="source-actions"><el-button link @click="locateSource">定位来源</el-button><el-button v-if="editing" :disabled="saving" :type="moveTarget === null ? 'primary' : 'default'" data-category-root-target @click="chooseMoveTarget(null)">选择顶级分类</el-button><el-button link :disabled="saving" @click="cancelMove()">取消移动</el-button></div>
     </div>
     <el-alert v-if="saveError" :title="saveError" type="error" :closable="false" data-category-save-error>
       <el-button :loading="saving" @click="retrySave">重试保存当前结果</el-button>
@@ -24,15 +24,24 @@
     <p v-if="dropState" class="drop-hint" :class="{blocked: !!dropState.message}" role="status">{{ dropState.message || `放置方式：${dropLabels[dropState.position]}` }}</p>
     </div>
     <div class="cat-layout" :class="{ 'is-dual': panels.length === 2 }">
-      <CategoryBrowsePanel v-for="panel in panels" :key="panel.id" :ref="el => bindPanel(panel.id,el)"
-        :panel-id="panel.id" :title="panel.title" :categories="store.data.categories" :initial-id="panel.initialId"
-        :editing="editing" :busy="saving || !!saveError" :closable="panels.length > 1" :badges="productBadges"
+      <div v-for="panel in panels" :key="panel.id" class="category-pane" :class="{'is-move-source':staged && panel.id !== panels[0]?.id}">
+      <CategoryBrowsePanel :ref="el => bindPanel(panel.id,el)"
+        :panel-id="panel.id" :title="staged ? panel.id === panels[0]?.id ? '选择目标父级' : '待移动分类' : panel.title" :categories="panelCategories(panel.id)" :initial-id="panel.initialId"
+        :root-id="staged && panel.id !== panels[0]?.id ? staged.id : undefined" :hide-move-footer="!!staged" :empty-description="!staged && panel.id !== panels[0]?.id ? '从左侧分类行选择移动' : undefined"
+        :editing="editing && !(staged && panel.id !== panels[0]?.id)" :busy="saving || !!saveError" :closable="panels.length > 1 && (!staged || panel.id !== panels[0]?.id)" :badges="productBadges"
         :source-id="staged?.id || ''" :dragging="!!drag" :drop="dropState" :block-target="targetBlock"
         @close="closePanel(panel.id)" @select="id => selectInPanel(panel.id,id)"
-        @stage="id => stageSource(panel.id,id)" @move="targetId => staged && performMove({id:staged.id,targetId},panel.id)"
+        @stage="id => stageSource(panel.id,id)" @move="targetId => staged && chooseMoveTarget(targetId)"
         @action="(id,action) => panelAction(panel.id,id,action)" @rename="renameCategory"
         @dragstart="(id,event) => startDrag(panel.id,id,event)" @dragover="(id,position,event) => dragOver(panel.id,id,position,event)"
         @drop="(id,position,event) => drop(panel.id,id,position,event)" @dragend="cancelDrag()" />
+      <section v-if="staged && panel.id !== panels[0]?.id" class="panel move-confirm-panel" data-category-move-confirm>
+        <strong>移动到：{{ moveTargetPath }}</strong>
+        <p v-if="moveTargetProblem" class="issue-error">{{ moveTargetProblem }}</p>
+        <el-alert v-if="moveError" :title="moveError" type="error" :closable="false" data-category-move-error />
+        <div class="row-actions"><el-button :disabled="saving" @click="cancelMove()">取消移动</el-button><el-button type="primary" :loading="saving" :disabled="!editing || moveTarget === undefined || !!moveTargetProblem" data-category-confirm-move @click="confirmStagedMove">{{ moveError ? '重试移动' : '确认移动' }}</el-button></div>
+      </section>
+      </div>
       <section v-if="current && (panels.length === 1 || detailsOpen)" class="panel cat-detail">
         <h2>{{ current.name }}</h2>
         <div class="info-card">
@@ -109,7 +118,7 @@
 
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import PageHead from '../components/PageHead.vue'
 import CategoryBrowsePanel from '../components/category/CategoryBrowsePanel.vue'
@@ -129,6 +138,40 @@ let panelSequence = 1, interactionSequence = 0, contextEpoch = 0, alive = true
 const saving = ref(false), saveError = ref(''), interactionMessage = ref('')
 const canMutate = () => alive && editing.value && !saving.value && !saveError.value
 const staged = ref<{id:string; panelId:string} | null>(null)
+const moveTarget = ref<string | null | undefined>(), moveError = ref('')
+let beforeMove: { panels: {id:string;title:string;initialId:string}[]; selected:string; activePanel:string } | null = null
+const moveTargetPath = computed(() => moveTarget.value === undefined ? '请在左侧选择分类' : moveTarget.value === null ? '顶级分类' : categoryChain(store.data.categories,moveTarget.value).map(item=>item.name).join(' / '))
+const moveTargetProblem = computed(() => {
+  if (!staged.value || moveTarget.value === undefined) return ''
+  const check = previewCategoryMove(store.data.categories,{id:staged.value.id,targetId:moveTarget.value},typedIds.value)
+  return check.message || (!check.changed ? '位置没有变化，请选择其他目标父级。' : '')
+})
+function panelCategories(panelId:string) {
+  if(panelId !== panels.value[0]?.id){if(!staged.value)return [];const included=new Set([staged.value.id,...descendantIds(store.data.categories,staged.value.id)]);return store.data.categories.filter(item=>included.has(item.id))}
+  if (!staged.value) return store.data.categories
+  const excluded = new Set([staged.value.id,...descendantIds(store.data.categories,staged.value.id)])
+  return store.data.categories.filter(item=>!excluded.has(item.id))
+}
+function chooseMoveTarget(id:string|null) { if (saving.value || !staged.value) return; moveTarget.value=id; moveError.value='' }
+function cancelMove(closeRight=false) {
+  if (saving.value) return
+  const previous=beforeMove
+  staged.value=null;moveTarget.value=undefined;moveError.value='';beforeMove=null;cancelDrag()
+  if(previous){panels.value=closeRight?previous.panels.slice(0,1):previous.panels;selected.value=previous.selected;activePanel.value=previous.activePanel;void nextTick(()=>panelRefs.get(panels.value[0]!.id)?.reveal(previous.selected,true))}
+}
+async function confirmStagedMove() {
+  if (!staged.value || saving.value || !editing.value || moveTarget.value === undefined || moveTargetProblem.value) return
+  const source=staged.value.id,target=moveTarget.value,previous=beforeMove
+  saving.value=true;moveError.value=''
+  try {
+    const result=await store.commitCategoryMove(source,target)
+    if(!result.ok){moveError.value=result.message||'移动未保存，来源和目标选择已保留。';return}
+    staged.value=null;moveTarget.value=undefined;beforeMove=null;panels.value=previous?.panels||panels.value.slice(0,1);selected.value=source;activePanel.value=panels.value[0]!.id
+    await nextTick();panelRefs.get(activePanel.value)?.reveal(source,true);ElMessage.success('分类已移动并保存')
+  } catch(cause) { moveError.value=cause instanceof Error?cause.message:'移动未保存，来源和目标选择已保留。' }
+  finally {saving.value=false}
+}
+
 const drag = shallowRef<{id:string; panelId:string; stamp:string; epoch:number; token:string} | null>(null)
 const dropState = ref<{panelId:string; id:string; position:DropPosition; message:string} | null>(null)
 const dropLabels = {before:'目标之前',after:'目标之后',inner:'作为目标的子分类'}
@@ -173,26 +216,27 @@ function bindPanel(id: string, element: unknown) {
 function openPanel() {
   if (panels.value.length > 1) return
   panelSequence++
-  panels.value.push({id:`panel-${panelSequence}`,title:`分类栏 ${String.fromCharCode(64 + panelSequence)}`,initialId:staged.value?.id || selected.value})
+  panels.value.push({id:`panel-${panelSequence}`,title:'待移动分类',initialId:staged.value?.id || selected.value})
 }
 function closePanel(id: string) {
+  if(staged.value && id !== panels.value[0]?.id){cancelMove(true);return}
   if (panels.value.length < 2) return
   if (drag.value?.panelId === id || dropState.value?.panelId === id) cancelDrag('面板已关闭，本次拖动已取消。')
   panels.value = panels.value.filter(panel => panel.id !== id)
   if (activePanel.value === id) { activePanel.value = panels.value[0]!.id; selected.value = panelRefs.get(activePanel.value)?.selectedId || '' }
   detailsOpen.value = false
 }
-function selectInPanel(panelId: string, id: string) { activePanel.value = panelId; selected.value = id }
+function selectInPanel(panelId: string, id: string) { activePanel.value = panelId; selected.value = id; if(staged.value && panelId === panels.value[0]?.id)chooseMoveTarget(id) }
 function pick(id: string) { selected.value = id; panelRefs.get(activePanel.value)?.reveal(id,true) }
 function reveal(id: string) { panelRefs.get(activePanel.value)?.reveal(id) }
 function stageSource(panelId: string, id: string) {
   if (!canMutate() || !store.data.categories.some(item => item.id === id)) return
-  cancelDrag(); staged.value = {id,panelId}; interactionMessage.value = ''; openPanel()
+  cancelDrag();if(!staged.value)beforeMove={panels:panels.value.map(item=>({...item})),selected:selected.value,activePanel:activePanel.value};staged.value = {id,panelId};moveTarget.value=undefined;moveError.value='';interactionMessage.value='';openPanel();void nextTick(()=>panelRefs.get(panels.value[0]!.id)?.clearSearch())
 }
 function openMove(id: string) { stageSource(activePanel.value,id) }
 function locateSource() {
   if (!staged.value) return
-  const id = panels.value.some(panel => panel.id === staged.value?.panelId) ? staged.value.panelId : panels.value[0]!.id
+  const id = panels.value[1]?.id || panels.value[0]!.id
   panelRefs.get(id)?.reveal(staged.value.id,true)
 }
 function targetBlock(targetId: string) {
@@ -288,7 +332,7 @@ watch(() => [treeMode.value, store.editorGeneration, store.activeUserId, store.c
   contextEpoch++
   if (drag.value) cancelDrag('操作上下文已变化，尚未提交的拖动已取消。')
   else interactionMessage.value = ''
-  if (!editing.value) { createOpen.value = false; editOpen.value = false }
+  if (!editing.value) { createOpen.value = false; editOpen.value = false; if(staged.value&&!saving.value)cancelMove() }
 }, {flush:'sync'})
 watch(() => store.editorGeneration, () => { staged.value = null })
 function escape(event: KeyboardEvent) { if (event.key === 'Escape' && drag.value) { event.preventDefault(); cancelDrag('已取消拖动。') } }
@@ -429,6 +473,8 @@ function openScheme() {
 }
 </script>
 <style scoped>
+.category-pane{min-width:0}.is-move-source :deep(.category-scroll){height:clamp(180px,34vh,420px)}.move-confirm-panel{margin-top:12px;padding:16px;overflow-wrap:anywhere}.move-confirm-panel>strong{font-size:14px}.move-confirm-panel .el-alert{margin-top:10px}
+
 .cat-layout{display:grid;grid-template-columns:minmax(350px,1.2fr) minmax(280px,1fr);gap:16px;align-items:start}.cat-layout > :deep(.panel){margin:0}.cat-layout.is-dual{grid-template-columns:repeat(2,minmax(0,1fr))}.is-dual>.cat-detail{grid-column:1/-1}.workspace-toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}.muted{color:var(--el-text-color-secondary);font-size:13px}.source-strip{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;margin-bottom:14px;border:1px solid var(--el-color-primary-light-7);background:var(--el-color-primary-light-9);border-radius:8px}.source-strip>div:first-child{display:flex;flex-direction:column;gap:5px;min-width:0;overflow-wrap:anywhere}.source-strip span{font-size:13px;color:var(--el-text-color-secondary)}.source-actions{display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0}.operation-status{height:48px;overflow:auto}.interaction-message,.drop-hint{font-size:14px;line-height:1.6;color:var(--el-text-color-secondary);margin:10px 0}.drop-hint{color:var(--el-color-primary)}.drop-hint.blocked{color:var(--el-color-danger)}.cat-detail{padding:20px;min-width:0}.cat-detail h2{font-size:20px}.info-card{padding:12px 0;border-bottom:1px solid var(--el-border-color-lighter)}.info-card h3{font-size:13px;color:var(--el-text-color-secondary);margin:0 0 8px}.info-card p{display:flex;gap:12px;font-size:14px;line-height:26px;margin:0;overflow-wrap:anywhere}.info-card p>span:first-child{flex:none;color:var(--el-text-color-secondary)}.card-links,.row-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 @media(max-width:1100px){.cat-layout,.cat-layout.is-dual{grid-template-columns:1fr}.source-strip{align-items:flex-start;flex-direction:column}.workspace-toolbar .muted{width:100%}}
 </style>

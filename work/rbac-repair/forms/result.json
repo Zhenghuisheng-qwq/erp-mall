@@ -1,0 +1,10 @@
+{
+  "checks": [
+    "brand create-only fields enabled; missing dictionary permission rejects atomically and preserves retryable draft",
+    "brand create + dictionary update succeeds in one commit; write failure leaves both collections/disk intact and draft retries",
+    "rule create-only saves and copies through draft; storage failure preserves memory/disk/input and retry recovers",
+    "SPU missing publish permission and thrown action both release saving and preserve draft; subsequent valid save succeeds"
+  ],
+  "errors": [],
+  "browser": "156.0.8078.47"
+}

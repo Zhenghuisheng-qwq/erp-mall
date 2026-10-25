@@ -19,7 +19,7 @@
           <template #default="{ row }">当 {{ conditionText(row) }}，则 {{ paramName(row.targetParamId) }} 可选 {{ row.options.join('、') || '无' }}</template>
         </el-table-column>
         <el-table-column label="启用" width="80">
-          <template #default="{ row }"><el-switch v-model="row.enabled"  :disabled="!(store.can('product:rule:update'))" /></template>
+          <template #default="{ row }"><el-switch :model-value="row.enabled" :disabled="saving || !store.can('product:rule:update')" @change="setEnabled(row, Boolean($event))" /></template>
         </el-table-column>
         <el-table-column label="操作" width="180">
           <template #default="{ row }">
@@ -57,7 +57,9 @@
       </div>
       <p v-for="line in testLines" :key="line.name" :class="line.status === 'uncovered' ? 'issue-warn' : line.status === 'empty' ? 'issue-error' : 'muted'">{{ line.name }}：{{ line.message }}</p>
     </div>
-    <el-drawer v-model="open" title="编辑规则" size="480px">
+    <el-drawer v-model="open" :title="isExisting ? '编辑规则' : '新增规则'" size="480px" :close-on-click-modal="!saving" :close-on-press-escape="!saving" :show-close="!saving">
+      <el-alert v-if="error" :title="error" type="error" :closable="false" data-rule-save-error style="margin-bottom:12px" />
+      <el-form :disabled="saving || !canSave">
       <el-select v-model="form.templateId" placeholder="属性方案" style="width: 100%; margin-bottom: 8px">
         <el-option v-for="item in store.data.templates" :key="item.id" :label="item.name" :value="item.id" />
       </el-select>
@@ -83,24 +85,28 @@
         <el-option v-for="value in valuesOf(form.targetParamId)" :key="value" :label="value" :value="value" />
       </el-select>
       <el-input v-model="form.note" placeholder="规则说明" style="margin-top: 8px" />
-      <el-button type="primary" style="margin-top: 12px" @click="save" :disabled="!(store.can('product:rule:update'))">保存</el-button>
+      <el-button type="primary" style="margin-top: 12px" :loading="saving" :disabled="!canSave" @click="save">保存</el-button>
+      </el-form>
     </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import PageHead from '../components/PageHead.vue'
 import { constraintOf, ruleConflicts, selectedById } from '../domain/logic'
 import type { SpecRule } from '../domain/types'
-import { uid, useCatalogStore } from '../stores/catalog'
+import { useCatalogStore } from '../stores/catalog'
 
 const store = useCatalogStore()
 const view = ref('list')
-const open = ref(false)
+const open = ref(false), saving = ref(false), error = ref('')
 const testTemplate = ref('t-phone')
 const testAttrs = reactive<Record<string, string>>({ 品牌: 'Apple', 系列: 'iPhone 17', 型号: 'iPhone 17', 容量: '256G' })
 const form = reactive<SpecRule>(blank())
+const isExisting = computed(() => store.data.rules.some(item => item.id === form.id))
+const canSave = computed(() => store.can(isExisting.value ? 'product:rule:update' : 'product:rule:create'))
 const activeRules = computed(() => store.data.rules.filter((item) => !item.legacy))
 const legacy = computed(() => store.data.rules.filter((item) => item.legacy))
 const conflicts = computed(() => ruleConflicts(store.data))
@@ -138,25 +144,39 @@ function conditionText(rule: SpecRule) {
   return rule.sourceParamIds.map((id) => `${paramName(id)}等于${rule.conditions[id] || '未选'}`).join('，且')
 }
 function edit(rule: SpecRule) {
+  if (saving.value || !store.can('product:rule:update')) return
+  error.value = ''
   Object.assign(form, JSON.parse(JSON.stringify(rule)) as SpecRule)
   open.value = true
 }
 function create() {
   if (!(store.can('product:rule:create'))) return
-  Object.assign(form, blank(), { id: uid('rule') })
+  Object.assign(form, blank()); error.value = ''
   open.value = true
 }
 function copy(rule: SpecRule) {
-  if (!(store.can('product:rule:create'))) return
-  store.data.rules.push({ ...JSON.parse(JSON.stringify(rule)), id: uid('rule'), note: `${rule.note} 副本` })
+  if (saving.value || !store.can('product:rule:create')) return
+  Object.assign(form, JSON.parse(JSON.stringify(rule)), { id: '', note: `${rule.note} 副本` })
+  error.value = ''; open.value = true
 }
-function save() {
-  if (!(store.can('product:rule:update'))) return
-  form.sourceParamIds = form.sourceParamIds.filter(Boolean)
-  const index = store.data.rules.findIndex((item) => item.id === form.id)
-  const copyRule = JSON.parse(JSON.stringify(form)) as SpecRule
-  if (index >= 0) store.data.rules[index] = copyRule
-  else store.data.rules.push(copyRule)
-  open.value = false
+async function save() {
+  if (saving.value) return
+  if (!canSave.value) { error.value = '没有保存此规则的权限。'; return }
+  const candidate = JSON.parse(JSON.stringify(form)) as SpecRule
+  candidate.sourceParamIds = candidate.sourceParamIds.filter(Boolean)
+  saving.value = true; error.value = ''
+  try {
+    const result = await store.saveRule(candidate)
+    if (!result.ok) { error.value = result.message || '规则未保存，当前输入已保留。'; return }
+    open.value = false; ElMessage.success('规则已保存')
+  } catch (cause) { error.value = cause instanceof Error ? cause.message : '规则保存失败，当前输入已保留，可重试。' }
+  finally { saving.value = false }
+}
+async function setEnabled(rule: SpecRule, enabled: boolean) {
+  if (saving.value || !store.can('product:rule:update')) return
+  saving.value = true
+  try { const result = await store.saveRule({ ...JSON.parse(JSON.stringify(rule)), enabled }); if (!result.ok) ElMessage.error(result.message || '规则状态未保存。') }
+  catch (cause) { ElMessage.error(cause instanceof Error ? cause.message : '规则状态未保存。') }
+  finally { saving.value = false }
 }
 </script>

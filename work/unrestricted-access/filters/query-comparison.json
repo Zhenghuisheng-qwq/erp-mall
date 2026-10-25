@@ -1,0 +1,3460 @@
+{
+  "original": [
+    {
+      "total": 6,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "主机 / 手机",
+          "label": "主机 / 手机",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-iphone",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 手表",
+          "label": "主机 / 手表",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-watch",
+              "family": {
+                "id": "f-watch",
+                "name": "Apple Watch 演示款",
+                "templateId": "t-watch",
+                "modelVersionId": "",
+                "categoryId": "c-watch",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42"
+                },
+                "productGroupIds": [
+                  "g-watch"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-12T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-12T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 平板",
+          "label": "主机 / 平板",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-pad",
+              "family": {
+                "id": "f-pad",
+                "name": "iPad Air 演示款",
+                "templateId": "t-pad",
+                "modelVersionId": "",
+                "categoryId": "c-pad",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPad",
+                  "型号": "iPad Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-11T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-11T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 电脑",
+          "label": "主机 / 电脑",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-mac",
+              "family": {
+                "id": "f-mac",
+                "name": "MacBook Air 演示款",
+                "templateId": "t-pc",
+                "modelVersionId": "",
+                "categoryId": "c-pc",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "MacBook",
+                  "型号": "MacBook Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-09T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-09T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "配件 / 保护及保护设备 / 保护膜",
+          "label": "配件 / 保护及保护设备 / 保护膜",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-film",
+              "family": {
+                "id": "f-film",
+                "name": "保护膜演示款",
+                "templateId": "t-film",
+                "modelVersionId": "",
+                "categoryId": "c-film",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple"
+                },
+                "productGroupIds": [
+                  "g-acc"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-08T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-08T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "出行 / 电助力车",
+          "label": "出行 / 电助力车",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-ebike",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "total": 1,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "主机 / 手机",
+          "label": "主机 / 手机",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-iphone",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "total": 0,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "empty",
+          "label": "",
+          "total": 0,
+          "rows": []
+        }
+      ]
+    },
+    {
+      "total": 1,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "出行 / 电助力车",
+          "label": "出行 / 电助力车",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-ebike",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "total": 6,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "主机 / 手机",
+          "label": "主机 / 手机",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-iphone",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 手表",
+          "label": "主机 / 手表",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-watch",
+              "family": {
+                "id": "f-watch",
+                "name": "Apple Watch 演示款",
+                "templateId": "t-watch",
+                "modelVersionId": "",
+                "categoryId": "c-watch",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42"
+                },
+                "productGroupIds": [
+                  "g-watch"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-12T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-12T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 平板",
+          "label": "主机 / 平板",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-pad",
+              "family": {
+                "id": "f-pad",
+                "name": "iPad Air 演示款",
+                "templateId": "t-pad",
+                "modelVersionId": "",
+                "categoryId": "c-pad",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPad",
+                  "型号": "iPad Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-11T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-11T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 电脑",
+          "label": "主机 / 电脑",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-mac",
+              "family": {
+                "id": "f-mac",
+                "name": "MacBook Air 演示款",
+                "templateId": "t-pc",
+                "modelVersionId": "",
+                "categoryId": "c-pc",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "MacBook",
+                  "型号": "MacBook Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-09T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-09T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "配件 / 保护及保护设备 / 保护膜",
+          "label": "配件 / 保护及保护设备 / 保护膜",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-film",
+              "family": {
+                "id": "f-film",
+                "name": "保护膜演示款",
+                "templateId": "t-film",
+                "modelVersionId": "",
+                "categoryId": "c-film",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple"
+                },
+                "productGroupIds": [
+                  "g-acc"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-08T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-08T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "出行 / 电助力车",
+          "label": "出行 / 电助力车",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-ebike",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "total": 10,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "主机 / 手机",
+          "label": "主机 / 手机",
+          "total": 2,
+          "rows": [
+            {
+              "id": "s-iphone-white",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-iphone-white",
+                "familyId": "f-iphone",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "白色",
+                  "配件": "简版",
+                  "网络版本": "A1533（电信）",
+                  "配置": "",
+                  "内存": "",
+                  "国家": "",
+                  "类型": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17",
+                  "容量": "256G",
+                  "颜色": "白色",
+                  "配件": "简版",
+                  "网络版本": "A1533（电信）"
+                }
+              }
+            },
+            {
+              "id": "s-iphone-blue",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-iphone-blue",
+                "familyId": "f-iphone",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "蓝色",
+                  "配件": "",
+                  "网络版本": "",
+                  "配置": "",
+                  "内存": "",
+                  "国家": "",
+                  "类型": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17",
+                  "容量": "256G",
+                  "颜色": "蓝色"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 手表",
+          "label": "主机 / 手表",
+          "total": 2,
+          "rows": [
+            {
+              "id": "s-watch-1",
+              "family": {
+                "id": "f-watch",
+                "name": "Apple Watch 演示款",
+                "templateId": "t-watch",
+                "modelVersionId": "",
+                "categoryId": "c-watch",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42"
+                },
+                "productGroupIds": [
+                  "g-watch"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-12T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-12T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-watch-1",
+                "familyId": "f-watch",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "连接": "Wi-Fi",
+                  "表壳": "铝金属表壳",
+                  "尺寸": "42MM",
+                  "颜色": "黑色",
+                  "表带类型": "运动表带",
+                  "表带颜色": "黑色",
+                  "表带尺码": "S/M"
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42",
+                  "连接": "Wi-Fi",
+                  "表壳": "铝金属表壳",
+                  "尺寸": "42MM",
+                  "颜色": "黑色",
+                  "表带类型": "运动表带",
+                  "表带颜色": "黑色",
+                  "表带尺码": "S/M"
+                }
+              }
+            },
+            {
+              "id": "s-watch-2",
+              "family": {
+                "id": "f-watch",
+                "name": "Apple Watch 演示款",
+                "templateId": "t-watch",
+                "modelVersionId": "",
+                "categoryId": "c-watch",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42"
+                },
+                "productGroupIds": [
+                  "g-watch"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-12T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-12T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-watch-2",
+                "familyId": "f-watch",
+                "code": "",
+                "oaSkuId": "",
+                "status": "draft",
+                "variantAttrs": {
+                  "连接": "WLAN Cellular",
+                  "表壳": "",
+                  "尺寸": "46MM",
+                  "颜色": "白色",
+                  "表带类型": "",
+                  "表带颜色": "",
+                  "表带尺码": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42",
+                  "连接": "WLAN Cellular",
+                  "尺寸": "46MM",
+                  "颜色": "白色"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 平板",
+          "label": "主机 / 平板",
+          "total": 1,
+          "rows": [
+            {
+              "id": "s-pad-1",
+              "family": {
+                "id": "f-pad",
+                "name": "iPad Air 演示款",
+                "templateId": "t-pad",
+                "modelVersionId": "",
+                "categoryId": "c-pad",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPad",
+                  "型号": "iPad Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-11T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-11T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-pad-1",
+                "familyId": "f-pad",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "蓝色",
+                  "连接": "Wi-Fi"
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPad",
+                  "型号": "iPad Air",
+                  "容量": "256G",
+                  "颜色": "蓝色",
+                  "连接": "Wi-Fi"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 电脑",
+          "label": "主机 / 电脑",
+          "total": 1,
+          "rows": [
+            {
+              "id": "s-mac-1",
+              "family": {
+                "id": "f-mac",
+                "name": "MacBook Air 演示款",
+                "templateId": "t-pc",
+                "modelVersionId": "",
+                "categoryId": "c-pc",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "MacBook",
+                  "型号": "MacBook Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-09T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-09T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-mac-1",
+                "familyId": "f-mac",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "配置": "M4 16GB/256GB",
+                  "颜色": "银色"
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "MacBook",
+                  "型号": "MacBook Air",
+                  "配置": "M4 16GB/256GB",
+                  "颜色": "银色"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "配件 / 保护及保护设备 / 保护膜",
+          "label": "配件 / 保护及保护设备 / 保护膜",
+          "total": 1,
+          "rows": [
+            {
+              "id": "s-film-1",
+              "family": {
+                "id": "f-film",
+                "name": "保护膜演示款",
+                "templateId": "t-film",
+                "modelVersionId": "",
+                "categoryId": "c-film",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple"
+                },
+                "productGroupIds": [
+                  "g-acc"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-08T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-08T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-film-1",
+                "familyId": "f-film",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "颜色": "透明",
+                  "配件": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "颜色": "透明"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "出行 / 电助力车",
+          "label": "出行 / 电助力车",
+          "total": 3,
+          "rows": [
+            {
+              "id": "s-ebike-12-white",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-12-white",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V12Ah",
+                  "车身颜色": "白色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V12Ah",
+                  "车身颜色": "白色"
+                },
+                "skuName": "48V12Ah 白色",
+                "sourceNodeIds": [
+                  "sn-ebike-12",
+                  "sn-ebike-12-white"
+                ]
+              }
+            },
+            {
+              "id": "s-ebike-12-black",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-12-black",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V12Ah",
+                  "车身颜色": "黑色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V12Ah",
+                  "车身颜色": "黑色"
+                },
+                "skuName": "48V12Ah 黑色",
+                "sourceNodeIds": [
+                  "sn-ebike-12",
+                  "sn-ebike-12-black"
+                ]
+              }
+            },
+            {
+              "id": "s-ebike-20-gray",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-20-gray",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V20Ah",
+                  "车身颜色": "灰色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V20Ah",
+                  "车身颜色": "灰色"
+                },
+                "skuName": "48V20Ah 灰色",
+                "sourceNodeIds": [
+                  "sn-ebike-20",
+                  "sn-ebike-20-gray"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "total": 2,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "主机 / 手机",
+          "label": "主机 / 手机",
+          "total": 2,
+          "rows": [
+            {
+              "id": "s-iphone-white",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-iphone-white",
+                "familyId": "f-iphone",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "白色",
+                  "配件": "简版",
+                  "网络版本": "A1533（电信）",
+                  "配置": "",
+                  "内存": "",
+                  "国家": "",
+                  "类型": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17",
+                  "容量": "256G",
+                  "颜色": "白色",
+                  "配件": "简版",
+                  "网络版本": "A1533（电信）"
+                }
+              }
+            },
+            {
+              "id": "s-iphone-blue",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-iphone-blue",
+                "familyId": "f-iphone",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "蓝色",
+                  "配件": "",
+                  "网络版本": "",
+                  "配置": "",
+                  "内存": "",
+                  "国家": "",
+                  "类型": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17",
+                  "容量": "256G",
+                  "颜色": "蓝色"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "total": 0,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "empty",
+          "label": "",
+          "total": 0,
+          "rows": []
+        }
+      ]
+    },
+    {
+      "total": 3,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "出行 / 电助力车",
+          "label": "出行 / 电助力车",
+          "total": 3,
+          "rows": [
+            {
+              "id": "s-ebike-12-white",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-12-white",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V12Ah",
+                  "车身颜色": "白色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V12Ah",
+                  "车身颜色": "白色"
+                },
+                "skuName": "48V12Ah 白色",
+                "sourceNodeIds": [
+                  "sn-ebike-12",
+                  "sn-ebike-12-white"
+                ]
+              }
+            },
+            {
+              "id": "s-ebike-12-black",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-12-black",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V12Ah",
+                  "车身颜色": "黑色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V12Ah",
+                  "车身颜色": "黑色"
+                },
+                "skuName": "48V12Ah 黑色",
+                "sourceNodeIds": [
+                  "sn-ebike-12",
+                  "sn-ebike-12-black"
+                ]
+              }
+            },
+            {
+              "id": "s-ebike-20-gray",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-20-gray",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V20Ah",
+                  "车身颜色": "灰色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V20Ah",
+                  "车身颜色": "灰色"
+                },
+                "skuName": "48V20Ah 灰色",
+                "sourceNodeIds": [
+                  "sn-ebike-20",
+                  "sn-ebike-20-gray"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "total": 10,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "主机 / 手机",
+          "label": "主机 / 手机",
+          "total": 2,
+          "rows": [
+            {
+              "id": "s-iphone-white",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-iphone-white",
+                "familyId": "f-iphone",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "白色",
+                  "配件": "简版",
+                  "网络版本": "A1533（电信）",
+                  "配置": "",
+                  "内存": "",
+                  "国家": "",
+                  "类型": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17",
+                  "容量": "256G",
+                  "颜色": "白色",
+                  "配件": "简版",
+                  "网络版本": "A1533（电信）"
+                }
+              }
+            },
+            {
+              "id": "s-iphone-blue",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-iphone-blue",
+                "familyId": "f-iphone",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "蓝色",
+                  "配件": "",
+                  "网络版本": "",
+                  "配置": "",
+                  "内存": "",
+                  "国家": "",
+                  "类型": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17",
+                  "容量": "256G",
+                  "颜色": "蓝色"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 手表",
+          "label": "主机 / 手表",
+          "total": 2,
+          "rows": [
+            {
+              "id": "s-watch-1",
+              "family": {
+                "id": "f-watch",
+                "name": "Apple Watch 演示款",
+                "templateId": "t-watch",
+                "modelVersionId": "",
+                "categoryId": "c-watch",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42"
+                },
+                "productGroupIds": [
+                  "g-watch"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-12T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-12T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-watch-1",
+                "familyId": "f-watch",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "连接": "Wi-Fi",
+                  "表壳": "铝金属表壳",
+                  "尺寸": "42MM",
+                  "颜色": "黑色",
+                  "表带类型": "运动表带",
+                  "表带颜色": "黑色",
+                  "表带尺码": "S/M"
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42",
+                  "连接": "Wi-Fi",
+                  "表壳": "铝金属表壳",
+                  "尺寸": "42MM",
+                  "颜色": "黑色",
+                  "表带类型": "运动表带",
+                  "表带颜色": "黑色",
+                  "表带尺码": "S/M"
+                }
+              }
+            },
+            {
+              "id": "s-watch-2",
+              "family": {
+                "id": "f-watch",
+                "name": "Apple Watch 演示款",
+                "templateId": "t-watch",
+                "modelVersionId": "",
+                "categoryId": "c-watch",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42"
+                },
+                "productGroupIds": [
+                  "g-watch"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-12T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-12T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-watch-2",
+                "familyId": "f-watch",
+                "code": "",
+                "oaSkuId": "",
+                "status": "draft",
+                "variantAttrs": {
+                  "连接": "WLAN Cellular",
+                  "表壳": "",
+                  "尺寸": "46MM",
+                  "颜色": "白色",
+                  "表带类型": "",
+                  "表带颜色": "",
+                  "表带尺码": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42",
+                  "连接": "WLAN Cellular",
+                  "尺寸": "46MM",
+                  "颜色": "白色"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 平板",
+          "label": "主机 / 平板",
+          "total": 1,
+          "rows": [
+            {
+              "id": "s-pad-1",
+              "family": {
+                "id": "f-pad",
+                "name": "iPad Air 演示款",
+                "templateId": "t-pad",
+                "modelVersionId": "",
+                "categoryId": "c-pad",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPad",
+                  "型号": "iPad Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-11T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-11T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-pad-1",
+                "familyId": "f-pad",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "蓝色",
+                  "连接": "Wi-Fi"
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPad",
+                  "型号": "iPad Air",
+                  "容量": "256G",
+                  "颜色": "蓝色",
+                  "连接": "Wi-Fi"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 电脑",
+          "label": "主机 / 电脑",
+          "total": 1,
+          "rows": [
+            {
+              "id": "s-mac-1",
+              "family": {
+                "id": "f-mac",
+                "name": "MacBook Air 演示款",
+                "templateId": "t-pc",
+                "modelVersionId": "",
+                "categoryId": "c-pc",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "MacBook",
+                  "型号": "MacBook Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-09T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-09T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-mac-1",
+                "familyId": "f-mac",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "配置": "M4 16GB/256GB",
+                  "颜色": "银色"
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "MacBook",
+                  "型号": "MacBook Air",
+                  "配置": "M4 16GB/256GB",
+                  "颜色": "银色"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "配件 / 保护及保护设备 / 保护膜",
+          "label": "配件 / 保护及保护设备 / 保护膜",
+          "total": 1,
+          "rows": [
+            {
+              "id": "s-film-1",
+              "family": {
+                "id": "f-film",
+                "name": "保护膜演示款",
+                "templateId": "t-film",
+                "modelVersionId": "",
+                "categoryId": "c-film",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple"
+                },
+                "productGroupIds": [
+                  "g-acc"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-08T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-08T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-film-1",
+                "familyId": "f-film",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "颜色": "透明",
+                  "配件": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "颜色": "透明"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "出行 / 电助力车",
+          "label": "出行 / 电助力车",
+          "total": 3,
+          "rows": [
+            {
+              "id": "s-ebike-12-white",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-12-white",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V12Ah",
+                  "车身颜色": "白色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V12Ah",
+                  "车身颜色": "白色"
+                },
+                "skuName": "48V12Ah 白色",
+                "sourceNodeIds": [
+                  "sn-ebike-12",
+                  "sn-ebike-12-white"
+                ]
+              }
+            },
+            {
+              "id": "s-ebike-12-black",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-12-black",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V12Ah",
+                  "车身颜色": "黑色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V12Ah",
+                  "车身颜色": "黑色"
+                },
+                "skuName": "48V12Ah 黑色",
+                "sourceNodeIds": [
+                  "sn-ebike-12",
+                  "sn-ebike-12-black"
+                ]
+              }
+            },
+            {
+              "id": "s-ebike-20-gray",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-20-gray",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V20Ah",
+                  "车身颜色": "灰色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V20Ah",
+                  "车身颜色": "灰色"
+                },
+                "skuName": "48V20Ah 灰色",
+                "sourceNodeIds": [
+                  "sn-ebike-20",
+                  "sn-ebike-20-gray"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "final": [
+    {
+      "total": 6,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "主机 / 手机",
+          "label": "主机 / 手机",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-iphone",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 手表",
+          "label": "主机 / 手表",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-watch",
+              "family": {
+                "id": "f-watch",
+                "name": "Apple Watch 演示款",
+                "templateId": "t-watch",
+                "modelVersionId": "",
+                "categoryId": "c-watch",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42"
+                },
+                "productGroupIds": [
+                  "g-watch"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-12T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-12T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 平板",
+          "label": "主机 / 平板",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-pad",
+              "family": {
+                "id": "f-pad",
+                "name": "iPad Air 演示款",
+                "templateId": "t-pad",
+                "modelVersionId": "",
+                "categoryId": "c-pad",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPad",
+                  "型号": "iPad Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-11T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-11T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 电脑",
+          "label": "主机 / 电脑",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-mac",
+              "family": {
+                "id": "f-mac",
+                "name": "MacBook Air 演示款",
+                "templateId": "t-pc",
+                "modelVersionId": "",
+                "categoryId": "c-pc",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "MacBook",
+                  "型号": "MacBook Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-09T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-09T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "配件 / 保护及保护设备 / 保护膜",
+          "label": "配件 / 保护及保护设备 / 保护膜",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-film",
+              "family": {
+                "id": "f-film",
+                "name": "保护膜演示款",
+                "templateId": "t-film",
+                "modelVersionId": "",
+                "categoryId": "c-film",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple"
+                },
+                "productGroupIds": [
+                  "g-acc"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-08T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-08T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "出行 / 电助力车",
+          "label": "出行 / 电助力车",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-ebike",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "total": 1,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "主机 / 手机",
+          "label": "主机 / 手机",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-iphone",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "total": 0,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "empty",
+          "label": "",
+          "total": 0,
+          "rows": []
+        }
+      ]
+    },
+    {
+      "total": 1,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "出行 / 电助力车",
+          "label": "出行 / 电助力车",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-ebike",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "total": 6,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "主机 / 手机",
+          "label": "主机 / 手机",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-iphone",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 手表",
+          "label": "主机 / 手表",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-watch",
+              "family": {
+                "id": "f-watch",
+                "name": "Apple Watch 演示款",
+                "templateId": "t-watch",
+                "modelVersionId": "",
+                "categoryId": "c-watch",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42"
+                },
+                "productGroupIds": [
+                  "g-watch"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-12T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-12T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 平板",
+          "label": "主机 / 平板",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-pad",
+              "family": {
+                "id": "f-pad",
+                "name": "iPad Air 演示款",
+                "templateId": "t-pad",
+                "modelVersionId": "",
+                "categoryId": "c-pad",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPad",
+                  "型号": "iPad Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-11T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-11T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 电脑",
+          "label": "主机 / 电脑",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-mac",
+              "family": {
+                "id": "f-mac",
+                "name": "MacBook Air 演示款",
+                "templateId": "t-pc",
+                "modelVersionId": "",
+                "categoryId": "c-pc",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "MacBook",
+                  "型号": "MacBook Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-09T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-09T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "配件 / 保护及保护设备 / 保护膜",
+          "label": "配件 / 保护及保护设备 / 保护膜",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-film",
+              "family": {
+                "id": "f-film",
+                "name": "保护膜演示款",
+                "templateId": "t-film",
+                "modelVersionId": "",
+                "categoryId": "c-film",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple"
+                },
+                "productGroupIds": [
+                  "g-acc"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-08T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-08T02:00:00.000Z"
+              }
+            }
+          ]
+        },
+        {
+          "key": "出行 / 电助力车",
+          "label": "出行 / 电助力车",
+          "total": 1,
+          "rows": [
+            {
+              "id": "f-ebike",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "total": 10,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "主机 / 手机",
+          "label": "主机 / 手机",
+          "total": 2,
+          "rows": [
+            {
+              "id": "s-iphone-white",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-iphone-white",
+                "familyId": "f-iphone",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "白色",
+                  "配件": "简版",
+                  "网络版本": "A1533（电信）",
+                  "配置": "",
+                  "内存": "",
+                  "国家": "",
+                  "类型": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17",
+                  "容量": "256G",
+                  "颜色": "白色",
+                  "配件": "简版",
+                  "网络版本": "A1533（电信）"
+                }
+              }
+            },
+            {
+              "id": "s-iphone-blue",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-iphone-blue",
+                "familyId": "f-iphone",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "蓝色",
+                  "配件": "",
+                  "网络版本": "",
+                  "配置": "",
+                  "内存": "",
+                  "国家": "",
+                  "类型": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17",
+                  "容量": "256G",
+                  "颜色": "蓝色"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 手表",
+          "label": "主机 / 手表",
+          "total": 2,
+          "rows": [
+            {
+              "id": "s-watch-1",
+              "family": {
+                "id": "f-watch",
+                "name": "Apple Watch 演示款",
+                "templateId": "t-watch",
+                "modelVersionId": "",
+                "categoryId": "c-watch",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42"
+                },
+                "productGroupIds": [
+                  "g-watch"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-12T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-12T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-watch-1",
+                "familyId": "f-watch",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "连接": "Wi-Fi",
+                  "表壳": "铝金属表壳",
+                  "尺寸": "42MM",
+                  "颜色": "黑色",
+                  "表带类型": "运动表带",
+                  "表带颜色": "黑色",
+                  "表带尺码": "S/M"
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42",
+                  "连接": "Wi-Fi",
+                  "表壳": "铝金属表壳",
+                  "尺寸": "42MM",
+                  "颜色": "黑色",
+                  "表带类型": "运动表带",
+                  "表带颜色": "黑色",
+                  "表带尺码": "S/M"
+                }
+              }
+            },
+            {
+              "id": "s-watch-2",
+              "family": {
+                "id": "f-watch",
+                "name": "Apple Watch 演示款",
+                "templateId": "t-watch",
+                "modelVersionId": "",
+                "categoryId": "c-watch",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42"
+                },
+                "productGroupIds": [
+                  "g-watch"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-12T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-12T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-watch-2",
+                "familyId": "f-watch",
+                "code": "",
+                "oaSkuId": "",
+                "status": "draft",
+                "variantAttrs": {
+                  "连接": "WLAN Cellular",
+                  "表壳": "",
+                  "尺寸": "46MM",
+                  "颜色": "白色",
+                  "表带类型": "",
+                  "表带颜色": "",
+                  "表带尺码": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42",
+                  "连接": "WLAN Cellular",
+                  "尺寸": "46MM",
+                  "颜色": "白色"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 平板",
+          "label": "主机 / 平板",
+          "total": 1,
+          "rows": [
+            {
+              "id": "s-pad-1",
+              "family": {
+                "id": "f-pad",
+                "name": "iPad Air 演示款",
+                "templateId": "t-pad",
+                "modelVersionId": "",
+                "categoryId": "c-pad",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPad",
+                  "型号": "iPad Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-11T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-11T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-pad-1",
+                "familyId": "f-pad",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "蓝色",
+                  "连接": "Wi-Fi"
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPad",
+                  "型号": "iPad Air",
+                  "容量": "256G",
+                  "颜色": "蓝色",
+                  "连接": "Wi-Fi"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 电脑",
+          "label": "主机 / 电脑",
+          "total": 1,
+          "rows": [
+            {
+              "id": "s-mac-1",
+              "family": {
+                "id": "f-mac",
+                "name": "MacBook Air 演示款",
+                "templateId": "t-pc",
+                "modelVersionId": "",
+                "categoryId": "c-pc",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "MacBook",
+                  "型号": "MacBook Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-09T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-09T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-mac-1",
+                "familyId": "f-mac",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "配置": "M4 16GB/256GB",
+                  "颜色": "银色"
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "MacBook",
+                  "型号": "MacBook Air",
+                  "配置": "M4 16GB/256GB",
+                  "颜色": "银色"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "配件 / 保护及保护设备 / 保护膜",
+          "label": "配件 / 保护及保护设备 / 保护膜",
+          "total": 1,
+          "rows": [
+            {
+              "id": "s-film-1",
+              "family": {
+                "id": "f-film",
+                "name": "保护膜演示款",
+                "templateId": "t-film",
+                "modelVersionId": "",
+                "categoryId": "c-film",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple"
+                },
+                "productGroupIds": [
+                  "g-acc"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-08T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-08T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-film-1",
+                "familyId": "f-film",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "颜色": "透明",
+                  "配件": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "颜色": "透明"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "出行 / 电助力车",
+          "label": "出行 / 电助力车",
+          "total": 3,
+          "rows": [
+            {
+              "id": "s-ebike-12-white",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-12-white",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V12Ah",
+                  "车身颜色": "白色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V12Ah",
+                  "车身颜色": "白色"
+                },
+                "skuName": "48V12Ah 白色",
+                "sourceNodeIds": [
+                  "sn-ebike-12",
+                  "sn-ebike-12-white"
+                ]
+              }
+            },
+            {
+              "id": "s-ebike-12-black",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-12-black",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V12Ah",
+                  "车身颜色": "黑色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V12Ah",
+                  "车身颜色": "黑色"
+                },
+                "skuName": "48V12Ah 黑色",
+                "sourceNodeIds": [
+                  "sn-ebike-12",
+                  "sn-ebike-12-black"
+                ]
+              }
+            },
+            {
+              "id": "s-ebike-20-gray",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-20-gray",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V20Ah",
+                  "车身颜色": "灰色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V20Ah",
+                  "车身颜色": "灰色"
+                },
+                "skuName": "48V20Ah 灰色",
+                "sourceNodeIds": [
+                  "sn-ebike-20",
+                  "sn-ebike-20-gray"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "total": 2,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "主机 / 手机",
+          "label": "主机 / 手机",
+          "total": 2,
+          "rows": [
+            {
+              "id": "s-iphone-white",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-iphone-white",
+                "familyId": "f-iphone",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "白色",
+                  "配件": "简版",
+                  "网络版本": "A1533（电信）",
+                  "配置": "",
+                  "内存": "",
+                  "国家": "",
+                  "类型": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17",
+                  "容量": "256G",
+                  "颜色": "白色",
+                  "配件": "简版",
+                  "网络版本": "A1533（电信）"
+                }
+              }
+            },
+            {
+              "id": "s-iphone-blue",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-iphone-blue",
+                "familyId": "f-iphone",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "蓝色",
+                  "配件": "",
+                  "网络版本": "",
+                  "配置": "",
+                  "内存": "",
+                  "国家": "",
+                  "类型": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17",
+                  "容量": "256G",
+                  "颜色": "蓝色"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "total": 0,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "empty",
+          "label": "",
+          "total": 0,
+          "rows": []
+        }
+      ]
+    },
+    {
+      "total": 3,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "出行 / 电助力车",
+          "label": "出行 / 电助力车",
+          "total": 3,
+          "rows": [
+            {
+              "id": "s-ebike-12-white",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-12-white",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V12Ah",
+                  "车身颜色": "白色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V12Ah",
+                  "车身颜色": "白色"
+                },
+                "skuName": "48V12Ah 白色",
+                "sourceNodeIds": [
+                  "sn-ebike-12",
+                  "sn-ebike-12-white"
+                ]
+              }
+            },
+            {
+              "id": "s-ebike-12-black",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-12-black",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V12Ah",
+                  "车身颜色": "黑色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V12Ah",
+                  "车身颜色": "黑色"
+                },
+                "skuName": "48V12Ah 黑色",
+                "sourceNodeIds": [
+                  "sn-ebike-12",
+                  "sn-ebike-12-black"
+                ]
+              }
+            },
+            {
+              "id": "s-ebike-20-gray",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-20-gray",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V20Ah",
+                  "车身颜色": "灰色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V20Ah",
+                  "车身颜色": "灰色"
+                },
+                "skuName": "48V20Ah 灰色",
+                "sourceNodeIds": [
+                  "sn-ebike-20",
+                  "sn-ebike-20-gray"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "total": 10,
+      "page": 1,
+      "manualBlocked": false,
+      "groups": [
+        {
+          "key": "主机 / 手机",
+          "label": "主机 / 手机",
+          "total": 2,
+          "rows": [
+            {
+              "id": "s-iphone-white",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-iphone-white",
+                "familyId": "f-iphone",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "白色",
+                  "配件": "简版",
+                  "网络版本": "A1533（电信）",
+                  "配置": "",
+                  "内存": "",
+                  "国家": "",
+                  "类型": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17",
+                  "容量": "256G",
+                  "颜色": "白色",
+                  "配件": "简版",
+                  "网络版本": "A1533（电信）"
+                }
+              }
+            },
+            {
+              "id": "s-iphone-blue",
+              "family": {
+                "id": "f-iphone",
+                "name": "Apple iPhone 17",
+                "templateId": "t-phone",
+                "modelVersionId": "phone-model-v1",
+                "categoryId": "c-phone",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17"
+                },
+                "productGroupIds": [
+                  "g-phone"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-iphone-blue",
+                "familyId": "f-iphone",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "蓝色",
+                  "配件": "",
+                  "网络版本": "",
+                  "配置": "",
+                  "内存": "",
+                  "国家": "",
+                  "类型": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPhone 17",
+                  "型号": "iPhone 17",
+                  "容量": "256G",
+                  "颜色": "蓝色"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 手表",
+          "label": "主机 / 手表",
+          "total": 2,
+          "rows": [
+            {
+              "id": "s-watch-1",
+              "family": {
+                "id": "f-watch",
+                "name": "Apple Watch 演示款",
+                "templateId": "t-watch",
+                "modelVersionId": "",
+                "categoryId": "c-watch",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42"
+                },
+                "productGroupIds": [
+                  "g-watch"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-12T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-12T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-watch-1",
+                "familyId": "f-watch",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "连接": "Wi-Fi",
+                  "表壳": "铝金属表壳",
+                  "尺寸": "42MM",
+                  "颜色": "黑色",
+                  "表带类型": "运动表带",
+                  "表带颜色": "黑色",
+                  "表带尺码": "S/M"
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42",
+                  "连接": "Wi-Fi",
+                  "表壳": "铝金属表壳",
+                  "尺寸": "42MM",
+                  "颜色": "黑色",
+                  "表带类型": "运动表带",
+                  "表带颜色": "黑色",
+                  "表带尺码": "S/M"
+                }
+              }
+            },
+            {
+              "id": "s-watch-2",
+              "family": {
+                "id": "f-watch",
+                "name": "Apple Watch 演示款",
+                "templateId": "t-watch",
+                "modelVersionId": "",
+                "categoryId": "c-watch",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42"
+                },
+                "productGroupIds": [
+                  "g-watch"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-12T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-12T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-watch-2",
+                "familyId": "f-watch",
+                "code": "",
+                "oaSkuId": "",
+                "status": "draft",
+                "variantAttrs": {
+                  "连接": "WLAN Cellular",
+                  "表壳": "",
+                  "尺寸": "46MM",
+                  "颜色": "白色",
+                  "表带类型": "",
+                  "表带颜色": "",
+                  "表带尺码": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "Watch Series 10",
+                  "型号": "Watch 42",
+                  "连接": "WLAN Cellular",
+                  "尺寸": "46MM",
+                  "颜色": "白色"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 平板",
+          "label": "主机 / 平板",
+          "total": 1,
+          "rows": [
+            {
+              "id": "s-pad-1",
+              "family": {
+                "id": "f-pad",
+                "name": "iPad Air 演示款",
+                "templateId": "t-pad",
+                "modelVersionId": "",
+                "categoryId": "c-pad",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPad",
+                  "型号": "iPad Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-11T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-11T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-pad-1",
+                "familyId": "f-pad",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "容量": "256G",
+                  "颜色": "蓝色",
+                  "连接": "Wi-Fi"
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "iPad",
+                  "型号": "iPad Air",
+                  "容量": "256G",
+                  "颜色": "蓝色",
+                  "连接": "Wi-Fi"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "主机 / 电脑",
+          "label": "主机 / 电脑",
+          "total": 1,
+          "rows": [
+            {
+              "id": "s-mac-1",
+              "family": {
+                "id": "f-mac",
+                "name": "MacBook Air 演示款",
+                "templateId": "t-pc",
+                "modelVersionId": "",
+                "categoryId": "c-pc",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple",
+                  "系列": "MacBook",
+                  "型号": "MacBook Air"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-09T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-09T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-mac-1",
+                "familyId": "f-mac",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "配置": "M4 16GB/256GB",
+                  "颜色": "银色"
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "系列": "MacBook",
+                  "型号": "MacBook Air",
+                  "配置": "M4 16GB/256GB",
+                  "颜色": "银色"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "配件 / 保护及保护设备 / 保护膜",
+          "label": "配件 / 保护及保护设备 / 保护膜",
+          "total": 1,
+          "rows": [
+            {
+              "id": "s-film-1",
+              "family": {
+                "id": "f-film",
+                "name": "保护膜演示款",
+                "templateId": "t-film",
+                "modelVersionId": "",
+                "categoryId": "c-film",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "品牌": "Apple"
+                },
+                "productGroupIds": [
+                  "g-acc"
+                ],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-08T02:00:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-08T02:00:00.000Z"
+              },
+              "sku": {
+                "id": "s-film-1",
+                "familyId": "f-film",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "颜色": "透明",
+                  "配件": ""
+                },
+                "projectedAttrs": {
+                  "品牌": "Apple",
+                  "颜色": "透明"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "key": "出行 / 电助力车",
+          "label": "出行 / 电助力车",
+          "total": 3,
+          "rows": [
+            {
+              "id": "s-ebike-12-white",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-12-white",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V12Ah",
+                  "车身颜色": "白色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V12Ah",
+                  "车身颜色": "白色"
+                },
+                "skuName": "48V12Ah 白色",
+                "sourceNodeIds": [
+                  "sn-ebike-12",
+                  "sn-ebike-12-white"
+                ]
+              }
+            },
+            {
+              "id": "s-ebike-12-black",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-12-black",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V12Ah",
+                  "车身颜色": "黑色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V12Ah",
+                  "车身颜色": "黑色"
+                },
+                "skuName": "48V12Ah 黑色",
+                "sourceNodeIds": [
+                  "sn-ebike-12",
+                  "sn-ebike-12-black"
+                ]
+              }
+            },
+            {
+              "id": "s-ebike-20-gray",
+              "family": {
+                "id": "f-ebike",
+                "name": "都市款",
+                "templateId": "t-ebike",
+                "productModelId": "t-ebike",
+                "modelVersionId": "ebike-model-v1",
+                "productTypeId": "pt-ebike",
+                "productPlanId": "plan-ebike-city",
+                "categoryId": "c-ebike",
+                "oaProductId": "",
+                "commonAttrs": {
+                  "车型": "都市款"
+                },
+                "productGroupIds": [],
+                "lifecycle": "ready",
+                "shelfStatus": "online",
+                "createdAt": "2026-05-10T03:53:00.000Z",
+                "origin": "sample",
+                "updatedAt": "2026-05-10T03:53:00.000Z"
+              },
+              "sku": {
+                "id": "s-ebike-20-gray",
+                "familyId": "f-ebike",
+                "code": "",
+                "oaSkuId": "",
+                "status": "on_sale",
+                "variantAttrs": {
+                  "电池": "48V20Ah",
+                  "车身颜色": "灰色"
+                },
+                "projectedAttrs": {
+                  "车型": "都市款",
+                  "电池": "48V20Ah",
+                  "车身颜色": "灰色"
+                },
+                "skuName": "48V20Ah 灰色",
+                "sourceNodeIds": [
+                  "sn-ebike-20",
+                  "sn-ebike-20-gray"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

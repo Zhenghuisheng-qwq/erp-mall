@@ -5,9 +5,9 @@ import { createServer } from 'vite'
 import { chromium } from 'playwright-core'
 
 const before = process.argv.includes('--before')
-const output = resolve('work/ui-finish', before ? 'before' : 'after')
+const output = resolve(process.env.UI_FINISH_OUTPUT || 'work/ui-finish', before ? 'before' : 'after')
 mkdirSync(output, { recursive: true })
-const server = await createServer({ cacheDir: resolve('work/ui-finish/vite-cache'), server: { host: '127.0.0.1', port: 0, hmr: false, watch: null } })
+const server = await createServer({ cacheDir: resolve(process.env.UI_FINISH_OUTPUT || 'work/ui-finish', 'vite-cache'), server: { host: '127.0.0.1', port: 0, hmr: false, watch: null } })
 let browser, page
 const checks = [], errors = [], geometry = []
 try {
@@ -78,7 +78,7 @@ try {
       assert.equal(m.headingSize, '12px'); assert.equal(m.leafSize, '14px'); assert(m.indent >= 16 && m.indent <= 24)
       assert.equal(m.headingIcons, 1); assert.equal(m.leafIcons, 1); geometry.push(m)
     }
-    assert.equal(await fly().locator(':scope > .flyout-body > a[href="/"]').count(), 1)
+    assert.equal(await fly().locator(':scope > .flyout-body > .flyout-direct > a[href="/"]').count(), 1)
     await page.locator('[data-nav-pin]').click(); await page.mouse.move(1100,400); await page.waitForTimeout(280)
     await page.locator('[data-group="product"]').focus(); await page.keyboard.press('Escape')
     assert(await fly().isVisible()); assert.equal(await page.locator('[data-nav-pin]').getAttribute('aria-pressed'), 'true')

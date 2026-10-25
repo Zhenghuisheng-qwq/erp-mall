@@ -8,6 +8,11 @@ import {defaultMenuNodes,MENU_KEY} from '../src/domain/menuConfig'
 import {ensureRbac,type RbacRole} from '../src/domain/rbac'
 import {normalizeStored,useCatalogStore,catalogMigrationError} from '../src/stores/catalog'
 import {DATA_VERSION,STORAGE_KEY,type AppData} from '../src/domain/types'
+import { RBAC_ENFORCEMENT_ENABLED } from '../src/domain/accessMode'
+
+if (!RBAC_ENFORCEMENT_ENABLED) {
+  await import('./unrestricted-access-check')
+} else {
 
 const output='work/rbac/store';mkdirSync(output,{recursive:true})
 const disk=new Map<string,string>(),session=new Map<string,string>(),checks:string[]=[]
@@ -123,3 +128,4 @@ try{
   mark('authorization save/import roundtrip and migration write failure preserve original memory/disk and recovery evidence')
   writeFileSync(output+'/result.json',JSON.stringify({status:'PASS',checks},null,2))
 }finally{store?.$dispose();restoreLocks()}
+}

@@ -1,5 +1,6 @@
 import { RBAC_ENFORCEMENT_ENABLED } from './accessMode'
-import type { AppData } from './types'
+import type { AppData, Sku } from './types'
+import { isMaterialArchive } from './catalogIdentity'
 import { adminPage, defaultMenuNodes, type MenuNode } from './menuConfig'
 
 export interface RbacPermission {
@@ -218,6 +219,12 @@ export function missingPermissionDependencies(codes: string[], permissions = per
   return [...new Set(permissions.filter(permission => selected.has(permission.code)).flatMap(permission => permission.dependsOn || []).filter(code => !selected.has(code)))]
 }
 
+/** Shared backing records are classified by stable model ownership, never by their name. */
+export function templateAccessResource(data: AppData, template: string | {id?: string}): 'model' | 'template' {
+  const id = typeof template === 'string' ? template : template.id
+  return data.specCanvases.some(canvas => canvas.templateId === id && Boolean(canvas.productTypeId)) ? 'model' : 'template'
+}
+
 /** Store command bindings. An unknown command fails closed. These are execution points, not labels. */
 export function commandPermissions(name: string, args: unknown[] = [], data?: AppData): string[] {
   const first = args[0] as Record<string,unknown> | undefined
@@ -231,12 +238,30 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
     return [...save('spu',Boolean(existing)), ...((existing ? previousStatus !== nextStatus : nextStatus==='online') ? ['product:spu:publish'] : [])]
   }
   if (name === 'saveBundle') return [...commandPermissions('saveSpu',args,data), ...((args[1] as {id:string}[] || []).flatMap(sku => save('sku',Boolean(data?.skus.some(item => item.id === sku.id)))))]
+  if (name === 'saveBrand') {
+    const codes = save('brand',Boolean(data?.brands.some(brand => brand.id === first?.id)))
+    const name = String(first?.name || '').trim()
+    const dictionary = data?.params.find(param => param.name === '品牌')
+    if (dictionary && name && !dictionary.values.includes(name)) codes.push('product:dictionary:update')
+    return codes
+  }
+  if (name === 'saveRule') return save('rule',Boolean(data?.rules.some(rule => rule.id === first?.id)))
+  if (name === 'restoreSuperAdminAccess') return ['system:role:grant']
+  if (['removeSku','patchSku','editSku'].includes(name)) {
+    const sku = data?.skus.find(item => item.id === args[0])
+    const resource = sku && data && isMaterialArchive(data,sku as Sku) ? 'material' : 'sku'
+    return [`product:${resource}:${name === 'removeSku' ? 'delete' : 'update'}`]
+  }
+  if (name === 'setCategoryMapping') {
+    const ids=[data?.mappings.find(item=>item.categoryId===args[0])?.templateId,String(args[1]||'')].filter(Boolean) as string[]
+    return [...new Set((ids.length?ids:['']).map(id=>`product:${data?templateAccessResource(data,id):'template'}:update`))]
+  }
   if (name === 'saveProductType') return save('type',Boolean(data?.productTypes.some(item => item.id === first?.id)))
   if (name === 'saveDeviceModel') return save('compatibility',Boolean(data?.deviceModels?.some(item => item.id === first?.id)))
   if (name === 'saveBenefitPackage') return save('benefit',Boolean((first?.draft as {id?:string})?.id && data?.benefitPackages?.some(item => item.id === (first?.draft as {id?:string}).id)))
   if (name === 'saveBenefitFramework') return save('framework',Boolean((first?.draft as {id?:string})?.id && data?.benefitFrameworks?.some(item => item.id === (first?.draft as {id?:string}).id)))
   if (name === 'commitCompatibilityChanges') return [...new Set((args[0] as {kind:string}[] || []).map(change => `product:compatibility:${change.kind === 'remove' ? 'delete' : change.kind === 'add' ? 'create' : 'update'}`))]
-  if (name === 'removeTemplate') return [`product:${data?.specCanvases.some(canvas => canvas.templateId === args[0] && canvas.productTypeId) ? 'model' : 'template'}:delete`]
+  if (name === 'removeTemplate') return [`product:${data ? templateAccessResource(data,String(args[0])) : 'template'}:delete`]
   const bindings: Record<string,string[]> = {
     saveTemplateCompatibility:['product:model:update'],applyTemplateCompatibilitySync:['product:compatibility:update'],saveModelDraft:['product:model:update'],saveNodeBusiness:['product:model:update'],saveBusinessDefinition:['product:model:update'],copyProductModel:['product:model:create'],createProductModel:['product:model:create'],publishSpecModel:['product:model:publish'],removeSpecNode:['product:model:update'],shiftSpecNode:['product:model:update'],
     commitMaterialImport:['product:material:import'],createMaterial:['product:material:create'],createTemporary:['product:material:create'],saveMaterialRelation:['product:material:create'],unlinkMaterialRelation:['product:material:delete'],updateMaterial:['product:material:update'],renameProduct:['product:material:update'],markPlanningGrades:['product:planning:update'],
@@ -244,6 +269,7 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
     removeBenefitFramework:['product:framework:delete'],setBenefitPackageStatus:['product:benefit:update'],setBenefitPackageFavorite:['product:benefit:update'],generateBenefitDelivery:['product:delivery:create'],
     commitDeviceBinding:['product:compatibility:update'],clearDeviceBinding:['product:compatibility:update'],removeDeviceModel:['product:compatibility:delete'],
     addParamValue:['product:dictionary:update'],removeParam:['product:dictionary:delete'],removeParamValue:['product:dictionary:update'],removeProductType:['product:type:delete'],setProductTypeStatus:['product:type:update'],
+    commitCategoryMove:['product:category:update'],
     addCategory:['product:category:create'],copyCategory:['product:category:create'],moveCategory:['product:category:update'],shiftCategory:['product:category:update'],relocateCategory:['product:category:update'],updateCategory:['product:category:update'],removeCategory:['product:category:delete'],setCategoryMapping:['product:template:update'],removeGroup:['product:group:delete'],
     commitSkuPage:['product:sku:read'],saveView:['product:view:update'],applyView:['product:spu:read'],removeView:['product:view:update'],
     exportJson:['product:export:execute'],importJson:['product:import:execute'],resetAll:['system:data:reset'],resetModule:['system:data:reset'],

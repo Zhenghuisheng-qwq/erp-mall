@@ -3,7 +3,7 @@ import {mkdirSync,writeFileSync} from 'node:fs'
 import {resolve} from 'node:path'
 import {createServer} from 'vite'
 import {chromium} from 'playwright-core'
-const output=resolve('work/unrestricted-access/browser');mkdirSync(output,{recursive:true})
+const output=resolve(process.env.UNRESTRICTED_BROWSER_OUTPUT_DIR || 'work/unrestricted-access/browser');mkdirSync(output,{recursive:true})
 const server=await createServer({cacheDir:resolve(output,'cache'),server:{host:'127.0.0.1',port:0,watch:null,hmr:false}})
 let browser,page;const checks=[],errors=[]
 try{
@@ -27,7 +27,7 @@ try{
  const status=await page.evaluate(async()=>{const s=(await import('/src/stores/catalog.ts')).useCatalogStore();return{enforced:s.rbacEnforced,admin:s.isAdmin,system:s.can('system:role:grant'),model:s.can('product:model:publish'),spu:s.can('product:spu:update'),raw:JSON.stringify(s.data.rbac),business:JSON.stringify({families:s.data.families,skus:s.data.skus,versions:s.data.specModelVersions,planning:s.data.planningRecords})}})
  assert.equal(status.enforced,false);assert(status.admin&&status.system&&status.model&&status.spu);assert.equal(status.raw,preserved);assert.equal(status.business,business)
  await page.screenshot({path:resolve(output,'recovered-super-admin.png'),fullPage:true});mark('obsolete permission and removed old identity open normally with uniform administrator; original grants/business preserved')
- for(const path of ['/models','/roles','/permissions','/users','/skus','/spus']){await page.goto(base+path,{waitUntil:'networkidle'});assert.equal(new URL(page.url()).pathname,path);assert.equal(await page.locator('[data-storage-recovery]').count(),0)}
+ for(const path of ['/models','/roles','/permissions','/users','/skus','/spus']){await page.goto(base+path,{waitUntil:'networkidle'});assert.equal(new URL(page.url()).pathname,path);assert.equal(await page.locator('[data-storage-recovery]').count(),0);if(['/roles','/permissions','/users'].includes(path)){assert(await page.locator('[data-rbac-mode-notice]').isVisible());await page.screenshot({path:resolve(output,path.slice(1)+'-default-mode-notice.png'),fullPage:true})}}
  assert(await page.getByRole('button',{name:'新建 SPU',exact:true}).isEnabled());await page.reload({waitUntil:'networkidle'});assert.equal(new URL(page.url()).pathname,'/spus')
  mark('registered business/system pages and create buttons available after refresh without RBAC denial')
  const familyId=data.families[0].id
