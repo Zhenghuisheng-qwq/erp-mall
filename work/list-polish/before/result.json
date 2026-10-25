@@ -1,0 +1,83 @@
+{
+  "results": [
+    {
+      "route": "spus",
+      "width": 1366,
+      "outer": 1196,
+      "inner": 1800,
+      "rows": [
+        63,
+        63,
+        63,
+        63,
+        63
+      ]
+    },
+    {
+      "route": "spus",
+      "width": 1920,
+      "outer": 1750,
+      "inner": 1800,
+      "rows": [
+        63,
+        63,
+        63,
+        63,
+        63
+      ]
+    },
+    {
+      "route": "spus",
+      "width": 900,
+      "outer": 730,
+      "inner": 1800,
+      "rows": [
+        63,
+        63,
+        63,
+        63,
+        63
+      ]
+    },
+    {
+      "route": "skus",
+      "width": 1366,
+      "outer": 1196,
+      "inner": 1506,
+      "rows": [
+        67,
+        67,
+        67,
+        67,
+        67
+      ]
+    },
+    {
+      "route": "skus",
+      "width": 1920,
+      "outer": 1750,
+      "inner": 1506,
+      "rows": [
+        67,
+        67,
+        67,
+        67,
+        67
+      ]
+    },
+    {
+      "route": "skus",
+      "width": 900,
+      "outer": 730,
+      "inner": 1506,
+      "rows": [
+        67,
+        67,
+        67,
+        67,
+        67
+      ]
+    }
+  ],
+  "errors": []
+}

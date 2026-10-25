@@ -1,0 +1,187 @@
+{
+  "result": "PASS",
+  "browserEngine": "chromium",
+  "browser": "156.0.8078.47",
+  "viewports": [
+    "1600x1000",
+    "780x900"
+  ],
+  "checkpoints": [
+    {
+      "name": "system-excludes-material",
+      "ids": [
+        "wb-a",
+        "wb-b",
+        "wb-c",
+        "wb-d",
+        "wb-e"
+      ]
+    },
+    {
+      "name": "draft-cancel-no-apply",
+      "ids": [
+        "wb-a",
+        "wb-b",
+        "wb-c",
+        "wb-d",
+        "wb-e"
+      ]
+    },
+    {
+      "name": "or-groups-applied",
+      "ids": [
+        "wb-a",
+        "wb-b",
+        "wb-d"
+      ]
+    },
+    {
+      "name": "save-favorite-refresh",
+      "ids": [
+        "wb-a",
+        "wb-b",
+        "wb-d"
+      ]
+    },
+    {
+      "name": "temporary-search-intersection",
+      "ids": [
+        "wb-a"
+      ]
+    },
+    {
+      "name": "work-filter-plus-temporary-search",
+      "ids": [
+        "wb-c"
+      ]
+    },
+    {
+      "name": "return-keeps-applied-work",
+      "ids": [
+        "wb-c"
+      ]
+    },
+    {
+      "name": "refresh-keeps-dirty-work",
+      "ids": [
+        "wb-c"
+      ]
+    },
+    {
+      "name": "restore-official-keeps-temporary-search",
+      "ids": [
+        "wb-a"
+      ]
+    },
+    {
+      "name": "search-clear-restores-rule",
+      "ids": [
+        "wb-a",
+        "wb-b",
+        "wb-d"
+      ]
+    },
+    {
+      "name": "scope-opens-all-without-erasing-view",
+      "ids": [
+        "wb-a",
+        "wb-b",
+        "wb-c"
+      ]
+    },
+    {
+      "name": "named-view-intersects-spu",
+      "ids": [
+        "wb-a",
+        "wb-b"
+      ]
+    },
+    {
+      "name": "matching-data-edit-updates-rule",
+      "ids": [
+        "wb-a"
+      ]
+    },
+    {
+      "name": "clear-filters-keeps-spu-scope",
+      "ids": [
+        "wb-a",
+        "wb-b",
+        "wb-c"
+      ]
+    },
+    {
+      "name": "leave-scope-restores-all",
+      "ids": [
+        "wb-a",
+        "wb-b",
+        "wb-c",
+        "wb-d",
+        "wb-e"
+      ]
+    },
+    {
+      "name": "prepare-save-failure",
+      "ids": [
+        "wb-e"
+      ]
+    },
+    {
+      "name": "failed-save-keeps-official-and-dirty-work",
+      "ids": [
+        "wb-e"
+      ]
+    },
+    {
+      "name": "retry-save-refresh",
+      "ids": [
+        "wb-e"
+      ]
+    },
+    {
+      "name": "copy-refresh-preserves-full-config",
+      "ids": [
+        "wb-e"
+      ]
+    },
+    {
+      "name": "delete-default-falls-back-without-deleting-data",
+      "ids": [
+        "wb-e"
+      ]
+    },
+    {
+      "name": "invalid-condition-fails-closed",
+      "ids": []
+    },
+    {
+      "name": "rebuild-invalid-work-preserves-formal-and-business",
+      "ids": [
+        "wb-a",
+        "wb-b",
+        "wb-c",
+        "wb-d",
+        "wb-e"
+      ]
+    },
+    {
+      "name": "no-match-empty-state",
+      "ids": []
+    },
+    {
+      "name": "horizontal-wheel-scroll",
+      "ids": [
+        "wb-e"
+      ]
+    }
+  ],
+  "screenshots": [
+    "desktop.png",
+    "filter-groups.png",
+    "fields.png",
+    "invalid-config.png",
+    "dark.png",
+    "narrow.png"
+  ],
+  "diagnostics": []
+}

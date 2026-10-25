@@ -1,0 +1,44 @@
+{
+  "phase": "after",
+  "browser": "156.0.8078.47",
+  "keyboardSurvivesMouseLeave": true,
+  "checks": [
+    "keyboard details survive mouse leave; Escape closes once and restores module focus",
+    "real Tab leaving navigation closes after delay",
+    "mouse-only hover still closes; crossing columns stays open",
+    "group/leaf hierarchy has icons, 12/14px text, 16–24px indent; direct page preserved; Escape preserves pin",
+    "navigation-only actions preserve persisted business data byte for byte",
+    "renamed long labels wrap inside details; route icons stay stable and unknown routes use neutral fallback"
+  ],
+  "geometry": [
+    {
+      "headingSize": "12px",
+      "leafSize": "14px",
+      "indent": 24,
+      "headingIcons": 1,
+      "leafIcons": 1
+    },
+    {
+      "headingSize": "12px",
+      "leafSize": "14px",
+      "indent": 24,
+      "headingIcons": 1,
+      "leafIcons": 1
+    },
+    {
+      "headingSize": "12px",
+      "leafSize": "14px",
+      "indent": 24,
+      "headingIcons": 1,
+      "leafIcons": 1
+    },
+    {
+      "headingSize": "12px",
+      "leafSize": "14px",
+      "indent": 24,
+      "headingIcons": 1,
+      "leafIcons": 1
+    }
+  ],
+  "errors": []
+}
