@@ -1,3 +1,4 @@
+import { RBAC_ENFORCEMENT_ENABLED } from './accessMode'
 import type { AppData } from './types'
 import { adminPage, defaultMenuNodes, type MenuNode } from './menuConfig'
 
@@ -102,6 +103,7 @@ export function routePermissions(path: string, query: Record<string,unknown> = {
 function state(data: AppData) { return (data as AuthorizationData).rbac }
 function roleIds(user: AppData['users'][number]): string[] { return (user as typeof user & {roleIds?:string[]}).roleIds || [] }
 export function effectivePermissions(data: AppData, userId: string): Set<string> {
+  if (!RBAC_ENFORCEMENT_ENABLED) return new Set(permissionRegistry().map(permission => permission.code))
   const user = data.users.find(item => item.id === userId && item.enabled)
   const rbac = state(data)
   if (!user || !rbac) return new Set()
@@ -113,6 +115,7 @@ export function effectivePermissions(data: AppData, userId: string): Set<string>
 }
 export function canPermission(data: AppData, userId: string, code: string): boolean { return effectivePermissions(data,userId).has(code) }
 export function isSuperAdmin(data: AppData, userId: string): boolean {
+  if (!RBAC_ENFORCEMENT_ENABLED) return true
   const user = data.users.find(item => item.id === userId && item.enabled)
   return Boolean(user && state(data)?.roles.some(role => role.id === SUPER_ROLE_ID && role.code === 'super-admin' && role.builtIn === true && role.superAdmin === true && role.enabled && roleIds(user).includes(role.id)))
 }
@@ -154,6 +157,16 @@ export function ensureRbac(data: AppData, legacyMenus: MenuNode[] = defaultMenuN
 const object = (value: unknown): value is Record<string,unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 const text = (value:unknown) => typeof value === 'string' && Boolean(value.trim())
 export function rbacProblems(data: AppData): string[] {
+  // In the current unrestricted mode stored grants are dormant configuration. Keep
+  // obsolete codes/bindings verbatim; only reject structures the retained editor cannot read.
+  if (!RBAC_ENFORCEMENT_ENABLED) {
+    const saved: unknown = state(data)
+    if (!object(saved) || saved.version !== 1 || !Array.isArray(saved.roles) || !Array.isArray(saved.permissions)) return ['授权配置容器损坏，原始内容已保留。']
+    if (saved.roles.some(role => !object(role) || !text(role.id) || !text(role.code) || !text(role.name) || !Array.isArray(role.permissionCodes) || !role.permissionCodes.every(code => typeof code === 'string'))) return ['角色配置结构损坏，原始内容已保留。']
+    if (saved.permissions.some(permission => !object(permission) || !text(permission.code) || !text(permission.name))) return ['权限配置结构损坏，原始内容已保留。']
+    if (!Array.isArray(data.users) || data.users.some(user => !user || !text(user.id) || !text(user.username) || !text(user.displayName))) return ['用户配置结构损坏，原始内容已保留。']
+    return []
+  }
   const problems: string[] = [], rbac: unknown = state(data)
   if (!object(rbac) || rbac.version !== 1 || !Array.isArray(rbac.roles) || !Array.isArray(rbac.permissions)) return ['授权容器或版本无效。']
   const registered = new Map(permissionRegistry().map(permission => [permission.code,permission]))

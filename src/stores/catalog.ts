@@ -1,3 +1,4 @@
+import { RBAC_ENFORCEMENT_ENABLED } from '../domain/accessMode'
 import { ensureRbac, rbacProblems, canPermission, isSuperAdmin, routePermissions, commandPermissions, effectivePermissions } from '../domain/rbac'
 import { loadMenu, saveMenu, defaultMenuNodes, type MenuNode } from '../domain/menuConfig'
 import { createRbacCommands } from './catalogRbac'
@@ -267,7 +268,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   const currentUser=computed(()=>data.users.find(u=>u.id===effectiveUserId.value))
   const authorizationStamp=(value:AppData)=>JSON.stringify([value.rbac?.roles.map(r=>[r.id,r.enabled,r.superAdmin,r.permissionCodes]),value.rbac?.permissions.map(p=>[p.code,p.enabled,p.dependsOn]),value.users.map(u=>[u.id,u.enabled,u.roleIds])])
   function authorizationFresh(){if(!persistence.state.external)return true;try{return authorizationStamp(JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}').data)===authorizationStamp(data)}catch{return false}}
-  const can=(code:string)=>authorizationReady.value&&authorizationFresh()&&canPermission(data,effectiveUserId.value,code)
+  const can=(code:string)=>authorizationReady.value&&(!RBAC_ENFORCEMENT_ENABLED||authorizationFresh())&&canPermission(data,effectiveUserId.value,code)
   function canRoute(location:{path:string;query?:Record<string,unknown>}){
     let path=location.path
     const legacy=/^\/products\/([^/]+)$/.exec(path)
@@ -300,7 +301,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     { deep: true },
   )
 
-  const isAdmin = computed(() => authorizationReady.value&&authorizationFresh()&&isSuperAdmin(data,effectiveUserId.value))
+  const isAdmin = computed(() => authorizationReady.value&&(!RBAC_ENFORCEMENT_ENABLED||authorizationFresh())&&isSuperAdmin(data,effectiveUserId.value))
   // Seed and migration writes use the very same protected path, never a startup
   // overwrite. Existing unmodified payloads acquire identity on their first edit.
   if(needsAuthorizationMigration){
@@ -1353,6 +1354,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   const api = {
     data:publicData,
     can,canRoute,currentUser,activeUserId,previewUserId,simulationReturnId,authorizationReady,
+    rbacEnforced: RBAC_ENFORCEMENT_ENABLED,
     simulateUser,startPermissionPreview,stopPermissionPreview,
     saveRbacRole:(...args:Parameters<typeof rbacCommands.saveRbacRole>)=>command(()=>rbacCommands.saveRbacRole(...args)),
     removeRbacRole:(...args:Parameters<typeof rbacCommands.removeRbacRole>)=>command(()=>rbacCommands.removeRbacRole(...args)),

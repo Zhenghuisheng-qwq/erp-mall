@@ -1,3 +1,4 @@
+import { RBAC_ENFORCEMENT_ENABLED } from '../domain/accessMode'
 import type { AppData, AppUser } from '../domain/types'
 import type { RbacRole, RbacPermission } from '../domain/rbac'
 import { effectivePermissions, isSuperAdmin, rbacProblems } from '../domain/rbac'
@@ -7,7 +8,7 @@ export function createRbacCommands(data: AppData, actor: () => string, can: (cod
   const clone = () => JSON.parse(JSON.stringify(data)) as AppData
   const denied = (message:string) => ({ok:false,message})
   function finish(next:AppData) { const problems=rbacProblems(next);return problems.length?denied(problems.join(' ')):commit(next) }
-  function grantable(codes:string[]) { const own=effectivePermissions(data,actor());return codes.every(code=>own.has(code)) }
+  function grantable(codes:string[]) { if(!RBAC_ENFORCEMENT_ENABLED)return true;const own=effectivePermissions(data,actor());return codes.every(code=>own.has(code)) }
   function saveRbacRole(input:RbacRole) {
     const next=clone(),old=next.rbac!.roles.find(r=>r.id===input.id)
     if(!can(old?'system:role:update':'system:role:create'))return denied('没有维护此角色的权限。')
@@ -58,12 +59,12 @@ export function createRbacCommands(data: AppData, actor: () => string, can: (cod
     if(next.users.some(u=>u.id!==input.id&&u.username===input.username.trim()))return denied('账号已存在。')
     const own=effectivePermissions(data,actor()),before=new Set(old?.roleIds||[])
     for(const roleId of input.roleIds){const r=next.rbac!.roles.find(r=>r.id===roleId);if(!r)return denied('绑定角色不存在。');if(!before.has(roleId)&&(r.superAdmin&&!isSuperAdmin(data,actor())||!r.permissionCodes.every(c=>own.has(c))))return denied('不能绑定超出操作者委派范围的角色。')}
-    if(old?.id===actor()&&isSuperAdmin(data,actor())&&(!input.enabled||!input.roleIds.includes('role:super-admin')))return denied('请先切换到另一位有效超级管理员，再停用或调整当前超级管理员。')
-    if(old&&isSuperAdmin(data,old.id)&&!isSuperAdmin(data,actor()))return denied('普通角色不能修改超级管理员用户。')
+    if(RBAC_ENFORCEMENT_ENABLED&&old?.id===actor()&&isSuperAdmin(data,actor())&&(!input.enabled||!input.roleIds.includes('role:super-admin')))return denied('请先切换到另一位有效超级管理员，再停用或调整当前超级管理员。')
+    if(RBAC_ENFORCEMENT_ENABLED&&old&&isSuperAdmin(data,old.id)&&!isSuperAdmin(data,actor()))return denied('普通角色不能修改超级管理员用户。')
     const record:AppUser={id:old?.id||input.id||id(),username:input.username.trim(),displayName:input.displayName.trim(),enabled:input.enabled===true,role:old?.role||'operator',roleIds:[...new Set(input.roleIds)]}
     if(old)Object.assign(old,record);else next.users.push(record)
     return finish(next)
   }
-  function removeRbacUser(userId:string){if(userId===actor()&&isSuperAdmin(data,actor()))return denied('请先切换其他有效管理员，再删除当前超级管理员。');if(!can('system:user:delete'))return denied('没有删除用户的权限。');const next=clone();if(isSuperAdmin(data,userId)&&!isSuperAdmin(data,actor()))return denied('普通角色不能删除超级管理员。');next.users=next.users.filter(u=>u.id!==userId);return finish(next)}
+  function removeRbacUser(userId:string){if(RBAC_ENFORCEMENT_ENABLED&&userId===actor()&&isSuperAdmin(data,actor()))return denied('请先切换其他有效管理员，再删除当前超级管理员。');if(!can('system:user:delete'))return denied('没有删除用户的权限。');const next=clone();if(RBAC_ENFORCEMENT_ENABLED&&isSuperAdmin(data,userId)&&!isSuperAdmin(data,actor()))return denied('普通角色不能删除超级管理员。');next.users=next.users.filter(u=>u.id!==userId);return finish(next)}
   return {saveRbacRole,grantRbacRole,removeRbacRole,saveRbacPermission,saveRbacUser,removeRbacUser}
 }

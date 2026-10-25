@@ -8,10 +8,11 @@
         </div>
         <div class="row-actions">
           <PageAssist :path="route.path" :full-path="route.fullPath" :title="String(route.meta.title || route.path)" :query-panel="route.query.panel" />
-          <el-select :model-value="store.previewUserId || store.activeUserId" :disabled="dataBusy" size="small" style="width:180px" aria-label="模拟用户" @change="onUser">
+          <el-tag v-if="!store.rbacEnforced" effect="plain" title="当前统一按超级管理员运行，权限限制暂未启用">超级管理员</el-tag>
+          <el-select v-else :model-value="store.previewUserId || store.activeUserId" :disabled="dataBusy" size="small" style="width:180px" aria-label="模拟用户" @change="onUser">
             <el-option v-for="user in store.data.users" :key="user.id" :label="`模拟用户：${user.displayName}`" :value="user.id" :disabled="!user.enabled || (!canSwitchUser && user.id !== store.activeUserId)" />
           </el-select>
-          <el-button v-if="store.previewUserId || store.simulationReturnId" size="small" @click="store.stopPermissionPreview()">退出权限预览／模拟</el-button>
+          <el-button v-if="store.rbacEnforced && (store.previewUserId || store.simulationReturnId)" size="small" @click="store.stopPermissionPreview()">退出权限预览／模拟</el-button>
           <button type="button" class="theme-switch" :title="themeTitle" :aria-label="themeTitle" @click="onToggleTheme">
             <el-icon :size="16"><Sunny v-if="theme === 'dark'" /><Moon v-else /></el-icon>
           </button>

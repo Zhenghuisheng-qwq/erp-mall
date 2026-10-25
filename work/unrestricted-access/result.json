@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "mode": "unrestricted-mock-administrator",
+  "checks": [
+    "obsolete product:benefit:delete, unknown code, directory drift and dangling old roles open without RBAC reset",
+    "ordinary, disabled-role, disabled-user and obsolete simulated IDs all use registered administrator access in real Store",
+    "real SPU command still validates business fields; legitimate export/import preserves unknown authorization and business snapshots",
+    "genuine damaged businessConfigs containers still reject normalization/import atomically",
+    "damaged business startup still preserves original storage instead of silently loading seed data"
+  ]
+}
