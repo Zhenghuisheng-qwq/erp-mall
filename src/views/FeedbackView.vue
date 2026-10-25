@@ -1,8 +1,8 @@
 <template>
   <div>
     <PageHead title="反馈管理" desc="这些反馈只保存在本机。导出反馈包后，可发送给开发人员。不会同步到服务器，也没有进入开发队列。">
-      <el-button @click="pickPack">导入反馈包</el-button>
-      <el-button type="primary" :disabled="!store.data.feedbacks.length" @click="exportAll">导出反馈包</el-button>
+      <el-button :disabled="!store.can('system:feedback:import')" @click="pickPack">导入反馈包</el-button>
+      <el-button type="primary" :disabled="!store.data.feedbacks.length || !store.can('system:feedback:export')" @click="exportAll">导出反馈包</el-button>
       <input ref="packRef" type="file" accept=".zip,application/zip" hidden @change="onImport" />
     </PageHead>
     <div class="panel">
@@ -31,7 +31,7 @@
         </el-table-column>
         <el-table-column label="本地标记" width="130">
           <template #default="{ row }">
-            <el-select v-model="row.status" size="small">
+            <el-select :disabled="!store.can('system:feedback:update')" v-model="row.status" size="small">
               <el-option label="待看" value="open" />
               <el-option label="先记下" value="doing" />
               <el-option label="本机已看" value="done" />
@@ -41,9 +41,9 @@
         <el-table-column label="操作" width="220">
           <template #default="{ row }">
             <el-button link type="primary" @click="openDetail(row)">详情</el-button>
-            <el-button link :disabled="!!row.exportedAt" @click="openEdit(row)">编辑</el-button>
+            <el-button link :disabled="!!row.exportedAt || !store.can('system:feedback:update')" @click="openEdit(row)">编辑</el-button>
             <el-button v-if="row.route && canOpen(row.route)" link @click="router.push(row.route)">打开页面</el-button>
-            <el-button link type="danger" @click="remove(row)">删除</el-button>
+            <el-button link type="danger" :disabled="!store.can('system:feedback:delete')" @click="remove(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -66,7 +66,7 @@
       <el-input v-model="editContent" type="textarea" :rows="4" />
       <template #footer>
         <el-button @click="editOpen = false">取消</el-button>
-        <el-button type="primary" @click="saveEdit">保存到本机</el-button>
+        <el-button type="primary" :disabled="!store.can('system:feedback:update')" @click="saveEdit">保存到本机</el-button>
       </template>
     </el-dialog>
   </div>
@@ -78,7 +78,6 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHead from '../components/PageHead.vue'
 import { deleteAttachments, exportFeedbackPack, fileSize, readAttachment, readFeedbackPack } from '../domain/feedbackFiles'
-import { canAccessLocation } from '../domain/menuConfig'
 import type { FeedbackItem, FeedbackKind } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
 
@@ -111,7 +110,7 @@ function kindText(kind?: FeedbackKind) {
 function canOpen(route: string) {
   const [path, search] = route.split('?')
   const panel = new URLSearchParams(search || '').get('panel')
-  return canAccessLocation(store.data.activeRole, path || '/', panel ? { panel } : {})
+  return store.canRoute({ path: path || '/', query: panel ? { panel } : {} })
 }
 async function openDetail(row: FeedbackItem) {
   current.value = row
@@ -158,26 +157,28 @@ async function remove(row: FeedbackItem) {
   ElMessage.success('已从本机删除')
 }
 async function exportAll() {
+  if (!store.can('system:feedback:export')) { ElMessage.warning('当前身份没有执行此操作的权限。'); return }
   try {
     const blob = await exportFeedbackPack(store.data.feedbacks)
+    const committed = await store.markFeedbacksExported(store.data.feedbacks.map(item => item.id))
+    if (!committed.ok) { ElMessage.error(committed.message || '导出标记未保存，当前数据保留。'); return }
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
     link.download = 'iyge-feedback-pack.zip'
     link.click()
     URL.revokeObjectURL(url)
-    const now = new Date().toISOString()
-    store.data.feedbacks.forEach((item) => { item.exportedAt = now })
-    if (!await flushChanges()) return
     ElMessage.success('已导出反馈包。可发送给开发人员，不代表对方已经收到')
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '导出失败')
   }
 }
 function pickPack() {
+  if (!store.can('system:feedback:import')) { ElMessage.warning('当前身份没有执行此操作的权限。'); return }
   packRef.value?.click()
 }
 async function onImport(event: Event) {
+  if (!store.can('system:feedback:import')) { ElMessage.warning('当前身份没有执行此操作的权限。'); return }
   const file = (event.target as HTMLInputElement).files?.[0]
   ;(event.target as HTMLInputElement).value = ''
   if (!file) return
@@ -185,8 +186,8 @@ async function onImport(event: Event) {
     const incoming = await readFeedbackPack(file)
     const known = new Set(store.data.feedbacks.map((item) => item.id))
     const fresh = incoming.filter((item) => !known.has(item.id))
-    store.data.feedbacks.unshift(...fresh)
-    if (!await flushChanges()) return
+    const committed = await store.importFeedbackPack(incoming)
+    if (!committed.ok) { ElMessage.error(committed.message || '反馈包未保存，当前数据保留。'); return }
     ElMessage.success(`已导入 ${fresh.length} 条本机反馈，没有改商品数据`)
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '导入失败')

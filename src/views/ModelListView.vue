@@ -1,7 +1,7 @@
 <template>
   <div :aria-busy="saving">
     <PageHead title="商品模型" desc="模型挂在产品类型下面。先选分类和产品类型，再创建模型。发布会留下版本快照。">
-      <el-button type="primary" :disabled="saving" @click="openCreate">新建模型</el-button>
+      <el-button type="primary" :disabled="(saving) || !(store.can('product:model:create'))" @click="openCreate">新建模型</el-button>
     </PageHead>
     <div class="panel">
       <el-table :data="rows">
@@ -19,12 +19,12 @@
         <el-table-column label="操作" width="390" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="open(row.id, true)">查看模型</el-button>
-            <el-button link type="primary" @click="open(row.id, false)">编辑模型</el-button>
+            <el-button link type="primary" @click="open(row.id, false)" :disabled="!(store.can('product:model:update'))">编辑模型</el-button>
             <el-button link data-open-model-compatibility @click="compatibilityModelId = row.id; compatibilityOpen = true">适用设备配置</el-button>
-            <el-button link @click="router.push({ path: '/skus/new', query: { template: row.id } })">创建 SKU</el-button>
-            <el-button link :disabled="saving" @click="copy(row.id)">复制模型</el-button>
-            <el-button link :disabled="saving" @click="setStatus(row.id, 'published')">发布模型</el-button>
-            <el-button link :disabled="saving" @click="setStatus(row.id, 'offline')">下线模型</el-button>
+            <el-button link @click="router.push({ path: '/skus/new', query: { template: row.id } })" :disabled="!(store.can('product:sku:create'))">创建 SKU</el-button>
+            <el-button link :disabled="(saving) || !(store.can('product:model:create'))" @click="copy(row.id)">复制模型</el-button>
+            <el-button link :disabled="(saving) || !(store.can('product:model:publish'))" @click="setStatus(row.id, 'published')">发布模型</el-button>
+            <el-button link :disabled="(saving) || !(store.can('product:model:update'))" @click="setStatus(row.id, 'offline')">下线模型</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -43,10 +43,10 @@
       </el-form>
       <template #footer>
         <el-button :disabled="saving" @click="createOpen = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="create">创建</el-button>
+        <el-button type="primary" :loading="saving" @click="create" :disabled="!(store.can('product:model:create'))">创建</el-button>
       </template>
     </el-dialog>
-    <TemplateCompatibilityDialog v-model="compatibilityOpen" :model-id="compatibilityModelId" :readonly="!store.isAdmin" />
+    <TemplateCompatibilityDialog v-model="compatibilityOpen" :model-id="compatibilityModelId" :readonly="!store.can('product:model:update')" />
   </div>
 </template>
 

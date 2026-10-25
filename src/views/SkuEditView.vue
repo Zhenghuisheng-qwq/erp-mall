@@ -6,9 +6,9 @@
       <p>所属 SPU：<el-button link type="primary" @click="router.push(`/spus/${family.id}`)">{{ family.name }}</el-button></p>
       <p>来源：{{ sourceText }} · 绑定版本：{{ versionName }}</p>
       <el-button v-if="compatibilityRole !== 'other'" data-detail-compatibility @click="compatibilityOpen = true">{{ compatibilityRole === 'host' ? '适用配件' : '适用主机' }}</el-button>
-      <div style="max-width: 760px"><SkuFields v-model="draft" :family="family" :spec-locked="Boolean(sku.sourceNodeIds?.length || sku.planningId || sku.creationSource?.kind === 'plan')" /></div>
+      <div style="max-width: 760px"><SkuFields :disabled="!(store.can('product:sku:update'))" v-model="draft" :family="family" :spec-locked="Boolean(sku.sourceNodeIds?.length || sku.planningId || sku.creationSource?.kind === 'plan')" /></div>
       <p v-if="error" class="issue-error" role="alert">{{ error }}</p>
-      <div class="row-actions"><el-button @click="back">取消</el-button><el-button type="primary" :loading="saving" @click="save">保存 SKU</el-button></div>
+      <div class="row-actions"><el-button @click="back">取消</el-button><el-button type="primary" :loading="saving" @click="save" :disabled="!(store.can('product:sku:update'))">保存 SKU</el-button></div>
     </section>
     <AccessoryCompatibilityDrawer v-model="compatibilityOpen" :sku-id="sku?.id || ''" />
   </div>

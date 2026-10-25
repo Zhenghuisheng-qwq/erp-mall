@@ -1,9 +1,12 @@
+import { ensureRbac, rbacProblems, canPermission, isSuperAdmin, routePermissions, commandPermissions, effectivePermissions } from '../domain/rbac'
+import { loadMenu, saveMenu, defaultMenuNodes, type MenuNode } from '../domain/menuConfig'
+import { createRbacCommands } from './catalogRbac'
+import { catalogPublicData } from './catalogAccess'
 import { frameworkProductResetProblems, frameworkCommand, frameworkReference, frameworkSnapshot, frameworkSnapshotProblem, frameworkProblems, frameworkSignature } from '../domain/benefitFrameworks'
 import type { BenefitFramework } from '../domain/benefitPackageTypes'
 import { defineStore } from 'pinia'
 import { businessDefinitions, businessImportProblems, businessIssues, businessPath, configProblem, copyBusinessConfigs, freezeBusinessNodes, type BusinessDefinition, type NodeBusinessConfig } from '../domain/nodeBusiness'
-import { businessImportSignature } from '../domain/nodeBusinessStructure'
-import { executeMaterialRelation, materialRelationImportProblems, materialRelationImportSignature, markMaterialContributionChanges, revokeMaterialRelation } from '../domain/materialRelationCommands'
+import { executeMaterialRelation, materialRelationImportProblems, markMaterialContributionChanges, revokeMaterialRelation } from '../domain/materialRelationCommands'
 import { materialRelationBlock } from '../domain/materialRelations'
 import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { createCatalogPersistence } from './catalogPersistence'
@@ -26,7 +29,7 @@ import { reconcilePlanningRecords } from '../domain/planning'
 import { compatibilityModelBlock, compatibilitySkuBlock } from '../domain/compatibility'
 import { ensureProductListPages } from '../domain/productListPages'
 import type { ProductListPageState } from '../domain/types'
-import { isRealSku } from '../domain/catalogIdentity'
+import { isRealSku, isMaterialArchive } from '../domain/catalogIdentity'
 import { applyCompatibilityChanges, cloneCompatibility, compatibilityImportProblems, deviceModelProblem } from '../domain/accessoryCompatibilityCommands'
 import type { CompatibilityChange, CompatibilityCommandResult } from '../domain/accessoryCompatibilityCommands'
 import { compatibilityFamilyTypeId, compatibilityRecordRole, deviceSourceStamp, sameDeviceHost, validateCompatibilityHost } from '../domain/deviceResolution'
@@ -217,6 +220,7 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   if (ensureProductListPages(data)) mark.changed = true
   const compatibilityProblems = compatibilityImportProblems(data)
   if (compatibilityProblems.length) migrationStorageError = `适用关系配置有待处理项：${compatibilityProblems.join(' ')} 原始记录已保留，请修复或导出备份。`
+  ensureRbac(data, loadMenu())
   return data
 }
 
@@ -247,7 +251,32 @@ export function uid(prefix: string) {
 
 export const useCatalogStore = defineStore('catalog', () => {
   const originalRaw = localStorage.getItem(STORAGE_KEY)
-  const data = reactive<AppData>(loadData(originalRaw))
+  const startupCandidate = loadData(originalRaw)
+  ensureRbac(startupCandidate,loadMenu())
+  const needsAuthorizationMigration = !originalRaw || !JSON.parse(originalRaw).data?.rbac
+  const startingData = cloneCompatibility(startupCandidate)
+  if(needsAuthorizationMigration){delete startingData.rbac;startingData.users=originalRaw?JSON.parse(originalRaw).data.users:startingData.users.map(u=>{const x={...u};delete x.roleIds;return x})}
+  const data = reactive<AppData>(startingData)
+  const authorizationReady=ref(!needsAuthorizationMigration)
+  const SESSION_KEY='iyge-rbac-simulated-user'
+  let storedUser:string|null=null
+  try{storedUser=sessionStorage.getItem(SESSION_KEY)||localStorage.getItem(SESSION_KEY)}catch{try{storedUser=localStorage.getItem(SESSION_KEY)}catch{}}
+  const activeUserId=ref(storedUser||startupCandidate.users.find(u=>u.enabled&&u.role===startupCandidate.activeRole)?.id||'')
+  const previewUserId=ref(''),simulationReturnId=ref('')
+  const effectiveUserId=computed(()=>previewUserId.value||activeUserId.value)
+  const currentUser=computed(()=>data.users.find(u=>u.id===effectiveUserId.value))
+  const authorizationStamp=(value:AppData)=>JSON.stringify([value.rbac?.roles.map(r=>[r.id,r.enabled,r.superAdmin,r.permissionCodes]),value.rbac?.permissions.map(p=>[p.code,p.enabled,p.dependsOn]),value.users.map(u=>[u.id,u.enabled,u.roleIds])])
+  function authorizationFresh(){if(!persistence.state.external)return true;try{return authorizationStamp(JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}').data)===authorizationStamp(data)}catch{return false}}
+  const can=(code:string)=>authorizationReady.value&&authorizationFresh()&&canPermission(data,effectiveUserId.value,code)
+  function canRoute(location:{path:string;query?:Record<string,unknown>}){
+    let path=location.path
+    const legacy=/^\/products\/([^/]+)$/.exec(path)
+    if(legacy&&legacy[1]!=='new'&&location.query?.sku){const sku=data.skus.find(s=>s.id===location.query!.sku&&s.familyId===legacy[1]);path=sku?(isMaterialArchive(data,sku)?`/materials/${sku.familyId}`:`/skus/${sku.id}`):`/spus/${legacy[1]}`}
+    const permissions=routePermissions(path,location.query);return permissions!==null&&permissions.every(can)
+  }
+  type CommandContext={codes:string[];actor:string}
+  let invocation:CommandContext|undefined
+  const publicData=catalogPublicData(data,can)
   const editorGeneration = ref(0)
   const persistence = createCatalogPersistence(originalRaw)
   onScopeDispose(persistence.dispose)
@@ -271,15 +300,15 @@ export const useCatalogStore = defineStore('catalog', () => {
     { deep: true },
   )
 
-  const isAdmin = computed(() => data.activeRole === 'admin')
+  const isAdmin = computed(() => authorizationReady.value&&authorizationFresh()&&isSuperAdmin(data,effectiveUserId.value))
   // Seed and migration writes use the very same protected path, never a startup
   // overwrite. Existing unmodified payloads acquire identity on their first edit.
-  if (!originalRaw || JSON.stringify(JSON.parse(originalRaw).data) !== explicitlyPersisted || JSON.parse(originalRaw).version !== DATA_VERSION) {
-    explicitlyPersisted = ''
-    void persistLive()
-  }
+  if(needsAuthorizationMigration){
+    void persistence.run(()=>{persistence.write(startupCandidate);Object.assign(data,startupCandidate);authorizationReady.value=true;explicitlyPersisted=JSON.stringify(data);return {ok:true}},message=>{migrationStorageError=`授权迁移未提交：${message}。原数据保留。`;return {ok:false,message}})
+  } else if (JSON.stringify(JSON.parse(originalRaw!).data)!==explicitlyPersisted||JSON.parse(originalRaw!).version!==DATA_VERSION){explicitlyPersisted='';void persistLive()}
   function command<T extends { ok: boolean; message?: string }>(operation: () => T): Promise<T | CommandFailure> {
-    return persistence.run<T | CommandFailure>(operation, message => ({ ok: false as const, message }))
+    const context=invocation
+    return persistence.run<T | CommandFailure>(()=>{if(context&&(context.actor!==effectiveUserId.value||!context.codes.every(can)))return {ok:false,message:'操作者或授权已变化，本次提交被拒绝，草稿保留。'};return operation()}, message => ({ ok: false as const, message }))
   }
 
   /** Persist the whole candidate once, then expose only this command's owned fields. */
@@ -299,18 +328,15 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
   const creationKeys: (keyof AppData)[] = ['families', 'skus', 'planningRecords', 'materialReceipts', 'compatibilities', 'templateCompatibilityOrigins', 'materialRelations', 'materialContributions']
   function saveMaterialRelation(input: Parameters<typeof executeMaterialRelation>[1]) {
-    if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看物料关联。', materialId: '', relationId: '' }
     const next = cloneCompatibility(data)
     const result = executeMaterialRelation(next, input, uid)
     return commitCandidate(next, result, creationKeys)
   }
   function unlinkMaterialRelation(id: string, basis: string) {
-    if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看物料关联。' }
     const next = cloneCompatibility(data)
     return commitCandidate(next, revokeMaterialRelation(next, id, basis), creationKeys)
   }
   function commitCreated<T extends { ok: boolean; message?: string }>(next: AppData, result: T, ids: string[], now: string) {
-    if (!isAdmin.value) return { ok: false as const, message: '当前角色仅可查看商品与物料，请由管理员创建。', choices: undefined, reason: undefined }
     if (!result.ok) return result
     for (const id of ids) {
       const sku = next.skus.find(s => s.id === id), family = next.families.find(f => f.id === sku?.familyId)
@@ -327,7 +353,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     return commitCandidate(next, result, creationKeys)
   }
   function saveTemplateCompatibility(config: TemplateCompatibilityConfig, expectedRevision?: number) {
-    if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看模板兼容配置，请由管理员维护。' }
     if (!data.templates.some(item => item.id === config.modelId) || !data.specCanvases.some(item => item.templateId === config.modelId)) return { ok: false, message: '模型或画布已不存在，未重新创建已删除模型的兼容配置；当前草稿保留。' }
     const previous = data.templateCompatibilityConfigs?.find(item => item.modelId === config.modelId)
     if ((expectedRevision ?? config.revision) !== (previous?.revision || 0)) return { ok: false, message: '模板兼容配置已更新，请重新打开后核对；当前草稿保留。' }
@@ -346,14 +371,12 @@ export const useCatalogStore = defineStore('catalog', () => {
     return commitCandidate(next, { ok: true }, ['templateCompatibilityConfigs', 'specCanvases'])
   }
   function applyTemplateSync(preview: TemplateSyncPreview, decisions: Record<string, 'take-template' | 'keep'>) {
-    if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看适用关系，请由管理员维护。' }
     const next = cloneCompatibility(data)
     const result = applyTemplateCompatibilitySync(next, preview, decisions, () => uid('compat'), new Date().toISOString())
     return commitCandidate(next, result, ['compatibilities', 'templateCompatibilityOrigins'])
   }
   function saveModelDraft(templateId: string, isCurrent: () => boolean = () => true) {
     if (!isCurrent()) return { ok: false, message: '编辑上下文已变化，本次保存已取消。' }
-    if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看模型，请由管理员保存。' }
     if (!data.templates.some(item => item.id === templateId)) return { ok: false, message: '模型已不存在。' }
     const next = cloneCompatibility(data), canvas = next.specCanvases.find(item => item.templateId === templateId)
     if (canvas) canvas.updatedAt = new Date().toISOString()
@@ -365,7 +388,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     return { ok: true, message: '已保存模型草稿。' }
   }
   function saveNodeBusiness(modelId: string, nodeId: string, configs: NodeBusinessConfig[], expected: string) {
-    if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看业务配置。' }
     const node = data.productSpecNodes.find(n => n.id === nodeId && n.templateId === modelId && n.nodeType === 'VALUE')
     if (!node || JSON.stringify(node) !== expected) return { ok: false, message: '节点或配置已变化，请重新打开核对；输入保留。' }
     const records = cloneCompatibility(configs)
@@ -390,7 +412,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     return commitCandidate(next, { ok: true, message: '已保存节点业务配置；冲突仍需修正后发布。' }, ['productSpecNodes', 'specCanvases'])
   }
   function saveBusinessDefinition(input: BusinessDefinition, remove = false) {
-    if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看公共配置目录。' }
     const definitions = businessDefinitions(data), old = definitions.find(d => d.id === input.id)
     if (!old || old.kind !== input.kind || !input.name.trim() || typeof input.enabled !== 'boolean') return { ok: false, message: '定义身份和功能类型不能更换，请填写名称及可用状态。' }
     const allNodes = [...data.productSpecNodes, ...data.specModelVersions.flatMap(v => v.nodesSnapshot)]
@@ -404,7 +425,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     return JSON.stringify([data.families, data.skus, data.planningRecords, data.materialReceipts, data.compatibilities, data.templateCompatibilityOrigins, data.specModelVersions, data.templateCompatibilityConfigs, data.categories, data.productTypes, data.params, data.templates, data.specCanvases, data.productSpecNodes, data.nodeCompatibilityRules])
   }
   function commitMaterialImport(candidate: AppData, expectedBasis: string) {
-    if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看物料，请由管理员导入。' }
     if (materialImportBasis() !== expectedBasis) return { ok: false, message: '预览后商品或模型数据已变化，请重新预览导入；当前数据未改变。' }
     const next = cloneCompatibility(data), existing = new Set(data.skus.map(item => item.id))
     for (const key of creationKeys) {
@@ -414,7 +434,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function benefitPermission(): BenefitCommandResult | undefined {
-    return isAdmin.value ? undefined : { ok: false, message: '当前角色仅可查看权益包和交付清单，请由管理员维护。' }
+    return undefined
   }
 
   /** Persist a complete candidate before exposing either configuration or snapshot changes. */
@@ -560,7 +580,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function compatibilityPermission(): CompatibilityCommandResult | undefined {
-    return isAdmin.value ? undefined : { ok: false, message: '当前角色仅可查看适用关系，请由管理员维护。' }
+    return undefined
   }
 
   /** Only these compatibility-owned arrays are changed, after the full payload is stored. */
@@ -679,6 +699,7 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   function resetAll() {
     const next = createSeed()
+    next.rbac=cloneCompatibility(data.rbac);next.users=cloneCompatibility(data.users)
     persistence.write(next, true)
     replaceAll(next)
     explicitlyPersisted = JSON.stringify(data)
@@ -710,7 +731,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     } else if (name === 'groups') {
       next.productGroups = fresh.productGroups
     } else {
-      next.users = fresh.users
+      // Users and authorization are managed by the controlled system commands.
       next.feedbacks = fresh.feedbacks
       next.profile = fresh.profile
     }
@@ -736,15 +757,10 @@ export const useCatalogStore = defineStore('catalog', () => {
     const parsed = JSON.parse(text) as StoredPayload
     if (!parsed.data) throw new Error('导入文件缺少商品数据，当前数据没有被替换。')
     if (!Array.isArray(parsed.data.skus) || !Array.isArray(parsed.data.families)) throw new Error('导入文件缺少有效的商品数组，当前数据没有被替换。')
-    if (!isAdmin.value && materialRelationImportSignature(parsed.data) !== materialRelationImportSignature(data)) throw new Error('当前角色仅可查看物料关联，不能通过导入修改范围、关联或兼容贡献。')
     const businessProblems = businessImportProblems(parsed.data)
     if (businessProblems.length) throw new Error(`节点业务配置结构校验失败：${businessProblems.join(' ')} 当前数据没有被替换。`)
     const relationProblems = materialRelationImportProblems(parsed.data)
     if (relationProblems.length) throw new Error(`物料关联校验失败：${relationProblems.join(' ')} 当前数据没有被替换。`)
-    if (!isAdmin.value && businessImportSignature(parsed.data) !== businessImportSignature(data)) throw new Error('当前角色仅可查看节点业务配置，不能通过导入修改业务目录、草稿配置或历史配置（含冻结信息）。')
-    if (!isAdmin.value && JSON.stringify([parsed.data.compatibilities || [], parsed.data.deviceModels, parsed.data.deviceBindings]) !== JSON.stringify([data.compatibilities, data.deviceModels, data.deviceBindings])) throw new Error('当前角色仅可查看适用关系，不能通过导入修改声明或设备绑定。')
-    if (!isAdmin.value && JSON.stringify([parsed.data.benefitPackages || [], parsed.data.benefitDeliveries || [], parsed.data.benefitFrameworks || []]) !== JSON.stringify([data.benefitPackages || [], data.benefitDeliveries || [], data.benefitFrameworks || []])) throw new Error('当前角色仅可查看权益包，不能通过导入修改配置或交付清单。')
-    if (!isAdmin.value && JSON.stringify([parsed.data.templateCompatibilityConfigs, parsed.data.templateCompatibilityOrigins, parsed.data.specModelVersions.map(item => item.templateCompatibilitySnapshot)]) !== JSON.stringify([data.templateCompatibilityConfigs, data.templateCompatibilityOrigins, data.specModelVersions.map(item => item.templateCompatibilitySnapshot)])) throw new Error('当前角色仅可查看模板兼容配置，不能通过导入修改配置、发布快照或来源保护记录。')
     const templateProblems = [...templateCompatibilityImportProblems(parsed.data), ...templateCompatibilityOriginProblems(parsed.data)]
     if (templateProblems.length) throw new Error(`模板兼容导入校验失败：${templateProblems.join(' ')} 当前数据没有被替换。`)
     const benefitProblems = benefitPackageImportProblems(parsed.data)
@@ -753,6 +769,29 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (compatibilityProblems.length) throw new Error(`适用关系导入校验失败：${compatibilityProblems.join(' ')} 当前数据没有被替换。`)
     const next = normalizeStored(parsed, { persist: false })
     if (!next?.params) throw new Error('演示数据版本不匹配，当前数据没有被替换')
+    const authChanged=JSON.stringify([next.rbac,next.users])!==JSON.stringify([data.rbac,data.users])
+    if(authChanged){
+      if(!can('system:role:grant')||!can('system:user:bind')||!can('system:permission:update'))throw new Error('导入不能修改当前操作者无权维护的授权或用户角色绑定。')
+      const own=effectivePermissions(data,effectiveUserId.value)
+      if(!isAdmin.value&&next.rbac!.roles.some(role=>role.superAdmin||role.permissionCodes.some(code=>!own.has(code))))throw new Error('导入不能取得超级管理员身份或超出操作者委派范围。')
+    }
+    const prefixes:Partial<Record<keyof AppData,string>>={families:'product:spu',skus:'product:sku',productSpecNodes:'product:model',specCanvases:'product:model',specModelVersions:'product:model',businessDefinitions:'product:model',nodeCompatibilityRules:'product:model',materialRelations:'product:material',materialContributions:'product:material',materialReceipts:'product:material',compatibilities:'product:compatibility',deviceModels:'product:compatibility',deviceBindings:'product:compatibility',templateCompatibilityConfigs:'product:model',templateCompatibilityOrigins:'product:compatibility',benefitPackages:'product:benefit',benefitDeliveries:'product:delivery',benefitFrameworks:'product:framework',categories:'product:category',params:'product:dictionary',templates:'product:model',templateParams:'product:template',mappings:'product:template',productTypes:'product:type',rules:'product:rule',brands:'product:brand',productGroups:'product:group',planningRecords:'product:planning',productPlans:'product:planning',feedbacks:'system:feedback',profile:'system:account'}
+    const preferences=new Set(['mode','activeRole','productListPages','productListViews','activeProductListViewId','columns','listViews','activeViewId','listQuery','productListMode'])
+    for(const key of new Set([...Object.keys(data),...Object.keys(next)])){
+      if(key==='rbac'||key==='users'||preferences.has(key)||JSON.stringify((data as any)[key])===JSON.stringify((next as any)[key]))continue
+      const prefix=prefixes[key as keyof AppData]
+      if(!prefix)throw new Error(`导入含未登记的变更字段：${key}`)
+      const old=(data as any)[key],value=(next as any)[key]
+      if(key==='specModelVersions'){if(!can('product:model:publish'))throw new Error('无权导入或改写模型发布快照。');continue}
+      if(Array.isArray(old)&&Array.isArray(value)){
+        const byId=(item:any)=>item.id||JSON.stringify(item)
+        const keys=new Set([...old,...value].map(byId))
+        for(const identity of keys){const a=old.find((v:any)=>byId(v)===identity),b=value.find((v:any)=>byId(v)===identity);if(JSON.stringify(a)===JSON.stringify(b))continue;if(key==='families'&&b&&!commandPermissions('saveSpu',[b],data).every(can))throw new Error('导入不能绕过商品编辑或发布权限。');if(key==='skus'&&a&&b&&isMaterialArchive(data,a)!==isMaterialArchive(next,b)&&(!can('product:sku:update')||!can('product:material:update')))throw new Error('导入不能跨越 SKU/MAT 身份权限。');const resource=key==='skus'&&((a||b)?.recordKind==='material'||(a||b)?.materialCode)?'product:material':prefix;const action=!a?'create':!b?'delete':'update';if(!can(`${resource}:${action}`))throw new Error(`导入被拒绝：没有 ${resource}:${action}，当前数据及会话未改变。`)}
+      }else if(!can(`${prefix}:update`))throw new Error(`导入被拒绝：没有 ${prefix}:update。`)
+    }
+    next.activeRole=data.activeRole // Deprecated backup mirror must never change the current or next mock identity.
+    const authIssues=rbacProblems(next);if(authIssues.length)throw new Error(authIssues.join(' '))
+
     if (migrationStorageError) throw new Error(migrationStorageError)
     try { persistence.write(next, true) }
     catch (error) { throw new Error(`无法写入本机：${error instanceof Error ? error.message : String(error)}。当前数据和原存储未改变，可重试导入。`) }
@@ -968,7 +1007,6 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function copyProductModel(id: string, options: { name?: string; productTypeId?: string; direction?: 'ltr' | 'logic' } = {}) {
-    if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看模型，请由管理员复制。' }
     const next = cloneCompatibility(data), source = next.templates.find(item => item.id === id), canvas = next.specCanvases.find(item => item.templateId === id)
     if (!source || !canvas?.productTypeId) return { ok: false, message: '模型或产品类型已不存在。' }
     const businessProblem = businessIssues(next, next.productSpecNodes.filter(n => n.templateId === id))[0]
@@ -1171,11 +1209,10 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function setRole(role: UserRole) {
-    data.activeRole = role
+    const user=data.users.find(u=>u.role===role&&u.enabled);if(user)simulateUser(user.id)
   }
 
   function publishSpecModel(templateId: string): { ok: boolean; message: string } {
-    if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看模型，请由管理员发布。' }
     const next = cloneCompatibility(data)
     const nodes = next.productSpecNodes.filter((item) => item.templateId === templateId)
     const problems = specPublishProblems(next, nodes)
@@ -1288,8 +1325,44 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
-  return {
-    data,
+  function simulateUser(id:string){
+    if(id===activeUserId.value){previewUserId.value='';return {ok:true}}
+    if(!isSuperAdmin(data,activeUserId.value))return {ok:false,message:'只有超级管理员模拟会话可以切换其他用户。'}
+    if(!data.users.some(u=>u.id===id&&u.enabled))return {ok:false,message:'用户不存在或已停用。'}
+    if(!simulationReturnId.value)simulationReturnId.value=activeUserId.value
+    activeUserId.value=id;previewUserId.value='';try{sessionStorage.setItem(SESSION_KEY,id);localStorage.setItem(SESSION_KEY,id)}catch{}
+    return {ok:true}
+  }
+  function startPermissionPreview(id:string){if(!isSuperAdmin(data,activeUserId.value))return {ok:false,message:'只有超级管理员可预览其他用户。'};if(!data.users.some(u=>u.id===id&&u.enabled))return {ok:false,message:'用户已停用或不存在。'};previewUserId.value=id;return {ok:true}}
+  function stopPermissionPreview(){previewUserId.value='';if(simulationReturnId.value){if(data.users.some(u=>u.id===simulationReturnId.value&&u.enabled))activeUserId.value=simulationReturnId.value;simulationReturnId.value='';try{sessionStorage.setItem(SESSION_KEY,activeUserId.value);localStorage.setItem(SESSION_KEY,activeUserId.value)}catch{}}return {ok:true}}
+  const rbacCommands=createRbacCommands(data,()=>effectiveUserId.value,can,next=>commitCandidate(next,{ok:true,message:'已保存。'},['rbac','users']),()=>uid('access'))
+  function saveMenuStructure(nodes:MenuNode[]){
+    if(!can('system:menu:update'))return {ok:false,message:'没有菜单管理权限。'}
+    const registered=defaultMenuNodes()
+    for(const node of nodes.filter(n=>n.kind==='page')){
+      const route=registered.find(n=>n.id===node.id)?.route
+      const [path,query]=String(route||'').split('?')
+      const required=routePermissions(path||'/',Object.fromEntries(new URLSearchParams(query||'')))||[]
+      if(node.permissionCode&&!required.includes(node.permissionCode))return {ok:false,message:'菜单只能绑定其真实路由登记的访问权限。'}
+    }
+    try{saveMenu(nodes);return {ok:true,message:'菜单结构已保存，角色授权保持。'}}catch(error){return {ok:false,message:String(error)}}
+  }
+  function resetMenuStructure(){return saveMenuStructure(defaultMenuNodes())}
+  function importFeedbackPack(incoming:FeedbackItem[]){const next=cloneCompatibility(data);if(!Array.isArray(incoming)||incoming.some(item=>!item||typeof item.id!=='string'||typeof item.title!=='string'||typeof item.content!=='string'))return {ok:false,message:'反馈包记录结构不合法。'};const known=new Set(next.feedbacks.map(item=>item.id));next.feedbacks.unshift(...cloneCompatibility(incoming.filter(item=>!known.has(item.id))));return commitCandidate(next,{ok:true},['feedbacks'])}
+  function markFeedbacksExported(ids:string[]){const next=cloneCompatibility(data),now=new Date().toISOString();next.feedbacks.forEach(item=>{if(ids.includes(item.id))item.exportedAt=now});return commitCandidate(next,{ok:true},['feedbacks'])}
+  const api = {
+    data:publicData,
+    can,canRoute,currentUser,activeUserId,previewUserId,simulationReturnId,authorizationReady,
+    simulateUser,startPermissionPreview,stopPermissionPreview,
+    saveRbacRole:(...args:Parameters<typeof rbacCommands.saveRbacRole>)=>command(()=>rbacCommands.saveRbacRole(...args)),
+    removeRbacRole:(...args:Parameters<typeof rbacCommands.removeRbacRole>)=>command(()=>rbacCommands.removeRbacRole(...args)),
+    grantRbacRole:(...args:Parameters<typeof rbacCommands.grantRbacRole>)=>command(()=>rbacCommands.grantRbacRole(...args)),
+    saveRbacPermission:(...args:Parameters<typeof rbacCommands.saveRbacPermission>)=>command(()=>rbacCommands.saveRbacPermission(...args)),
+    saveRbacUser:(...args:Parameters<typeof rbacCommands.saveRbacUser>)=>command(()=>rbacCommands.saveRbacUser(...args)),
+    removeRbacUser:(...args:Parameters<typeof rbacCommands.removeRbacUser>)=>command(()=>rbacCommands.removeRbacUser(...args)),
+    saveMenuStructure,resetMenuStructure,
+    importFeedbackPack:(...args:Parameters<typeof importFeedbackPack>)=>command(()=>importFeedbackPack(...args)),
+    markFeedbacksExported:(...args:Parameters<typeof markFeedbacksExported>)=>command(()=>markFeedbacksExported(...args)),
     persistenceState: persistence.state,
     editorGeneration,
     waitForPersistence: persistence.idle,
@@ -1375,6 +1448,17 @@ export const useCatalogStore = defineStore('catalog', () => {
     defaultColumns,
     emptyQuery,
   }
+  const unguarded=new Set(['can','canRoute','waitForPersistence','flushPersistence','simulateUser','startPermissionPreview','stopPermissionPreview','setRole','categoryRemovalBlock','skusOf','productTypesOf','blankSku','defaultColumns','emptyQuery','materialImportBasis','previewTemplateCompatibilitySync'])
+  for(const [name,original]of Object.entries(api))if(typeof original==='function'&&!unguarded.has(name)){
+    (api as any)[name]=(...args:unknown[])=>{
+      const codes=commandPermissions(name,args,data)
+      if(!codes.every(can))throw new Error(`未授权操作：${codes.join('、')}。`)
+      if((name==='resetAll'||name==='resetModule')&&!isAdmin.value)throw new Error('只有受保护的超级管理员可重置演示数据。')
+      const previous=invocation;invocation={codes,actor:effectiveUserId.value}
+      try{return (original as (...a:unknown[])=>unknown)(...args)}finally{invocation=previous}
+    }
+  }
+  return api
 })
 
 export type { Category, FeedbackItem, ParamDef, ProductFamily, ProductGroup, ProductType, SpecRule }

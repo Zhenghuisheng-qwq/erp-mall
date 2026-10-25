@@ -1,7 +1,7 @@
 <template>
   <div :inert="saving" :aria-busy="saving">
     <PageHead title="适用关系" desc="已建物料适用关系。这里关联的是物料和主机，不是模型节点上的草稿配置。">
-      <el-button v-if="store.isAdmin" :loading="saving" @click="loadSamples">放入测试样例</el-button>
+      <el-button v-if="store.can('system:data:reset')" :loading="saving" @click="loadSamples">放入测试样例</el-button>
     </PageHead>
     <p v-if="sampleNote" class="panel muted">{{ sampleNote }}</p>
     <p v-if="unconfiguredNote" class="panel muted">{{ unconfiguredNote }}</p>
@@ -13,14 +13,14 @@
         <el-input v-model="hostKeyword" placeholder="搜品牌、系列或型号，例如 iPhone 17 Pro Max" clearable />
         <p v-if="hosts.length === 0" class="muted">没有找到已建档的主机型号。可以去商品规划查看，这里不会自动生成主机。</p>
         <label v-for="item in hosts" :key="item.key" class="choice">
-          <input type="checkbox" :checked="pickedHosts.includes(item.key) || item.linked" :disabled="item.linked || !store.isAdmin" @change="toggleHost(item.key)" />
+          <input type="checkbox" :checked="pickedHosts.includes(item.key) || item.linked" :disabled="item.linked || !store.can('product:compatibility:create')" @change="toggleHost(item.key)" />
           <span>
             <strong>{{ item.label }}</strong>
             <em>{{ item.sample ? '测试样例 · ' : '' }}{{ item.productTypeName }} · 已关联 {{ item.accessoryCount }} 条</em>
           </span>
         </label>
         <div class="row-actions">
-          <el-button v-if="store.isAdmin" type="primary" :loading="saving" :disabled="pickedHosts.length === 0" @click="linkHosts">关联到 {{ pickedHosts.length }} 款主机</el-button>
+          <el-button v-if="store.can('product:compatibility:create')" type="primary" :loading="saving" :disabled="pickedHosts.length === 0" @click="linkHosts">关联到 {{ pickedHosts.length }} 款主机</el-button>
         </div>
         <p v-if="resultText">{{ resultText }}</p>
       </section>
@@ -31,10 +31,10 @@
           <div>
             <strong>{{ item.label }}</strong>
             <p class="muted">{{ item.scopeText }}</p>
-            <el-input :model-value="noteDrafts[item.id] ?? item.note" :disabled="saving" :readonly="!store.isAdmin" placeholder="补充说明，可留空" @input="noteDrafts[item.id] = String($event)" />
-            <el-button v-if="store.isAdmin && Object.hasOwn(noteDrafts, item.id)" size="small" type="primary" :loading="saving" style="margin-top:8px" @click="saveNote(item.id, noteDrafts[item.id] ?? item.note)">保存说明</el-button>
+            <el-input :model-value="noteDrafts[item.id] ?? item.note" :disabled="saving" :readonly="!store.can('product:compatibility:update')" placeholder="补充说明，可留空" @input="noteDrafts[item.id] = String($event)" />
+            <el-button v-if="store.can('product:compatibility:update') && Object.hasOwn(noteDrafts, item.id)" size="small" type="primary" :loading="saving" style="margin-top:8px" @click="saveNote(item.id, noteDrafts[item.id] ?? item.note)">保存说明</el-button>
           </div>
-          <el-button v-if="store.isAdmin" link type="danger" @click="removeOne(item.id)">取消关联</el-button>
+          <el-button v-if="store.can('product:compatibility:delete')" link type="danger" @click="removeOne(item.id)">取消关联</el-button>
         </article>
       </section>
     </div>
@@ -56,13 +56,13 @@
           <button type="button" @click="typeFilter = ''">全部类型</button>
           <button v-for="item in typeOptions" :key="item.id" type="button" @click="typeFilter = item.id">{{ item.name }}</button>
           <el-input v-model="codeKeyword" placeholder="搜物料编码或名称" clearable style="width: 220px" />
-          <el-button v-if="store.isAdmin" type="primary" @click="pickerOpen = true">添加配件</el-button>
-          <el-button v-if="store.isAdmin" :disabled="pickedLinks.length === 0" @click="removeMany">取消 {{ pickedLinks.length }} 条关联</el-button>
+          <el-button v-if="store.can('product:compatibility:create')" type="primary" @click="pickerOpen = true">添加配件</el-button>
+          <el-button v-if="store.can('product:compatibility:delete')" :disabled="pickedLinks.length === 0" @click="removeMany">取消 {{ pickedLinks.length }} 条关联</el-button>
         </div>
         <p v-if="visibleLinks.length === 0" class="muted">这款主机还没有适用配件。</p>
         <div v-for="item in visibleLinks" :key="item.id" class="choice">
           <label>
-            <input type="checkbox" :checked="pickedLinks.includes(item.id)" :disabled="!store.isAdmin" @change="toggleLink(item.id)" />
+            <input type="checkbox" :checked="pickedLinks.includes(item.id)" :disabled="!store.can('product:compatibility:delete')" @change="toggleLink(item.id)" />
             <span>
               <strong>{{ item.code }} · {{ item.name }}</strong>
               <em>{{ item.typeName }} · {{ item.spec || '无规格摘要' }}<template v-if="item.supplier"> · 供应商 {{ item.supplier }}</template></em>
@@ -93,7 +93,7 @@
           <em>{{ item.productTypeName }} · {{ item.spec || '无规格摘要' }} · 已关联 {{ item.hostCount }} 款主机{{ item.linked ? ' · 已经关联' : '' }}<template v-if="item.supplierCode"> · {{ item.supplierCode }}</template></em>
         </span>
       </label>
-      <el-button v-if="store.isAdmin" type="primary" :loading="saving" :disabled="pickedSkus.length === 0" @click="linkSkus">确认关联 {{ pickedSkus.length }} 条</el-button>
+      <el-button v-if="store.can('product:compatibility:create')" type="primary" :loading="saving" :disabled="pickedSkus.length === 0" @click="linkSkus">确认关联 {{ pickedSkus.length }} 条</el-button>
       </div>
     </el-drawer>
   </div>
@@ -228,7 +228,7 @@ function additions(ids: string[], hosts: CompatibilityHost[]): CompatibilityChan
   return ids.flatMap(id => hosts.map(host => ({ kind: 'add' as const, draft: { target: { kind: 'material' as const, id }, host, conclusion: 'compatible' as const, verification: 'confirmed' as const, capability: 'basic' as const, conditions: [], source: '人工维护的物料适用关系；核验资料未记录', note: '' } })))
 }
 async function linkSkus() {
-  if (!store.isAdmin || saving.value) return
+  if (!store.can('product:compatibility:create') || saving.value) return
   const host = currentHost()
   if (!host) return
   saving.value = true
@@ -240,7 +240,7 @@ async function linkSkus() {
   finally { saving.value = false }
 }
 async function linkHosts() {
-  if (!store.isAdmin || !skuMode.value || saving.value) return
+  if (!store.can('product:compatibility:create') || !skuMode.value || saving.value) return
   const chosen = hosts.value.filter((item) => pickedHosts.value.includes(item.key)).map((item) => item.host)
   saving.value = true
   try {
@@ -251,7 +251,7 @@ async function linkHosts() {
   finally { saving.value = false }
 }
 async function cancel(ids: string[]) {
-  if (!store.isAdmin || saving.value) return false
+  if (!store.can('product:compatibility:delete') || saving.value) return false
   saving.value = true
   try {
     try { await ElMessageBox.confirm(`取消 ${ids.length} 条物料适用声明？物料和主机仍保留。`, '取消关联', { confirmButtonText: '确认取消声明', cancelButtonText: '保留' }) } catch { return false }
@@ -267,7 +267,7 @@ async function removeMany() {
   if (await cancel([...pickedLinks.value])) pickedLinks.value = []
 }
 async function saveNote(id: string, note: string) {
-  if (!store.isAdmin || saving.value) return
+  if (!store.can('product:compatibility:update') || saving.value) return
   const link = store.data.compatibilities.find(item => item.id === id)
   if (!link) return
   saving.value = true
@@ -279,7 +279,7 @@ async function saveNote(id: string, note: string) {
   finally { saving.value = false }
 }
 async function loadSamples() {
-  if (!store.isAdmin || saving.value) return
+  if (!store.can('system:data:reset') || saving.value) return
   const candidate = cloneCompatibility(store.data)
   const result = installCompatibilitySamples(candidate, uid)
   if (!result.filmA) { sampleNote.value = '测试样例没有放进去。请先确认手机分类还在。'; return }

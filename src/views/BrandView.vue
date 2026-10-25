@@ -1,7 +1,7 @@
 <template>
   <div>
     <PageHead title="品牌中心" desc="新商品的品牌从这里选。已经保存的商品仍读取公共属性里的「品牌」，不会丢。">
-      <el-button type="primary" @click="openCreate">新增品牌</el-button>
+      <el-button type="primary" @click="openCreate" :disabled="!(store.can('product:brand:create'))">新增品牌</el-button>
     </PageHead>
     <div class="panel">
       <el-table :data="store.data.brands">
@@ -10,25 +10,25 @@
         <el-table-column prop="description" label="说明" />
         <el-table-column label="状态" width="120">
           <template #default="{ row }">
-            <el-switch :model-value="row.status === 'enabled'" @change="row.status = $event ? 'enabled' : 'disabled'" />
+            <el-switch :model-value="row.status === 'enabled'" @change="row.status = $event ? 'enabled' : 'disabled'" :disabled="(!(store.can('product:brand:update'))) || !(store.can('product:brand:update'))" />
           </template>
         </el-table-column>
         <el-table-column label="操作" width="120">
           <template #default="{ row }">
-            <el-button link type="primary" @click="edit(row.id)">编辑</el-button>
+            <el-button link type="primary" @click="edit(row.id)" :disabled="!(store.can('product:brand:update'))">编辑</el-button>
           </template>
         </el-table-column>
       </el-table>
     </div>
     <el-dialog v-model="open" :title="editing.id ? '编辑品牌' : '新增品牌'" width="460px">
       <el-form label-width="72px">
-        <el-form-item label="名称"><el-input v-model="editing.name" /></el-form-item>
-        <el-form-item label="标识"><el-input v-model="editing.logo" placeholder="图片地址，可空" /></el-form-item>
-        <el-form-item label="说明"><el-input v-model="editing.description" type="textarea" /></el-form-item>
+        <el-form-item label="名称"><el-input v-model="editing.name"  :disabled="!(store.can('product:brand:update'))" /></el-form-item>
+        <el-form-item label="标识"><el-input v-model="editing.logo" placeholder="图片地址，可空"  :disabled="!(store.can('product:brand:update'))" /></el-form-item>
+        <el-form-item label="说明"><el-input v-model="editing.description" type="textarea"  :disabled="!(store.can('product:brand:update'))" /></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="open = false">取消</el-button>
-        <el-button type="primary" @click="save">保存</el-button>
+        <el-button type="primary" @click="save" :disabled="!(store.can(editing.id ? 'product:brand:update' : 'product:brand:create'))">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -45,6 +45,7 @@ const open = ref(false)
 const editing = reactive({ id: '', name: '', logo: '', description: '' })
 
 function openCreate() {
+  if (!(store.can('product:brand:create'))) return
   Object.assign(editing, { id: '', name: '', logo: '', description: '' })
   open.value = true
 }
@@ -55,6 +56,7 @@ function edit(id: string) {
   open.value = true
 }
 async function save() {
+  if (!(store.can(editing.id ? 'product:brand:update' : 'product:brand:create'))) return
   const name = editing.name.trim()
   if (!name) return
   if (editing.id) {

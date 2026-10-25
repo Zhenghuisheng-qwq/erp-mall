@@ -30,7 +30,7 @@ const initialHost=computed(()=>typeof route.query.deviceModel==='string'?listDev
 const returnPath = computed(() => { const path=typeof route.query.returnTo==='string'?route.query.returnTo:''; if(!path.startsWith('/')||path.startsWith('//')||/[\\\u0000-\u001f]/.test(path))return '/skus';const resolved=router.resolve(path);return resolved.matched.length && (resolved.path.startsWith('/benefit-packages')||resolved.path==='/skus')?resolved.fullPath:'/skus' })
 watch(() => [route.query.targetId, route.query.manage, route.query.sku, route.query.model, route.query.legacy, route.query.device] as const, () => {
   tab.value = route.query.legacy || route.query.model || (route.query.sku && routeSku.value && isMaterialArchive(store.data, routeSku.value)) ? 'legacy' : 'workbench'
-  bindingOpen.value = Boolean(deviceSkuId.value && store.isAdmin && !initialTarget.value)
+  bindingOpen.value = Boolean(deviceSkuId.value && store.can('product:compatibility:update') && !initialTarget.value)
 }, { immediate: true })
 </script>
 <style scoped>

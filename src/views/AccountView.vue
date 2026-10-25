@@ -3,9 +3,9 @@
     <PageHead title="账号设置" desc="资料会留在本机。密码只做校验演示，不会保存。" />
     <div class="panel" style="max-width: 560px">
       <el-form label-width="100px">
-        <el-form-item label="显示名"><el-input v-model="store.data.profile.displayName" /></el-form-item>
-        <el-form-item label="账号"><el-input v-model="store.data.profile.username" /></el-form-item>
-        <el-button type="primary" @click="saveProfile">保存资料</el-button>
+        <el-form-item label="显示名"><el-input :disabled="!store.can('system:account:update')" v-model="store.data.profile.displayName" /></el-form-item>
+        <el-form-item label="账号"><el-input :disabled="!store.can('system:account:update')" v-model="store.data.profile.username" /></el-form-item>
+        <el-button type="primary" :disabled="!store.can('system:account:update')" @click="saveProfile">保存资料</el-button>
       </el-form>
     </div>
     <div class="panel" style="max-width: 560px">

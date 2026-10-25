@@ -19,7 +19,7 @@
       <p v-else-if="currentModel"><span class="label">商品模型</span>{{ currentModel.modelName }} · {{ currentModel.versionName }}</p>
       <p v-if="rows.length" class="muted">点一条规格。容量、颜色这些已经在模型里，不用再填一遍。</p>
       <div class="row-actions">
-        <el-button v-if="currentModel" @click="temporaryOpen = true">创建临时物料</el-button>
+        <el-button v-if="currentModel" @click="temporaryOpen = true" :disabled="!(store.can('product:material:create'))">创建临时物料</el-button>
       </div>
       <ul v-if="rows.length" class="combos">
         <li v-for="row in rows" :key="row.identityKey">

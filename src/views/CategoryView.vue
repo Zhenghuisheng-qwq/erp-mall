@@ -9,7 +9,7 @@
         <el-radio-button value="edit">编辑模式</el-radio-button>
       </el-radio-group>
       <span class="muted">{{ editing ? '拖到上缘或下缘调整顺序，拖到中间移入。也可点击移动后选择目标。' : '只浏览分类；需要修改时打开编辑模式。' }}</span>
-      <el-button v-if="editing" :disabled="saving || !!saveError" @click="openCreate(null)">新增根分类</el-button>
+      <el-button v-if="editing" :disabled="(saving || !!saveError) || !(store.can('product:category:create'))" @click="openCreate(null)">新增根分类</el-button>
       <el-button v-if="panels.length === 2" link @click="detailsOpen = !detailsOpen">{{ detailsOpen ? '收起详情' : '查看详情' }}</el-button>
     </div>
     <div v-if="staged" class="source-strip" data-category-source>
@@ -57,14 +57,14 @@
           <p><span>来源</span>{{ currentMapping ? '本级绑定' : '未绑定' }}</p>
           <div v-if="currentMapping" class="card-links">
             <button type="button" class="linkish" @click="refsOpen = true">该方案被 {{ schemeUsers.length }} 个分类使用</button>
-            <button v-if="store.isAdmin" type="button" class="linkish" @click="openScheme">跳转属性方案</button>
+            <button v-if="store.can('product:template:update')" type="button" class="linkish" @click="openScheme">跳转属性方案</button>
           </div>
         </div>
         <div v-if="editing" class="row-actions">
-          <el-button @click="openCreate(current.id)">新增子分类</el-button>
-          <el-button @click="openEdit(current.id)">编辑</el-button>
-          <el-button @click="openMove(current.id)">移动</el-button>
-          <el-button type="danger" @click="remove(current.id)">删除</el-button>
+          <el-button @click="openCreate(current.id)" :disabled="!(store.can('product:category:create'))">新增子分类</el-button>
+          <el-button @click="openEdit(current.id)" :disabled="!(store.can('product:category:update'))">编辑</el-button>
+          <el-button :disabled="!store.can('product:category:update')" @click="openMove(current.id)">移动</el-button>
+          <el-button type="danger" @click="remove(current.id)" :disabled="!(store.can('product:category:delete'))">删除</el-button>
         </div>
       </section>
       <section v-else-if="panels.length === 1 || detailsOpen" class="panel cat-detail">
@@ -80,7 +80,7 @@
       <el-input v-model="createName" placeholder="分类名称" @keyup.enter="create" />
       <template #footer>
         <el-button @click="createOpen = false">取消</el-button>
-        <el-button type="primary" @click="create">保存</el-button>
+        <el-button type="primary" @click="create" :disabled="!(store.can('product:category:create'))">保存</el-button>
       </template>
     </el-dialog>
     <el-dialog v-model="editOpen" title="编辑分类" width="460px">
@@ -92,16 +92,16 @@
         <el-form-item label="状态">
           <el-switch v-model="draft.enabled" active-text="启用" inactive-text="停用" />
         </el-form-item>
-        <el-form-item v-if="store.isAdmin" label="属性方案">
+        <el-form-item v-if="store.can('product:template:update')" label="属性方案">
           <el-select v-model="draft.templateId" clearable placeholder="不绑定" style="width: 100%">
             <el-option v-for="item in bindableSchemes" :key="item.id" :label="item.name" :value="item.id" />
           </el-select>
         </el-form-item>
       </el-form>
-      <p v-if="!store.isAdmin" class="muted">属性方案绑定由管理员操作。</p>
+      <p v-if="!store.can('product:template:update')" class="muted">属性方案绑定由管理员操作。</p>
       <template #footer>
         <el-button @click="editOpen = false">取消</el-button>
-        <el-button type="primary" @click="saveEdit">保存</el-button>
+        <el-button type="primary" @click="saveEdit" :disabled="!(store.can('product:category:update'))">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -120,7 +120,7 @@ import { applyPresetToActiveView } from '../domain/productListViews'
 import { useCatalogStore } from '../stores/catalog'
 
 const store = useCatalogStore(), router = useRouter()
-const treeMode = ref<'view' | 'edit'>('view'), editing = computed(() => treeMode.value === 'edit')
+const treeMode = ref<'view' | 'edit'>('view'), editing = computed(() => treeMode.value === 'edit' && store.can('product:category:update'))
 const initialId = store.data.categories.some(item => item.id === 'c-phone') ? 'c-phone' : store.data.categories[0]?.id || ''
 const selected = ref(initialId), activePanel = ref('panel-1'), detailsOpen = ref(false)
 const panels = ref([{id:'panel-1',title:'分类栏 A',initialId}])
@@ -284,7 +284,7 @@ watch(structureStamp, () => {
   if (drag.value) cancelDrag('分类结构已变化，本次拖动已取消，请重新拖动。')
   if (staged.value && !store.data.categories.some(item=>item.id===staged.value?.id)) { staged.value = null; interactionMessage.value = '来源分类已不存在，已取消待移动来源。' }
 }, {flush:'sync'})
-watch(() => [treeMode.value, store.editorGeneration, store.data.activeRole], () => {
+watch(() => [treeMode.value, store.editorGeneration, store.activeUserId, store.can('product:category:update')], () => {
   contextEpoch++
   if (drag.value) cancelDrag('操作上下文已变化，尚未提交的拖动已取消。')
   else interactionMessage.value = ''
@@ -350,7 +350,7 @@ async function saveEdit() {
     ElMessage.warning(message)
     return
   }
-  if (store.isAdmin) {
+  if (store.can('product:template:update')) {
     const currentTemplate = store.data.mappings.find((row) => row.categoryId === item.id)?.templateId || ''
     if (currentTemplate !== draft.templateId) store.setCategoryMapping(item.id, draft.templateId)
   }
@@ -424,7 +424,7 @@ async function remove(id: string) {
   }
 }
 function openScheme() {
-  if (!currentMapping.value || !store.isAdmin) return
+  if (!currentMapping.value || !store.can('product:template:update')) return
   router.push({ path: '/templates', query: { scheme: currentMapping.value.templateId } })
 }
 </script>

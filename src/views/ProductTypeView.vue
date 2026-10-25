@@ -1,7 +1,7 @@
 <template>
   <div>
     <PageHead title="产品类型" desc="产品类型挂在分类下面，用来说明这是什么产品。它不是分类的子节点。">
-      <el-button type="primary" :disabled="!categoryId" @click="openCreate">新增产品类型</el-button>
+      <el-button type="primary" :disabled="(!categoryId) || !(store.can('product:type:create'))" @click="openCreate">新增产品类型</el-button>
     </PageHead>
     <div class="grid-2">
       <div class="panel">
@@ -61,14 +61,14 @@
           <el-table-column prop="sort" label="排序" width="70" />
           <el-table-column label="状态" width="90">
             <template #default="{ row }">
-              <el-switch :model-value="row.status === 'enabled'" @change="onStatus(row.id, Boolean($event))" />
+              <el-switch :model-value="row.status === 'enabled'" @change="onStatus(row.id, Boolean($event))" :disabled="!(store.can('product:type:update'))" />
             </template>
           </el-table-column>
           <el-table-column label="操作" width="210">
             <template #default="{ row }">
               <el-button link type="primary" @click="onViewModels(row)">查看模型</el-button>
-              <el-button link type="primary" @click="openEdit(row.id)">编辑</el-button>
-              <el-button link type="danger" @click="onRemove(row.id)">删除</el-button>
+              <el-button link type="primary" @click="openEdit(row.id)" :disabled="!(store.can('product:type:update'))">编辑</el-button>
+              <el-button link type="danger" @click="onRemove(row.id)" :disabled="!(store.can('product:type:delete'))">删除</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -88,7 +88,7 @@
       </el-form>
       <template #footer>
         <el-button @click="open = false">取消</el-button>
-        <el-button type="primary" @click="save">保存</el-button>
+        <el-button type="primary" @click="save" :disabled="!(store.can(editing.id ? 'product:type:update' : 'product:type:create'))">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -102,7 +102,6 @@ import CategoryTreeSelect from '../components/CategoryTreeSelect.vue'
 import PageHead from '../components/PageHead.vue'
 import { productTypeCategoryMoveMessage, productTypesInScope, type ProductTypeScope } from '../domain/categoryTree'
 import { categoryPath } from '../domain/logic'
-import { canAccessLocation } from '../domain/menuConfig'
 import type { ProductType } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
 
@@ -117,7 +116,7 @@ const editing = reactive({ id: '', name: '', description: '', sort: 1, status: '
 const targetCategoryId = ref('')
 
 const categoryTree = computed(() => walk(null))
-const canOpenModel = computed(() => canAccessLocation(store.data.activeRole, '/specs'))
+const canOpenModel = computed(() => store.canRoute({ path: '/specs' }))
 const rows = computed(() => {
   const scoped = productTypesInScope(store.data.productTypes, store.data.categories, categoryId.value, scope.value)
   return scoped

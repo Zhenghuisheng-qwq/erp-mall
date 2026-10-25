@@ -71,7 +71,7 @@ type Leaf={index:string;title:string}
 type Section={key:string;title:string;items:Leaf[]}
 export type RailGroup={key:string;title:string;icon:Component;items:Leaf[];sections:Section[]}
 const props=defineProps<{groups:RailGroup[];active:string;currentGroup:string;temporaryCompact?:boolean}>()
-const router=useRouter(),catalog=useCatalogStore(),canManageMenus=computed(()=>catalog.isAdmin)
+const router=useRouter(),catalog=useCatalogStore(),canManageMenus=computed(()=>catalog.can('system:menu:read'))
 const wrapRef=ref<HTMLElement>(),railRef=ref<HTMLElement>(),flyoutRef=ref<HTMLElement>(),layoutBtnRef=ref<HTMLButtonElement>(),layoutPopRef=ref<HTMLElement>(),menuRef=ref<{open:(index:string)=>void;updateActiveIndex:(index:string)=>void}>()
 const visibleKeys=()=>props.groups.flatMap(g=>[g.key,...g.sections.map(s=>s.key)])
 const placeKeys=()=>props.groups.flatMap(g=>[...(g.key===props.currentGroup?[g.key]:[]),...g.sections.filter(s=>s.items.some(i=>i.index===props.active)).map(s=>s.key)])

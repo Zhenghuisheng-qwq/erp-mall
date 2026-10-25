@@ -9,7 +9,7 @@
         <p>绑定版本：{{ version?.versionName || family.modelVersionId || '未绑定发布模型' }} <span v-if="family.productPlanId"> · 历史规划：{{ planName }}</span></p>
         <div class="row-actions">
           <el-button @click="router.push({ path: '/skus', query: { spu: family.id } })">管理 SKU（{{ children.length }}）</el-button>
-          <el-button type="primary" @click="router.push({ path: '/skus/new', query: { spu: family.id } })">新增 SKU</el-button>
+          <el-button type="primary" @click="router.push({ path: '/skus/new', query: { spu: family.id } })" :disabled="!(store.can('product:sku:create'))">新增 SKU</el-button>
           <el-button v-if="family.line === 'v3'" @click="router.push(`/materials/${family.id}`)">管理物料（{{ materials.length }}）</el-button>
           <el-button v-if="version" @click="historyOpen = true">查看历史快照</el-button>
           <el-button v-if="compatibilityRole === 'host' && children.length" data-spu-compatibility @click="compatibilityOpen = true">适用配件</el-button>

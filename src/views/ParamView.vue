@@ -1,7 +1,7 @@
 <template>
   <div>
     <PageHead title="属性词典" desc="颜色、容量这些取值全局共用。商品里新增的取值也会出现在这里。品牌没有单独的数据库。">
-      <el-button type="primary" @click="openCreate">新建参数</el-button>
+      <el-button type="primary" @click="openCreate" :disabled="!(store.can('product:dictionary:create'))">新建参数</el-button>
       <el-button @click="openBrand">维护品牌</el-button>
     </PageHead>
     <div class="panel">
@@ -15,12 +15,12 @@
           <template #default="{ row }">{{ usedTemplates(row.id) }}</template>
         </el-table-column>
         <el-table-column label="参与旧结构" width="120">
-          <template #default="{ row }"><el-switch v-model="row.participateInStructure" /></template>
+          <template #default="{ row }"><el-switch v-model="row.participateInStructure"  :disabled="!(store.can('product:dictionary:update'))" /></template>
         </el-table-column>
         <el-table-column label="操作" width="180">
           <template #default="{ row }">
-            <el-button link type="primary" @click="edit(row.id)">编辑</el-button>
-            <el-button link type="danger" @click="remove(row.id)">删除</el-button>
+            <el-button link type="primary" @click="edit(row.id)" :disabled="!(store.can('product:dictionary:update'))">编辑</el-button>
+            <el-button link type="danger" @click="remove(row.id)" :disabled="!(store.can('product:dictionary:delete'))">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -29,26 +29,26 @@
       <template v-if="editing">
         <div class="filters">
           <el-input v-model="nameDraft" placeholder="属性名称" style="width: 220px" />
-          <el-button type="primary" @click="saveName">保存名称</el-button>
+          <el-button type="primary" @click="saveName" :disabled="!(store.can('product:dictionary:update'))">保存名称</el-button>
         </div>
         <p v-if="renameHint" class="rename-hint">{{ renameHint }}</p>
         <div class="filters">
           <el-input v-model="valueKeyword" placeholder="搜索取值" style="width: 180px" />
           <el-input v-model="newValue" placeholder="新取值" style="width: 140px" @keyup.enter="addValue" />
-          <el-button @click="addValue">添加</el-button>
+          <el-button @click="addValue" :disabled="!(store.can('product:dictionary:update'))">添加</el-button>
         </div>
         <div v-for="value in shownValues" :key="value" class="row-actions" style="margin: 6px 0">
           <span>{{ value }}</span>
-          <el-button link type="danger" @click="removeValue(value)">删除</el-button>
+          <el-button link type="danger" @click="removeValue(value)" :disabled="!(store.can('product:dictionary:delete'))">删除</el-button>
         </div>
         <h3 style="margin: 16px 0 8px">取值分组</h3>
         <div v-for="group in editing.valueGroups" :key="group.id" class="rule-card">
-          <el-input v-model="group.name" />
-          <el-select v-model="group.values" multiple style="width: 100%; margin-top: 8px">
+          <el-input v-model="group.name"  :disabled="!(store.can('product:dictionary:update'))" />
+          <el-select v-model="group.values" multiple style="width: 100%; margin-top: 8px" :disabled="!(store.can('product:dictionary:update'))">
             <el-option v-for="value in editing.values" :key="value" :label="value" :value="value" />
           </el-select>
         </div>
-        <el-button @click="editing.valueGroups.push({ id: uid('vg'), name: '新分组', values: [] })">新增分组</el-button>
+        <el-button @click="editing.valueGroups.push({ id: uid('vg'), name: '新分组', values: [] })" :disabled="!(store.can('product:dictionary:update'))">新增分组</el-button>
       </template>
     </el-drawer>
   </div>
@@ -86,6 +86,7 @@ function edit(id: string) {
   open.value = true
 }
 async function saveName() {
+  if (!(store.can('product:dictionary:update'))) return
   if (!editing.value) return
   const decision = attributeRenameDecision(store.data, editing.value.id, nameDraft.value)
   if (!decision.ok) {
@@ -108,6 +109,7 @@ function openBrand() {
   edit('p-brand')
 }
 function openCreate() {
+  if (!(store.can('product:dictionary:create'))) return
   const id = uid('param')
   store.data.params.push({ id, name: '新参数', values: [], valueGroups: [], participateInStructure: true })
   edit(id)
@@ -118,18 +120,21 @@ async function flushChanges() {
   return true
 }
 async function addValue() {
+  if (!(store.can('product:dictionary:update'))) return
   if (!editing.value || !newValue.value.trim()) return
   if (!editing.value.values.includes(newValue.value.trim())) editing.value.values.push(newValue.value.trim())
   if (!await flushChanges()) return
   newValue.value = ''
 }
 async function removeValue(value: string) {
+  if (!(store.can('product:dictionary:delete'))) return
   if (!editing.value) return
   const message = store.removeParamValue(editing.value.id, value)
   if (message) ElMessage.warning(message)
   else await flushChanges()
 }
 async function remove(id: string) {
+  if (!(store.can('product:dictionary:delete'))) return
   const message = store.removeParam(id)
   if (message) ElMessage.warning(message)
   else if (await flushChanges()) ElMessage.success('已删除')

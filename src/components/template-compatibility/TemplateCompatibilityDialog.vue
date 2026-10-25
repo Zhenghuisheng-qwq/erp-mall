@@ -84,7 +84,7 @@ const previewOrigin=ref('all'), defaultEditor=ref<InstanceType<typeof TemplateCl
 let opener: HTMLElement | null = null, guardPending = false, contextEpoch = 0
 watch(
   () => [props.modelValue, props.modelId, props.versionId, props.initialNodeId, props.readonly,
-    store.editorGeneration, store.isAdmin, store.data, visible.value, loadedModelId.value, loadedVersionId.value, selectedExceptionId.value],
+    store.editorGeneration, store.can('product:model:update'), store.data, visible.value, loadedModelId.value, loadedVersionId.value, selectedExceptionId.value],
   () => { contextEpoch++ }, { flush: 'sync' },
 )
 // Only this editor's draft and batch inputs are captured; no whole-catalog snapshot.
@@ -107,7 +107,7 @@ async function confirmBatchDiscard(
   } catch { return false }
 }
 onBeforeRouteLeave(async () => !visible.value || await canDiscard())
-const readOnly = computed(() => !!props.readonly || !store.isAdmin || !!loadedVersionId.value)
+const readOnly = computed(() => !!props.readonly || !store.can('product:model:update') || !!loadedVersionId.value)
 const modelName = computed(() => store.data.specCanvases.find(item => item.templateId === loadedModelId.value)?.name || store.data.templates.find(item => item.id === loadedModelId.value)?.name || loadedModelId.value)
 const dirty = computed(() => !!draft.value && (JSON.stringify(draft.value) !== baseline.value || defaultBatchDirty.value || exceptionBatchDirty.value))
 // Structural dependencies are tracked by Vue; typing evidence/notes only prepares rules, never re-expands the model.

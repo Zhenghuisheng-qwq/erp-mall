@@ -22,7 +22,7 @@
         <el-select v-if="categoryTypes.length > 1" v-model="temporaryTypeId" placeholder="选择产品类型" style="width: 220px">
           <el-option v-for="item in categoryTypes" :key="item.id" :label="item.name" :value="item.id" />
         </el-select>
-        <el-button @click="temporaryOpen = true">创建临时物料</el-button>
+        <el-button @click="temporaryOpen = true" :disabled="!(store.can('product:material:create'))">创建临时物料</el-button>
         <span class="muted">没有已发布的商品模型。临时物料不会生成正式规划编号，也不会写入属性词典。</span>
       </div>
       <TemporaryMaterialDialog v-if="isNew && !v3Create" :open="temporaryOpen" :category-id="draft.categoryId" :product-type-id="temporaryTypeId" @close="temporaryOpen = false" @open="openTemporary" />
@@ -82,7 +82,7 @@
     <div v-else-if="!v3Create" class="panel">
       <div class="row-actions" style="margin-bottom: 10px">
         <h2 style="margin: 0">规格</h2>
-        <el-button v-if="showSchemeFields" type="primary" :disabled="!draft.templateId" @click="addSku">新增规格</el-button>
+        <el-button v-if="showSchemeFields" type="primary" :disabled="(!draft.templateId) || !(store.can('product:sku:create'))" @click="addSku">新增规格</el-button>
         <el-button v-if="showSchemeFields" :disabled="!draft.templateId" @click="batchOpen = true">批量添加</el-button>
         <el-checkbox v-if="!usingModel" v-model="showOptional">显示可不填的规格</el-checkbox>
         <span v-if="modelMode" class="muted">规格由商品模型自动生成，不能手动添加。</span>
@@ -128,7 +128,7 @@
         </el-table-column>
         <el-table-column v-if="!modelMode" label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-button link @click="copySku(row)">复制</el-button>
+            <el-button link @click="copySku(row)" :disabled="!(store.can('product:sku:create'))">复制</el-button>
             <el-button link type="danger" @click="draftSkus = draftSkus.filter((item) => item.id !== row.id)">删除</el-button>
           </template>
         </el-table-column>
@@ -181,8 +181,8 @@
       <div class="row-actions">
         <el-button :disabled="saving" @click="cancel">取消</el-button>
         <el-button v-if="shelf === 'online'" :loading="saving" @click="setShelf('offline')">下架</el-button>
-        <el-button :loading="saving" @click="save(false)">保存草稿</el-button>
-        <el-button type="primary" :loading="saving" @click="save(true)">{{ shelf === 'online' ? '保存' : '发布商品' }}</el-button>
+        <el-button :loading="saving" @click="save(false)" :disabled="!(store.can(isNew ? 'product:spu:create' : 'product:spu:update'))">保存草稿</el-button>
+        <el-button type="primary" :loading="saving" @click="save(true)" :disabled="!(store.can(isNew ? 'product:spu:create' : 'product:spu:update'))">{{ shelf === 'online' ? '保存' : '发布商品' }}</el-button>
       </div>
     </div>
 

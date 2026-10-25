@@ -2,8 +2,8 @@
   <div>
     <PageHead :title="mode === 'spu' ? 'SPU 管理' : 'SKU 管理'" :desc="mode === 'spu' ? '维护商品主体，查看和追加其下 SKU。' : '独立管理真实规格商品；物料档案在物料管理中维护。'">
       <el-button @click="router.push(mode === 'spu' ? '/skus' : '/spus')">{{ mode === 'spu' ? 'SKU 管理' : 'SPU 管理' }}</el-button>
-      <el-button v-if="mode === 'spu'" @click="router.push('/materials/new')">物料建档</el-button>
-      <el-button type="primary" @click="router.push(mode === 'spu' ? '/spus/new' : { path: '/skus/new', query: scopeId ? { spu: scopeId } : {} })">{{ mode === 'spu' ? '新建 SPU' : '新增 SKU' }}</el-button>
+      <el-button v-if="mode === 'spu'" @click="router.push('/materials/new')" :disabled="!(store.can('product:material:create'))">物料建档</el-button>
+      <el-button type="primary" @click="router.push(mode === 'spu' ? '/spus/new' : { path: '/skus/new', query: scopeId ? { spu: scopeId } : {} })" :disabled="!(store.can(mode === 'spu' ? 'product:spu:create' : 'product:sku:create'))">{{ mode === 'spu' ? '新建 SPU' : '新增 SKU' }}</el-button>
     </PageHead>
     <div v-if="scopeId" class="panel" style="margin-bottom: 12px" data-spu-scope>
       当前查看：{{ scopeFamily?.name || '已删除的 SPU' }} 的 SKU
@@ -44,7 +44,7 @@
           @group-change="setViewGrouping(listData, $event)" @sort-change="setViewSorting(listData, $event)"
           @sort-mode="onSortMode" @manage="manageView"
         />
-        <div class="view-save-actions"><span class="muted">配置自动保存</span><el-button @click="confirmCopy">另存视图</el-button><el-button @click="resetColumns">恢复默认列</el-button></div>
+        <div class="view-save-actions"><span class="muted">配置自动保存</span><el-button @click="confirmCopy" :disabled="!(store.can('product:view:update'))">另存视图</el-button><el-button @click="resetColumns" :disabled="!(store.can('product:view:update'))">恢复默认列</el-button></div>
         <span v-if="groupStatusLabel" class="tool-state" data-group-state>分组：{{ groupStatusLabel }}</span>
         <span v-if="sortStatusLabel" class="tool-state" data-sort-state>排序：{{ sortStatusLabel }}</span>
         <span class="muted" data-result-count>{{ listMode === 'spu' ? `商品 ${presentation.total} 款` : `SKU ${presentation.total} 条` }}</span>
@@ -76,12 +76,12 @@
       </div>
       <div v-if="listMode === 'spu' && familyIds.length" class="row-actions batch-actions" style="margin-bottom: 10px">
         <span data-selected-count>已选 {{ familyIds.length }} 条</span>
-        <el-button :disabled="familyIds.length === 0" @click="setShelfMany('online')">批量发布</el-button>
-        <el-button :disabled="familyIds.length === 0" @click="setShelfMany('offline')">批量下架</el-button>
-        <el-button :disabled="familyIds.length === 0" type="danger" @click="removeMany">批量删除</el-button>
+        <el-button :disabled="(familyIds.length === 0) || !(store.can('product:spu:update'))" @click="setShelfMany('online')">批量发布</el-button>
+        <el-button :disabled="(familyIds.length === 0) || !(store.can('product:spu:update'))" @click="setShelfMany('offline')">批量下架</el-button>
+        <el-button :disabled="(familyIds.length === 0) || !(store.can('product:spu:delete'))" type="danger" @click="removeMany">批量删除</el-button>
       </div>
       <div v-if="mode === 'sku' && skuIds.length" class="row-actions" style="margin-bottom: 10px">
-        <span>已选 {{ skuIds.length }} 条</span><el-button @click="store.setSkuStatus(skuIds, 'on_sale')">批量在售</el-button><el-button @click="store.setSkuStatus(skuIds, 'off_sale')">批量停售</el-button><el-button type="danger" @click="removeSkuMany">批量删除</el-button>
+        <span>已选 {{ skuIds.length }} 条</span><el-button @click="store.setSkuStatus(skuIds, 'on_sale')" :disabled="!(store.can('product:sku:update'))">批量在售</el-button><el-button @click="store.setSkuStatus(skuIds, 'off_sale')" :disabled="!(store.can('product:sku:update'))">批量停售</el-button><el-button type="danger" @click="removeSkuMany" :disabled="!(store.can('product:sku:delete'))">批量删除</el-button>
       </div>
       <div v-if="listData.listViews.length > 1" class="row-actions" style="margin-bottom: 10px">
         <span class="muted">已存筛选</span>
@@ -90,12 +90,12 @@
       <p v-if="presentation.manualBlocked" class="warn">手工排序已保存。当前还有分组，请先清除分组，再按手工顺序查看。分组不会被自动改掉。</p>
       <div v-if="manualOn && pickedIds.length" class="row-actions" style="margin-bottom: 8px">
         <span data-stage-pick>待放入暂存 {{ pickedIds.length }} 条</span>
-        <el-button size="small" type="primary" @click="addStage">加入排序暂存区</el-button>
+        <el-button size="small" type="primary" @click="addStage" :disabled="!(store.can('product:view:update'))">加入排序暂存区</el-button>
       </div>
       <div v-if="manualOn && stageIds.length" class="stage-bar">
         <span>排序暂存区（{{ stageIds.length }}）</span>
         <el-button size="small" @click="stageOpen = true">展开暂存</el-button>
-        <el-button size="small" @click="clearStage">清空暂存</el-button>
+        <el-button size="small" @click="clearStage" :disabled="!(store.can('product:view:update'))">清空暂存</el-button>
       </div>
       <template v-for="group in shownGroups" :key="group.key">
       <button v-if="group.label" type="button" class="group-head" :data-group-key="group.label" @click="toggleGroup(group.label)">{{ collapsed[group.label] ? '展开' : '收起' }} {{ group.label }}（{{ group.total }}）</button>
@@ -113,7 +113,7 @@
             <div class="sku-expand" :data-family-id="row.id">
               <div class="row-actions" style="margin-bottom: 8px">
                 <el-button size="small" @click="router.push(`/spus/${row.id}`)">编辑 SPU</el-button>
-                <el-button size="small" @click="router.push({ path: '/skus/new', query: { spu: row.id } })">新增 SKU</el-button>
+                <el-button size="small" @click="router.push({ path: '/skus/new', query: { spu: row.id } })" :disabled="!(store.can('product:sku:create'))">新增 SKU</el-button>
                 <el-button v-if="realCount(row.id) > 0" size="small" :disabled="selected[row.id]?.length === 0" @click="batchStatus(row.id, 'on_sale')">所选改在售</el-button>
                 <el-button v-if="realCount(row.id) > 0" size="small" :disabled="selected[row.id]?.length === 0" @click="batchStatus(row.id, 'off_sale')">所选改停售</el-button>
               </div>
@@ -128,7 +128,7 @@
                 </el-table-column>
                 <el-table-column label="状态" width="120">
                   <template #default="{ row: sku }">
-                    <el-select :model-value="sku.status" size="small" @change="(value: string) => store.patchSku(sku.id, { status: value as Sku['status'] })">
+                    <el-select :model-value="sku.status" size="small" @change="(value: string) => store.patchSku(sku.id, { status: value as Sku['status'] })" :disabled="!(store.can('product:sku:update'))">
                       <el-option label="在售" value="on_sale" />
                       <el-option label="停售" value="off_sale" />
                       <el-option label="草稿" value="draft" />
@@ -140,7 +140,7 @@
                   <template #default="{ row: sku }">
                     <el-button link type="primary" @click="router.push(`/skus/${sku.id}?spu=${row.id}`)">编辑</el-button>
                     <el-button v-if="row.line !== 'v3'" link @click="copySku(row.id, sku.id)">复制</el-button>
-                    <el-button link type="danger" @click="removeSku(sku.id)">删除</el-button>
+                    <el-button link type="danger" @click="removeSku(sku.id)" :disabled="!(store.can('product:sku:delete'))">删除</el-button>
                   </template>
                 </el-table-column>
               </el-table>
@@ -170,15 +170,15 @@
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="router.push(`/spus/${row.id}`)">编辑</el-button>
-            <el-button link @click="router.push({ path: '/skus/new', query: { spu: row.id } })">新增 SKU</el-button>
+            <el-button link @click="router.push({ path: '/skus/new', query: { spu: row.id } })" :disabled="!(store.can('product:sku:create'))">新增 SKU</el-button>
             <el-dropdown trigger="click"><el-button link :data-spu-more="row.id" :aria-label="`更多 SPU 操作 ${row.name}`">更多</el-button><template #dropdown><el-dropdown-menu>
             <el-dropdown-item v-if="compatibilityFamilyRole(store.data, row.id) === 'host' && realCount(row.id)" :data-spu-compatibility="row.id" @click.stop="openCompatibilityFamily(row.id)">适用配件</el-dropdown-item>
-            <el-dropdown-item v-else-if="row.line === 'v3'" @click="router.push(compatTarget(row))">{{ compatTitle(row) }}</el-dropdown-item>
-            <el-dropdown-item v-if="row.line === 'v3'" @click="router.push(`/materials/${row.id}`)">管理物料</el-dropdown-item>
-            <el-dropdown-item @click="copyFamily(row.id)">复制 SPU</el-dropdown-item>
-            <el-dropdown-item @click="removeFamily(row.id, row.name)">删除</el-dropdown-item>
-            <el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'before')">插到前面</el-dropdown-item>
-            <el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'after')">插到后面</el-dropdown-item>
+            <el-dropdown-item v-else-if="row.line === 'v3'" @click="router.push(compatTarget(row))" :disabled="!(store.can('product:compatibility:read'))">{{ compatTitle(row) }}</el-dropdown-item>
+            <el-dropdown-item v-if="row.line === 'v3'" @click="router.push(`/materials/${row.id}`)" :disabled="!(store.can('product:material:read'))">管理物料</el-dropdown-item>
+            <el-dropdown-item @click="copyFamily(row.id)" :disabled="!(store.can('product:spu:create'))">复制 SPU</el-dropdown-item>
+            <el-dropdown-item @click="removeFamily(row.id, row.name)" :disabled="!(store.can('product:spu:delete'))">删除</el-dropdown-item>
+            <el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'before')" :disabled="!(store.can('product:view:update'))">插到前面</el-dropdown-item>
+            <el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'after')" :disabled="!(store.can('product:view:update'))">插到后面</el-dropdown-item>
             </el-dropdown-menu></template></el-dropdown>
           </template>
         </el-table-column>
@@ -202,16 +202,16 @@
             </template>
             <template v-else-if="col.key === 'category'">{{ row.category }}</template>
             <template v-else-if="col.key === 'typeName'">{{ row.typeName }}</template>
-            <template v-else-if="col.key === 'status'"><el-select :model-value="row.status" size="small" @change="(status: Sku['status']) => store.patchSku(row.id, { status })"><el-option label="草稿" value="draft" /><el-option label="在售" value="on_sale" /><el-option label="停售" value="off_sale" /></el-select></template>
+            <template v-else-if="col.key === 'status'"><el-select :model-value="row.status" size="small" @change="(status: Sku['status']) => store.patchSku(row.id, { status })" :disabled="!(store.can('product:sku:update'))"><el-option label="草稿" value="draft" /><el-option label="在售" value="on_sale" /><el-option label="停售" value="off_sale" /></el-select></template>
             <template v-else-if="col.key === 'updatedAt'">{{ row.updatedAt || '—' }}</template>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="router.push({ path: `/skus/${row.id}`, query: scopeId ? { spu: scopeId } : {} })">编辑 SKU</el-button>
-            <el-button link type="danger" @click="removeSku(row.id)">删除</el-button>
-            <el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'before')">插到前面</el-button>
-            <el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'after')">插到后面</el-button>
+            <el-button link type="danger" @click="removeSku(row.id)" :disabled="!(store.can('product:sku:delete'))">删除</el-button>
+            <el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'before')" :disabled="!(store.can('product:view:update'))">插到前面</el-button>
+            <el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'after')" :disabled="!(store.can('product:view:update'))">插到后面</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -236,7 +236,7 @@
       <p v-if="renameError" class="warn">{{ renameError }}</p>
       <div class="row-actions" style="margin-top: 12px">
         <el-button type="primary" @click="confirmRename">保存名称</el-button>
-        <el-button @click="confirmCopy">复制</el-button>
+        <el-button @click="confirmCopy" :disabled="!(store.can('product:view:update'))">复制</el-button>
         <el-button type="danger" :disabled="activeView.id === defaultViewId" @click="confirmDelete">删除</el-button>
       </div>
       <p v-if="activeView.id === defaultViewId" class="muted">默认视图不能删除，可以调整它的列。</p>
@@ -249,7 +249,7 @@
           <el-button link type="danger" @click="removeStaged(id)">移除</el-button>
         </li>
       </ul>
-      <el-button @click="clearStage">清空暂存</el-button>
+      <el-button @click="clearStage" :disabled="!(store.can('product:view:update'))">清空暂存</el-button>
     </el-drawer>
     <ProductListFilterDialog
       v-model:visible="filterOpen" :rows="filterRows" :fields="filterFields"

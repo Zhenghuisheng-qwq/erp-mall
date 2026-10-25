@@ -1,7 +1,7 @@
 <template>
   <div>
     <PageHead title="规格约束" desc="只有这一份规则。列表、链式、树形和总览看到的是同一套数据。">
-      <el-button type="primary" @click="create">新增规则</el-button>
+      <el-button type="primary" @click="create" :disabled="!(store.can('product:rule:create'))">新增规则</el-button>
     </PageHead>
     <div class="panel">
       <el-radio-group v-model="view" style="margin-bottom: 12px">
@@ -19,13 +19,13 @@
           <template #default="{ row }">当 {{ conditionText(row) }}，则 {{ paramName(row.targetParamId) }} 可选 {{ row.options.join('、') || '无' }}</template>
         </el-table-column>
         <el-table-column label="启用" width="80">
-          <template #default="{ row }"><el-switch v-model="row.enabled" /></template>
+          <template #default="{ row }"><el-switch v-model="row.enabled"  :disabled="!(store.can('product:rule:update'))" /></template>
         </el-table-column>
         <el-table-column label="操作" width="180">
           <template #default="{ row }">
-            <el-button link type="primary" @click="edit(row)">编辑</el-button>
-            <el-button link @click="copy(row)">复制</el-button>
-            <el-button link type="danger" @click="store.data.rules = store.data.rules.filter((item) => item.id !== row.id)">删除</el-button>
+            <el-button link type="primary" @click="edit(row)" :disabled="!(store.can('product:rule:update'))">编辑</el-button>
+            <el-button link @click="copy(row)" :disabled="!(store.can('product:rule:create'))">复制</el-button>
+            <el-button link type="danger" @click="store.data.rules = store.data.rules.filter((item) => item.id !== row.id)" :disabled="!(store.can('product:rule:delete'))">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -83,7 +83,7 @@
         <el-option v-for="value in valuesOf(form.targetParamId)" :key="value" :label="value" :value="value" />
       </el-select>
       <el-input v-model="form.note" placeholder="规则说明" style="margin-top: 8px" />
-      <el-button type="primary" style="margin-top: 12px" @click="save">保存</el-button>
+      <el-button type="primary" style="margin-top: 12px" @click="save" :disabled="!(store.can('product:rule:update'))">保存</el-button>
     </el-drawer>
   </div>
 </template>
@@ -142,13 +142,16 @@ function edit(rule: SpecRule) {
   open.value = true
 }
 function create() {
+  if (!(store.can('product:rule:create'))) return
   Object.assign(form, blank(), { id: uid('rule') })
   open.value = true
 }
 function copy(rule: SpecRule) {
+  if (!(store.can('product:rule:create'))) return
   store.data.rules.push({ ...JSON.parse(JSON.stringify(rule)), id: uid('rule'), note: `${rule.note} 副本` })
 }
 function save() {
+  if (!(store.can('product:rule:update'))) return
   form.sourceParamIds = form.sourceParamIds.filter(Boolean)
   const index = store.data.rules.findIndex((item) => item.id === form.id)
   const copyRule = JSON.parse(JSON.stringify(form)) as SpecRule

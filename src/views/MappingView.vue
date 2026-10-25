@@ -7,7 +7,7 @@
         <el-table-column prop="name" label="商品分类" />
         <el-table-column label="属性方案">
           <template #default="{ row }">
-            <el-select :model-value="mapping(row.id)" clearable placeholder="未配置" style="width: 220px" @change="onMap(row.id, $event)">
+            <el-select :model-value="mapping(row.id)" clearable placeholder="未配置" style="width: 220px" @change="onMap(row.id, $event)" :disabled="!(store.can('product:template:update'))">
               <el-option v-for="item in store.data.templates.filter((tpl) => tpl.structureOrder.length)" :key="item.id" :label="item.name" :value="item.id" />
             </el-select>
           </template>

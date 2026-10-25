@@ -29,7 +29,7 @@
     <template #footer>
       <el-button v-if="lastFamilyId" :disabled="saving" @click="emit('open', lastFamilyId, lastSkuId)">查看刚创建的物料</el-button>
       <el-button :disabled="saving" @click="emit('close')">关闭</el-button>
-      <el-button type="primary" :loading="saving" :disabled="!store.isAdmin" @click="save">保存临时物料</el-button>
+      <el-button type="primary" :loading="saving" :disabled="!store.can('product:material:create')" @click="save">保存临时物料</el-button>
     </template>
   </el-dialog>
 </template>

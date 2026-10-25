@@ -8,10 +8,10 @@
         </div>
         <div class="row-actions">
           <PageAssist :path="route.path" :full-path="route.fullPath" :title="String(route.meta.title || route.path)" :query-panel="route.query.panel" />
-          <el-select :model-value="store.data.activeRole" :disabled="dataBusy" size="small" style="width: 130px" @change="onRole">
-            <el-option label="身份：管理员" value="admin" />
-            <el-option label="身份：运营" value="operator" />
+          <el-select :model-value="store.previewUserId || store.activeUserId" :disabled="dataBusy" size="small" style="width:180px" aria-label="模拟用户" @change="onUser">
+            <el-option v-for="user in store.data.users" :key="user.id" :label="`模拟用户：${user.displayName}`" :value="user.id" :disabled="!user.enabled || (!canSwitchUser && user.id !== store.activeUserId)" />
           </el-select>
+          <el-button v-if="store.previewUserId || store.simulationReturnId" size="small" @click="store.stopPermissionPreview()">退出权限预览／模拟</el-button>
           <button type="button" class="theme-switch" :title="themeTitle" :aria-label="themeTitle" @click="onToggleTheme">
             <el-icon :size="16"><Sunny v-if="theme === 'dark'" /><Moon v-else /></el-icon>
           </button>
@@ -19,10 +19,10 @@
             <el-button size="small" :loading="dataBusy">演示数据</el-button>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item v-if="!route.path.startsWith('/benefit-packages')" :disabled="dataBusy" @click="resetCurrent">重置当前模块</el-dropdown-item>
-                <el-dropdown-item :disabled="dataBusy" @click="resetAll">重置全部演示数据</el-dropdown-item>
-                <el-dropdown-item :disabled="dataBusy" @click="download">导出演示数据</el-dropdown-item>
-                <el-dropdown-item :disabled="dataBusy" @click="pickFile">导入演示数据</el-dropdown-item>
+                <el-dropdown-item v-if="store.isAdmin && !route.path.startsWith('/benefit-packages')" :disabled="dataBusy" @click="resetCurrent">重置当前模块</el-dropdown-item>
+                <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="resetAll">重置全部演示数据</el-dropdown-item>
+                <el-dropdown-item v-if="store.can('product:export:execute')" :disabled="dataBusy" @click="download">导出演示数据</el-dropdown-item>
+                <el-dropdown-item v-if="store.can('product:import:execute')" :disabled="dataBusy" @click="pickFile">导入演示数据</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -40,12 +40,12 @@
 <script setup lang="ts">
 import { Goods, Moon, Setting, SetUp, Sunny } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, markRaw, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, markRaw, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Component } from 'vue'
-import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from 'vue-router'
-import { menuRouteForLocation, canAccessLocation, menuRevision, railModel } from '../domain/menuConfig'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
+import { menuRouteForLocation, menuRevision, railModel } from '../domain/menuConfig'
 import { useCatalogStore } from '../stores/catalog'
-import type { UserRole } from '../domain/types'
+import { isSuperAdmin } from '../domain/rbac'
 import PageAssist from '../components/PageAssist.vue'
 import RailNav from './RailNav.vue'
 import { applyTheme, readTheme, type AppTheme } from '../theme'
@@ -53,7 +53,8 @@ import { applyTheme, readTheme, type AppTheme } from '../theme'
 const ICONS: Record<string, Component> = { product: Goods, tools: SetUp, system: Setting }
 
 const store = useCatalogStore()
-const route = useRoute()
+const route = useRoute(), router = useRouter()
+const canSwitchUser=computed(()=>isSuperAdmin(store.data,store.activeUserId))
 const dataBusy = ref(false)
 const workbenchMedia = window.matchMedia('(max-width: 700px)')
 const narrowWorkbench = ref(workbenchMedia.matches)
@@ -74,7 +75,7 @@ const active = computed(() => menuRouteForLocation(route.path, route.query))
 
 const groups = computed(() => {
   menuRevision.value
-  return railModel(store.data.activeRole).map((group) => ({
+  return railModel(location=>store.canRoute(location)).map((group) => ({
     ...group,
     icon: markRaw(ICONS[group.key] || Setting),
   }))
@@ -91,12 +92,10 @@ const currentPlace = computed(() => {
   return { group: '', section: '' }
 })
 
-function onRole(value: string) {
-  if (dataBusy.value) return
-  const role = value as UserRole
-  store.setRole(role)
-  if ((route.meta.admin && role !== 'admin') || !canAccessLocation(role, route.path, { panel: route.query.panel })) location.assign('/')
-}
+function onUser(id:string){const result=store.simulateUser(id);if(!result.ok)ElMessage.error(result.message||'切换被拒绝')}
+watch(()=>[store.persistenceState.external,store.activeUserId,store.previewUserId,JSON.stringify(store.data.rbac),JSON.stringify(store.data.users)],()=>{
+  if(!store.canRoute({path:route.path,query:route.query})&&route.path!=='/forbidden'){ElMessage.warning('当前用户的访问授权已失效，请选择有权限的入口。');void router.replace({path:'/forbidden',query:{from:route.fullPath}})}
+})
 
 const moduleOf = computed(() => {
   const path = route.path
@@ -144,7 +143,7 @@ function download() {
 }
 function pickFile() {
   if (dataBusy.value) return
-  if (!store.isAdmin) ElMessage.info('运营导入仍受只读权限约束，不能修改业务目录、节点配置、物料关联、权益包框架、参考价格或历史冻结信息。')
+  if (!store.can('product:import:execute')) ElMessage.info('运营导入仍受只读权限约束，不能修改业务目录、节点配置、物料关联、权益包框架、参考价格或历史冻结信息。')
   fileRef.value?.click()
 }
 async function onImport(event: Event) {

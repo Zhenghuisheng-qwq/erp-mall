@@ -1,71 +1,35 @@
 <template>
-  <div>
-    <PageHead title="用户管理" desc="只演示角色和菜单可见性，没有真实登录。">
-      <el-button type="primary" @click="open()">新增用户</el-button>
-    </PageHead>
-    <div class="panel">
-      <el-table :data="store.data.users">
-        <el-table-column prop="displayName" label="姓名" />
-        <el-table-column prop="username" label="账号" />
-        <el-table-column label="角色" width="120">
-          <template #default="{ row }">{{ row.role === 'admin' ? '管理员' : '运营' }}</template>
-        </el-table-column>
-        <el-table-column label="状态" width="120">
-          <template #default="{ row }"><el-switch v-model="row.enabled" /></template>
-        </el-table-column>
-        <el-table-column label="操作" width="180">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="open(row.id)">编辑</el-button>
-            <el-button link @click="store.setRole(row.role)">用这个身份看看菜单</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
-    <el-dialog v-model="visible" title="用户" width="420px">
-      <el-form label-width="80px">
-        <el-form-item label="姓名"><el-input v-model="form.displayName" /></el-form-item>
-        <el-form-item label="账号"><el-input v-model="form.username" /></el-form-item>
-        <el-form-item label="角色">
-          <el-select v-model="form.role" style="width: 100%">
-            <el-option label="运营" value="operator" />
-            <el-option label="管理员" value="admin" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="visible = false">取消</el-button>
-        <el-button type="primary" @click="save">保存</el-button>
-      </template>
-    </el-dialog>
+  <div class="rbac-page"><PageHead title="用户管理" desc="前端 Mock 模拟用户，无真实登录；用户通过多个启用角色获得有效权限。"><el-button type="primary" :disabled="!store.can('system:user:create')" @click="open()">新增用户</el-button></PageHead>
+    <section class="panel"><div class="rbac-toolbar"><el-input v-model="search" clearable placeholder="搜索姓名或账号" aria-label="搜索用户"/><el-select v-model="enabledFilter" clearable placeholder="全部状态" aria-label="用户状态"><el-option value="enabled" label="启用"/><el-option value="disabled" label="停用"/></el-select><span class="rbac-count">共 {{ filtered.length }} 位用户</span></div><el-alert v-if="pageError" :title="pageError" type="error" :closable="false" class="rbac-error"/>
+      <el-table :data="rows" class="rbac-table" empty-text="没有匹配用户"><el-table-column label="用户" min-width="180"><template #default="{row}"><strong>{{ row.displayName }}</strong><div class="technical">{{ row.username }}</div></template></el-table-column><el-table-column label="绑定角色" min-width="250"><template #default="{row}"><div class="rbac-tags"><el-tag v-for="role in userRoles(row)" :key="role.id" :type="role.enabled?'primary':'info'" size="small">{{ role.name }}{{ role.enabled?'':'（停用）' }}</el-tag><span v-if="!userRoles(row).length" class="technical">未绑定角色</span></div></template></el-table-column><el-table-column label="状态" width="90"><template #default="{row}"><el-tag :type="row.enabled?'success':'info'">{{ row.enabled?'启用':'停用' }}</el-tag></template></el-table-column><el-table-column label="有效权限" width="110" align="right"><template #default="{row}"><el-button link type="primary" @click="showPermissions(row)">{{ effectivePermissions(store.data,row.id).size }}</el-button></template></el-table-column><el-table-column label="操作" width="230"><template #default="{row}"><div class="rbac-actions"><el-button link type="primary" :disabled="!store.can('system:user:update')" @click="open(row.id)">编辑</el-button><el-button link :disabled="!row.enabled || !store.isAdmin && row.id !== store.activeUserId" @click="simulate(row.id)">模拟用户</el-button><el-dropdown trigger="click"><el-button link>更多</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item @click="showPermissions(row)">查看有效权限</el-dropdown-item><el-dropdown-item :disabled="!store.can('system:user:update')" @click="toggle(row)">{{ row.enabled?'停用用户':'启用用户' }}</el-dropdown-item><el-dropdown-item :disabled="!store.can('system:user:delete')" @click="remove(row)">删除用户</el-dropdown-item></el-dropdown-menu></template></el-dropdown></div></template></el-table-column></el-table><div class="rbac-pagination"><el-pagination v-model:current-page="page" :page-size="15" :total="filtered.length" layout="total, prev, pager, next"/></div>
+    </section>
+    <el-drawer v-model="editOpen" :title="editing ? '编辑用户' : '新增用户'" size="min(520px,95vw)" :before-close="closeEdit" :close-on-click-modal="false"><el-alert v-if="error" :title="error" type="error" :closable="false" class="rbac-error"/><el-form label-position="top" :disabled="busy"><el-form-item label="姓名" required><el-input v-model="form.displayName" maxlength="80" aria-label="用户姓名"/></el-form-item><el-form-item label="账号" required><el-input v-model="form.username" maxlength="80" aria-label="用户账号"/></el-form-item><el-form-item label="绑定角色"><el-select v-model="form.roleIds" multiple filterable :disabled="!store.can('system:user:bind')" aria-label="用户绑定角色"><el-option v-for="role in store.data.rbac?.roles || []" :key="role.id" :value="role.id" :label="`${role.name} · ${role.code}${role.enabled?'':'（停用）'}`" :disabled="!role.enabled || !delegable(role)"/></el-select><p class="rbac-help">有效权限为启用角色中启用权限的并集。停用角色不产生授权，角色绑定在保存后生效。</p></el-form-item><el-form-item label="状态"><el-switch v-model="form.enabled" active-text="启用" inactive-text="停用"/></el-form-item></el-form><template #footer><el-button :disabled="busy" @click="closeEdit()">取消</el-button><el-button type="primary" :loading="busy" @click="save">保存用户</el-button></template></el-drawer>
+    <el-drawer v-model="permissionOpen" :title="`有效权限 · ${selectedUser?.displayName || ''}`" size="min(560px,95vw)"><p class="rbac-help">仅查看当前有效授权，不改变角色绑定或模拟会话。</p><el-input v-model="permissionSearch" clearable placeholder="搜索有效权限"/><ul class="rbac-reference-list"><li v-for="permission in shownPermissions" :key="permission.code"><strong>{{ permission.name }}</strong><div class="rbac-codes">{{ permission.code }}</div></li></ul><el-empty v-if="!shownPermissions.length" description="没有有效权限"/></el-drawer>
   </div>
 </template>
-
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHead from '../components/PageHead.vue'
-import type { UserRole } from '../domain/types'
+import { useRbacDraftGuard } from '../components/rbac/useRbacDraftGuard'
+import '../components/rbac/admin.css'
 import { uid, useCatalogStore } from '../stores/catalog'
-
-const store = useCatalogStore()
-const visible = ref(false)
-const editing = ref('')
-const form = reactive({ displayName: '', username: '', role: 'operator' as UserRole })
-function open(id = '') {
-  editing.value = id
-  const user = store.data.users.find((item) => item.id === id)
-  form.displayName = user?.displayName || ''
-  form.username = user?.username || ''
-  form.role = user?.role || 'operator'
-  visible.value = true
-}
-function save() {
-  if (!form.displayName.trim() || !form.username.trim()) return
-  if (editing.value) {
-    const user = store.data.users.find((item) => item.id === editing.value)
-    if (user) Object.assign(user, form)
-  } else {
-    store.data.users.push({ id: uid('user'), ...form, enabled: true })
-  }
-  visible.value = false
-}
+import { effectivePermissions } from '../domain/rbac'
+import type { RbacRole } from '../domain/rbac'
+import type { AppUser } from '../domain/types'
+const store=useCatalogStore(),search=ref(''),enabledFilter=ref(''),page=ref(1),pageError=ref(''),error=ref(''),busy=ref(false),editOpen=ref(false),editing=ref(''),initial=ref(''),permissionOpen=ref(false),selectedUser=ref<AppUser>(),permissionSearch=ref('')
+const form=reactive<AppUser>({id:'',displayName:'',username:'',role:'operator',roleIds:[],enabled:true})
+const filtered=computed(()=>store.data.users.filter(u=>(!search.value||`${u.displayName} ${u.username}`.toLowerCase().includes(search.value.toLowerCase()))&&(!enabledFilter.value||(u.enabled?'enabled':'disabled')===enabledFilter.value)))
+const rows=computed(()=>filtered.value.slice((page.value-1)*15,page.value*15));watch([search,enabledFilter],()=>page.value=1)
+const dirty=computed(()=>editOpen.value&&JSON.stringify(form)!==initial.value),{confirmDiscard}=useRbacDraftGuard(dirty)
+function delegable(role:RbacRole){return store.isAdmin||!role.superAdmin&&role.permissionCodes.every(code=>store.can(code))}
+function userRoles(user:AppUser){return store.data.rbac?.roles.filter(r=>user.roleIds?.includes(r.id)) || []}
+function open(id=''){const user=store.data.users.find(u=>u.id===id);editing.value=id;error.value='';Object.assign(form,user?JSON.parse(JSON.stringify(user)):{id:'',displayName:'',username:'',role:'operator',roleIds:[],enabled:true});initial.value=JSON.stringify(form);editOpen.value=true}
+async function closeEdit(done?:()=>void){if(busy.value)return;if(await confirmDiscard()){editOpen.value=false;done?.()}}
+async function save(){error.value='';if(!form.displayName.trim()||!form.username.trim()){error.value='请填写姓名和账号';return}busy.value=true;try{const r=await store.saveRbacUser({...JSON.parse(JSON.stringify(form)),id:editing.value||uid('user'),displayName:form.displayName.trim(),username:form.username.trim()});if(!r.ok){error.value=r.message||'保存失败，草稿保留';return}initial.value=JSON.stringify(form);editOpen.value=false;ElMessage.success('用户已保存')}finally{busy.value=false}}
+async function toggle(user:AppUser){const r=await store.saveRbacUser({...JSON.parse(JSON.stringify(user)),enabled:!user.enabled});if(!r.ok)pageError.value=r.message||'用户状态修改失败';else ElMessage.success('用户状态已更新')}
+async function remove(user:AppUser){try{await ElMessageBox.confirm(`删除用户「${user.displayName}」？`,'删除用户')}catch{return}const r=await store.removeRbacUser(user.id);if(!r.ok)pageError.value=r.message||'删除失败';else ElMessage.success('用户已删除')}
+async function simulate(id:string){const r=await store.simulateUser(id);if(r && !r.ok)pageError.value=r.message||'无法切换模拟用户'}
+function showPermissions(user:AppUser){selectedUser.value=user;permissionSearch.value='';permissionOpen.value=true}
+const shownPermissions=computed(()=>{const codes=effectivePermissions(store.data,selectedUser.value?.id||'');return (store.data.rbac?.permissions||[]).filter(p=>codes.has(p.code)&&(!permissionSearch.value||`${p.name} ${p.code}`.toLowerCase().includes(permissionSearch.value.toLowerCase())))})
 </script>

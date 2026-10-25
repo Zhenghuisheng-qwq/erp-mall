@@ -1,12 +1,12 @@
 <template>
   <div :inert="saving" :aria-busy="saving">
     <PageHead title="导入导出" desc="先看清表格，再对字段，预览没问题后才写入。上传本身不会改现有物料。">
-      <el-button @click="downloadTemplate">下载导入模板</el-button>
-      <el-button @click="exportBooks">导出商品和规格</el-button>
+      <el-button :disabled="!store.can('product:import:read')" @click="downloadTemplate">下载导入模板</el-button>
+      <el-button :disabled="!store.can('product:export:execute')" @click="exportBooks">导出商品和规格</el-button>
     </PageHead>
     <div class="panel">
       <h2>1. 选择表格</h2>
-      <input type="file" accept=".xlsx,.xls" @change="onFile" />
+      <input type="file" accept=".xlsx,.xls" :disabled="!store.can('product:import:execute')" @change="onFile" />
       <p v-if="fileName" class="muted">{{ fileName }} · {{ fileSize }}</p>
       <p v-for="item in sheets" :key="item.name" class="sheet">
         <label>
@@ -32,7 +32,7 @@
       </el-table>
       <div class="row-actions" style="margin-top: 12px">
         <el-button type="primary" @click="buildPreview">预览导入</el-button>
-        <el-button @click="installModels">补上已核对的手机、平板、保护壳模型</el-button>
+        <el-button @click="installModels" :disabled="!(store.can('product:import:execute'))">补上已核对的手机、平板、保护壳模型</el-button>
       </div>
       <p class="muted">这一步只补分类、产品类型和模型，不改现有手机模型，也不会把行写成临时物料。屏幕膜、笔记本等还没有确认的结构，不会生成。</p>
       <label v-for="item in aliasOptions" :key="item.from" class="sheet">
@@ -64,7 +64,7 @@
         </el-table-column>
       </el-table>
       <p v-if="preview.length > 80" class="muted">只展示前 80 行，确认时会处理全部可导入行。</p>
-      <el-button type="primary" :disabled="readyCount === 0 || saving || !store.isAdmin" @click="confirm">确认导入 {{ readyCount }} 行</el-button>
+      <el-button type="primary" :disabled="(readyCount === 0 || saving || !store.can('product:import:execute')) || !(store.can('product:import:execute'))" @click="confirm">确认导入 {{ readyCount }} 行</el-button>
       <p v-if="resultText" class="muted">{{ resultText }} <router-link to="/products">打开商品列表</router-link></p>
     </div>
   </div>
@@ -133,10 +133,12 @@ function sheetRows(rows: Record<string, string>[]) {
   return book
 }
 function downloadTemplate() {
+  if (!store.can('product:import:read')) { ElMessage.warning('当前身份没有执行此操作的权限。'); return }
   const book = sheetRows([{ 分类: '手机', 商品名称: '示例手机', 品牌: 'Apple', 型号: 'iPhone 17', 容量: '256G', 颜色: '黑色' }])
   XLSX.writeFile(book, '商品导入模板.xlsx')
 }
 function exportBooks() {
+  if (!store.can('product:export:execute')) { ElMessage.warning('当前身份没有执行此操作的权限。'); return }
   const products = store.data.families.map((family) => ({
     分类: store.data.categories.find((item) => item.id === family.categoryId)?.name || '',
     商品名称: family.name,
@@ -154,6 +156,7 @@ function exportBooks() {
   XLSX.writeFile(book, '商品导出.xlsx')
 }
 async function onFile(event: Event) {
+  if (!store.can('product:import:execute')) { ElMessage.warning('当前身份没有执行此操作的权限。'); return }
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
   const bytes = new Uint8Array(await file.arrayBuffer())
@@ -192,6 +195,7 @@ function chooseModel(productTypeId: string, modelId: string) {
   modelChoice.value = { ...modelChoice.value, [productTypeId]: modelId }
 }
 function installModels() {
+  if (!store.can('product:import:execute')) { ElMessage.warning('当前身份没有执行此操作的权限。'); return }
   const sheet = activeSheet.value
   if (!sheet) return
   const result = installAcceptanceCatalog(store.data, observedMaterials(sheet, mapping.value))
@@ -200,6 +204,7 @@ function installModels() {
 }
 watch([aliases, temporaryGroups, modelChoice, mapping], () => { if (preview.value.length) buildPreview() }, { deep: true })
 async function confirm() {
+  if (!store.can('product:import:execute')) { ElMessage.warning('当前身份没有执行此操作的权限。'); return }
   if (saving.value) return
   saving.value = true
   let result: ReturnType<typeof applyExcelImport> = []

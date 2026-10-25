@@ -59,15 +59,15 @@
             <p v-if="!viewing && publishImpact" class="meta-row">{{ publishImpact }}</p>
             <p class="meta-row" data-model-compatibility-summary>
               <span>适用设备：{{ compatibilitySummary }}</span>
-              <el-button link type="primary" data-open-template-compatibility @click="openTemplateCompatibility()">{{ viewing || !store.isAdmin ? '查看适用设备' : '配置适用设备' }}</el-button>
+              <el-button link type="primary" data-open-template-compatibility @click="openTemplateCompatibility()">{{ viewing || !store.can('product:model:update') ? '查看适用设备' : '配置适用设备' }}</el-button>
               <span v-if="compatibilityUnpublished">兼容配置尚未发布</span>
             </p>
           </div>
           <div class="studio-actions">
             <el-button v-if="fromOverview" @click="backToOverview">返回总览</el-button>
-            <el-button v-if="viewing" type="primary" @click="enterEdit">进入编辑</el-button>
-            <el-button v-if="!viewing" :disabled="modelSaving || publishing || copying || !store.isAdmin" :loading="modelSaving" @click="saveModel">保存模型</el-button>
-            <el-button v-if="!viewing" :disabled="modelSaving || publishing || copying || !store.isAdmin" :loading="publishing" type="primary" @click="publish">发布模型</el-button>
+            <el-button v-if="viewing" type="primary" @click="enterEdit" :disabled="!(store.can('product:model:update'))">进入编辑</el-button>
+            <el-button v-if="!viewing" :disabled="(modelSaving || publishing || copying || !store.can('product:model:update')) || !(store.can('product:model:update'))" :loading="modelSaving" @click="saveModel">保存模型</el-button>
+            <el-button v-if="!viewing" :disabled="modelSaving || publishing || copying || !store.can('product:model:publish')" :loading="publishing" type="primary" @click="publish">发布模型</el-button>
           </div>
         </header>
         <div v-if="templateId" class="head-tools">
@@ -192,7 +192,7 @@
           </ul>
           <p v-if="temporaryListOpen && temporaryMaterials.length > 30" class="insight-empty">这里只列出前 30 条。其余到商品列表按供应商编码或物料编码搜索。</p>
         </section>
-        <div v-if="templateId" class="structure-material-toggle"><el-checkbox v-model="showStructureMaterials">显示关联物料</el-checkbox><el-button v-if="current?.nodeType === 'VALUE'" size="small" :disabled="!store.isAdmin || !comboVersionId" @click="relationOpen = true">节点范围建档／关联</el-button><span v-if="comboVersionId"> · 节点物料依据 {{ publishedComboVersions.find(v=>v.id===comboVersionId)?.versionName }}</span></div>
+        <div v-if="templateId" class="structure-material-toggle"><el-checkbox v-model="showStructureMaterials">显示关联物料</el-checkbox><el-button v-if="current?.nodeType === 'VALUE'" size="small" :disabled="!(store.can('product:material:create') || store.can('product:material:update')) || !comboVersionId" @click="relationOpen = true">节点范围建档／关联</el-button><span v-if="comboVersionId"> · 节点物料依据 {{ publishedComboVersions.find(v=>v.id===comboVersionId)?.versionName }}</span></div>
         <StructureMaterials v-if="templateId && showStructureMaterials && editorMode === 'canvas'" :key="templateId" :data="store.data" :model-id="templateId" :nodes="nodes" :status="comboStatus" :versions="publishedComboVersions" :version-id="comboVersionId" @version="id => comboVersionId = id" @locate="ids => materialHighlight = new Set(ids)" @close="showStructureMaterials = false; materialHighlight = new Set()" />
         <LegalComboDialog
           v-model="comboManageOpen"
@@ -432,7 +432,7 @@
         <el-button v-else-if="!creatingAttr" link type="primary" @click="creatingAttr = true">新增属性</el-button>
         <template v-if="creatingAttr">
           <el-input v-model="newAttrName" placeholder="新属性名称" @keydown.enter="createDictionaryAttribute" />
-          <el-button type="primary" :loading="dictBusy" @click="createDictionaryAttribute">保存到词典并引用</el-button>
+          <el-button type="primary" :loading="dictBusy" :disabled="!store.can('product:dictionary:create')" @click="createDictionaryAttribute">保存到词典并引用</el-button>
         </template>
       </div>
       <div v-if="boundParam" class="dict-global">
@@ -464,7 +464,7 @@
         <el-button v-if="valueQuery.trim() && !exactValue" link type="primary" @click="beginCreateValue(valueQuery)">新增属性值：{{ valueQuery.trim() }}</el-button>
         <template v-if="creatingValue">
           <el-input v-model="newDictValue" placeholder="新属性值" @keydown.enter="createDictionaryValueForNode" />
-          <el-button type="primary" :loading="dictBusy" @click="createDictionaryValueForNode">保存到词典并引用</el-button>
+          <el-button type="primary" :loading="dictBusy" :disabled="!store.can('product:dictionary:update')" @click="createDictionaryValueForNode">保存到词典并引用</el-button>
         </template>
       </div>
       <template #footer>
@@ -489,7 +489,7 @@
       v-model="templateCompatibilityOpen"
       :model-id="templateId"
       :initial-node-id="compatibilityNodeId || undefined"
-      :readonly="viewing || !store.isAdmin"
+      :readonly="viewing || !store.can('product:model:update')"
     />
     <el-dialog v-model="copyOpen" title="复制模型" width="440px" :show-close="!copying" :close-on-click-modal="!copying" :close-on-press-escape="!copying">
       <p class="copy-label">原模型</p>
@@ -707,7 +707,7 @@ const undoStack = ref<EditorHistoryEntry[]>([])
 let editSession = 0
 let interaction = 0
 let pendingUndo: { modelId: string; session: number; before: EditorSnapshot } | undefined
-const canEditStructure = computed(() => !viewing.value && surface.value === 'design' && store.isAdmin && !!templateId.value && store.data.templates.some(t => t.id === templateId.value) && (editorMode.value !== 'canvas' || viewMode.value === 'all'))
+const canEditStructure = computed(() => !viewing.value && surface.value === 'design' && store.can('product:model:update') && !!templateId.value && store.data.templates.some(t => t.id === templateId.value) && (editorMode.value !== 'canvas' || viewMode.value === 'all'))
 function editContext() { return { modelId: templateId.value, session: editSession, interaction } }
 function sameContext(context: ReturnType<typeof editContext>) {
   return context.modelId === templateId.value && context.session === editSession && context.interaction === interaction

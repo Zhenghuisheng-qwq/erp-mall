@@ -19,9 +19,9 @@
         </div>
         <div class="row-actions">
           <el-button v-if="productOf(item.id)" link type="primary" @click="router.push(`/spus/${productOf(item.id)}`)">查看 SPU</el-button>
-          <el-button link type="primary" @click="generateProduct(item.id)">创建 SKU</el-button>
-          <el-button link type="primary" @click="openPlan(item.id)">继续编辑</el-button>
-          <el-button link type="danger" @click="removePlan(item.id)">删除</el-button>
+          <el-button link type="primary" @click="generateProduct(item.id)" :disabled="!(store.can('product:sku:create'))">创建 SKU</el-button>
+          <el-button link type="primary" @click="openPlan(item.id)" :disabled="!(store.can('product:planning:update'))">继续编辑</el-button>
+          <el-button link type="danger" @click="removePlan(item.id)" :disabled="!(store.can('product:planning:delete'))">删除</el-button>
         </div>
       </div>
     </div>
@@ -47,9 +47,9 @@
         <p v-if="preview" class="sku-preview">按当前选择，将生成 {{ preview.skus.length }} 个 SKU。</p>
         <p v-for="item in preview?.skus || []" :key="item.name" class="chosen"><span>SKU</span><strong>{{ item.name }}</strong></p>
         <div class="row-actions">
-          <el-button type="primary" @click="save">保存规划</el-button>
+          <el-button type="primary" @click="save" :disabled="!(store.can(editingPlanId ? 'product:planning:update' : 'product:planning:create'))">保存规划</el-button>
           <el-button v-if="generatedId" @click="router.push(`/spus/${generatedId}`)">查看 SPU</el-button>
-          <el-button :disabled="!editingPlanId" @click="generateProduct(editingPlanId)">创建 SKU</el-button>
+          <el-button :disabled="(!editingPlanId) || !(store.can('product:sku:create'))" @click="generateProduct(editingPlanId)">创建 SKU</el-button>
         </div>
         <p v-if="!editingPlanId" class="muted">保存规划后才能创建 SKU。</p>
       </section>

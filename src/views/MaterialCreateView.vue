@@ -6,7 +6,7 @@
       <V3CreateFlow v-if="models.length" :key="categoryId" :category-id="categoryId" />
       <template v-else>
         <p class="muted">当前分类没有已发布模型。可选择其他分类，或在产品类型下创建临时物料。</p>
-        <div class="row-actions"><el-select v-model="typeId" placeholder="选择产品类型"><el-option v-for="item in types" :key="item.id" :value="item.id" :label="item.name" /></el-select><el-button :disabled="!typeId" @click="temporaryOpen = true">创建临时物料</el-button></div>
+        <div class="row-actions"><el-select v-model="typeId" placeholder="选择产品类型"><el-option v-for="item in types" :key="item.id" :value="item.id" :label="item.name" /></el-select><el-button :disabled="!typeId || !store.can('product:material:create')" @click="temporaryOpen = true">创建临时物料</el-button></div>
       </template>
       <TemporaryMaterialDialog :open="temporaryOpen" :category-id="categoryId" :product-type-id="typeId" @close="temporaryOpen = false" @open="openMaterial" />
     </div>

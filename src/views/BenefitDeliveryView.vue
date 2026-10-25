@@ -1,6 +1,6 @@
 <template>
   <div class="benefit-delivery-page" data-benefit-delivery-detail>
-    <PageHead title="交付清单" desc="已确认的商品、服务、报价与适配约定，按生成时的内容独立保存。"><el-button @click="router.push('/benefit-packages')">返回权益包</el-button><el-button v-if="delivery && sourceExists" @click="router.push({ path: `/benefit-packages/${encodeURIComponent(delivery.packageId)}`, query: returnQuery })">查看当前包配置</el-button><el-button v-if="route.query.returnTo" @click="router.push(safeBenefitReturn(router, route.query.returnTo))">返回原页面</el-button><el-button v-if="delivery" @click="print" data-benefit-print>打印清单</el-button><el-button v-if="delivery" type="primary" @click="download" data-benefit-export>导出 Excel</el-button></PageHead>
+    <PageHead title="交付清单" desc="已确认的商品、服务、报价与适配约定，按生成时的内容独立保存。"><el-button @click="router.push('/benefit-packages')">返回权益包</el-button><el-button v-if="delivery && sourceExists" @click="router.push({ path: `/benefit-packages/${encodeURIComponent(delivery.packageId)}`, query: returnQuery })">查看当前包配置</el-button><el-button v-if="route.query.returnTo" @click="router.push(safeBenefitReturn(router, route.query.returnTo))">返回原页面</el-button><el-button v-if="delivery" @click="print" data-benefit-print>打印清单</el-button><el-button v-if="delivery" type="primary" @click="download" data-benefit-export :disabled="!(store.can('product:delivery:export'))">导出 Excel</el-button></PageHead>
     <el-alert v-if="error" :title="error" type="error" :closable="false" class="export-error" data-benefit-export-error />
     <BenefitDeliverySheet v-if="delivery" :delivery="delivery" />
     <el-empty v-else description="交付清单不存在，请返回权益包查看已保存清单。" />
@@ -19,7 +19,7 @@ const delivery = computed(() => store.data.benefitDeliveries?.find(item => item.
 const returnQuery = computed(() => route.query.returnTo ? { returnTo: safeBenefitReturn(router, route.query.returnTo) } : {})
 const sourceExists = computed(() => store.data.benefitPackages?.some(item => item.id === delivery.value?.packageId))
 function print() { try { window.print(); error.value = '' } catch (problem) { error.value = `打印未能打开：${problem instanceof Error ? problem.message : String(problem)}。清单已保存，可再次打印。` } }
-function download() { if (!delivery.value) return; try { downloadBenefitDelivery(delivery.value); error.value = '' } catch (problem) { error.value = `Excel 导出失败：${problem instanceof Error ? problem.message : String(problem)}。清单仍已保存，可直接重试导出。` } }
+function download() { if (!store.can('product:delivery:export')) { error.value = '没有导出交付清单的权限。'; return }; if (!delivery.value) return; try { downloadBenefitDelivery(delivery.value); error.value = '' } catch (problem) { error.value = `Excel 导出失败：${problem instanceof Error ? problem.message : String(problem)}。清单仍已保存，可直接重试导出。` } }
 </script>
 <style scoped>
 .export-error { margin-bottom:16px; }

@@ -1,14 +1,14 @@
 <template>
   <div>
     <PageHead title="属性方案" desc="一套方案可以被多个分类使用。绑定关系在商品分类中心维护。">
-      <el-button type="primary" @click="create">新建方案</el-button>
+      <el-button type="primary" @click="create" :disabled="!(store.can('product:template:create'))">新建方案</el-button>
     </PageHead>
     <div class="panel">
       <el-table :data="store.data.templates">
         <el-table-column prop="name" label="方案名称" />
         <el-table-column label="启用状态" width="110">
           <template #default="{ row }">
-            <el-switch :model-value="row.enabled" @change="onEnabled(row, $event)" />
+            <el-switch :model-value="row.enabled" @change="onEnabled(row, $event)" :disabled="!(store.can('product:template:update'))" />
           </template>
         </el-table-column>
         <el-table-column label="引用分类数量" width="130">
@@ -25,11 +25,11 @@
         </el-table-column>
         <el-table-column label="操作" width="260">
           <template #default="{ row }">
-            <el-button link type="primary" @click="edit(row.id)">配置</el-button>
-            <el-button link @click="copy(row.id)">复制</el-button>
+            <el-button link type="primary" @click="edit(row.id)" :disabled="!(store.can('product:template:update'))">配置</el-button>
+            <el-button link @click="copy(row.id)" :disabled="!(store.can('product:template:create'))">复制</el-button>
             <el-button link @click="preview(row.id)">预览录入</el-button>
-            <el-button link type="primary" @click="router.push({ path: '/skus/new', query: { template: row.id } })">创建 SKU</el-button>
-            <el-button link type="danger" @click="remove(row.id)">删除</el-button>
+            <el-button link type="primary" @click="router.push({ path: '/skus/new', query: { template: row.id } })" :disabled="!(store.can('product:sku:create'))">创建 SKU</el-button>
+            <el-button link type="danger" @click="remove(row.id)" :disabled="!(store.can('product:template:delete'))">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -40,16 +40,16 @@
         <p class="muted">当前使用分类只在这里查看。要更换绑定，请到商品分类中心。</p>
         <p v-if="draftUsers.length === 0">当前没有分类使用这个方案。</p>
         <el-tag v-for="item in draftUsers" :key="item" style="margin: 4px">{{ item }}</el-tag>
-        <el-input v-model="draft.name" style="margin: 12px 0 8px" />
+        <el-input v-model="draft.name" style="margin: 12px 0 8px"  :disabled="!(store.can('product:template:update'))" />
         <p class="muted">录入时先显示公共属性，再显示规格属性。下面的顺序仍是商品结构视图和商品总览的结构轴。</p>
         <div v-for="(id, index) in draft.structureOrder" :key="id" class="rule-card">
           <strong>{{ paramName(id) }}</strong>
           <div class="row-actions" style="margin-top: 8px">
-            <el-select :model-value="roleOf(id)" style="width: 120px" @change="onRoleChange(id, $event)">
+            <el-select :model-value="roleOf(id)" style="width: 120px" @change="onRoleChange(id, $event)" :disabled="!(store.can('product:template:update'))">
               <el-option label="公共属性" value="common" />
               <el-option label="规格属性" value="variant" />
             </el-select>
-            <el-checkbox :model-value="requiredOf(id)" @change="onRequiredChange(id, $event)">必填</el-checkbox>
+            <el-checkbox :model-value="requiredOf(id)" @change="onRequiredChange(id, $event)" :disabled="!(store.can('product:template:update'))">必填</el-checkbox>
             <el-button size="small" :disabled="index === 0" @click="move(index, -1)">上移</el-button>
             <el-button size="small" @click="move(index, 1)">下移</el-button>
             <el-button size="small" type="danger" @click="dropBind(id)">移出</el-button>
@@ -60,7 +60,7 @@
         </el-select>
         <el-button style="margin-left: 8px" @click="addParam">加入</el-button>
         <div style="margin-top: 16px">
-          <el-button type="primary" @click="save">保存</el-button>
+          <el-button type="primary" @click="save" :disabled="!(store.can('product:template:update'))">保存</el-button>
         </div>
       </template>
     </el-drawer>
@@ -173,6 +173,7 @@ function addParam() {
   addId.value = ''
 }
 async function save() {
+  if (!(store.can('product:template:update'))) return
   if (!draft.value) return
   const name = draft.value.name.trim()
   if (!name) {
@@ -196,6 +197,7 @@ async function save() {
   ElMessage.success('已保存')
 }
 async function onEnabled(row: CatalogTemplate, value: string | number | boolean) {
+  if (!(store.can('product:template:update'))) return
   try {
     await ElMessageBox.confirm(impactText(row.id), `修改：${row.name}`, { confirmButtonText: '确认保存', cancelButtonText: '取消' })
   } catch {
@@ -204,6 +206,7 @@ async function onEnabled(row: CatalogTemplate, value: string | number | boolean)
   row.enabled = Boolean(value)
 }
 function create() {
+  if (!(store.can('product:template:create'))) return
   const id = uid('tpl')
   store.data.templates.push({ id, name: '新方案', parentId: null, enabled: true, structureOrder: [] })
   edit(id)
@@ -214,6 +217,7 @@ async function flushChanges() {
   return true
 }
 async function copy(id: string) {
+  if (!(store.can('product:template:create'))) return
   const source = store.data.templates.find((item) => item.id === id)
   if (!source) return
   const next = uid('tpl')
@@ -227,6 +231,7 @@ function preview(id: string) {
   previewOpen.value = true
 }
 async function remove(id: string) {
+  if (!(store.can('product:template:delete'))) return
   const message = store.removeTemplate(id)
   if (message) ElMessage.warning(message)
   else if (await flushChanges()) ElMessage.success('已删除')

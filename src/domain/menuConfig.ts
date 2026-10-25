@@ -15,6 +15,7 @@ export interface MenuNode {
   route: string
   hidden: boolean
   roles: UserRole[]
+  permissionCode?: string
   custom?: boolean
 }
 
@@ -58,7 +59,9 @@ export function defaultMenuNodes(): MenuNode[] {
     page('/users', '用户管理', 'system', 1, ADMIN),
     page('/feedback', '反馈管理', 'system', 2, ADMIN),
     page('/account', '账号设置', 'system', 3, ADMIN),
-    page('/menus', '菜单配置', 'system', 4, ADMIN),
+    page('/menus', '菜单管理', 'system', 4, ADMIN),
+    page('/roles', '角色管理', 'system', 5, ADMIN),
+    page('/permissions', '权限管理', 'system', 6, ADMIN),
   ]
 }
 
@@ -110,6 +113,7 @@ export function sanitizeMenu(nodes: MenuNode[]): MenuNode[] {
         sort: Number.isFinite(item.sort) ? item.sort : base.sort,
         hidden: Boolean(item.hidden),
         roles: rolesOf(item.roles, base.roles),
+        ...(item.permissionCode ? { permissionCode: item.permissionCode } : {}),
       })
     } else if (item.custom && (item.kind === 'group' || item.kind === 'center')) {
       const title = String(item.title || '').trim()
@@ -233,7 +237,11 @@ function allowed(node: MenuNode, role: UserRole) {
   return !node.hidden && node.roles.includes(role) && (role === 'admin' || !adminPage(node.route))
 }
 
-export function railModel(role: UserRole, nodes = loadMenu()) {
+export function railModel(role: UserRole | ((location: {path:string;query?:Record<string,string>})=>boolean), nodes = loadMenu()) {
+  if(typeof role === 'function'){
+    const allows = (n:MenuNode) => { const [path,search] = n.route.split('?'); return role({path:path||'/',query:Object.fromEntries(new URLSearchParams(search||''))}) }
+    return childrenOf(nodes,null).filter(c=>c.kind==='center'&&!c.hidden).map(center=>({key:center.id,title:center.title,items:childrenOf(nodes,center.id).filter(n=>n.kind==='page'&&!n.hidden&&allows(n)).map(n=>({index:n.route,title:n.title})),sections:childrenOf(nodes,center.id).filter(n=>n.kind==='group'&&!n.hidden).map(g=>({key:g.id,title:g.title,items:childrenOf(nodes,g.id).filter(n=>n.kind==='page'&&!n.hidden&&allows(n)).map(n=>({index:n.route,title:n.title}))})).filter(g=>g.items.length)})).filter(g=>g.items.length||g.sections.length)
+  }
   return childrenOf(nodes, null)
     .filter((center) => center.kind === 'center' && allowed(center, role))
     .map((center) => {
@@ -291,7 +299,7 @@ export function previewLines(nodes: MenuNode[], role: UserRole) {
 
 /** Eligible parameter-free formal page entrances; never accept arbitrary URLs. */
 export function menuPageRegistry() { return defaultMenuNodes().filter(n => n.kind === 'page') }
-export function adminPage(route: string) { return ['/templates','/rules','/users','/menus','/mappings'].includes(route) }
+export function adminPage(route: string) { return ['/templates','/rules','/users','/menus','/roles','/permissions','/mappings'].includes(route) }
 function uniqueMenuId(nodes: MenuNode[], kind: string) {
   let index = 1
   while (nodes.some(n => n.id === `custom-${kind}-${index}`)) index++

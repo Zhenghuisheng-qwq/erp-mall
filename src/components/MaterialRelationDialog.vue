@@ -26,7 +26,7 @@
       </section>
       <el-alert v-if="error" :title="error" type="error" :closable="false" />
     </div>
-    <template #footer><el-button :disabled="busy" @click="emit('close')">关闭</el-button><el-button type="primary" :loading="busy" :disabled="!store.isAdmin || !result || !!result.problems.length || !confirmed" @click="save">确认执行</el-button></template>
+    <template #footer><el-button :disabled="busy" @click="emit('close')">关闭</el-button><el-button type="primary" :loading="busy" :disabled="!store.can(mode === 'create' ? 'product:material:create' : 'product:material:update') || !result || !!result.problems.length || !confirmed" @click="save">确认执行</el-button></template>
   </el-dialog>
 </template>
 <script setup lang="ts">

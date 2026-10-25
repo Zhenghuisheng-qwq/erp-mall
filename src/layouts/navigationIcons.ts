@@ -9,6 +9,6 @@ const icons: Record<string, Component> = {
   '/rules': Filter, '/brands': PriceTag, '/groups': User, '/overview': DataAnalysis,
   '/check': CircleCheck, '/tree': Share, '/plans': DocumentCopy, '/import': Upload,
   '/products?panel=columns': Operation, '/users': UserFilled, '/feedback': ChatDotRound,
-  '/account': User, '/menus': Setting,
+  '/account': User, '/menus': Setting, '/roles': UserFilled, '/permissions': Connection,
 }
 export function menuRouteIcon(route: string): Component { return icons[route] || Document }

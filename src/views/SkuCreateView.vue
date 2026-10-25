@@ -5,7 +5,7 @@
     <section class="panel" style="margin-bottom: 16px">
       <h2>1. 选择 SPU</h2>
       <SpuPicker :model-value="familyId" :plan-id="planId" :template-id="templateId" @change="selectFamily" />
-      <el-button style="margin-top: 12px" @click="openSpu">新建 SPU</el-button>
+      <el-button style="margin-top: 12px" @click="openSpu" :disabled="!(store.can('product:spu:create'))">新建 SPU</el-button>
       <template v-if="family">
         <p data-selected-spu>所属 SPU：<el-button link type="primary" @click="router.push(`/spus/${family.id}`)">{{ family.name }}</el-button> · {{ categoryPath(store.data, family.categoryId) }} · {{ productTypeName(store.data, family) }}</p>
         <p>公共属性：{{ attrsText(family.commonAttrs) || '未填写' }} · 版本：{{ versionName }}</p>
@@ -19,7 +19,7 @@
         <el-radio-button :value="family.modelVersionId ? 'model' : 'template'">{{ family.modelVersionId ? '模型批量生成' : '模板批量生成' }}</el-radio-button>
       </el-radio-group>
       <p v-else>规划：{{ plan?.name || planId }}。生成后，每条 SKU 都会保留规划和模型版本来源。</p>
-      <SkuFields v-if="kind === 'manual'" v-model="draft" :family="family" />
+      <SkuFields :disabled="!(store.can('product:sku:create'))" v-if="kind === 'manual'" v-model="draft" :family="family" />
       <el-form v-else-if="kind === 'template'" label-width="110px">
         <el-form-item v-for="field in fields" :key="field.name" :label="field.name"><el-select v-model="selections[field.name]" multiple filterable allow-create default-first-option :placeholder="`选择${field.name}范围`"><el-option v-for="value in field.values" :key="value" :label="value" :value="value" /></el-select></el-form-item>
       </el-form>
@@ -40,7 +40,7 @@
         <el-table-column label="结果" width="110"><template #default="{ row }">{{ { new: '可新增', existing: '已存在', invalid: '无效' }[row.state as SkuCandidate['state']] }}</template></el-table-column>
         <el-table-column label="说明"><template #default="{ row }">{{ row.reason }} <el-button v-if="row.existingId" link @click="router.push({ path: `/skus/${row.existingId}`, query: { spu: familyId } })">查看已有 SKU</el-button></template></el-table-column>
       </el-table>
-      <div class="row-actions" style="margin-top: 16px"><el-button @click="back">取消</el-button><el-button type="primary" :loading="saving" :disabled="!selected.length || !store.isAdmin" @click="submit">确认新增 {{ selected.length }} 条 SKU</el-button></div>
+      <div class="row-actions" style="margin-top: 16px"><el-button @click="back">取消</el-button><el-button type="primary" :loading="saving" :disabled="!selected.length || !store.can('product:model:update')" @click="submit">确认新增 {{ selected.length }} 条 SKU</el-button></div>
     </section>
     <el-dialog v-model="spuOpen" title="新建 SPU 并继续" width="min(820px, 94vw)" destroy-on-close :close-on-click-modal="false">
       <SpuForm v-if="spuInitial" :initial="spuInitial" inline @dirty="inlineDirty = $event" @cancel="spuOpen = false" @saved="spuSaved" />

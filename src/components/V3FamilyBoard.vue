@@ -9,14 +9,14 @@
     </div>
     <section class="basics">
       <h3>商品基本信息</h3>
-      <label>商品名称<span class="req">必填</span><el-input v-model="productName" maxlength="80" /></label>
+      <label>商品名称<span class="req">必填</span><el-input :disabled="!store.can('product:material:update')" v-model="productName" maxlength="80" /></label>
       <p class="muted">所属分类 {{ category || '未记录分类' }}</p>
       <p class="muted">产品类型 {{ typeName }}</p>
       <p class="muted">来源模型 {{ modelName }} · {{ versionName(family.modelVersionId) }}</p>
       <p class="muted">当前状态 {{ shelfText(shelfOf(family)) }}</p>
       <p class="muted">适用身份 {{ identity.label }}。{{ identity.note }}</p>
       <div class="row-actions">
-        <el-button type="primary" @click="saveProductName">保存商品名称</el-button>
+        <el-button type="primary" :disabled="!store.can('product:material:update')" @click="saveProductName">保存商品名称</el-button>
       </div>
       <p v-if="nameError" class="warn">{{ nameError }}</p>
     </section>
@@ -42,10 +42,10 @@
         <p v-if="active.manualAttrs?.some((item) => item.source === 'manual')" class="muted">手工填写的值只属于这条物料，不会改成词典取值，也不会写进商品模型。</p>
         <h3>物料</h3>
         <MaterialSourceList :material-id="active.id" />
-        <label>物料名称<span class="req">必填</span><el-input v-model="draft.skuName" /></label>
+        <label>物料名称<span class="req">必填</span><el-input :disabled="!store.can('product:material:update')" v-model="draft.skuName" /></label>
         <p v-if="active.nameSource" class="muted">名称来源：{{ originLabel(active.nameSource) }}。当前显示的是已保存名称。</p>
         <p v-if="active.suggestedName" class="muted">建档时的建议名称：{{ active.suggestedName }}</p>
-        <label>物料描述<el-input v-model="draft.materialDescription" type="textarea" :rows="3" /></label>
+        <label>物料描述<el-input :disabled="!store.can('product:material:update')" v-model="draft.materialDescription" type="textarea" :rows="3" /></label>
         <h3>系统编码</h3>
         <label>系统物料编号
           <div class="code-line">
@@ -54,11 +54,11 @@
           </div>
         </label>
         <p class="muted">创建时自动生成。已有编号只读，不能修改，也不能重新生成。</p>
-        <label>供应商编码<span class="opt">可选</span><el-input v-model="draft.supplierCode" clearable placeholder="可留空" /></label>
+        <label>供应商编码<span class="opt">可选</span><el-input :disabled="!store.can('product:material:update')" v-model="draft.supplierCode" clearable placeholder="可留空" /></label>
         <p v-if="errorText" class="warn">{{ errorText }}</p>
         <div class="row-actions">
-          <el-button type="primary" native-type="submit">保存物料</el-button>
-          <el-button @click="regenerate">按当前规则生成名称</el-button>
+          <el-button type="primary" native-type="submit" :disabled="!store.can('product:material:update')">保存物料</el-button>
+          <el-button :disabled="!store.can('product:material:update')" @click="regenerate">按当前规则生成名称</el-button>
         </div>
         <h3 v-if="accessoryMode">适用主机</h3>
         <template v-if="accessoryMode && active">

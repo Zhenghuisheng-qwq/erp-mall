@@ -41,8 +41,8 @@
         <p v-if="group.models.length === 0" class="none">还没有模型</p>
       </section>
       <div v-if="!viewing" class="rail-actions">
-        <el-button v-if="activeId" link type="primary" @click="emit('create', activeId)">新建模型</el-button>
-        <el-button v-if="templateId" link @click="emit('copy')">复制模型</el-button>
+        <el-button v-if="activeId" link type="primary" :disabled="!store.can('product:model:create')" @click="emit('create', activeId)">新建模型</el-button>
+        <el-button v-if="templateId" link :disabled="!store.can('product:model:create')" @click="emit('copy')">复制模型</el-button>
       </div>
     </section>
     <p v-else class="none">{{ path ? '这个分类还没有关联产品类型。' : '先在左侧选择分类。' }}</p>
@@ -52,6 +52,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useCatalogStore } from '../../stores/catalog'
+const store = useCatalogStore()
 import { Link } from '@element-plus/icons-vue'
 
 export interface RailModel {

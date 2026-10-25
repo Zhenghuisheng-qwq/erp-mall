@@ -5,7 +5,7 @@ import type { BenefitDeliverySnapshot, BenefitPackage } from './benefitPackageTy
 import type { TemplateCompatibilityConfig, TemplateCompatibilitySnapshot } from './templateCompatibilityTypes'
 import type { TemplateCompatibilityOrigin } from './templateCompatibilitySync'
 
-export const DATA_VERSION = 15
+export const DATA_VERSION = 16
 export const STORAGE_KEY = 'iyge-v2-mock-db'
 
 export type SaleStatus = 'on_sale' | 'off_sale' | 'draft'
@@ -382,6 +382,7 @@ export interface ProductGroup {
 }
 
 export interface AppUser {
+  roleIds?: string[]
   id: string
   username: string
   displayName: string
@@ -515,6 +516,7 @@ export interface Profile {
 }
 
 export interface AppData {
+  rbac?: import('./rbac').RbacState
   materialRelations?: import('./materialRelations').MaterialRelation[]
   materialContributions?: import('./materialRelations').MaterialContribution[]
   businessDefinitions?: import('./nodeBusiness').BusinessDefinition[]

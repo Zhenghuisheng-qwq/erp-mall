@@ -5,7 +5,7 @@
       <div class="filters">
         <el-input v-model="keyword" placeholder="搜商品、品牌、规格" clearable style="width: 320px" @keyup.enter="goSearch" />
         <el-button type="primary" @click="goSearch">搜索</el-button>
-        <el-button type="primary" plain @click="router.push('/products/new')">新增商品</el-button>
+        <el-button type="primary" plain @click="router.push('/products/new')" :disabled="!(store.can('product:spu:create'))">新增商品</el-button>
         <el-button @click="router.push('/check')">待处理问题</el-button>
       </div>
     </div>
@@ -29,7 +29,7 @@
         <h2>常用分类</h2>
         <p class="muted">点进去会按这个分类新增商品。</p>
         <div class="row-actions" style="margin-top: 12px">
-          <el-button v-for="item in shortcuts" :key="item.categoryId" @click="router.push(`/products/new?category=${item.categoryId}`)">{{ item.name }}</el-button>
+          <el-button v-for="item in shortcuts" :key="item.categoryId" @click="router.push(`/products/new?category=${item.categoryId}`)" :disabled="!(store.can('product:spu:create'))">{{ item.name }}</el-button>
         </div>
       </div>
     </div>

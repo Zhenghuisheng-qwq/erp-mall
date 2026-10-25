@@ -1,7 +1,7 @@
 <template>
   <div>
     <PageHead title="运营分组" desc="用来做活动、推荐和筛选。不改变商品分类，也不改变规格。">
-      <el-button type="primary" @click="create(null)">新建分组</el-button>
+      <el-button type="primary" @click="create(null)" :disabled="!(store.can('product:group:create'))">新建分组</el-button>
     </PageHead>
     <div class="grid-2">
       <div class="panel">
@@ -12,15 +12,15 @@
         </el-tree>
       </div>
       <div class="panel" v-if="current">
-        <el-input v-model="current.name" style="width: 240px" />
+        <el-input v-model="current.name" style="width: 240px"  :disabled="!(store.can('product:group:update'))" />
         <div class="row-actions" style="margin: 12px 0">
-          <el-button @click="create(current.id)">新增子组</el-button>
-          <el-button type="danger" @click="store.removeGroup(current.id)">删除</el-button>
+          <el-button @click="create(current.id)" :disabled="!(store.can('product:group:create'))">新增子组</el-button>
+          <el-button type="danger" @click="store.removeGroup(current.id)" :disabled="!(store.can('product:group:delete'))">删除</el-button>
         </div>
-        <el-select v-model="picked" multiple placeholder="关联商品" style="width: 100%">
+        <el-select v-model="picked" multiple placeholder="关联商品" style="width: 100%" :disabled="!(store.can('product:group:update'))">
           <el-option v-for="item in store.data.families" :key="item.id" :label="item.name" :value="item.id" />
         </el-select>
-        <el-button type="primary" style="margin-top: 8px" @click="link">保存关联</el-button>
+        <el-button type="primary" style="margin-top: 8px" @click="link" :disabled="!(store.can('product:group:update'))">保存关联</el-button>
       </div>
     </div>
   </div>
@@ -47,12 +47,14 @@ onMounted(() => {
   picked.value = store.data.families.filter((item) => item.productGroupIds.includes(selected.value)).map((item) => item.id)
 })
 function create(parentId: string | null) {
+  if (!(store.can('product:group:create'))) return
   const id = uid('grp')
   store.data.productGroups.push({ id, name: '新分组', parentId })
   selected.value = id
   picked.value = []
 }
 function link() {
+  if (!(store.can('product:group:update'))) return
   store.data.families.forEach((family) => {
     const has = family.productGroupIds.includes(selected.value)
     const want = picked.value.includes(family.id)

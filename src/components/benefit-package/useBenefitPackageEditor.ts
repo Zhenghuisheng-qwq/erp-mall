@@ -62,7 +62,7 @@ export function useBenefitPackageEditor() {
     return ''
   })
   const relatedDeliveries = computed(() => (store.data.benefitDeliveries || []).filter(item => item.packageId === draft.value.id))
-  const canGenerate = computed(() => Boolean(draft.value.id && !dirty.value && !stale.value && draft.value.status === 'available' && store.isAdmin && !store.persistenceState.external))
+  const canGenerate = computed(() => Boolean(draft.value.id && !dirty.value && !stale.value && draft.value.status === 'available' && store.can('product:delivery:create') && !store.persistenceState.external))
   function initialize() {
     const id = typeof route.params.id === 'string' ? route.params.id : ''
     const source = id ? store.data.benefitPackages?.find(item => item.id === id) : undefined
@@ -97,12 +97,12 @@ export function useBenefitPackageEditor() {
   watch(draft, () => { deliveryPreview.value = undefined; deliveryConfirmed.value = false }, { deep: true })
   watch(deliveryCount, () => { deliveryPreview.value = undefined; deliveryConfirmed.value = false; generationRequest.value = '' })
   function change(operation: () => BenefitPackageDraft) {
-    if (!store.isAdmin || saving.value || generating.value) return
+    if (!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || saving.value || generating.value) return
     try { draft.value = operation(); error.value = '' }
     catch (problem) { error.value = problem instanceof Error ? problem.message : String(problem) }
   }
   async function useFramework(){
-    if(!store.isAdmin||busy.value)return
+    if(!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create')||busy.value)return
     const f=store.data.benefitFrameworks?.find(f=>f.id===frameworkId.value)
     if(frameworkId.value&&!f){error.value='框架已不存在。';return}
     let next:BenefitPackageDraft
@@ -112,21 +112,21 @@ export function useBenefitPackageEditor() {
     change(()=>next)
   }
   function addSku(skuId: string) { change(() => addBenefitSku(store.data, draft.value, skuId)) }
-  function quantity(lineId: string, value: number) { if (store.isAdmin && !busy.value) draft.value.goods = draft.value.goods.map(line => line.id === lineId ? { ...line, quantity: value } : line) }
+  function quantity(lineId: string, value: number) { if (store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') && !busy.value) draft.value.goods = draft.value.goods.map(line => line.id === lineId ? { ...line, quantity: value } : line) }
   async function removeSku(lineId: string) {
     const line = draft.value.goods.find(item => item.id === lineId)
-    if (!line || !store.isAdmin || busy.value) return
+    if (!line || !store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || busy.value) return
     if (line.skuId === draft.value.includedPhoneSkuId) { await includePhone(false); return }
     draft.value.goods = draft.value.goods.filter(item => item.id !== lineId)
   }
-  function chooseReplacement(lineId: string) { if (!store.isAdmin || saving.value || generating.value) return; replaceLineId.value = lineId; replaceSkuId.value = ''; replaceOpen.value = true }
+  function chooseReplacement(lineId: string) { if (!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || saving.value || generating.value) return; replaceLineId.value = lineId; replaceSkuId.value = ''; replaceOpen.value = true }
   function replace() {
     const before = draft.value
     change(() => replaceBenefitSku(store.data, draft.value, replaceLineId.value, replaceSkuId.value))
     if (draft.value !== before) replaceOpen.value = false
   }
   function requestDevice(value: string) {
-    if (!store.isAdmin || saving.value || generating.value) return
+    if (!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || saving.value || generating.value) return
     let next: BenefitDeviceContext = null
     if (value.startsWith('sku:')) next = { kind: 'sku', skuId: value.slice(4) }
     if (value.startsWith('model:')) {
@@ -144,22 +144,22 @@ export function useBenefitPackageEditor() {
     if (draft.value !== before) { candidateTab.value = draft.value.device ? 'recommended' : 'all'; keyword.value = ''; productTypeId.value = ''; deviceSwitchOpen.value = false }
   }
   async function includePhone(value: boolean) {
-    if (!store.isAdmin || saving.value || generating.value) return
+    if (!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || saving.value || generating.value) return
     if (!value && draft.value.includedPhoneSkuId) {
       try { await ElMessageBox.confirm(`将从实物清单移除「${includedPhone.value?.name || draft.value.includedPhoneSkuId}」。适配设备保持不变。`, '移除包内手机', { confirmButtonText: '确认移除这条手机', cancelButtonText: '保留手机' }) }
       catch { return }
     }
     change(() => setBenefitIncludedPhone(store.data, draft.value, value))
   }
-  function editService(service?: BenefitServiceLine) { if (!store.isAdmin || busy.value) return; serviceDirty.value = false; editedService.value = service; serviceOpen.value = true }
+  function editService(service?: BenefitServiceLine) { if (!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || busy.value) return; serviceDirty.value = false; editedService.value = service; serviceOpen.value = true }
   function saveService(service: BenefitServiceLine) {
-    if (!store.isAdmin || saving.value || generating.value) return
+    if (!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || saving.value || generating.value) return
     const index = draft.value.services.findIndex(item => item.id === service.id)
     draft.value.services = index < 0 ? [...draft.value.services, cloneBenefit(service)] : draft.value.services.map(item => item.id === service.id ? cloneBenefit(service) : item)
   }
-  function removeService(id: string) { if (store.isAdmin && !busy.value) draft.value.services = draft.value.services.filter(item => item.id !== id) }
+  function removeService(id: string) { if (store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') && !busy.value) draft.value.services = draft.value.services.filter(item => item.id !== id) }
   function updateQuote(value: string | number) {
-    if (!store.isAdmin || saving.value || generating.value) return
+    if (!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || saving.value || generating.value) return
     quoteText.value = String(value)
     try { draft.value.quote.amountCents = parseBenefitAmount(quoteText.value); draft.value.quote.reviewedBasis = ''; quoteError.value = '' }
     catch (problem) { quoteError.value = problem instanceof Error ? problem.message : String(problem) }
@@ -169,7 +169,7 @@ export function useBenefitPackageEditor() {
   function isConditionConfirmed(skuId: string, capability: 'basic' | 'fast-charge') { return draft.value.confirmations.some(item => item.skuId === skuId && item.capability === capability && item.basis === validation.value.basis) }
   async function save(status: 'draft' | 'available', navigate = true) {
     if (serviceDirty.value) { error.value = '服务弹窗还有未确认输入，请先加入服务清单或明确放弃，再保存权益包。'; return false }
-    if (saving.value || !store.isAdmin) return false
+    if (saving.value || !store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create')) return false
     if (quoteError.value) { error.value = quoteError.value; return false }
     // Live references may become invalid without changing the saved package itself.
     if (!dirty.value && draft.value.id && draft.value.status === status && !store.persistenceState.external && (status === 'draft' ? validation.value.canSaveDraft : validation.value.canSaveAvailable)) return true
@@ -200,7 +200,7 @@ export function useBenefitPackageEditor() {
     deliveryConfirmed.value = false; generationRequest.value = ''; error.value = ''
   }
   async function generate() {
-    if (generating.value || !store.isAdmin || !deliveryPreview.value || !deliveryConfirmed.value || dirty.value) return
+    if (generating.value || !store.can('product:delivery:create') || !deliveryPreview.value || !deliveryConfirmed.value || dirty.value) return
     generating.value = true; generationRequest.value ||= localBenefitRequest('delivery-request')
     const preview = deliveryPreview.value
     let result: BenefitCommandResult
@@ -216,7 +216,7 @@ export function useBenefitPackageEditor() {
   function useCommon(id: string) { router.push({ path: '/benefit-packages/new', query: { copy: id, ...returnQuery() } }) }
   function openDelivery(id: string) { router.push({ path: `/benefit-packages/deliveries/${id}`, query: returnQuery() }) }
   async function setStatus(status: 'available' | 'disabled') {
-    if (!store.isAdmin || !draft.value.id || saving.value) return
+    if (!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || !draft.value.id || saving.value) return
     if (dirty.value) { error.value = '请先保存或放弃当前编辑，再变更权益包状态。'; return }
     if (status === 'disabled') { try { await ElMessageBox.confirm('停用后不能生成新的交付清单，已有清单仍保留。', '停用权益包', { confirmButtonText: '确认停用', cancelButtonText: '取消' }) } catch { return } }
     saving.value = true
@@ -262,7 +262,7 @@ export function useBenefitPackageEditor() {
     if (saving.value || generating.value) return false
     if (store.persistenceState.discardConfirmed) return true
     if (allowNextNavigation) { allowNextNavigation = false; return true }
-    if (!unsaved.value || !store.isAdmin) return true
+    if (!unsaved.value || !store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create')) return true
     // Superseded navigation must resolve, otherwise quick back/forward can hang.
     resolveLeave?.(false); resolveLeave = undefined
     leaveIntent.value = 'route'; leaveOpen.value = true
@@ -284,7 +284,7 @@ export function useBenefitPackageEditor() {
     try { if (await save('draft', false)) { leaveOpen.value = false; resolveLeave?.(true); resolveLeave = undefined } } finally { leaving.value = false }
   }
   onBeforeRouteLeave(guard); onBeforeRouteUpdate(guard)
-  const beforeUnload = (event: BeforeUnloadEvent) => { if (unsaved.value && store.isAdmin && !store.persistenceState.discardConfirmed) { event.preventDefault(); event.returnValue = '' } }
+  const beforeUnload = (event: BeforeUnloadEvent) => { if (unsaved.value && store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') && !store.persistenceState.discardConfirmed) { event.preventDefault(); event.returnValue = '' } }
   onMounted(() => window.addEventListener('beforeunload', beforeUnload))
   onBeforeUnmount(() => { window.removeEventListener('beforeunload', beforeUnload); resolveLeave?.(false); resolveLeave = undefined })
   return { membersOpen,frameworkId,useFramework,busy, serviceDialog, serviceDirty, requestServiceClose, leaveIntent, ruleEditor, advancedOpen, narrowPane, unsaved, saveAndPreview, locateIssue, manageCompatibility, store, draft, missing, dirty, stale, error, saving, keyword, productTypeId, candidateTab, candidates, allCandidates, commonPackages, types, models, deviceSkus, deviceValue, currentPhone, includedPhone, currentIsIncluded, validation, quoteText, quoteError, serviceOpen, editedService, replaceOpen, replaceSkuId, deviceSwitchOpen, pendingDevice, conditionNotes, deliveryCount, deliveryPreview, deliveryConfirmed, generating, canGenerate, relatedDeliveries, leaveOpen, leaving, addSku, quantity, removeSku, chooseReplacement, replace, requestDevice, finishDeviceSwitch, includePhone, editService, saveService, removeService, updateQuote, reviewQuote, confirmCondition, isConditionConfirmed, save, makeDeliveryPreview, generate, back, useCommon, openDelivery, setStatus, reload, continueEditing, discardAndLeave, saveAndLeave }

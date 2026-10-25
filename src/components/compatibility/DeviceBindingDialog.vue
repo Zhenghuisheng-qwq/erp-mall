@@ -10,11 +10,11 @@
         </el-form-item>
       </el-form>
       <p class="muted">同名型号按来源分别保留。绑定不改 SKU 规格，也不创建 MAT 或 PLN。</p>
-      <el-button v-if="store.isAdmin" type="primary" :disabled="!selectedKey" :loading="saving" @click="bind">确认绑定型号</el-button>
-      <el-button v-if="store.isAdmin && activeBinding" type="danger" plain :loading="saving" @click="clearBinding">解除显式绑定</el-button>
+      <el-button v-if="store.can('product:compatibility:update')" type="primary" :disabled="!selectedKey" :loading="saving" @click="bind">确认绑定型号</el-button>
+      <el-button v-if="store.can('product:compatibility:update') && activeBinding" type="danger" plain :loading="saving" @click="clearBinding">解除显式绑定</el-button>
       <el-divider />
     </template>
-    <template v-if="store.isAdmin">
+    <template v-if="store.can('product:compatibility:create')">
       <el-button v-if="!creating" :disabled="saving" @click="creating = true">新建独立型号</el-button>
       <el-form v-if="creating" :disabled="saving" label-position="top" class="model-form" @submit.prevent="createModel">
         <h3>新建独立设备型号</h3>
@@ -63,7 +63,7 @@ watch(() => [props.modelValue, props.skuId] as const, ([open]) => {
   productTypeId.value = familyTypeId.value || hostTypes.value[0]?.id || ''
 }, { immediate: true })
 async function bind() {
-  if (saving.value || !store.isAdmin || !props.skuId) return
+  if (saving.value || !store.can('product:compatibility:update') || !props.skuId) return
   const candidate = options.value.find(item => item.key === selectedKey.value)?.host
   if (!candidate) return
   const host = { ...candidate, steps: candidate.steps.map(step => ({ ...step })) }
@@ -80,7 +80,7 @@ async function bind() {
   error.value = ''; emit('saved'); emit('update:modelValue', false)
 }
 async function clearBinding() {
-  if (saving.value || !store.isAdmin || !props.skuId || !activeBinding.value) return
+  if (saving.value || !store.can('product:compatibility:update') || !props.skuId || !activeBinding.value) return
   const skuId = props.skuId, generation = contextGeneration, bindingStamp = JSON.stringify(activeBinding.value), sourceStamp = resolution.value.sourceStamp
   const label = hostText(activeBinding.value.host)
   saving.value = true
@@ -95,7 +95,7 @@ async function clearBinding() {
 }
 async function createModel() {
   const generation=contextGeneration
-  if (saving.value || !store.isAdmin) return
+  if (saving.value || !store.can('product:compatibility:create')) return
   saving.value = true
   const result = (await store.saveDeviceModel({ name: modelName.value.trim(), productTypeId: productTypeId.value, attributes: {} }))
   if(generation !== contextGeneration)return

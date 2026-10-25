@@ -2,7 +2,7 @@
   <div class="sku-workbench" data-sku-workbench :aria-busy="workbench.pending.value">
     <PageHead title="SKU 管理" desc="按规则查看真实规格商品，将常用配置保存为本机视图。">
       <el-button @click="router.push('/spus')">SPU 管理</el-button>
-      <el-button type="primary" @click="router.push({ path: '/skus/new', query: scopeId ? { spu: scopeId } : {} })">新增 SKU</el-button>
+      <el-button type="primary" @click="router.push({ path: '/skus/new', query: scopeId ? { spu: scopeId } : {} })" :disabled="!(store.can('product:sku:create'))">新增 SKU</el-button>
     </PageHead>
     <div v-if="scopeId" class="scope-banner" data-spu-scope>
       <div>当前查看：<strong>{{ scopeFamily?.name || '已删除的 SPU' }}</strong> 的 SKU <span class="muted">· {{ scopeId }}</span>
@@ -17,7 +17,7 @@
           <template #reference><el-button data-more-views><span class="view-current">{{ currentView.name }}</span> ▾</el-button></template>
           <el-input v-model="viewSearch" placeholder="搜索视图" clearable aria-label="搜索视图" />
           <div class="view-menu"><button v-for="view in searchedViews" :key="view.id" :data-saved-view="view.id" class="view-option" @click="selectView(view.id)">{{ view.name }} <span v-if="state.favorites.includes(view.id)">★</span><span v-if="state.defaultId === view.id" class="muted">默认</span></button><p v-if="!searchedViews.length" class="muted">没有同名视图</p></div>
-          <el-button link type="primary" @click="viewsOpen = false; openName('新建视图')">新建视图</el-button>
+          <el-button link type="primary" @click="viewsOpen = false; openName('新建视图')" :disabled="!(store.can('product:sku:read'))">新建视图</el-button>
         </el-popover>
         <span v-if="dirty" class="dirty-mark" data-unsaved>未保存</span>
         <span v-else class="muted">{{ activeId === SYSTEM_SKU_VIEW_ID ? '系统视图' : '已保存到本机' }}</span>
@@ -27,18 +27,18 @@
               <template #reference><el-button>更多</el-button></template>
               <div class="more-menu" :inert="workbench.pending.value">
                 <el-button @click="moreOpen = false; openDisplay('more')">分组与显示</el-button>
-                <el-button @click="moreOpen = false; openName('新建视图')">新建视图</el-button>
-                <el-button @click="result(workbench.favorite(activeId))">{{ state.favorites.includes(activeId) ? '取消收藏' : '收藏视图' }}</el-button>
-                <el-button @click="result(workbench.setDefault(activeId))">设为默认视图</el-button>
-                <el-button :disabled="activeId === SYSTEM_SKU_VIEW_ID || !state.favorites.includes(activeId)" @click="result(workbench.moveFavorite(activeId, -1))">常用视图前移</el-button>
-                <el-button :disabled="activeId === SYSTEM_SKU_VIEW_ID || !state.favorites.includes(activeId)" @click="result(workbench.moveFavorite(activeId, 1))">常用视图后移</el-button>
-                <el-button :disabled="activeId === SYSTEM_SKU_VIEW_ID" @click="moreOpen = false; openName('重命名视图')">重命名</el-button>
-                <el-button @click="copyView">复制视图</el-button>
-                <el-button type="danger" :disabled="activeId === SYSTEM_SKU_VIEW_ID" @click="deleteView">删除视图</el-button>
+                <el-button @click="moreOpen = false; openName('新建视图')" :disabled="!(store.can('product:sku:read'))">新建视图</el-button>
+                <el-button @click="result(workbench.favorite(activeId))" :disabled="!(store.can('product:sku:read'))">{{ state.favorites.includes(activeId) ? '取消收藏' : '收藏视图' }}</el-button>
+                <el-button @click="result(workbench.setDefault(activeId))" :disabled="!(store.can('product:sku:read'))">设为默认视图</el-button>
+                <el-button :disabled="(activeId === SYSTEM_SKU_VIEW_ID || !state.favorites.includes(activeId)) || !(store.can('product:sku:read'))" @click="result(workbench.moveFavorite(activeId, -1))">常用视图前移</el-button>
+                <el-button :disabled="(activeId === SYSTEM_SKU_VIEW_ID || !state.favorites.includes(activeId)) || !(store.can('product:sku:read'))" @click="result(workbench.moveFavorite(activeId, 1))">常用视图后移</el-button>
+                <el-button :disabled="(activeId === SYSTEM_SKU_VIEW_ID) || !(store.can('product:sku:read'))" @click="moreOpen = false; openName('重命名视图')">重命名</el-button>
+                <el-button @click="copyView" :disabled="!(store.can('product:sku:read'))">复制视图</el-button>
+                <el-button type="danger" :disabled="(activeId === SYSTEM_SKU_VIEW_ID) || !(store.can('product:sku:read'))" @click="deleteView">删除视图</el-button>
                 <el-button @click="router.push('/import')">导入导出</el-button>
               </div>
             </el-popover>
-        <div class="view-actions"><el-button :disabled="!dirty && activeId !== SYSTEM_SKU_VIEW_ID" @click="saveCurrent">保存视图</el-button><el-button @click="openName('另存为')">另存为</el-button><el-button :disabled="!dirty" @click="restoreView">恢复已保存配置</el-button></div>
+        <div class="view-actions"><el-button :disabled="(!dirty && activeId !== SYSTEM_SKU_VIEW_ID) || !(store.can('product:sku:read'))" @click="saveCurrent">保存视图</el-button><el-button @click="openName('另存为')" :disabled="!(store.can('product:sku:read'))">另存为</el-button><el-button :disabled="(!dirty) || !(store.can('product:sku:read'))" @click="restoreView">恢复已保存配置</el-button></div>
       </div>
       <el-alert v-if="error" :title="error" type="error" show-icon :closable="false" data-save-error />
       <div class="workbench-body" :class="{ 'has-sidebar': showSidebar }" :data-category-layout="categoryLayout">
@@ -73,12 +73,12 @@
             </div>
           </div>
           <div class="result-line"><span class="muted" data-result-count>SKU {{ presentation.total }} 条</span><span v-if="config.groups.length" class="muted">组数量按全部匹配结果计算，分页按记录计算</span><span v-if="selectedIds.length">已选 {{ selectedIds.length }} 条（跨页保留）</span></div>
-          <el-alert v-if="presentation.errors.length" type="error" :closable="false" show-icon title="配置失效，已暂停查询及批量操作" data-invalid-config><template #default><p v-for="item in presentation.errors" :key="item">{{ item }}</p><el-button @click="openFilters">修复筛选</el-button><el-button @click="restoreView">恢复已保存配置</el-button><el-button @click="rebuildInvalid">重建工作配置</el-button></template></el-alert>
+          <el-alert v-if="presentation.errors.length" type="error" :closable="false" show-icon title="配置失效，已暂停查询及批量操作" data-invalid-config><template #default><p v-for="item in presentation.errors" :key="item">{{ item }}</p><el-button @click="openFilters">修复筛选</el-button><el-button @click="restoreView" :disabled="!(store.can('product:sku:read'))">恢复已保存配置</el-button><el-button @click="rebuildInvalid">重建工作配置</el-button></template></el-alert>
           <p v-if="selectionNotice" class="muted" role="status">{{ selectionNotice }}</p>
-          <div v-if="selectedIds.length" class="batch-actions"><el-button :disabled="!!presentation.errors.length" @click="setSelectedStatus('on_sale')">批量在售</el-button><el-button :disabled="!!presentation.errors.length" @click="setSelectedStatus('off_sale')">批量停售</el-button><el-button type="danger" :disabled="!!presentation.errors.length" @click="removeSelected">批量删除</el-button><el-button link @click="selectedIds = []">取消选择</el-button></div>
+          <div v-if="selectedIds.length" class="batch-actions"><el-button :disabled="(!!presentation.errors.length) || !(store.can('product:sku:update'))" @click="setSelectedStatus('on_sale')">批量在售</el-button><el-button :disabled="(!!presentation.errors.length) || !(store.can('product:sku:update'))" @click="setSelectedStatus('off_sale')">批量停售</el-button><el-button type="danger" :disabled="(!!presentation.errors.length) || !(store.can('product:sku:delete'))" @click="removeSelected">批量删除</el-button><el-button link @click="selectedIds = []">取消选择</el-button></div>
           <el-alert v-if="presentation.manualBlocked" title="手工顺序已保留。请在排序设置中清除分组和字段排序后使用。" type="info" :closable="false" />
           <p v-if="!frozenAllowed && config.columns.some(column => column.visible && column.frozen)" class="muted">当前窗口暂不冻结宽度较大的列，已保存的冻结配置仍保留。</p>
-          <div v-if="manualOn" class="manual-tools"><span>手工排序：拖动行或勾选后跨页插入</span><el-button :disabled="!pickedIds.length" @click="addStage">加入排序暂存区</el-button><el-button :disabled="!stageIds.length" @click="stageOpen = true">展开暂存 {{ stageIds.length }}</el-button></div>
+          <div v-if="manualOn" class="manual-tools"><span>手工排序：拖动行或勾选后跨页插入</span><el-button :disabled="(!pickedIds.length) || !(store.can('product:sku:read'))" @click="addStage">加入排序暂存区</el-button><el-button :disabled="!stageIds.length" @click="stageOpen = true">展开暂存 {{ stageIds.length }}</el-button></div>
           <template v-for="(group, index) in presentation.groups" :key="group.key">
             <div v-for="(label, level) in group.labels" v-show="level === 0 || !collapsed[parentKey(group.keys, level)]" :key="level" class="group-heading" :style="{ marginLeft: `${level * 18}px` }">
               <el-button v-if="index === 0 || parentKey(presentation.groups[index - 1]?.keys || [], level + 1) !== parentKey(group.keys, level + 1)" link @click="toggleGroup(group.keys, level)">{{ collapsed[parentKey(group.keys, level + 1)] ? '▸' : '▾' }} {{ label }} · {{ group.totals[level] }}</el-button>
@@ -91,11 +91,11 @@
                   <span v-if="column.key === 'code'" :data-sku-id="row.id">{{ row.code }}</span>
                   <SkuSummary v-else-if="column.key === 'spec'" :sku-id="row.id" :text="row.spec" :data-sku-spec="row.id" /><SkuSummary v-else-if="column.key === 'name'" :sku-id="row.id" :text="row.name" name />
                   <button v-else-if="column.key === 'family' || column.key === 'familyId'" class="linkish text-summary" @click="router.push(`/spus/${row.familyId}`)">{{ row.familyName }}</button>
-                  <el-select v-else-if="column.key === 'status'" :model-value="row.status" size="small" aria-label="SKU 状态" @change="(status: Sku['status']) => store.patchSku(row.id, { status })"><el-option label="草稿" value="draft" /><el-option label="在售" value="on_sale" /><el-option label="停售" value="off_sale" /></el-select>
+                  <el-select v-else-if="column.key === 'status'" :model-value="row.status" size="small" aria-label="SKU 状态" @change="(status: Sku['status']) => store.patchSku(row.id, { status })" :disabled="!(store.can('product:sku:update'))"><el-option label="草稿" value="draft" /><el-option label="在售" value="on_sale" /><el-option label="停售" value="off_sale" /></el-select>
                   <span v-else>{{ displayCell(row.id, column.key, row) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="120"><template #default="{ row }"><div class="row-primary-actions"><el-button link type="primary" @click="router.push({ path: `/skus/${row.id}`, query: scopeId ? { spu: scopeId } : {} })">编辑</el-button><el-dropdown trigger="click"><el-button link :data-row-more="row.id" :data-benefit-more="row.id" :aria-label="`更多 SKU 操作 ${row.code}`">更多</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item v-if="compatibilityRoles.get(row.id) !== 'other'" :data-open-compatibility="row.id" @click="openCompatibility(row.id)">{{ compatibilityRoles.get(row.id) === 'host' ? '适用配件' : '适用主机' }}</el-dropdown-item><el-dropdown-item v-if="store.isAdmin && compatibilityRoles.get(row.id) === 'host'" :data-compose-benefit="row.id" @click="openBenefitPackage(row.id)">组权益包</el-dropdown-item><el-dropdown-item @click="router.push(`/spus/${row.familyId}`)">查看 SPU</el-dropdown-item><el-dropdown-item @click="removeOne(row.id)">删除</el-dropdown-item><el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'before')">插到前面</el-dropdown-item><el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'after')">插到后面</el-dropdown-item></el-dropdown-menu></template></el-dropdown></div></template></el-table-column>
+              <el-table-column label="操作" width="120"><template #default="{ row }"><div class="row-primary-actions"><el-button link type="primary" @click="router.push({ path: `/skus/${row.id}`, query: scopeId ? { spu: scopeId } : {} })">编辑</el-button><el-dropdown trigger="click"><el-button link :data-row-more="row.id" :data-benefit-more="row.id" :aria-label="`更多 SKU 操作 ${row.code}`">更多</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item v-if="compatibilityRoles.get(row.id) !== 'other'" :data-open-compatibility="row.id" @click="openCompatibility(row.id)" :disabled="!(store.can('product:compatibility:read'))">{{ compatibilityRoles.get(row.id) === 'host' ? '适用配件' : '适用主机' }}</el-dropdown-item><el-dropdown-item v-if="store.can('product:benefit:create') && compatibilityRoles.get(row.id) === 'host'" :data-compose-benefit="row.id" @click="openBenefitPackage(row.id)" :disabled="!(store.can('product:benefit:create'))">组权益包</el-dropdown-item><el-dropdown-item @click="router.push(`/spus/${row.familyId}`)">查看 SPU</el-dropdown-item><el-dropdown-item @click="removeOne(row.id)" :disabled="!(store.can('product:sku:delete'))">删除</el-dropdown-item><el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'before')" :disabled="!(store.can('product:sku:read'))">插到前面</el-dropdown-item><el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'after')" :disabled="!(store.can('product:sku:read'))">插到后面</el-dropdown-item></el-dropdown-menu></template></el-dropdown></div></template></el-table-column>
               <template #empty><div class="empty-state" data-empty="sku"><strong>{{ emptyTitle }}</strong><p class="muted">{{ emptyDetail }}</p><el-button v-if="!scopeId" @click="router.push('/skus/new')">新增 SKU</el-button></div></template>
             </el-table>
           </template>
@@ -110,9 +110,9 @@
       <el-input :disabled="workbench.pending.value" v-model="draftName" placeholder="视图名称" maxlength="80" @keyup.enter="submitName" />
       <el-checkbox v-if="scopeId && nameAction !== '重命名视图'" v-model="includeScope">将当前 SPU 范围保存为条件</el-checkbox>
       <p v-if="nameError" class="warn" role="alert">{{ nameError }}</p><p class="muted">视图仅保存在本机浏览器，不复制商品数据。</p>
-      <template #footer><el-button :disabled="workbench.pending.value" @click="nameOpen = false">取消</el-button><el-button type="primary" :loading="workbench.pending.value" @click="submitName">{{ nameAction === '重命名视图' ? '保存名称' : '创建' }}</el-button></template>
+      <template #footer><el-button :disabled="workbench.pending.value" @click="nameOpen = false">取消</el-button><el-button type="primary" :loading="workbench.pending.value" @click="submitName" :disabled="!(store.can('product:sku:read'))">{{ nameAction === '重命名视图' ? '保存名称' : '创建' }}</el-button></template>
     </el-dialog>
-    <el-drawer v-model="stageOpen" title="排序暂存区" size="min(420px, 90vw)"><p>共 {{ stageIds.length }} 条，确认插入后更新工作配置。</p><ul><li v-for="item in stagedRows" :key="item.id" class="staged-row"><div :title="item.detail"><strong>{{ item.name }}</strong><span>{{ item.detail }}</span><em v-if="!item.valid">记录已删除或不再是销售 SKU</em><em v-else-if="!item.inResult">当前筛选外；调整筛选后可插入</em></div> <el-button link @click="removeStaged(item.id)">移除</el-button></li></ul><el-button @click="clearStage">清空暂存</el-button></el-drawer>
+    <el-drawer v-model="stageOpen" title="排序暂存区" size="min(420px, 90vw)"><p>共 {{ stageIds.length }} 条，确认插入后更新工作配置。</p><ul><li v-for="item in stagedRows" :key="item.id" class="staged-row"><div :title="item.detail"><strong>{{ item.name }}</strong><span>{{ item.detail }}</span><em v-if="!item.valid">记录已删除或不再是销售 SKU</em><em v-else-if="!item.inResult">当前筛选外；调整筛选后可插入</em></div> <el-button link @click="removeStaged(item.id)">移除</el-button></li></ul><el-button @click="clearStage" :disabled="!(store.can('product:sku:read'))">清空暂存</el-button></el-drawer>
   </div>
 </template>
 

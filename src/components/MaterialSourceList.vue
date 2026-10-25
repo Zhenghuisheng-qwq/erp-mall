@@ -3,7 +3,7 @@
     <article v-for="r in sources" :key="r.id"><strong>{{ r.label }}</strong> · {{ r.source.modelId }} / {{ r.source.versionId }} / {{ r.source.planningId || r.source.anchorNodeId }} · {{ r.source.scope }}
       <p>{{ r.prefix.map(s=>`${s.attributeName} ${s.valueId}`).join(' · ') }} · 覆盖 {{ r.coverage.length }} 条 PLN</p>
       <el-button link @click="router.push({path:'/specs',query:{template:r.source.modelId,materialVersion:r.source.versionId,materialNode:r.source.anchorNodeId || r.prefix.at(-1)?.valueNodeId}})">定位来源</el-button>
-      <el-button v-if="!r.original && store.isAdmin" link type="danger" :disabled="busy" @click="unlink(r.id)">解除本条关联</el-button>
+      <el-button v-if="!r.original && store.can('product:material:delete')" link type="danger" :disabled="busy" @click="unlink(r.id)">解除本条关联</el-button>
     </article>
     <p v-if="unknown">另有 {{ unknown }} 条不支持的未来关系，原文保留，不参与当前范围执行。</p>
     <details v-if="contributions.length"><summary>兼容声明贡献来源（{{ contributions.length }} 条）</summary><p v-for="c in contributions" :key="c.id">声明 {{ c.declarationId }} · {{ c.state }} · {{ c.owners.map(o=>`${o.relationId} / ${o.planningId} / 规则 ${o.ruleIds.join(',')}`).join('；') }}</p></details>

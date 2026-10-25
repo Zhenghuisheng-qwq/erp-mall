@@ -2,9 +2,9 @@
   <section class="compatibility-manager" data-compatibility-manager>
     <div class="manager-head">
       <div><h2>兼容声明</h2><p class="muted">销售 SKU 与物料分别声明；型号级与指定规格分别生效。</p></div>
-      <div class="row-actions"><el-button data-check-template-updates @click="syncOpen = true">检查模板更新</el-button><template v-if="store.isAdmin"><el-button @click="openCopy">从物料适用关系复制</el-button><el-button type="primary" @click="openAdd">新增声明</el-button></template></div>
+      <div class="row-actions"><el-button data-check-template-updates @click="syncOpen = true">检查模板更新</el-button><template v-if="store.can('product:compatibility:create')"><el-button @click="openCopy">从物料适用关系复制</el-button><el-button type="primary" @click="openAdd">新增声明</el-button></template></div>
     </div>
-    <el-alert v-if="!store.isAdmin" title="当前为只读角色，可查看声明与适用范围；维护需要管理员权限。" type="info" :closable="false" />
+    <el-alert v-if="!canMaintain" title="当前权限可查看声明与适用范围；维护需要对应操作授权。" type="info" :closable="false" />
     <div class="manager-tools">
       <el-input v-model="keyword" placeholder="搜索配件、型号、编号或声明来源" clearable aria-label="搜索兼容声明" />
       <el-select v-model="kindFilter" aria-label="声明对象类型"><el-option label="销售 SKU 与物料" value="" /><el-option label="销售 SKU" value="sku" /><el-option label="物料 MAT" value="material" /></el-select>
@@ -12,13 +12,13 @@
       <el-button v-if="target || host" @click="showAll = !showAll">{{ showAll ? '返回当前对象' : '查看全部声明' }}</el-button>
     </div>
     <p class="muted" data-declaration-count>共 {{ visible.length }} 条声明 · {{ objectCount }} 个配件对象 · {{ modelCount }} 个设备型号</p>
-    <div v-if="store.isAdmin && selectedIds.length" class="batch-tools">
+    <div v-if="store.can('product:compatibility:delete') && selectedIds.length" class="batch-tools">
       <span>已选 {{ selectedIds.length }} 条</span><el-button @click="batch('pending')">标记待确认</el-button><el-button @click="batch('incompatible')">声明不兼容</el-button><el-button type="danger" @click="cancelMany">取消声明</el-button><el-button link @click="selectedIds = []">取消选择</el-button>
     </div>
     <el-empty v-if="!visible.length" :description="keyword ? '搜索没有结果，请调整关键词。' : '尚无适用声明，可以新增或从指定物料复制。'" />
     <article v-for="item in visible" :key="item.link.id" class="statement-card" :data-declaration-id="item.link.id">
       <div class="statement-top">
-        <el-checkbox v-if="store.isAdmin" :model-value="selectedIds.includes(item.link.id)" :aria-label="`选择声明 ${item.link.id}`" @change="toggle(item.link.id)" />
+        <el-checkbox v-if="store.can('product:compatibility:delete')" :model-value="selectedIds.includes(item.link.id)" :aria-label="`选择声明 ${item.link.id}`" @change="toggle(item.link.id)" />
         <div class="statement-main"><strong>{{ item.targetLabel }}</strong><p>{{ hostText(item.link.host) }} <span class="muted">· {{ scopeText(item.link.host) }}</span></p></div>
         <el-tag :type="item.state.verification === 'pending' ? 'warning' : item.state.conclusion === 'incompatible' ? 'danger' : item.state.conclusion === 'conditional' ? 'warning' : 'success'">{{ verificationLabels[item.state.verification] }} · {{ conclusionLabels[item.state.conclusion] }}</el-tag>
       </div>
@@ -29,13 +29,13 @@
       <ul v-if="item.state.conditions.length"><li v-for="(condition, index) in item.state.conditions" :key="index">{{ conditionText(store.data, condition) }}</li></ul>
       <p v-if="item.state.provenance.kind === 'material-copy'" class="muted">从物料 {{ item.state.provenance.materialSnapshot?.code }} · {{ item.state.provenance.materialSnapshot?.name }} 确认复制；副本独立维护。</p>
       <p v-if="item.link.note">备注：{{ item.link.note }}</p>
-      <div class="statement-bottom"><span class="muted">更新 {{ item.link.updatedAt || '未记录' }} · {{ item.link.id }}</span><div v-if="store.isAdmin"><el-button link type="primary" @click="openEdit(item.link)">编辑声明</el-button><el-button link type="danger" @click="stageCancellation([item.link.id])">取消声明</el-button></div></div>
+      <div class="statement-bottom"><span class="muted">更新 {{ item.link.updatedAt || '未记录' }} · {{ item.link.id }}</span><div v-if="canMaintain"><el-button :disabled="!store.can('product:compatibility:update')" link type="primary" @click="openEdit(item.link)">编辑声明</el-button><el-button :disabled="!store.can('product:compatibility:delete')" link type="danger" @click="stageCancellation([item.link.id])">取消声明</el-button></div></div>
     </article>
     <section v-if="deletedOrigins.length" class="deleted-origins" data-template-deleted-origins><h3>已取消的模板声明</h3><p class="muted">这些取消记录仍受保护，不作为有效兼容关系展示。</p><article v-for="origin in deletedOrigins" :key="origin.key" class="statement-card"><strong>{{ targetText(store.data,origin.target) }} → {{ hostText(origin.baseline.host) }}</strong><TemplateCompatibilitySource :origin="origin" /></article></section>
-    <div v-if="store.isAdmin" class="model-tools">
+    <div v-if="store.can('product:compatibility:update') || store.can('product:compatibility:create')" class="model-tools">
       <h3>设备型号与绑定</h3><p class="muted">手工或模板 SKU 未能唯一确认型号时，可以显式配置；无销售 SKU 的型号也可单独维护。</p>
       <el-select v-model="bindingSkuId" filterable clearable placeholder="选择要配置型号的主机 SKU" aria-label="选择主机 SKU"><el-option v-for="item in deviceSkus" :key="item.id" :value="item.id" :label="`${item.code} · ${item.skuName || item.id}`" /></el-select>
-      <el-button :disabled="!bindingSkuId" @click="bindingOpen = true">配置设备型号</el-button><el-button @click="bindingSkuId = ''; bindingOpen = true">新建独立型号</el-button>
+      <el-button :disabled="!bindingSkuId || !store.can('product:compatibility:update')" @click="bindingOpen = true">配置设备型号</el-button><el-button :disabled="!store.can('product:compatibility:create')" @click="bindingSkuId = ''; bindingOpen = true">新建独立型号</el-button>
     </div>
     <DeviceBindingDialog v-model="bindingOpen" :sku-id="bindingSkuId" @saved="emit('updated')" />
     <TemplateCompatibilitySyncDialog v-model="syncOpen" :target="target" @updated="emit('updated')" />
@@ -83,7 +83,7 @@
         <article v-for="(item, index) in preview.items" :key="index" class="preview-item" :class="item.state"><strong>{{ previewState[item.state] }}</strong><p>{{ item.change.kind === 'remove' ? `声明 ${item.change.id}` : `${targetText(store.data, item.change.draft.target)} → ${hostText(item.change.draft.host)} · ${scopeText(item.change.draft.host)} · ${capabilityLabels[item.change.draft.capability]}` }}</p><p>{{ item.message }}</p></article>
       </section>
       <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon data-declaration-error />
-      <template #footer><el-button :disabled="saving" @click="formOpen = false">取消</el-button><el-button v-if="mode !== 'batch'" :disabled="saving || !store.isAdmin" data-preview-compatibility @click="makePreview">预览变更</el-button><el-button type="primary" :disabled="!store.isAdmin || !preview?.canCommit || !preview.items.length" :loading="saving" data-confirm-compatibility @click="commit">确认保存</el-button></template>
+      <template #footer><el-button :disabled="saving" @click="formOpen = false">取消</el-button><el-button v-if="mode !== 'batch'" :disabled="saving || !canSubmit" data-preview-compatibility @click="makePreview">预览变更</el-button><el-button type="primary" :disabled="!canSubmit || !preview?.canCommit || !preview.items.length" :loading="saving" data-confirm-compatibility @click="commit">确认保存</el-button></template>
     </el-dialog>
   </section>
 </template>
@@ -151,6 +151,10 @@ interface ConditionRow { id: number; kind: CompatibilityCondition['kind']; attri
 const conditionRows = ref<ConditionRow[]>([])
 let conditionSequence = 0
 const preview = ref<CompatibilityPreview>(), stagedChanges = ref<CompatibilityChange[]>([])
+const canMaintain = computed(() => ['create','update','delete'].some(action => store.can(`product:compatibility:${action}`)))
+const canChange = (change: CompatibilityChange) => store.can(`product:compatibility:${change.kind === 'remove' ? 'delete' : change.kind === 'edit' ? 'update' : 'create'}`)
+const canSubmit = computed(() => mode.value === 'batch' ? stagedChanges.value.every(canChange) : store.can(`product:compatibility:${mode.value === 'edit' ? 'update' : 'create'}`))
+
 const previewState = { new: '新增', edit: '明确修改', remove: '取消', duplicate: '重复跳过', conflict: '冲突', invalid: '无效' }
 const formTitle = computed(() => ({ add: '新增兼容声明', edit: '编辑兼容声明', copy: '从物料适用关系复制', batch: '确认批量变更' })[mode.value])
 const objectOptions = computed(() => objectKind.value === 'sku' ? salesObjects.value : materialObjects.value)
@@ -173,11 +177,11 @@ function reset() {
   source.value = ''; note.value = ''; conditionRows.value = []; sourceMaterialId.value = ''; copySkuId.value = props.target?.kind === 'sku' ? props.target.id : ''
   preview.value = undefined; stagedChanges.value = []; error.value = ''
 }
-function openAdd() { if (saving.value || !store.isAdmin) return; reset(); mode.value = 'add'; formOpen.value = true }
-function openCopy() { if (saving.value || !store.isAdmin) return; reset(); mode.value = 'copy'; formOpen.value = true }
+function openAdd() { if (saving.value || !store.can('product:compatibility:create')) return; reset(); mode.value = 'add'; formOpen.value = true }
+function openCopy() { if (saving.value || !store.can('product:compatibility:create')) return; reset(); mode.value = 'copy'; formOpen.value = true }
 function addCondition() { conditionRows.value.push({ id: ++conditionSequence, kind: 'manual', attributeId: '', operator: 'eq', value: '', text: '', protocol: '' }) }
 function openEdit(link: CompatibilityLink) {
-  if (saving.value || !store.isAdmin) return
+  if (saving.value || !store.can('product:compatibility:update')) return
   reset(); mode.value = 'edit'; editId.value = link.id
   const draft = declarationDraft(link)
   objectKind.value = draft.target.kind; targetIds.value = [draft.target.id]
@@ -212,7 +216,7 @@ function makePreview() {
   }))
   stagedChanges.value = cloneCompatibility(changes); preview.value = previewCompatibilityChanges(store.data, changes)
 }
-function stage(changes: CompatibilityChange[]) { if (saving.value || !store.isAdmin) return; reset(); mode.value = 'batch'; stagedChanges.value = cloneCompatibility(changes); preview.value = previewCompatibilityChanges(store.data, changes); formOpen.value = true }
+function stage(changes: CompatibilityChange[]) { if (saving.value || !changes.every(canChange)) return; reset(); mode.value = 'batch'; stagedChanges.value = cloneCompatibility(changes); preview.value = previewCompatibilityChanges(store.data, changes); formOpen.value = true }
 function stageCancellation(ids: string[]) { stage(ids.map(id => ({ kind: 'remove', id }))) }
 function cancelMany() { stageCancellation(selectedIds.value) }
 function batch(kind: 'pending' | 'incompatible') {
@@ -220,7 +224,7 @@ function batch(kind: 'pending' | 'incompatible') {
 }
 onBeforeRouteLeave(() => !saving.value)
 async function commit() {
-  if (saving.value || !store.isAdmin || !preview.value?.canCommit || !stagedChanges.value.length) return
+  if (saving.value || !canSubmit.value || !preview.value?.canCommit || !stagedChanges.value.length) return
   saving.value = true
   const result = await store.commitCompatibilityChanges(cloneCompatibility(stagedChanges.value))
   saving.value = false

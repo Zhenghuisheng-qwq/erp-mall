@@ -7,9 +7,9 @@
       <p class="spec">{{ preview.label }}</p>
       <p class="meta">规划编号 {{ preview.planningId }} · {{ preview.versionName }} · {{ gradeLabel }} · {{ filingLabel }} · {{ codeText || '尚未建档' }}</p>
       <div class="row-actions">
-        <el-button type="primary" :disabled="!store.isAdmin" @click="openCreate">创建物料</el-button>
+        <el-button type="primary" :disabled="!store.can('product:material:create')" @click="openCreate">创建物料</el-button>
         <el-button :disabled="count === 0" @click="listOpen = true">查看已有物料</el-button>
-        <el-button :disabled="!store.isAdmin" @click="relationOpen = true">关联已有物料</el-button>
+        <el-button :disabled="!store.can('product:material:update')" @click="relationOpen = true">关联已有物料</el-button>
       </div>
       <p v-if="lastCode" class="meta">刚创建 {{ lastCode }}。<button type="button" class="linkish" @click="listOpen = true">查看</button></p>
     </template>
@@ -38,13 +38,13 @@
       </div>
       <template #footer>
         <el-button :disabled="saving" @click="createOpen = false">取消</el-button>
-        <el-button :loading="saving" :disabled="!store.isAdmin" @click="confirm(true)">创建并继续下一条</el-button>
-        <el-button type="primary" :loading="saving" :disabled="!store.isAdmin" @click="confirm(false)">确认创建</el-button>
+        <el-button :loading="saving" :disabled="!store.can('product:material:create')" @click="confirm(true)">创建并继续下一条</el-button>
+        <el-button type="primary" :loading="saving" :disabled="!store.can('product:material:create')" @click="confirm(false)">确认创建</el-button>
       </template>
     </el-dialog>
 
     <el-dialog v-model="listOpen" class="v3-material-dialog" title="已有物料" width="560px" append-to-body>
-      <el-button :disabled="!store.isAdmin" @click="relationOpen = true">关联已有物料</el-button>
+      <el-button :disabled="!store.can('product:material:update')" @click="relationOpen = true">关联已有物料</el-button>
       <el-input v-model="keyword" placeholder="搜物料编码或规格" clearable />
       <p v-if="filtered.length === 0 && !(matchVersion && historicalCards.length)" class="muted">还没有物料。</p>
       <ul v-if="filtered.length" class="materials">
