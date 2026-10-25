@@ -303,7 +303,7 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
     addParamValue:['product:dictionary:update'],appendDictionaryValues:['product:dictionary:update'],removeParam:['product:dictionary:delete'],removeParamValue:['product:dictionary:update'],removeProductType:['product:type:delete'],setProductTypeStatus:['product:type:update'],
     commitCategoryMove:['product:category:update'],commitCategoryMoves:['product:category:update'],renameCategoryName:['product:category:update'],
     addCategory:['product:category:create'],copyCategory:['product:category:create'],moveCategory:['product:category:update'],shiftCategory:['product:category:update'],relocateCategory:['product:category:update'],updateCategory:['product:category:update'],removeCategory:['product:category:delete'],setCategoryMapping:['product:template:update'],removeGroup:['product:group:delete'],
-    commitSkuPage:['product:sku:read'],saveView:['product:view:update'],applyView:['product:spu:read'],removeView:['product:view:update'],
+    commitSpuPage:['product:view:update'],commitSkuPage:['product:sku:read'],saveView:['product:view:update'],applyView:['product:spu:read'],removeView:['product:view:update'],
     exportJson:['product:export:execute'],importJson:['product:import:execute'],resetAll:['system:data:reset'],resetModule:['system:data:reset'],
     importFeedbackPack:['system:feedback:import'],markFeedbacksExported:['system:feedback:export'],
     removeRbacRole:['system:role:delete'],grantRbacRole:['system:role:grant'],saveRbacPermission:['system:permission:update'],removeRbacUser:['system:user:delete'],saveMenuStructure:['system:menu:update'],resetMenuStructure:['system:menu:update'],

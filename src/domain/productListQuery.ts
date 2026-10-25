@@ -1,7 +1,7 @@
-import { resolveManualOrder } from './productListManual'
+import { groupPathKey, resolveManualOrder, type GroupIdentityPart } from './productListManual'
 import { categoryPath, projectAttrs, shelfOf, shelfText, statusText } from './logic'
 import { familyBrandValues, familyListText, isRealSku, productTypeName, realSkusOf, savedSkuCode, savedSkuName, skuListText } from './productList'
-import type { AppData, ListQuery, ProductFamily, ProductListMode, ProductListModeQuery, ProductListSavedView, ProductListSortMode, ProductListViewFilter, Sku } from './types'
+import type { AppData, ListQuery, ProductFamily, ProductListMode, ProductListModeQuery, ProductListPageState, ProductListSavedView, ProductListSortMode, ProductListViewFilter, Sku } from './types'
 
 export interface ProductListRecord {
   id: string
@@ -20,8 +20,10 @@ export interface ProductListPresentation {
   total: number
   page: number
   groups: ProductListGroup[]
-  /** 手工排序和分组同时存在时，表格仍按分组展示，并提示先清除分组。 */
   manualBlocked: boolean
+  allIds: string[]
+  groupKeys: Record<string, string>
+  errors: string[]
 }
 
 const SPU_EXPOSED = ['category', 'brand', 'shelf']
@@ -203,6 +205,21 @@ function compareValue(data: AppData, record: ProductListRecord, field: string) {
 }
 
 function matchFilter(data: AppData, record: ProductListRecord, filter: ProductListViewFilter) {
+  if (filter.active === false) return true
+  if (filter.field === 'category' && (filter.operator === 'eq' || filter.operator === 'in') && listOf(filter.value).length) {
+    const values = listOf(filter.value), resolved = resolveCategoryFilter(data, filter.operator === 'eq' ? values.slice(0, 1) : values)
+    return !resolved.missing.length && !resolved.ambiguous.length && resolved.ids.includes(record.family.categoryId)
+  }
+  if (filter.operator === 'descendants') {
+    if (filter.field !== 'category') return false
+    const roots = resolveCategoryFilter(data, listOf(filter.value))
+    if (!roots.ids.length || roots.missing.length || roots.ambiguous.length) return false
+    const byId = new Map(data.categories.map(category => [category.id, category]))
+    const targets = new Set(roots.ids), seen = new Set<string>()
+    let category = byId.get(record.family.categoryId)
+    while (category && !seen.has(category.id)) { if (targets.has(category.id)) return true; seen.add(category.id); category = category.parentId ? byId.get(category.parentId) : undefined }
+    return false
+  }
   const values = valuesOf(data, record, filter.field, false)
   if (!values) return true
   const expected = listOf(filter.value)
@@ -271,6 +288,59 @@ function groupLabel(data: AppData, record: ProductListRecord, field: string) {
   const values = valuesOf(data, record, field, true) || []
   return values.map((item) => item.trim()).find(Boolean) || '未记录'
 }
+function productGroupPart(data: AppData, record: ProductListRecord, field: string): { identity: GroupIdentityPart; label: string } {
+  let value: unknown = valuesOf(data, record, field, true)
+  if (field === 'category') value = record.family.categoryId || null
+  else if (field === 'productType') value = record.family.productTypeId || productTypeName(data, record.family) || null
+  else if (field === 'shelf') value = shelfOf(record.family)
+  else if (field === 'status' && record.sku) value = record.sku.status
+  if (field.startsWith('attr:')) {
+    const id = field.slice(5), name = attrName(data, field)
+    const applicable = !!name && (Object.hasOwn(record.family.commonAttrs, name) || !!record.sku && Object.hasOwn(projectAttrs(record.family, record.sku), name) || data.templateParams.some(binding => binding.templateId === record.family.templateId && binding.paramId === id))
+    if (!applicable) return { identity: { field, kind: 'not-applicable' }, label: '不适用' }
+  }
+  const absent = value === null || value === undefined || value === '' || Array.isArray(value) && !value.some(item => String(item).trim())
+  return { identity: { field, kind: absent ? 'empty' : 'value', ...(absent ? {} : { value }) }, label: absent ? '未记录' : groupLabel(data, record, field) }
+}
+
+export function validateProductListModeQuery(data: AppData, query: ProductListModeQuery | undefined, mode: ProductListMode): string[] {
+  if (!query || typeof query !== 'object' || typeof query.keyword !== 'string' || !Array.isArray(query.filters) || !Array.isArray(query.exposed)) return ['列表查询结构无效。']
+  const errors: string[] = [], fields = new Set(knownFilterFields(data, mode).map(item => item.field)), ids = new Set<string>()
+  const operators = new Set(['contains', 'notContains', 'eq', 'neq', 'in', 'before', 'after', 'between', 'descendants'])
+  for (const filter of query.filters) {
+    if (!filter || typeof filter !== 'object' || typeof filter.id !== 'string' || !filter.id || ids.has(filter.id)) { errors.push('筛选身份缺失或重复。'); continue }
+    ids.add(filter.id)
+    if (!fields.has(filter.field)) errors.push(`筛选字段失效：${filter.field}。`)
+    if (!operators.has(filter.operator) || filter.operator === 'descendants' && filter.field !== 'category') errors.push(`筛选操作符不适用于该字段：${filter.field}。`)
+    if (filter.active !== undefined && typeof filter.active !== 'boolean') errors.push('筛选启用状态无效。')
+    const value = filter.value
+    if (typeof value !== 'string' && !(Array.isArray(value) && value.every(item => typeof item === 'string')) && !(value && typeof value === 'object' && !Array.isArray(value) && (value.from === undefined || typeof value.from === 'string') && (value.to === undefined || typeof value.to === 'string'))) errors.push(`筛选值结构无效：${filter.field}。`)
+    if (filter.field === 'category' && filter.active !== false && (filter.operator === 'descendants' || ['eq', 'in'].includes(filter.operator) && listOf(filter.value).length)) {
+      const category = resolveCategoryFilter(data, listOf(filter.value))
+      if (!category.ids.length || category.missing.length || category.ambiguous.length) errors.push('分类范围引用失效或旧分类路径不唯一，请按分类 ID 重新选择。')
+    }
+  }
+  if (query.exposed.some(field => typeof field !== 'string' || !fields.has(field)) || new Set(query.exposed).size !== query.exposed.length) errors.push('已暴露筛选字段失效或重复。')
+  if (query.sortMode !== undefined && !['default', 'field', 'manual'].includes(query.sortMode)) errors.push('排序模式无效。')
+  for (const [order, allowed, title] of [[query.grouping, groupFields(data, mode), '分组'], [query.sorting, sortFields(mode), '排序']] as const) {
+    if (order !== null && order !== undefined && (!order || typeof order !== 'object' || !allowed.some(item => item.field === order.field) || !['asc', 'desc'].includes(order.direction))) errors.push(`${title}字段或方向失效。`)
+  }
+  return [...new Set(errors)]
+}
+export function validateProductListPage(data: AppData, page: ProductListPageState, mode: ProductListMode, options: { validateConfigs?: boolean } = {}): string[] {
+  if (!page || !Array.isArray(page.views) || !page.views.length || typeof page.activeId !== 'string' || !page.views.some(view => view?.id === page.activeId) || !Array.isArray(page.presets) || !page.query || typeof page.query !== 'object') return ['列表页面配置结构无效。']
+  const errors: string[] = [], ids = new Set<string>()
+  for (const view of page.views) {
+    if (!view || typeof view !== 'object' || typeof view.id !== 'string' || !view.id || ids.has(view.id) || typeof view.name !== 'string' || !['spu', 'sku'].includes(view.mode)) { errors.push('视图身份、名称或模式无效。'); continue }
+    ids.add(view.id)
+    const query = mode === 'sku' ? view.skuQuery : view.spuQuery
+    if (query && options.validateConfigs !== false) errors.push(...validateProductListModeQuery(data, query, mode))
+    const columns = mode === 'sku' ? view.skuColumns : view.spuColumns
+    if (!Array.isArray(columns) || columns.some(column => !column || typeof column.key !== 'string' || typeof column.visible !== 'boolean' || typeof column.order !== 'number' || column.width !== undefined && (!Number.isFinite(column.width) || column.width < 72 || column.width > 600) || column.frozen !== undefined && ![false, 'left', 'right'].includes(column.frozen))) errors.push('展示列结构、列宽或冻结配置无效。')
+    for (const order of [view.manualOrder?.spuIds, view.manualOrder?.skuIds]) if (order !== undefined && (!Array.isArray(order) || order.some(id => typeof id !== 'string' || !id) || new Set(order).size !== order.length)) errors.push('手工顺序身份无效或重复。')
+  }
+  return [...new Set(errors)]
+}
 
 export function unfilteredIds(data: AppData, view: ProductListSavedView, mode: ProductListMode = view.mode) {
   const query = modeQuery(view, mode)
@@ -282,14 +352,16 @@ export function unfilteredIds(data: AppData, view: ProductListSavedView, mode: P
 
 export function presentProductList(data: AppData, view: ProductListSavedView, page: number, pageSize: number): ProductListPresentation {
   const query = modeQuery(view, view.mode)
+  const errors = validateProductListModeQuery(data, query, view.mode)
+  if (errors.length) return { total: 0, page: 1, manualBlocked: false, allIds: [], groupKeys: {}, errors, groups: [{ key: 'all', label: '', total: 0, rows: [] }] }
   const allowedSort = new Set(sortFields(view.mode).map((item) => item.field))
   const allowedGroup = new Set(groupFields(data, view.mode).map((item) => item.field))
   let rows = baseRecords(data, view.mode).filter((record) => keywordMatch(data, record, query.keyword) && query.filters.every((filter) => matchFilter(data, record, filter)))
   const sorting = query.sorting && allowedSort.has(query.sorting.field) ? query.sorting : null
   const grouping = query.grouping && allowedGroup.has(query.grouping.field) ? query.grouping : null
   const sortMode = sortModeOf(query)
-  const manualBlocked = sortMode === 'manual' && Boolean(grouping)
-  if (sortMode === 'manual' && !grouping) {
+  const manualBlocked = false
+  if (sortMode === 'manual') {
     const saved = view.mode === 'sku' ? view.manualOrder?.skuIds : view.manualOrder?.spuIds
     const order = resolveManualOrder(saved, baseRecords(data, view.mode).map((item) => item.id))
     const rank = new Map(order.map((id, index) => [id, index]))
@@ -301,58 +373,95 @@ export function presentProductList(data: AppData, view: ProductListSavedView, pa
     const safe = Math.min(Math.max(1, Math.floor(page) || 1), pages)
     const start = (safe - 1) * size
     const pageRows = rows.slice(start, start + size)
-    return { total: rows.length, page: safe, manualBlocked, groups: [{ key: 'all', label: '', total: rows.length, rows: pageRows }] }
+    return { total: rows.length, page: safe, manualBlocked, allIds: rows.map(row => row.id), groupKeys: Object.fromEntries(rows.map(row => [row.id, 'all'])), errors, groups: [{ key: 'all', label: '', total: rows.length, rows: pageRows }] }
   }
-  const buckets = new Map<string, ProductListRecord[]>()
+  const buckets = new Map<string, { label: string; rows: ProductListRecord[] }>()
+  const groupKeys: Record<string, string> = {}
   rows.forEach((record) => {
-    const label = groupLabel(data, record, grouping.field)
-    const list = buckets.get(label) || []
-    list.push(record)
-    buckets.set(label, list)
+    const part = productGroupPart(data, record, grouping.field), key = groupPathKey([part.identity])
+    const bucket = buckets.get(key) || { label: part.label, rows: [] }
+    bucket.rows.push(record); buckets.set(key, bucket); groupKeys[record.id] = key
   })
   const sign = grouping.direction === 'desc' ? -1 : 1
-  const ordered = [...buckets.entries()].sort((left, right) => left[0].localeCompare(right[0], 'zh') * sign || left[0].localeCompare(right[0], 'zh'))
-  const flat = ordered.flatMap(([, list]) => (sortMode === 'field' && sorting ? sortRecords(data, list, sorting.field, sorting.direction) : list))
-  const totals = new Map(ordered.map(([label, list]) => [label, list.length]))
+  const ordered = [...buckets.entries()].sort((left, right) => left[1].label.localeCompare(right[1].label, 'zh') * sign || left[0].localeCompare(right[0], 'zh'))
+  const flat = ordered.flatMap(([, bucket]) => bucket.rows)
+  const totals = new Map(ordered.map(([key, bucket]) => [key, bucket.rows.length]))
   const size = pageSize > 0 ? pageSize : 10
   const pages = Math.max(1, Math.ceil(flat.length / size))
   const safe = Math.min(Math.max(1, Math.floor(page) || 1), pages)
   const slice = flat.slice((safe - 1) * size, safe * size)
   const groups: ProductListGroup[] = []
   slice.forEach((record) => {
-    const label = groupLabel(data, record, grouping.field)
+    const key = groupKeys[record.id], label = buckets.get(key)!.label
     const last = groups[groups.length - 1]
-    if (!last || last.label !== label) groups.push({ key: label, label, total: totals.get(label) || 0, rows: [record] })
+    if (!last || last.key !== key) groups.push({ key, label, total: totals.get(key) || 0, rows: [record] })
     else last.rows.push(record)
   })
   if (!groups.length) groups.push({ key: 'empty', label: '', total: 0, rows: [] })
-  return { total: flat.length, page: safe, manualBlocked, groups }
+  return { total: flat.length, page: safe, manualBlocked, allIds: flat.map(row => row.id), groupKeys, errors, groups }
 }
 
 export function activeFilterCount(view: ProductListSavedView) {
   const query = modeQuery(view)
-  const valued = query.filters.filter((filter) => listOf(filter.value).length > 0 || rangeOf(filter.value).from || rangeOf(filter.value).to).length
+  const valued = query.filters.filter((filter) => filter.active !== false && (listOf(filter.value).length > 0 || rangeOf(filter.value).from || rangeOf(filter.value).to)).length
   return valued + (query.keyword.trim() ? 1 : 0)
 }
 
 export function resolveCategoryFilter(data: AppData, values: string[]) {
   const byId = new Set(data.categories.map((item) => item.id))
-  const byPath = new Map<string, string>()
-  data.categories.forEach((item) => byPath.set(categoryPath(data, item.id), item.id))
+  const byPath = new Map<string, string[]>()
+  data.categories.forEach((item) => { const path = categoryPath(data, item.id); byPath.set(path, [...byPath.get(path) || [], item.id]) })
   const ids: string[] = []
   const missing: string[] = []
+  const ambiguous: string[] = []
   values.forEach((value) => {
     if (byId.has(value)) ids.push(value)
-    else if (byPath.get(value)) ids.push(byPath.get(value) || '')
+    else if (byPath.get(value)?.length === 1) ids.push(byPath.get(value)![0])
+    else if (byPath.get(value)?.length) ambiguous.push(value)
     else if (value) missing.push(value)
   })
-  return { ids: [...new Set(ids.filter(Boolean))], missing }
+  return { ids: [...new Set(ids.filter(Boolean))], missing, ambiguous }
 }
 
 export function fieldSelection(query: ProductListModeQuery, field: string) {
-  const filter = query.filters.find((item) => item.field === field && (item.operator === 'eq' || item.operator === 'in'))
+  const filter = query.filters.find((item) => item.field === field && item.active !== false && (item.operator === 'eq' || item.operator === 'in' || item.field === 'category' && item.operator === 'descendants'))
   if (!filter) return []
   return listOf(filter.value)
+}
+
+export function clearProductListFilterValue(query: ProductListModeQuery, filterId: string): ProductListModeQuery {
+  const next = JSON.parse(JSON.stringify(query)) as ProductListModeQuery
+  const filter = next.filters.find(item => item.id === filterId)
+  if (filter) { filter.value = Array.isArray(filter.value) ? [] : filter.value && typeof filter.value === 'object' ? { from: '', to: '' } : ''; filter.active = false }
+  return next
+}
+export function setProductListFilterValue(query: ProductListModeQuery, filterId: string, value: ProductListViewFilter['value']): ProductListModeQuery {
+  const next = JSON.parse(JSON.stringify(query)) as ProductListModeQuery
+  const filter = next.filters.find(item => item.id === filterId)
+  if (filter) { filter.value = Array.isArray(value) ? [...value] : typeof value === 'object' ? { ...value } : value; filter.active = true }
+  return next
+}
+export function productCategorySelection(data: AppData, query: ProductListModeQuery) {
+  const rules = query.filters.filter(filter => filter.field === 'category')
+  const supported = rules.length <= 1 && rules.every(filter => ['eq', 'in', 'descendants'].includes(filter.operator))
+  const rule = supported ? rules[0] : undefined
+  const resolved = resolveCategoryFilter(data, rule && rule.active !== false ? listOf(rule.value) : [])
+  return { supported: supported && !resolved.missing.length && !resolved.ambiguous.length, rule, ...resolved }
+}
+export function updateProductCategorySelection(data: AppData, query: ProductListModeQuery, ids: string[]): ProductListModeQuery | undefined {
+  const selected = productCategorySelection(data, query), roots = [...new Set(ids)]
+  if (!selected.supported || roots.some(id => !data.categories.some(category => category.id === id))) return undefined
+  const next = JSON.parse(JSON.stringify(query)) as ProductListModeQuery
+  if (selected.rule) {
+    const rule = next.filters.find(filter => filter.id === selected.rule!.id)!
+    rule.value = roots; rule.active = roots.length > 0
+    if (roots.length) rule.operator = 'descendants'
+  } else if (roots.length) {
+    let id = 'category-quick', suffix = 1
+    while (next.filters.some(filter => filter.id === id)) id = `category-quick-${suffix++}`
+    next.filters.push({ id, field: 'category', operator: 'descendants', value: roots })
+  }
+  return next
 }
 
 export function listQueryFromMode(query: ProductListModeQuery, pageSize = 10): ListQuery {

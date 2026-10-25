@@ -1,4 +1,31 @@
-import type { SkuCondition, SkuConditionGroup, SkuQuickFilterRef, SkuViewConfig } from './skuWorkbenchTypes'
+import type { SkuCondition, SkuConditionGroup, SkuQuickFilterRef, SkuViewConfig, SkuValue } from './skuWorkbenchTypes'
+
+export function isSkuConditionActive(node: SkuCondition | SkuConditionGroup): boolean {
+  return node.kind === 'rule' ? node.active !== false : node.children.some(isSkuConditionActive)
+}
+/** Exposed controls retain their identities and operators when cleared. */
+export function setSkuQuickFilterValue(config: SkuViewConfig, ref: SkuQuickFilterRef, value: SkuValue): SkuViewConfig {
+  const next = JSON.parse(JSON.stringify(config)) as SkuViewConfig
+  if (ref.source === 'condition') {
+    const rule = conditionEntries(next.conditions).find(item => item.rule.id === ref.ruleId)?.rule
+    if (rule) { rule.value = value; rule.active = true }
+  } else {
+    const rule = next.legacy?.filters.find(item => item.id === ref.filterId)
+    if (rule) { rule.value = value as typeof rule.value; rule.active = true }
+  }
+  return next
+}
+export function clearSkuQuickFilterValue(config: SkuViewConfig, ref: SkuQuickFilterRef): SkuViewConfig {
+  const next = JSON.parse(JSON.stringify(config)) as SkuViewConfig
+  if (ref.source === 'condition') {
+    const rule = conditionEntries(next.conditions).find(item => item.rule.id === ref.ruleId)?.rule
+    if (rule) { rule.value = Array.isArray(rule.value) ? [] : rule.value && typeof rule.value === 'object' ? { from: '', to: '' } : null; rule.active = false }
+  } else {
+    const rule = next.legacy?.filters.find(item => item.id === ref.filterId)
+    if (rule) { rule.value = Array.isArray(rule.value) ? [] : rule.value && typeof rule.value === 'object' ? { from: '', to: '' } : ''; rule.active = false }
+  }
+  return next
+}
 
 export function quickFilterKey(ref: SkuQuickFilterRef) { return ref.source === 'condition' ? `condition:${ref.ruleId}` : `legacy:${ref.filterId}` }
 export function conditionEntries(root: SkuConditionGroup): { rule: SkuCondition; context: string }[] {

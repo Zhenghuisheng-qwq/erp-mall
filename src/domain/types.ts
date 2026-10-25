@@ -463,7 +463,7 @@ export interface ProductListColumnConfig {
   frozen?: 'left' | 'right' | false
 }
 
-export type ProductListFilterOperator = 'contains' | 'notContains' | 'eq' | 'neq' | 'in' | 'before' | 'after' | 'between'
+export type ProductListFilterOperator = 'contains' | 'notContains' | 'eq' | 'neq' | 'in' | 'before' | 'after' | 'between' | 'descendants'
 
 /** 一条视图筛选。多个字段之间是并且，同一条里的多选值是或者。 */
 export interface ProductListViewFilter {
@@ -471,6 +471,7 @@ export interface ProductListViewFilter {
   field: string
   operator: ProductListFilterOperator
   value: string | string[] | { from?: string; to?: string }
+  active?: boolean
 }
 
 export interface ProductListFieldOrder {

@@ -1,8 +1,9 @@
 import { isRealSku } from './catalogIdentity'
 import { categoryPath } from './logic'
 import { skuListText } from './productList'
-import { resolveManualOrder } from './productListManual'
-import { knownFilterFields, presentProductList } from './productListQuery'
+import { groupPathKey, resolveManualOrder, type GroupIdentityPart } from './productListManual'
+import { isSkuConditionActive } from './skuQuickFilters'
+import { knownFilterFields, presentProductList, validateProductListModeQuery } from './productListQuery'
 import { skuFields, skuFieldValue, skuOperators } from './skuWorkbenchFields'
 import type { AppData, ProductFamily, ProductListSavedView, Sku } from './types'
 import type { SkuCondition, SkuConditionGroup, SkuFieldType, SkuFieldValue, SkuOrder, SkuViewConfig } from './skuWorkbenchTypes'
@@ -88,21 +89,28 @@ export function matchesSkuValue(type: SkuFieldType, cell: SkuFieldValue, conditi
 }
 
 export function validateSkuConfig(data: AppData, config: SkuViewConfig): string[] {
+  if (!config || typeof config !== 'object' || !config.conditions || typeof config.conditions !== 'object' || !Array.isArray(config.columns) || !Array.isArray(config.groups) || !Array.isArray(config.sorts) || !Array.isArray(config.manualOrder) || config.manualOrder.some(id => typeof id !== 'string') || !['default', 'field', 'manual'].includes(config.sortMode) || config.legacy !== undefined && (!config.legacy || typeof config.legacy !== 'object' || !Array.isArray(config.legacy.filters) || !Array.isArray(config.legacy.exposed) || typeof config.legacy.keyword !== 'string')) return ['SKU 视图配置结构无效。']
+  if (config.columns.some(column => !column || typeof column !== 'object' || typeof column.key !== 'string' || typeof column.visible !== 'boolean') || [...config.groups, ...config.sorts].some(order => !order || typeof order !== 'object' || typeof order.field !== 'string')) return ['SKU 展示列或排序分组结构无效。']
   const fields = new Map(skuFields(data).map(item => [item.id, item]))
   const errors: string[] = []
   const ids = new Set<string>()
   function group(node: SkuConditionGroup, depth: number) {
     if (!node || node.kind !== 'group' || !Array.isArray(node.children) || !['all', 'any'].includes(node.logic)) { errors.push('条件组格式无效。'); return }
     if (depth > 1) { errors.push('仅支持外层和一层条件组。'); return }
+    if (!depth) { if (typeof node.id !== 'string' || !node.id) errors.push('条件组身份缺失。'); else ids.add(node.id) }
     if (depth && !node.children.length) errors.push('条件组不能为空。')
     for (const item of node.children) {
       if (!item || typeof item !== 'object') { errors.push('存在无效条件。'); continue }
-      if (!item.id || ids.has(item.id)) errors.push('条件身份缺失或重复。')
+      if (typeof item.id !== 'string' || !item.id || ids.has(item.id)) errors.push('条件身份缺失或重复。')
       ids.add(item.id)
       if (item.kind === 'group') { group(item, depth + 1); continue }
       const field = fields.get(item.field)
       if (item.kind !== 'rule' || !field) { errors.push(`失效字段：${item.field || '未选择字段'}。`); continue }
+      if (item.active !== undefined && typeof item.active !== 'boolean') errors.push('条件启用状态无效。')
       if (!skuOperators(field.type).some(operator => operator.value === item.operator)) { errors.push(`${field.label} 的操作符无效。`); continue }
+      const shapedValue = item.value === null || typeof item.value === 'string' || typeof item.value === 'number' && Number.isFinite(item.value) || typeof item.value === 'boolean' || Array.isArray(item.value) && item.value.every(value => typeof value === 'string') || item.value && typeof item.value === 'object' && !Array.isArray(item.value) && typeof item.value.from === 'string' && typeof item.value.to === 'string'
+      if (!shapedValue) { errors.push(`${field.label} 的条件值结构无效。`); continue }
+      if (item.active === false) continue
       if (item.operator === 'empty' || item.operator === 'notEmpty') continue
       const value = item.value
       if (value === null || typeof value === 'string' && !value.trim() || Array.isArray(value) && !value.length) { errors.push(`${field.label} 尚未填写条件值。`); continue }
@@ -148,11 +156,15 @@ export function validateSkuConfig(data: AppData, config: SkuViewConfig): string[
   }
   if (config.columns.filter(column => column.visible && column.frozen).length > 2) errors.push('最多冻结两个显示字段。')
   if (config.legacy) {
+    errors.push(...validateProductListModeQuery(data, config.legacy, 'sku'))
     const known = new Set(knownFilterFields(data, 'sku').map(item => item.field))
-    const allowedOperators = new Set(['contains', 'notContains', 'eq', 'neq', 'in', 'before', 'after', 'between'])
+    const allowedOperators = new Set(['contains', 'notContains', 'eq', 'neq', 'in', 'before', 'after', 'between', 'descendants'])
     for (const filter of config.legacy.filters) {
+      if (!filter || typeof filter !== 'object') { errors.push('历史条件结构无效。'); continue }
       if (!known.has(filter.field)) errors.push(`历史条件字段失效：${filter.field}。`)
       if (!allowedOperators.has(filter.operator)) errors.push(`历史条件操作符失效：${filter.operator}。`)
+      if (filter.operator === 'descendants' && filter.field !== 'category') errors.push('包含下级仅适用于分类条件。')
+      if (filter.active !== undefined && typeof filter.active !== 'boolean') errors.push('历史条件启用状态无效。')
     }
   }
   return [...new Set(errors)]
@@ -160,8 +172,8 @@ export function validateSkuConfig(data: AppData, config: SkuViewConfig): string[
 
 export function querySkuWorkbench(data: AppData, config: SkuViewConfig, options: SkuQueryOptions = {}) {
   const errors = validateSkuConfig(data, config)
-  const manualBlocked = config.sortMode === 'manual' && (config.groups.length > 0 || config.sorts.length > 0)
-  const failure = { rows: [] as SkuRecord[], groups: [] as SkuGroup[], total: 0, page: 1, errors, allIds: [] as string[], manualBlocked }
+  const manualBlocked = false
+  const failure = { rows: [] as SkuRecord[], groups: [] as SkuGroup[], total: 0, page: 1, errors, allIds: [] as string[], groupKeys: {} as Record<string, string>, manualBlocked }
   if (errors.length) return failure
   const fields = new Map(skuFields(data).map(item => [item.id, item]))
   const families = new Map(data.families.map(item => [item.id, item]))
@@ -172,10 +184,11 @@ export function querySkuWorkbench(data: AppData, config: SkuViewConfig, options:
   const legacyField = (id: string) => id === 'created' ? 'legacy.created' : id === 'family' ? 'familyId' : id
   const sameOrder = (orders: SkuOrder[], original: SkuOrder | null | undefined) => Boolean(original && orders.length === 1 && orders[0]?.field === legacyField(original.field) && orders[0]?.direction === original.direction)
   const preserveLegacySorting = config.sortMode === 'field' && sameOrder(config.sorts, config.legacy?.sorting)
-  const preserveLegacyGrouping = sameOrder(config.groups, config.legacy?.grouping)
   if (config.legacy) {
-    const view: ProductListSavedView = { id: 'legacy-query', name: '', mode: 'sku', skuColumns: [], spuColumns: [], skuQuery: { ...config.legacy, sorting: preserveLegacySorting ? config.legacy.sorting : null, grouping: preserveLegacyGrouping ? config.legacy.grouping : null, sortMode: preserveLegacySorting ? 'field' : 'default' }, createdAt: '', updatedAt: '' }
-    const ids = new Map(presentProductList(data, view, 1, Math.max(1, data.skus.length)).groups.flatMap(item => item.rows.map(row => row.id)).map((id, index) => [id, index]))
+    const view: ProductListSavedView = { id: 'legacy-query', name: '', mode: 'sku', skuColumns: [], spuColumns: [], skuQuery: { ...config.legacy, sorting: preserveLegacySorting ? config.legacy.sorting : null, grouping: null, sortMode: preserveLegacySorting ? 'field' : 'default' }, createdAt: '', updatedAt: '' }
+    const legacy = presentProductList(data, view, 1, Math.max(1, data.skus.length))
+    if (legacy.errors.length) return { ...failure, errors: legacy.errors }
+    const ids = new Map(legacy.allIds.map((id, index) => [id, index]))
     base = base.filter(row => ids.has(row.id)).sort((left, right) => (ids.get(left.id) || 0) - (ids.get(right.id) || 0))
   }
   const allBaseIds = base.map(row => row.id)
@@ -197,7 +210,11 @@ export function querySkuWorkbench(data: AppData, config: SkuViewConfig, options:
   const descendantCache = new Map<string, Set<string>>()
   const now = options.now ?? new Date()
   function match(row: SkuRecord, node: SkuConditionGroup | SkuCondition): boolean {
-    if (node.kind === 'group') return !node.children.length || (node.logic === 'all' ? node.children.every(item => match(row, item)) : node.children.some(item => match(row, item)))
+    if (node.kind === 'group') {
+      const active = node.children.filter(isSkuConditionActive)
+      return !active.length || (node.logic === 'all' ? active.every(item => match(row, item)) : active.some(item => match(row, item)))
+    }
+    if (node.active === false) return true
     const type = fields.get(node.field)?.type
     if (!type) return false
     let included = new Set<string>()
@@ -227,69 +244,61 @@ export function querySkuWorkbench(data: AppData, config: SkuViewConfig, options:
     }
     return 0 // Modern stable Array.sort retains the existing identity order on ties.
   }
-  if (config.sortMode === 'manual' && !manualBlocked) {
+  if (config.sortMode === 'manual') {
     const ranks = new Map(resolveManualOrder(config.manualOrder, allBaseIds).map((id, index) => [id, index]))
     rows = rows.slice().sort((left, right) => (ranks.get(left.id) ?? ranks.size) - (ranks.get(right.id) ?? ranks.size))
-  } else if (config.sortMode === 'field' || config.groups.length) {
-    // Original single sorting/grouping retains original null and tie semantics.
-    // As soon as its rules change, the new typed comparator takes over.
-    const rules = [...(preserveLegacyGrouping ? [] : config.groups), ...(config.sortMode === 'field' && !preserveLegacySorting ? config.sorts : [])]
-    if (rules.length) {
-      if (preserveLegacyGrouping) {
-        const rank = new Map<string, number>()
-        for (const row of rows) { const key = JSON.stringify(config.groups.map(rule => get(row, rule.field).value)); if (!rank.has(key)) rank.set(key, rank.size) }
-        rows = rows.slice().sort((left, right) => (rank.get(JSON.stringify(config.groups.map(rule => get(left, rule.field).value))) || 0) - (rank.get(JSON.stringify(config.groups.map(rule => get(right, rule.field).value))) || 0) || compare(left, right, rules))
-      } else rows = rows.slice().sort((left, right) => compare(left, right, rules))
-    }
-  }
+  } else if (config.sortMode === 'field' && !preserveLegacySorting && config.sorts.length) rows = rows.slice().sort((left, right) => compare(left, right, config.sorts))
   function groupParts(row: SkuRecord) {
     return config.groups.map(rule => {
       const cell = get(row, rule.field), field = fields.get(rule.field)
-      if (!cell.applicable) return { key: '__not_applicable__', label: '不适用' }
-      if (empty(cell.value)) return { key: '__empty__', label: '未记录' }
+      const part = (kind: GroupIdentityPart['kind'], label: string, value?: unknown) => { const identity: GroupIdentityPart = { field: rule.field, kind, ...(kind === 'value' ? { value } : {}) }; return { key: groupPathKey([identity]), label, identity } }
+      if (!cell.applicable) return part('not-applicable', '不适用')
+      if (empty(cell.value)) return part('empty', '未记录')
       if (field?.type === 'date') {
         const day = skuBusinessDay(String(cell.value))
-        return day ? { key: day, label: day } : { key: '__empty__', label: '未记录' }
+        return day ? part('value', day, day) : part('empty', '未记录')
       }
       const text = Array.isArray(cell.value) ? cell.value.map(value => field?.options.find(option => option.value === value)?.label || value).join('、') : String(cell.value)
-      return { key: JSON.stringify(cell.value), label: field?.options.find(option => option.value === cell.value)?.label || text }
+      const label = field?.options.find(option => option.value === cell.value)?.label || text
+      // Both current and historical display fields resolve these same real relations.
+      // Filtering continues to use cell.value; group identity alone uses its stable ID.
+      const relationId = rule.field === 'productType' || rule.field === 'typeName' ? row.family.productTypeId : rule.field === 'template' || rule.field === 'modelName' ? row.family.templateId : undefined
+      return part('value', label, relationId || cell.value)
     })
   }
   if (config.groups.length) {
-    // Comparison can tie distinct identities (empty vs inapplicable, or equal
-    // display names). Gather each identity before paging so Map consumers cannot
-    // overwrite repeated group keys. First appearance breaks group ties; each
-    // leaf retains the existing comparator's row order.
-    interface Bucket { children: Map<string, Bucket>; rows: SkuRecord[] }
+    // Group order is defined only by grouping fields, independently of row ranks.
+    interface Bucket { children: Map<string, Bucket>; rows: SkuRecord[]; representative?: SkuRecord; key?: string }
     const root: Bucket = { children: new Map(), rows: [] }
     for (const row of rows) {
       let bucket = root
       for (const part of groupParts(row)) {
         let child = bucket.children.get(part.key)
-        if (!child) { child = { children: new Map(), rows: [] }; bucket.children.set(part.key, child) }
+        if (!child) { child = { children: new Map(), rows: [], representative: row, key: part.key }; bucket.children.set(part.key, child) }
         bucket = child
       }
       bucket.rows.push(row)
     }
-    const flatten = (bucket: Bucket): SkuRecord[] => bucket.children.size ? [...bucket.children.values()].flatMap(flatten) : bucket.rows
-    rows = flatten(root)
+    const flatten = (bucket: Bucket, depth: number): SkuRecord[] => bucket.children.size ? [...bucket.children.values()].sort((left, right) => compare(left.representative!, right.representative!, [config.groups[depth]]) || left.key!.localeCompare(right.key!, 'zh')).flatMap(child => flatten(child, depth + 1)) : bucket.rows
+    rows = flatten(root, 0)
   }
   const allIds = rows.map(row => row.id)
+  const groupKeys = Object.fromEntries(rows.map(row => [row.id, groupPathKey(groupParts(row).map(part => part.identity))]))
   const total = rows.length
   const size = Number.isFinite(options.pageSize) && (options.pageSize || 0) > 0 ? Math.floor(options.pageSize || 20) : 20
   const page = Math.max(1, Math.min(Math.floor(options.page || 1) || 1, Math.max(1, Math.ceil(total / size))))
   const counts = new Map<string, number>()
-  for (const row of rows) { const parts = groupParts(row); parts.forEach((_, i) => { const key = JSON.stringify(parts.slice(0, i + 1).map(item => item.key)); counts.set(key, (counts.get(key) || 0) + 1) }) }
+  for (const row of rows) { const parts = groupParts(row); parts.forEach((_, i) => { const key = groupPathKey(parts.slice(0, i + 1).map(item => item.identity)); counts.set(key, (counts.get(key) || 0) + 1) }) }
   const currentRows = rows.slice((page - 1) * size, page * size)
   const groups: SkuGroup[] = []
   for (const row of currentRows) {
-    const parts = groupParts(row), key = JSON.stringify(parts.map(item => item.key))
+    const parts = groupParts(row), key = groupKeys[row.id]
     const previous = groups.at(-1)
     if (previous?.key === key) previous.rows.push(row)
-    else groups.push({ key, keys: parts.map(item => item.key), labels: parts.map(item => item.label), totals: parts.map((_, i) => counts.get(JSON.stringify(parts.slice(0, i + 1).map(item => item.key))) || 0), total: parts.length ? counts.get(key) || 0 : total, rows: [row] })
+    else groups.push({ key, keys: parts.map(item => item.key), labels: parts.map(item => item.label), totals: parts.map((_, i) => counts.get(groupPathKey(parts.slice(0, i + 1).map(item => item.identity))) || 0), total: parts.length ? counts.get(key) || 0 : total, rows: [row] })
   }
   if (!groups.length) groups.push({ key: 'all', keys: [], labels: [], totals: [], total: 0, rows: [] })
-  return { rows: currentRows, groups, total, page, errors, allIds, manualBlocked }
+  return { rows: currentRows, groups, total, page, errors, allIds, groupKeys, manualBlocked }
 }
 
 export function describeSkuConditions(data: AppData, config: SkuViewConfig): string {
@@ -300,7 +309,7 @@ export function describeSkuConditions(data: AppData, config: SkuViewConfig): str
     const operator = skuOperators(field?.type || 'text').find(item => item.value === node.operator)?.label || node.operator
     const show = (value: unknown) => field?.options.find(item => item.value === value)?.label || String(value ?? '')
     const value = node.value && typeof node.value === 'object' && !Array.isArray(node.value) ? `${node.value.from} 至 ${node.value.to}` : Array.isArray(node.value) ? node.value.map(show).join('、') : node.operator === 'relative' ? relativeLabels[String(node.value)] || String(node.value) : show(node.value)
-    return `${field?.label || `失效字段 ${node.field}`} ${operator}${['empty', 'notEmpty'].includes(node.operator) ? '' : ` ${value}`}`
+    return `${field?.label || `失效字段 ${node.field}`} ${operator}${['empty', 'notEmpty'].includes(node.operator) ? '' : ` ${value}`}${node.active === false ? '（未启用）' : ''}`
   }
   const old = config.legacy
   const legacyOperators: Record<string, string> = { contains: '包含', notContains: '不包含', eq: '等于', neq: '不等于', in: '属于任意一个', before: '早于', after: '晚于', between: '日期范围' }

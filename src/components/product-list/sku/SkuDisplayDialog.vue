@@ -1,6 +1,6 @@
 <template>
-  <el-dialog :model-value="modelValue" title="SKU 展示配置" width="min(800px, calc(100vw - 24px))" top="6vh" data-sku-display-dialog @update:model-value="(value: boolean) => emit('update:modelValue', value)">
-    <div class="display-body">
+  <el-dialog :model-value="modelValue" title="SKU 列表设置" :close-on-click-modal="!applying" :close-on-press-escape="!applying" :show-close="!applying" width="min(800px, calc(100vw - 24px))" top="6vh" data-sku-display-dialog @update:model-value="(value: boolean) => emit('update:modelValue', value)">
+    <div class="display-body" :inert="applying">
       <el-tabs v-model="activeTab">
         <el-tab-pane label="字段" name="fields">
           <p class="muted">仅调整展示，不修改商品属性。至少保留 SKU 编号或名称；窄窗口暂不冻结列。</p>
@@ -29,10 +29,11 @@
             <div class="move-actions"><el-button :disabled="index === 0" :aria-label="`提高第${index + 1}项排序优先级`" @click="moveOrder(draft.sorts, index, -1)">↑</el-button><el-button :disabled="index === draft.sorts.length - 1" :aria-label="`降低第${index + 1}项排序优先级`" @click="moveOrder(draft.sorts, index, 1)">↓</el-button></div><el-button link type="danger" @click="draft.sorts.splice(index, 1)">删除</el-button>
           </div>
           <el-button :disabled="draft.sorts.length >= 3" @click="addSort">添加排序</el-button>
-          <p v-if="draft.sortMode !== 'field' && draft.sorts.length" class="muted">上面的字段规则已保留；切换为“字段排序”后生效。</p>
+          <p v-if="draft.sortMode !== 'field' && draft.sorts.length" class="muted">字段排序规则已保留，当前不参与组内顺序；切换为“字段排序”后生效。</p>
+          <p v-if="draft.sortMode==='manual'" class="muted">{{ draft.groups.length ? '按当前分组显示，只在同一末级分组内手工调整；原字段排序规则仍保留。' : '手工调整匹配记录的顺序，未匹配记录位置保持。' }}</p>
           <div v-if="draft.legacy?.sorting" class="legacy-note">此历史视图保留原单级排序语义。<el-button link @click="useNewSorting">使用新的多级排序规则</el-button></div>
         </el-tab-pane>
-        <el-tab-pane label="更多" name="more">
+        <el-tab-pane label="分组" name="group">
           <div class="section-heading"><strong>分组</strong></div>
           <p class="muted">最多两层。组数使用全部匹配结果统计，分页只决定当前展示的记录。</p>
           <div v-for="(order, index) in draft.groups" :key="index" class="order-row" :data-group-priority="index">
@@ -41,35 +42,36 @@
             <div class="move-actions"><el-button :disabled="index === 0" aria-label="提高分组层级" @click="moveOrder(draft.groups, index, -1)">↑</el-button><el-button :disabled="index === draft.groups.length - 1" aria-label="降低分组层级" @click="moveOrder(draft.groups, index, 1)">↓</el-button></div><el-button link type="danger" @click="draft.groups.splice(index, 1)">删除</el-button>
           </div>
           <el-button :disabled="draft.groups.length >= 2" @click="addGroup">添加分组</el-button>
-          <div v-if="draft.sortMode === 'manual' && (draft.groups.length || draft.sorts.length)" class="conflict" role="alert">手工顺序仍保留；已有分组或字段排序时不能按手工顺序排列。<el-button link @click="draft.groups = []; draft.sorts = []">清除分组和字段排序，使用手工顺序</el-button></div>
+          <p v-if="draft.sortMode==='manual'" class="muted">分组保持不变；手工顺序只调整同一最末级分组内的记录，不会改变商品分类或归属。</p>
+        </el-tab-pane>
+        <el-tab-pane label="显示" name="display">
           <div class="section-heading"><strong>显示密度</strong></div>
           <el-radio-group v-model="draft.density"><el-radio-button value="comfortable">舒适</el-radio-button><el-radio-button value="compact">紧凑</el-radio-button></el-radio-group>
           <div class="section-heading"><strong>分类面板</strong></div>
           <el-radio-group v-model="draft.categoryLayout"><el-radio-button value="popover">按需打开</el-radio-button><el-radio-button value="sidebar">常驻分类栏</el-radio-button></el-radio-group>
         </el-tab-pane>
       </el-tabs>
-      <div v-if="errors.length" class="errors" role="alert"><ul><li v-for="error in errors" :key="error">{{ error }}</li></ul></div>
+      <p v-if="applyError" class="errors" role="alert">{{applyError}}</p><div v-if="errors.length" class="errors" role="alert"><ul><li v-for="error in errors" :key="error">{{ error }}</li></ul></div>
     </div>
-    <template #footer><div class="footer"><span class="muted">应用到当前工作配置，保存视图后才成为正式配置。</span><el-button @click="emit('update:modelValue', false)">取消</el-button><el-button type="primary" :disabled="errors.length > 0" data-apply-sku-display @click="apply">应用配置</el-button></div></template>
+    <template #footer><div class="footer"><span class="muted">应用到当前工作配置，保存视图后才成为正式配置。</span><el-button :disabled="applying" @click="emit('update:modelValue', false)">取消</el-button><el-button type="primary" :loading="applying" :disabled="errors.length > 0 || applying" data-apply-sku-display @click="apply">应用配置</el-button></div></template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { reorderSkuColumn } from '../../../domain/skuColumnOrder'
-import { skuFields, skuFieldValue } from '../../../domain/skuWorkbenchFields'
+import { skuFields } from '../../../domain/skuWorkbenchFields'
 import { defaultSkuConfig } from '../../../domain/skuWorkbenchState'
-import { isRealSku } from '../../../domain/catalogIdentity'
 import type { AppData } from '../../../domain/types'
 import type { SkuColumn, SkuOrder, SkuViewConfig } from '../../../domain/skuWorkbenchTypes'
 
-const props = defineProps<{ modelValue: boolean; data: AppData; config: SkuViewConfig; tab?: 'fields' | 'sort' | 'more' }>()
+const props = defineProps<{ modelValue: boolean; data: AppData; config: SkuViewConfig; tab?: 'fields' | 'group' | 'sort' | 'display' | 'more'; applyConfig?: (config:SkuViewConfig)=>Promise<{ok:boolean;message?:string}> }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; apply: [config: SkuViewConfig] }>()
 const copy = <T,>(value: T): T => JSON.parse(JSON.stringify(value))
-const draft = ref(copy(props.config))
+const draft = ref(copy(props.config)),applying=ref(false),applyError=ref('')
 const activeTab = ref(props.tab || 'fields')
 const search = ref('')
-watch(() => props.modelValue, open => { if (open) { draft.value = copy(props.config); activeTab.value = props.tab || 'fields'; search.value = '' } })
+watch(() => props.modelValue, open => { if (open) { draft.value = copy(props.config); activeTab.value = props.tab==='more'?'display':props.tab||'fields'; search.value = '';applyError.value='' } })
 const dragging = ref(''), drop = ref<{key:string;place:'before'|'after'} | null>(null)
 function cancelDrag() { dragging.value = ''; drop.value = null }
 function startColumn(key: string, event: DragEvent) {
@@ -124,23 +126,12 @@ function moveColumn(key: string, delta: number) { const index = columnIndex(key)
 function addColumn(key: string) { draft.value.columns.push({ key, visible: true }) }
 function restoreColumns() { draft.value.columns = copy(defaultSkuConfig().columns) }
 function setFrozen(column: SkuColumn, value: string) { column.frozen = value === 'left' || value === 'right' ? value : false }
-function autoWidth(column: SkuColumn) {
-  const field = fields.value.find(item => item.id === column.key)
-  let width = labelOf(column.key).length * 15 + 45
-  for (const sku of props.data.skus.filter(item => isRealSku(props.data, item)).slice(0, 200)) {
-    const family = props.data.families.find(item => item.id === sku.familyId)
-    if (!family) continue
-    const raw = skuFieldValue(props.data, sku, family, column.key).value
-    const rendered = field?.options.find(item => item.value === raw)?.label || (Array.isArray(raw) ? raw.join('、') : String(raw ?? ''))
-    width = Math.max(width, Math.min(rendered.length, 36) * 13 + 36)
-  }
-  column.width = Math.max(80, Math.min(520, Math.ceil(width / 10) * 10))
-}
+function autoWidth(column: SkuColumn) { delete column.width }
 function moveOrder(orders: SkuOrder[], index: number, delta: number) { const target = index + delta; if (target < 0 || target >= orders.length) return; const [order] = orders.splice(index, 1); if (order) orders.splice(target, 0, order) }
 function addSort() { const field = sortableFields.value.find(item => !draft.value.sorts.some(order => order.field === item.id)); if (field && draft.value.sorts.length < 3) { draft.value.sorts.push({ field: field.id, direction: 'asc' }); draft.value.sortMode = 'field' } }
 function addGroup() { const field = groupableFields.value.find(item => !draft.value.groups.some(order => order.field === item.id)); if (field && draft.value.groups.length < 2) draft.value.groups.push({ field: field.id, direction: 'asc' }) }
 function useNewSorting() { if (draft.value.legacy) { draft.value.legacy.sorting = null; draft.value.legacy.sortMode = 'default' }; draft.value.sortMode = 'field'; if (!draft.value.sorts.length) addSort() }
-function apply() { if (errors.value.length) return; emit('apply', copy(draft.value)); emit('update:modelValue', false) }
+async function apply() {if(errors.value.length||applying.value)return;applying.value=true;applyError.value='';try{if(props.applyConfig){const result=await props.applyConfig(copy(draft.value));if(!result.ok){applyError.value=result.message||'应用失败，输入保留，请重试。';return}}else emit('apply',copy(draft.value));emit('update:modelValue',false)}catch(error){applyError.value=error instanceof Error?error.message:'应用失败，输入保留，请重试。'}finally{applying.value=false}}
 </script>
 
 <style scoped>

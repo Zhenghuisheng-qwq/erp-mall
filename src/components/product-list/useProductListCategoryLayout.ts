@@ -4,36 +4,41 @@ import type { CategoryFilterLayout, ProductListSavedView } from '../../domain/ty
 
 type CategoryView = Pick<ProductListSavedView, 'id' | 'categoryFilterLayout'>
 
-/** Display state for one mounted list. Only an explicit setting change persists;
- * closing a panel, switching views and resizing never edit category predicates. */
+/** The view layout is the only desktop preference. A narrow overlay is temporary. */
 export function useProductListCategoryLayout(
   view: Readonly<Ref<CategoryView>>,
-  saveLayout: (layout: CategoryFilterLayout) => void,
+  saveLayout: (layout: CategoryFilterLayout) => unknown | Promise<unknown>,
 ) {
   const categoryOpen = ref(false)
-  const categorySideClosed = ref(false)
+  // Kept for old callers; no separate persisted or transient desktop closed state.
+  const categorySideClosed = computed(() => categoryLayout.value !== 'sidebar')
   const narrowScreen = ref(window.innerWidth < 960)
-  const categoryLayout = computed(() => view.value.categoryFilterLayout === 'sidebar' || view.value.categoryFilterLayout === 'hidden' ? view.value.categoryFilterLayout : 'popover')
-  const showSidebar = computed(() => categoryLayout.value === 'sidebar' && !narrowScreen.value && !categorySideClosed.value)
+  const categoryLayout = computed(() => view.value.categoryFilterLayout === 'sidebar' ? 'sidebar' : 'popover')
+  const showSidebar = computed(() => categoryLayout.value === 'sidebar' && !narrowScreen.value)
 
-  function setCategorySidebar(enabled: boolean) {
-    saveLayout(enabled ? 'sidebar' : 'popover')
-    categorySideClosed.value = false
+  async function setCategorySidebar(enabled: boolean) {
+    const result = await saveLayout(enabled ? 'sidebar' : 'popover')
+    if (result && typeof result === 'object' && 'ok' in result && !result.ok) return false
     categoryOpen.value = false
+    return true
   }
+  async function openCategory() {
+    if (narrowScreen.value) { categoryOpen.value = true; return true }
+    return setCategorySidebar(true)
+  }
+  function closeSidebar() { return setCategorySidebar(false) }
   function syncNarrow() {
     narrowScreen.value = window.innerWidth < 960
   }
 
-  // Preserve the page's default flush and registration order: view reset first,
-  // then close the floating panel if sidebar visibility changes.
-  watch(() => view.value.id, () => { categoryOpen.value = false; categorySideClosed.value = false })
+  watch(() => view.value.id, () => { categoryOpen.value = false })
   watch(showSidebar, () => { categoryOpen.value = false })
+  watch(narrowScreen, () => { categoryOpen.value = false })
   onMounted(() => {
     syncNarrow()
     window.addEventListener('resize', syncNarrow)
   })
   onBeforeUnmount(() => window.removeEventListener('resize', syncNarrow))
 
-  return { categoryOpen, categorySideClosed, narrowScreen, categoryLayout, showSidebar, setCategorySidebar }
+  return { categoryOpen, categorySideClosed, narrowScreen, categoryLayout, showSidebar, setCategorySidebar, openCategory, closeSidebar }
 }

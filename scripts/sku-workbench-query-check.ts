@@ -118,8 +118,15 @@ assert.deepEqual(allPages, querySkuWorkbench(data, current, { now, pageSize: 100
 current = config(); current.sortMode = 'manual'; current.manualOrder = ['c', 'a', 'b']
 expectIds('saved manual order and new-record append', current, ['c', 'a', 'b', 'd', 'e', 'f'])
 current.groups = [{ field: 'category', direction: 'asc' }]
-assert.equal(querySkuWorkbench(data, current).manualBlocked, true)
-console.log('PASS grouped whole-result counts / stable pagination / manual order conflict')
+const groupedManual = querySkuWorkbench(data, current, { now, pageSize: 100 })
+assert.equal(groupedManual.manualBlocked, false)
+for (const group of groupedManual.groups) {
+  const ids = new Set(group.rows.map(row => row.id))
+  assert.deepEqual(group.rows.map(row => row.id), ['c', 'a', 'b', 'd', 'e', 'f'].filter(id => ids.has(id)))
+}
+const groupedDefault = querySkuWorkbench(data, { ...current, sortMode: 'default' }, { now, pageSize: 100 })
+assert.deepEqual(groupedManual.groups.map(group => group.key), groupedDefault.groups.map(group => group.key))
+console.log('PASS grouped whole-result counts / stable pagination / manual leaf order independent of group order')
 const dynamic = skuFields(data).find(field => field.id === 'attr:color')
 assert.equal(dynamic?.type, 'enum')
 const renamed = structuredClone(data)

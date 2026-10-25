@@ -8,6 +8,7 @@ import { addScopeCondition, cloneSku, configFromLegacy, createSkuSavedView, defa
 import type { SkuCommandResult } from '../../domain/skuWorkbenchState'
 import type { ProductListPageState } from '../../domain/types'
 import type { SkuViewConfig } from '../../domain/skuWorkbenchTypes'
+import type { ListManualGuard } from '../../domain/listManualCommit'
 import { validateSkuConfig } from '../../domain/skuWorkbenchQuery'
 
 let enteredSkuWorkbench = false
@@ -46,15 +47,16 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
   const config = computed(() => localWork.value[workingKey.value] || savedConfig.value)
   const dirty = computed(() => skuConfigStamp(config.value) !== skuConfigStamp(savedConfig.value))
 
-  async function commit(next: ProductListPageState): Promise<SkuCommandResult> {
+  async function commit(next: ProductListPageState, isCurrent?:()=>boolean, manualGuard?:ListManualGuard): Promise<SkuCommandResult> {
     if (pending.value) return { ok: false, message: '上一项视图操作正在保存，请完成后重试；当前工作配置保留。' }
+    const owner=store.activeUserId,preview=store.previewUserId,key=workingKey.value
     pending.value = true
     try {
-      const result = await store.commitSkuPage(next)
+      const result = await store.commitSkuPage(next,()=>owner===store.activeUserId&&preview===store.previewUserId&&key===workingKey.value&&(!isCurrent||isCurrent()),manualGuard)
       if (!result.ok) { guideFailure.value=getFailure(result);error.value = result.message; return result }
       error.value = ''
       return { ok: true }
-    } finally { pending.value = false }
+    } catch(cause) { guideFailure.value=getFailure(cause);error.value=cause instanceof Error?cause.message:'视图保存失败，当前配置保留。';return {ok:false,message:error.value} } finally { pending.value = false }
   }
   function trial(): ProductListPageState | undefined {
     const page = pageData.value
@@ -64,16 +66,19 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
   function syncWork(next: ProductListPageState) {
     if (next.skuWorkbench) next.skuWorkbench.working = cloneSku(localWork.value)
   }
-  async function apply(nextConfig: SkuViewConfig): Promise<SkuCommandResult> {
+  async function apply(nextConfig: SkuViewConfig,isCurrent?:()=>boolean,manualGuard?:ListManualGuard): Promise<SkuCommandResult> {
     if (pending.value) return { ok: false, message: '上一项操作尚未完成，请重试。' }
     nextConfig = { ...nextConfig, quickFilters: repairQuickFilters(nextConfig) }
     const errors = validateSkuConfig(store.data, nextConfig)
     if (errors.length) { error.value = errors.join('；'); return { ok: false, message: error.value } }
-    localWork.value[workingKey.value] = cloneSku(nextConfig)
+    const candidate=cloneSku(nextConfig),key=workingKey.value
     const next = trial()
     if (!next?.skuWorkbench) return missing()
     syncWork(next)
-    return commit(next)
+    next.skuWorkbench.working[key]=candidate
+    const result=await commit(next,isCurrent,manualGuard)
+    if(result.ok)localWork.value[key]=candidate
+    return result
   }
   async function select(id: string): Promise<SkuCommandResult> {
     if (!views.value.some(view => view.id === id)) return { ok: false, message: '找不到这个视图。' }
@@ -102,7 +107,7 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     if (views.value.some(view => view.id !== except && view.name === text)) return '已经有同名视图，请使用其他名称。'
     return ''
   }
-  async function create(name: string, includeScope = false): Promise<SkuCommandResult> {
+  async function create(name: string, includeScope = false, resetLayout = false): Promise<SkuCommandResult> {
     const invalid = nameError(name)
     if (invalid) return { ok: false, message: invalid }
     const next = trial()
@@ -110,6 +115,7 @@ export function useSkuWorkbench(scopeId: Readonly<Ref<string>>) {
     let id = uid('sku-view')
     while (next.views.some(view => view.id === id)) id = uid('sku-view')
     const current = includeScope && scopeId.value ? addScopeCondition(config.value, scopeId.value) : cloneSku(config.value)
+    if(resetLayout)current.categoryLayout='popover'
     const errors = validateSkuConfig(store.data, current)
     if (errors.length) { error.value = errors.join('；'); return { ok: false, message: error.value } }
     next.views.push(createSkuSavedView(id, name.trim(), current, currentView.value))

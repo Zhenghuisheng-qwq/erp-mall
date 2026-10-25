@@ -2,7 +2,7 @@ import type { CategoryFilterLayout, ProductListModeQuery } from './types'
 
 export type SkuOperator = 'contains' | 'notContains' | 'eq' | 'neq' | 'startsWith' | 'in' | 'notIn' | 'hasAny' | 'hasAll' | 'empty' | 'notEmpty' | 'gt' | 'gte' | 'lt' | 'lte' | 'between' | 'before' | 'after' | 'relative' | 'descendants'
 export type SkuValue = string | number | boolean | string[] | { from: string; to: string } | null
-export interface SkuCondition { kind: 'rule'; id: string; field: string; operator: SkuOperator; value: SkuValue }
+export interface SkuCondition { kind: 'rule'; id: string; field: string; operator: SkuOperator; value: SkuValue; active?: boolean }
 export interface SkuConditionGroup { kind: 'group'; id: string; logic: 'all' | 'any'; children: (SkuCondition | SkuConditionGroup)[] }
 export interface SkuColumn { key: string; visible: boolean; width?: number; frozen?: 'left' | 'right' | false }
 export interface SkuOrder { field: string; direction: 'asc' | 'desc' }

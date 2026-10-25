@@ -29,9 +29,11 @@ export function runProductListManualChecks(): CheckResult[] {
   if (!made.ok || !other.ok) return [check('A', false, '视图没建成')]
   selectProductListView(data, made.id)
   setViewGrouping(data, { field: 'category', direction: 'asc' })
-  const refused = setViewSortMode(data, 'manual')
+  const groupedManual = setViewSortMode(data, 'manual')
   const groupingKept = data.productListViews?.find((item) => item.id === made.id)?.spuQuery?.grouping?.field === 'category'
-  results.push(check('E8', Boolean(groupingKept && !refused.ok && refused.message.includes('分组')), refused.ok ? '' : refused.message))
+  const groupedView = data.productListViews!.find(item => item.id === made.id)!
+  const groupedRows = presentProductList(data, groupedView, 1, 100)
+  results.push(check('E8', Boolean(groupingKept && groupedManual.ok && !groupedRows.manualBlocked && groupedRows.allIds.length === data.families.length), '分组保持，组内手工排序可用'))
   setViewGrouping(data, null)
   const enabled = setViewSortMode(data, 'manual')
   const saved = data.productListViews?.find((item) => item.id === made.id)?.manualOrder?.spuIds || []

@@ -1,4 +1,4 @@
-import { repairQuickFilters } from './skuQuickFilters'
+import { isSkuConditionActive, repairQuickFilters } from './skuQuickFilters'
 import type { AppData, ProductListPageState, ProductListSavedView, ProductListFilterOperator, ProductListViewFilter } from './types'
 import { filtersFromListQuery } from './productListQuery'
 import type { SkuColumn, SkuCondition, SkuConditionGroup, SkuOperator, SkuViewConfig, SkuWorkbenchState } from './skuWorkbenchTypes'
@@ -13,6 +13,28 @@ export function defaultSkuConfig(): SkuViewConfig {
     columns: ['code', 'name', 'spec', 'familyId', 'category', 'status', 'updatedAt'].map(key => ({ key, visible: true })),
     sorts: [], groups: [], density: 'comfortable', manualOrder: [], sortMode: 'default', categoryLayout: 'popover',
   }
+}
+
+/** Page identity/container validation only; existing invalid rules remain editable in other views. */
+export function validateSkuWorkbenchPageShape(data: AppData, page: ProductListPageState): string[] {
+  const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
+  if (!page || !Array.isArray(page.views) || !record(page.skuWorkbench)) return ['SKU 工作台状态容器缺失或无效。']
+  const state = page.skuWorkbench
+  if (state.version !== 1 || !record(state.working)) return ['SKU 工作台版本或工作配置容器无效。']
+  const errors: string[] = [], ids = new Set(page.views.map(view => view?.id)), familyIds = new Set(data.families.map(family => family.id))
+  if (typeof state.activeId !== 'string' || !ids.has(state.activeId) || typeof state.defaultId !== 'string' || !ids.has(state.defaultId)) errors.push('SKU 当前或默认视图引用失效。')
+  for (const [name, values] of [['顺序', state.order], ['收藏', state.favorites]] as const) {
+    if (!Array.isArray(values) || values.some(id => typeof id !== 'string' || !ids.has(id)) || new Set(values).size !== values.length) errors.push(`SKU 视图${name}存在无效或重复身份。`)
+  }
+  if (Array.isArray(state.order) && [...ids].some(id => !state.order.includes(id))) errors.push('SKU 视图顺序未覆盖全部已登记视图。')
+  const prefix = `${SYSTEM_SKU_VIEW_ID}@spu:`
+  for (const [key, config] of Object.entries(state.working)) {
+    const scoped = key.startsWith(prefix) && ids.has(SYSTEM_SKU_VIEW_ID) && familyIds.has(key.slice(prefix.length))
+    if (!ids.has(key) && !scoped) errors.push(`SKU 工作配置范围失效：${key}。`)
+    if (!record(config)) errors.push(`SKU 工作配置记录结构无效：${key}。`)
+  }
+  if (state.migratedPresetIds !== undefined && (!Array.isArray(state.migratedPresetIds) || state.migratedPresetIds.some(id => typeof id !== 'string') || new Set(state.migratedPresetIds).size !== state.migratedPresetIds.length)) errors.push('SKU 历史预设迁移标识结构无效。')
+  return [...new Set(errors)]
 }
 
 const fieldKey = (key: string) => key === 'family' ? 'familyId' : key === 'created' ? 'legacy.created' : key
@@ -31,12 +53,13 @@ export function repairSkuConfig(raw: unknown, data?: AppData): SkuViewConfig {
       return { kind: 'group', id: String(value.id || ''), logic: value.logic === 'any' ? 'any' : 'all', children: value.children.map(child => condition(child, depth + 1)) }
     }
     if (value.kind !== 'rule' || typeof value.field !== 'string' || typeof value.operator !== 'string') { broken = true; return invalid() }
+    if (value.active !== undefined && typeof value.active !== 'boolean') broken = true
     const val = value.value
     const safeValue = val === null || typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean'
       ? val : Array.isArray(val) && val.every(item => typeof item === 'string') ? [...val]
         : record(val) && typeof val.from === 'string' && typeof val.to === 'string' ? { from: val.from, to: val.to } : null
     if (safeValue === null && val !== null) broken = true
-    return { kind: 'rule', id: String(value.id || ''), field: value.field, operator: value.operator as SkuOperator, value: safeValue }
+    return { kind: 'rule', id: String(value.id || ''), field: value.field, operator: value.operator as SkuOperator, value: safeValue, ...(typeof value.active === 'boolean' ? { active: value.active } : {}) }
   }
   const root = condition(input.conditions, 0)
   const next: SkuViewConfig = { ...base, conditions: root.kind === 'group' ? root : { ...base.conditions, children: [root] } }
@@ -76,7 +99,8 @@ export function repairSkuConfig(raw: unknown, data?: AppData): SkuViewConfig {
         else broken = true
         let id = String(filter.id || '')
         if (!id) { id = `legacy-filter-${index}`; while (legacyIds.has(id)) id += '-old'; legacyIds.add(id) }
-        next.legacy?.filters.push({ id, field: filter.field, operator: filter.operator as ProductListFilterOperator, value })
+        if (filter.active !== undefined && typeof filter.active !== 'boolean') broken = true
+        next.legacy?.filters.push({ id, field: filter.field, operator: filter.operator as ProductListFilterOperator, value, ...(typeof filter.active === 'boolean' ? { active: filter.active } : {}) })
       })
       for (const key of ['sorting', 'grouping'] as const) {
         const order = legacy[key]
@@ -196,7 +220,7 @@ export function persistSkuPage(data: AppData, next: ProductListPageState, write:
 export function addScopeCondition(config: SkuViewConfig, scopeId: string): SkuViewConfig {
   const next = cloneSku(config)
   const root: SkuConditionGroup = next.conditions
-  const exactScope = (node: SkuCondition | SkuConditionGroup) => node.kind === 'rule' && node.field === 'familyId' && (node.operator === 'eq' && node.value === scopeId || node.operator === 'in' && Array.isArray(node.value) && node.value.length === 1 && node.value[0] === scopeId)
+  const exactScope = (node: SkuCondition | SkuConditionGroup) => node.kind === 'rule' && node.active !== false && node.field === 'familyId' && (node.operator === 'eq' && node.value === scopeId || node.operator === 'in' && Array.isArray(node.value) && node.value.length === 1 && node.value[0] === scopeId)
   if (root.logic === 'all' && root.children.some(exactScope) || root.logic === 'any' && root.children.length && root.children.every(child => child.kind === 'group' && child.logic === 'all' && child.children.some(exactScope))) return next
   const usedIds = new Set<string>()
   function collect(node: SkuCondition | SkuConditionGroup) { usedIds.add(node.id); if (node.kind === 'group') node.children.forEach(collect) }
@@ -205,8 +229,8 @@ export function addScopeCondition(config: SkuViewConfig, scopeId: string): SkuVi
   function newId(prefix: string) { let id: string; do { id = `${prefix}-${serial++}` } while (usedIds.has(id)); usedIds.add(id); return id }
   const scope = () => ({ kind: 'rule' as const, id: newId('saved-spu-scope'), field: 'familyId', operator: 'eq' as const, value: scopeId })
   if (root.logic === 'all' || !root.children.length) next.conditions = { ...root, logic: 'all', children: [...root.children, scope()] }
-  else next.conditions = { ...root, children: root.children.flatMap(child => child.kind === 'group' && child.logic === 'any'
-    ? child.children.map(rule => ({ kind: 'group' as const, id: newId('saved-spu-group'), logic: 'all' as const, children: [rule, scope()] }))
+  else next.conditions = { ...root, children: root.children.flatMap(child => !isSkuConditionActive(child) ? [child] : child.kind === 'group' && child.logic === 'any'
+    ? child.children.map(rule => !isSkuConditionActive(rule) ? rule : ({ kind: 'group' as const, id: newId('saved-spu-group'), logic: 'all' as const, children: [rule, scope()] }))
     : [{ kind: 'group' as const, id: newId('saved-spu-group'), logic: 'all' as const, children: [...(child.kind === 'group' ? child.children : [child]), scope()] }]) }
   return next
 }

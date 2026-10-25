@@ -1028,7 +1028,7 @@ export const guidePageArticles: GuideArticle[] = [
         "id": "rules",
         "title": "限制与关联规则",
         "paragraphs": [
-          "SPU 路由临时范围与视图相交，默认不保存到全部 SKU；手工排序与字段排序/分组冲突时暂停拖排。"
+          "SPU 路由临时范围与视图相交，默认不保存到全部 SKU；手工模式按最末级组排列，字段规则保留但暂不生效；跨组不允许拖排。"
         ]
       },
       {

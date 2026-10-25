@@ -28,7 +28,7 @@
       <p v-if="applyError" role="alert" class="validation">{{ applyError }}</p>
       <div v-if="preview.errors.length" class="validation" role="alert"><strong>请先处理配置问题</strong><ul><li v-for="error in preview.errors" :key="error">{{ error }}</li></ul></div>
     </div>
-    <template #footer><div class="dialog-footer"><span class="preview" data-sku-preview-count>{{ preview.errors.length ? '配置无效，暂不查询' : `匹配 ${preview.total} 条 SKU` }}</span><el-button :disabled="applying" @click="reset">重置条件</el-button><el-button :disabled="applying" @click="emit('update:modelValue', false)">取消</el-button><el-button type="primary" :loading="applying" :disabled="preview.errors.length > 0 || applying" data-apply-sku-filter @click="apply">应用筛选</el-button></div></template>
+    <template #footer><div class="dialog-footer"><span class="preview" data-sku-preview-count>{{ preview.errors.length ? '配置无效，暂不查询' : `匹配 ${preview.total} 条 SKU` }}</span><el-button :disabled="applying" @click="reset">清空全部条件</el-button><el-button :disabled="applying" @click="emit('update:modelValue', false)">取消</el-button><el-button type="primary" :loading="applying" :disabled="preview.errors.length > 0 || applying" data-apply-sku-filter @click="apply">应用筛选</el-button></div></template>
   </el-dialog>
 </template>
 
@@ -46,7 +46,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: boolean]; apply: [config
 const copy = <T,>(value: T): T => JSON.parse(JSON.stringify(value))
 const applying = ref(false), applyError = ref('')
 const draft = ref<SkuViewConfig>(copy(props.config))
-watch(() => props.modelValue, open => { if (open) draft.value = copy(props.config) })
+watch(() => props.modelValue, open => { if (open) {draft.value = copy(props.config);applyError.value=''} })
 const fields = computed(() => skuFields(props.data))
 const scopeName = computed(() => props.data.families.find(item => item.id === props.scopeId)?.name || props.scopeId)
 const preview = computed(() => querySkuWorkbench(props.data, draft.value, { scopeId: props.scopeId, page: 1, pageSize: 1, now: props.now }))
@@ -73,11 +73,11 @@ async function apply() {
     if (props.applyConfig) { const result = await props.applyConfig(copy(draft.value)); if (!result.ok) { applyError.value = result.message || '应用失败，请重试。'; return } }
     else emit('apply', copy(draft.value))
     emit('update:modelValue', false)
-  } finally { applying.value = false }
+  } catch(error) {applyError.value=error instanceof Error?error.message:'应用失败，输入已保留，请重试。'} finally { applying.value = false }
 }
 function legacyText(condition: ProductListViewFilter) {
   const field = fields.value.find(item => item.id === condition.field)
-  const labels = { contains: '包含', notContains: '不包含', eq: '等于', neq: '不等于', in: '属于任意一个', before: '早于', after: '晚于', between: '范围' }
+  const labels = { contains: '包含', notContains: '不包含', eq: '等于', neq: '不等于', in: '属于任意一个', before: '早于', after: '晚于', between: '范围',descendants:'包含下级分类' }
   const name = (value: string) => field?.options.find(item => item.value === value)?.label || value
   const value = Array.isArray(condition.value) ? condition.value.map(name).join('、')
     : condition.value && typeof condition.value === 'object' ? `${condition.value.from || '不限'} 至 ${condition.value.to || '不限'}`

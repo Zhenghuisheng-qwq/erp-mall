@@ -36,6 +36,10 @@ import { reconcilePlanningRecords } from '../domain/planning'
 import { compatibilityModelBlock, compatibilitySkuBlock } from '../domain/compatibility'
 import { ensureProductListPages } from '../domain/productListPages'
 import type { ProductListPageState } from '../domain/types'
+import { validateProductListPage, validateProductListModeQuery } from '../domain/productListQuery'
+import { validateSkuConfig } from '../domain/skuWorkbenchQuery'
+import { validateListManualCommit, type ListManualGuard } from '../domain/listManualCommit'
+import { SYSTEM_SKU_VIEW_ID, validateSkuWorkbenchPageShape } from '../domain/skuWorkbenchState'
 import { isRealSku, isMaterialArchive } from '../domain/catalogIdentity'
 import { applyCompatibilityChanges, cloneCompatibility, compatibilityImportProblems, deviceModelProblem } from '../domain/accessoryCompatibilityCommands'
 import type { CompatibilityChange, CompatibilityCommandResult } from '../domain/accessoryCompatibilityCommands'
@@ -626,9 +630,29 @@ export const useCatalogStore = defineStore('catalog', () => {
     } catch (error) { return { ok: false, message: error instanceof Error ? error.message : String(error) } }
   }
 
-  function commitSkuPage(next: ProductListPageState) {
-    if (!data.productListPages) return { ok: false as const, message: 'SKU 页面配置尚未初始化。' }
-    const candidate = { ...data, productListPages: { ...data.productListPages, sku: next } }
+  function commitListPage(mode: 'spu' | 'sku', next: ProductListPageState, expectedPage: string, isCurrent: () => boolean, manualGuard?: ListManualGuard) {
+    const current = data.productListPages?.[mode]
+    if (!current || !data.productListPages) return { ok: false as const, message: '列表页面配置尚未初始化。' }
+    if (typeof isCurrent !== 'function' || !isCurrent()) return { ok: false, message: '当前页面、范围或操作上下文已变化，本次未保存；输入和排序暂存保留。' }
+    if (JSON.stringify(current) !== expectedPage) return { ok: false, message: '页面设置已由上一个操作更新，本次未覆盖；当前输入和排序暂存保留，请重新核对后重试。' }
+    if (!can(mode === 'spu' ? 'product:view:update' : 'product:sku:read')) return { ok: false, message: '当前没有保存该页面视图的权限，本次未修改。' }
+    const errors = validateProductListPage(data, next, mode, { validateConfigs: false })
+    if (!errors.length && mode === 'sku') errors.push(...validateSkuWorkbenchPageShape(data, next))
+    if (!errors.length) for (const view of next.views) {
+      const old = current.views.find(item => item.id === view.id)
+      if (mode === 'spu' && JSON.stringify(view.spuQuery) !== JSON.stringify(old?.spuQuery)) errors.push(...validateProductListModeQuery(data, view.spuQuery, mode))
+      if (mode === 'sku' && view.skuWorkbench && JSON.stringify(view.skuWorkbench) !== JSON.stringify(old?.skuWorkbench)) errors.push(...validateSkuConfig(data, view.skuWorkbench))
+    }
+    if (!errors.length && mode === 'sku') {
+      const system = next.views.find(view => view.id === SYSTEM_SKU_VIEW_ID), beforeSystem = current.views.find(view => view.id === SYSTEM_SKU_VIEW_ID)
+      if (beforeSystem && (!system || system.name !== beforeSystem.name || JSON.stringify(system.skuWorkbench) !== JSON.stringify(beforeSystem.skuWorkbench))) errors.push('全部 SKU 为系统视图，不能覆盖或删除；请另存为命名视图。')
+      for (const [key, config] of Object.entries(next.skuWorkbench?.working ?? {})) if (JSON.stringify(config) !== JSON.stringify(current.skuWorkbench?.working[key])) errors.push(...validateSkuConfig(data, config))
+    }
+    if (errors.length) return { ok: false, message: `视图配置未保存：${[...new Set(errors)].join('；')}` }
+    const manualProblem = manualGuard && validateListManualCommit(data, mode, next, manualGuard)
+    if (manualProblem) return { ok: false, message: manualProblem }
+    if (!isCurrent()) return { ok: false, message: '操作上下文已变化，本次未保存；输入和排序暂存保留。' }
+    const candidate = { ...data, productListPages: { ...data.productListPages, [mode]: next } }
     return commitCandidate(candidate, { ok: true as const }, ['productListPages'])
   }
 
@@ -1567,11 +1591,14 @@ export const useCatalogStore = defineStore('catalog', () => {
     materialImportBasis,
     commitMaterialImport: (...args: Parameters<typeof commitMaterialImport>) => command(() => commitMaterialImport(...args)),
     copyProductModel: (...args: Parameters<typeof copyProductModel>) => command(() => copyProductModel(...args)),
-    commitSkuPage: (next: ProductListPageState) => {
+    commitSpuPage: (next: ProductListPageState, expectedPage = JSON.stringify(data.productListPages?.spu), isCurrent: () => boolean = () => true, manualGuard?: ListManualGuard) => {
+      const copied = cloneCompatibility(next), copiedGuard = manualGuard && cloneCompatibility(manualGuard)
+      return command(() => commitListPage('spu', copied, expectedPage, isCurrent, copiedGuard))
+    },
+    commitSkuPage: (next: ProductListPageState, isCurrent: () => boolean = () => true, manualGuard?: ListManualGuard) => {
       const expectedPage = JSON.stringify(data.productListPages?.sku)
-      return command(() => JSON.stringify(data.productListPages?.sku) === expectedPage
-        ? commitSkuPage(next)
-        : { ok: false, message: 'SKU 页面设置已由上一个操作更新，本次未覆盖；当前工作配置已保留，请重新核对后保存。' })
+      const copied = cloneCompatibility(next), copiedGuard = manualGuard && cloneCompatibility(manualGuard)
+      return command(() => commitListPage('sku', copied, expectedPage, isCurrent, copiedGuard))
     },
     saveBenefitFramework: (...args: Parameters<typeof saveBenefitFramework>) => command(() => saveBenefitFramework(...args)),
     removeBenefitFramework: (...args: Parameters<typeof removeBenefitFramework>) => command(() => removeBenefitFramework(...args)),

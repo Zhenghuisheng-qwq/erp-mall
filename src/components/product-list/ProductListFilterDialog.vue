@@ -10,9 +10,9 @@
       </el-select>
       <el-date-picker v-if="filter.kind === 'date' && filter.operator === 'between'" :model-value="filter.range" type="daterange" value-format="YYYY-MM-DD" style="width: 240px" @update:model-value="(value: [string, string] | null) => emit('value', filter.id, { from: value?.[0] || '', to: value?.[1] || '' })" />
       <el-date-picker v-else-if="filter.kind === 'date'" :model-value="filter.text" type="date" value-format="YYYY-MM-DD" @update:model-value="(value: string) => emit('value', filter.id, value || '')" />
-      <CategoryTreeSelect v-else-if="filter.field === 'category' && filter.operator === 'in'" multiple :model-value="filter.categoryIds" :categories="categories" placeholder="选择分类" style="width: 220px" @update:model-value="(value) => emit('value', filter.id, Array.isArray(value) ? value : [])" />
+      <CategoryTreeSelect v-else-if="filter.field === 'category' && ['in','descendants'].includes(filter.operator)" multiple :model-value="filter.categoryIds" :categories="categories" placeholder="选择分类" style="width: 220px" @update:model-value="(value) => emit('value', filter.id, Array.isArray(value) ? value : [])" />
       <CategoryTreeSelect v-else-if="filter.field === 'category'" :model-value="filter.categoryId" :categories="categories" placeholder="选择分类" style="width: 220px" @update:model-value="(value) => emit('value', filter.id, typeof value === 'string' ? value : '')" />
-      <el-select v-else-if="filter.operator === 'in'" :model-value="filter.values" multiple collapse-tags style="width: 220px" @change="(value: string[]) => emit('value', filter.id, value)">
+      <el-select v-else-if="filter.operator === 'in' || filter.valueKind === 'array'" :model-value="filter.values" multiple filterable allow-create collapse-tags style="width: 220px" @change="(value: string[]) => emit('value', filter.id, value)">
         <el-option v-for="item in filter.options" :key="item" :label="item" :value="item" />
       </el-select>
       <el-select v-else-if="filter.kind !== 'text'" :model-value="filter.text" clearable filterable style="width: 220px" @change="(value: string) => emit('value', filter.id, value || '')">

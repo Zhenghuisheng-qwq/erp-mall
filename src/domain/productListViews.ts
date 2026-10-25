@@ -1,6 +1,6 @@
-import { dedupeIds, insertManualIds, moveManualId, resolveManualOrder } from './productListManual'
+import { dedupeIds, planScopedManualOrder, resolveManualOrder } from './productListManual'
 import { cloneSku, repairSkuConfig } from './skuWorkbenchState'
-import { emptyModeQuery, groupFields, knownFilterFields, sortFields, unfilteredIds, writePresetFilters } from './productListQuery'
+import { emptyModeQuery, groupFields, knownFilterFields, presentProductList, sortFields, unfilteredIds, writePresetFilters } from './productListQuery'
 import type { AppData, CategoryFilterLayout, ColumnPref, ListView, ProductListColumnConfig, ProductListFieldOrder, ProductListMode, ProductListModeQuery, ProductListSavedView, ProductListSortMode, ProductListViewFilter } from './types'
 
 export const DEFAULT_PRODUCT_LIST_VIEW_ID = 'view-default'
@@ -137,7 +137,7 @@ function repairModeQuery(raw: ProductListModeQuery | undefined, mode: ProductLis
     const operator = item.operator
     if (!field || !operator) return []
     const value = Array.isArray(item.value) ? [...item.value] : item.value && typeof item.value === 'object' ? { ...item.value } : item.value
-    return [{ id: String(item.id || `f-${field}`), field, operator, value }]
+    return [{ id: String(item.id || `f-${field}`), field, operator, value, ...(item.active === undefined ? {} : { active: item.active }) }]
   }) : []
   const order = (value: ProductListFieldOrder | null | undefined, allowed: Set<string>) => {
     if (!value || !allowed.has(value.field)) return null
@@ -457,7 +457,6 @@ export function setViewSortMode(data: AppData, sortMode: ProductListSortMode, no
   const query = currentModeQuery(view)
   if (view.mode === 'sku') view.skuQuery = query
   else view.spuQuery = query
-  if (sortMode === 'manual' && query.grouping) return { ok: false, message: '请先清除分组，再使用手工排序。分组设置会保留。' }
   if (sortMode === 'manual') {
     if (!view.manualOrder) view.manualOrder = { spuIds: [], skuIds: [] }
     const key = orderKey(view)
@@ -473,9 +472,11 @@ export function moveViewManual(data: AppData, dragId: string, targetId: string, 
   const view = activeProductListView(data)
   const query = currentModeQuery(view)
   if (query.sortMode !== 'manual') return { ok: false, message: '请先切换到手工排序。' }
-  if (query.grouping) return { ok: false, message: '请先清除分组，再调整手工顺序。' }
-  const result = moveManualId(currentOrder(data, view), dragId, targetId, place)
+  const matches = presentProductList(data, view, 1, Number.MAX_SAFE_INTEGER)
+  if (matches.errors.length) return { ok: false, message: matches.errors.join(' ') }
+  const result = planScopedManualOrder({ order: currentOrder(data, view), matchedIds: matches.allIds, groupKeys: matches.groupKeys, movingIds: [dragId], targetId, place })
   if (!result.ok) return result
+  if (!result.changed) return { ok: true }
   if (!view.manualOrder) view.manualOrder = { spuIds: [], skuIds: [] }
   view.manualOrder[orderKey(view)] = result.order
   view.updatedAt = now || new Date().toISOString()
@@ -486,9 +487,11 @@ export function insertViewManual(data: AppData, staged: string[], targetId: stri
   const view = activeProductListView(data)
   const query = currentModeQuery(view)
   if (query.sortMode !== 'manual') return { ok: false, message: '请先切换到手工排序。' }
-  if (query.grouping) return { ok: false, message: '请先清除分组，再调整手工顺序。' }
-  const result = insertManualIds(currentOrder(data, view), staged, targetId, place)
+  const matches = presentProductList(data, view, 1, Number.MAX_SAFE_INTEGER)
+  if (matches.errors.length) return { ok: false, message: matches.errors.join(' ') }
+  const result = planScopedManualOrder({ order: currentOrder(data, view), matchedIds: matches.allIds, groupKeys: matches.groupKeys, movingIds: staged, targetId, place })
   if (!result.ok) return result
+  if (!result.changed) return { ok: true }
   if (!view.manualOrder) view.manualOrder = { spuIds: [], skuIds: [] }
   view.manualOrder[orderKey(view)] = result.order
   view.updatedAt = now || new Date().toISOString()

@@ -1,5 +1,5 @@
 <template>
-  <div class="rule" :data-rule-id="rule.id">
+  <div class="rule" :data-rule-id="rule.id" :data-rule-active="rule.active!==false">
     <el-select :model-value="rule.field" filterable placeholder="选择字段" aria-label="条件字段" data-rule-field @change="changeField">
       <el-option-group v-for="group in fieldGroups" :key="group.source" :label="group.source">
         <el-option v-for="field in group.fields" :key="field.id" :value="field.id" :label="`${field.label} · ${field.source}`" />
@@ -30,6 +30,7 @@
     <el-button link aria-label="复制条件" @click="emit('copy')">复制</el-button>
     <el-button link type="danger" aria-label="删除条件" @click="emit('remove')">删除</el-button>
     <el-checkbox v-if="exposed !== undefined" :model-value="exposed" class="expose" @change="(value: boolean | string | number) => emit('expose', Boolean(value))">显示在常用筛选</el-checkbox>
+    <el-checkbox :model-value="rule.active!==false" class="expose" @change="(value:boolean|string|number)=>emit('update',{...rule,active:Boolean(value)})">启用此条件<span v-if="rule.active===false">（未设置，不参与匹配）</span></el-checkbox>
     <p v-if="!field" class="invalid">该字段已失效，请更换或删除条件。</p>
   </div>
 </template>
@@ -58,7 +59,7 @@ const relativeOptions = [
   { value: 'week', label: '本周（周一开始）' }, { value: 'month', label: '本月' },
   { value: 'last7', label: '近 7 天（含今天）' }, { value: 'last30', label: '近 30 天（含今天）' },
 ]
-function setValue(value: SkuValue) { emit('update', { ...props.rule, value }) }
+function setValue(value:SkuValue){const empty=value===null||value===''||Array.isArray(value)&&!value.length||value&&typeof value==='object'&&!Array.isArray(value)&&!value.from&&!value.to;emit('update',{...props.rule,value,active:!empty})}
 function changeField(id: string) {
   const next = props.fields.find(item => item.id === id)
   emit('update', { ...props.rule, field: id, operator: skuOperators(next?.type || 'text')[0]?.value || 'eq', value: next?.type === 'boolean' ? null : '' })

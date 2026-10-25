@@ -11,64 +11,30 @@
       <el-button @click="router.push('/skus')">查看全部 SKU</el-button>
       <p class="muted">当前为临时范围，筛选和视图调整不会覆盖全部 SKU 的保存设置。</p>
     </div>
+    <div class="spu-view-tabs" :data-mode="listMode" :data-view-id="activeView.id">
+      <ProductListViewTabs :views="displayViews" :active-id="activeView.id" :busy="pageSaving || manualBusy" :can-create="canSaveView" @select="switchDisplayView" @create="openCreate">
+        <template #actions><span :class="['view-save-state',{failed:!!saveError}]" data-view-save-state>{{saveStatus}}</span><el-button v-if="saveError || manualSaveError" link type="danger" @click="retryPageSave">重试保存</el-button><el-dropdown trigger="click"><el-button :disabled="pageSaving || manualBusy" data-view-management>视图管理</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item :disabled="!canSaveView" @click="openCreate">新建视图</el-dropdown-item><el-dropdown-item :disabled="!canSaveView" @click="openSettings">当前视图设置</el-dropdown-item><el-dropdown-item :disabled="!canSaveView" @click="confirmCopy">复制当前视图</el-dropdown-item><el-dropdown-item :disabled="!canSaveView" @click="saveFilter">保存当前筛选预设</el-dropdown-item><el-dropdown-item @click="router.push('/import')">导入导出</el-dropdown-item></el-dropdown-menu></template></el-dropdown></template>
+      </ProductListViewTabs><p v-if="saveError || manualSaveError" class="warn" role="status">{{saveError || manualSaveError}} 当前输入与排序暂存已保留。</p>
+    </div>
     <div class="panel" :class="{ 'is-category-side': showSidebar }" :data-category-layout="categoryLayout">
       <aside v-if="showSidebar" class="category-side" data-category-side>
-        <div class="category-side-head"><strong>商品分类</strong><el-button link @click="categorySideClosed = true">收起分类栏</el-button></div>
+        <div class="category-side-head"><strong>商品分类</strong><el-button link @click="closeSidebar">收起分类栏</el-button></div>
         <template v-if="!categoryQuick.simple"><p class="muted">分类使用高级条件，请在更多筛选中管理。</p><el-button @click="filterOpen = true">管理分类条件</el-button><el-button @click="clearCategory">清除分类</el-button></template>
         <CategoryFilterTree v-else :categories="store.data.categories" :selected-ids="selectedCategoryIds" @toggle="toggleCategory" @clear="clearCategory" />
       </aside>
       <div class="list-main">
-      <div class="list-switch" :data-mode="listMode" :data-view-id="activeView.id">
-        <el-tooltip :content="activeView.name" placement="bottom">
-          <el-dropdown trigger="click" @command="switchDisplayView">
-            <el-button>
-              <span class="view-current">{{ activeView.name }}</span>
-              <span class="muted view-mode">{{ listMode === 'spu' ? 'SPU' : 'SKU' }}</span>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item v-for="view in displayViews" :key="view.id" :command="view.id">
-                  <span :data-saved-view="view.id">{{ view.name }}</span>
-                  <span class="muted">{{ view.mode === 'spu' ? 'SPU' : 'SKU' }}</span>
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </el-tooltip>
-        <ProductListViewTools
-          v-model:visible="columnOpen"
-          :category-sidebar="categoryLayout === 'sidebar'" @category-sidebar="setCategorySidebar"
-          :columns="modeColumns" :group-options="groupOptions" :sort-options="sortOptions"
-          :grouping="activeQuery.grouping" :sorting="activeQuery.sorting" :sort-mode="sortMode"
-          @column-visible="toggleColumn" @column-move="moveColumn" @reset-columns="resetColumns"
-          @group-change="setViewGrouping(listData, $event)" @sort-change="setViewSorting(listData, $event)"
-          @sort-mode="onSortMode" @manage="manageView"
-        />
-        <div class="view-save-actions"><span class="muted">配置自动保存</span><el-button @click="confirmCopy" :disabled="!(store.can('product:view:update'))">另存视图</el-button><el-button @click="resetColumns" :disabled="!(store.can('product:view:update'))">恢复默认列</el-button></div>
-        <span v-if="groupStatusLabel" class="tool-state" data-group-state>分组：{{ groupStatusLabel }}</span>
-        <span v-if="sortStatusLabel" class="tool-state" data-sort-state>排序：{{ sortStatusLabel }}</span>
-        <span class="muted" data-result-count>{{ listMode === 'spu' ? `商品 ${presentation.total} 款` : `SKU ${presentation.total} 条` }}</span>
-      </div>
       <div class="filters">
         <el-select v-if="mode === 'sku'" :model-value="scopeId" filterable clearable placeholder="筛选所属 SPU" style="width: 220px" data-list-spu @change="(id: string) => router.push({ path: '/skus', query: id ? { spu: id } : {} })"><el-option v-for="item in store.data.families" :key="item.id" :value="item.id" :label="`${item.name} · ${item.oaProductId || item.id}`" /></el-select>
         <el-input :model-value="activeQuery.keyword" placeholder="名称、分类、属性、SKU、OA 编号" clearable style="width: 260px" data-filter="keyword" @update:model-value="onKeyword" />
-        <span v-if="showSidebar" class="category-chip" data-category-chip :title="categoryButtonText">{{ categoryButtonText }}</span>
-        <el-popover v-else v-model:visible="categoryOpen" :hide-after="0" trigger="click" placement="bottom-start" :width="300" popper-class="product-category-pop">
-          <template #reference><el-button data-category-trigger :title="categoryButtonText">{{ categoryButtonText }}</el-button></template>
-          <template v-if="!categoryQuick.simple"><p>分类使用高级条件，请在更多筛选中管理。</p><el-button @click="categoryOpen = false; filterOpen = true">管理分类条件</el-button><el-button @click="clearCategory">清除分类</el-button></template>
-          <CategoryFilterTree v-else closable :categories="store.data.categories" :selected-ids="selectedCategoryIds" @toggle="toggleCategory" @clear="clearCategory" @close="categoryOpen = false" />
-        </el-popover>
-        <el-button v-if="categoryLayout === 'sidebar' && categorySideClosed && !narrowScreen" link @click="categorySideClosed = false; categoryOpen = false">展开分类栏</el-button>
-        <template v-for="field in exposedFields.slice(0, 3)" :key="field.field">
-          <el-button v-if="!quickState(field).simple" :data-advanced-field="field.field" @click="filterOpen = true">{{ field.label }}：高级条件</el-button>
-          <el-input v-else-if="field.kind === 'text'" :model-value="quickText(field)" clearable :placeholder="field.label" style="width: 180px" :data-exposed="field.field" @update:model-value="(value: string) => setQuickText(field, value)" />
-          <el-date-picker v-else-if="field.kind === 'date'" :model-value="dateRange(field.field)" type="daterange" value-format="YYYY-MM-DD" start-placeholder="创建开始" end-placeholder="创建结束" style="width: 240px" :data-exposed="field.field" @update:model-value="(value: [string, string] | null) => setDate(value)" />
-          <el-select v-else :model-value="chosen(field.field)" multiple collapse-tags clearable :placeholder="field.label" style="width: 160px" :data-exposed="field.field" @change="(value: string[]) => setExposedValue(field.field, value)">
-            <el-option v-for="item in fieldOptions(field.field)" :key="item" :label="item" :value="item" />
-          </el-select>
-        </template>
+        <el-button v-if="!showSidebar" data-category-trigger :title="categoryButtonText" @click="openCategory">商品分类<span v-if="!categoryQuick.simple"> · 高级条件</span><span v-else-if="selectedCategoryIds.length"> {{selectedCategoryIds.length}}</span></el-button>
         <el-button data-filter-count @click="filterOpen = true">更多筛选<span v-if="filterCount"> {{ filterCount }}</span></el-button>
       </div>
+      <div class="list-configuration">
+        <el-button data-group-control @click="openToolsSection('group')">{{groupStatusLabel?`分组：${groupStatusLabel}`:'分组'}}</el-button><el-button data-sort-control @click="openToolsSection('sort')">{{sortStatusLabel?`排序：${sortStatusLabel}`:'排序'}}</el-button>
+        <ProductListViewTools v-model:visible="columnOpen" :section="toolsSection" @open="toolsSection='columns'" :category-sidebar="categoryLayout === 'sidebar'" @category-sidebar="setCategorySidebar" :columns="modeColumns" :group-options="groupOptions" :sort-options="sortOptions" :grouping="activeQuery.grouping" :sorting="activeQuery.sorting" :sort-mode="sortMode" @column-visible="toggleColumn" @column-move="moveColumn" @reset-columns="resetColumns" @group-change="setViewGrouping(listData,$event)" @sort-change="setViewSorting(listData,$event)" @sort-mode="onSortMode" @manage="manageView"/>
+        <span class="muted" data-result-count>{{listMode==='spu'?`商品 ${presentation.total} 款`:`SKU ${presentation.total} 条`}}</span>
+      </div>
+      <ProductListExposedFilters :rows="exposedRows" :busy="pageSaving || manualBusy" @value="setExposedTypedValue" @clear="clearExposedField" @clear-all="clearExposedValues" @unexpose="unexposeField" @unexpose-all="unexposeAll" @advanced="filterOpen=true"/>
       <div v-if="summaries.length" class="active-filters" data-active-filters aria-label="已生效筛选">
         <span class="muted">已筛选（条件同时满足）：</span>
         <el-tag v-for="item in summaries" :key="item.id" closable :data-filter-summary="item.id" @close="removeSummary(item.id)">{{ item.label }}</el-tag>
@@ -84,28 +50,28 @@
         <span>已选 {{ skuIds.length }} 条</span><el-button @click="store.setSkuStatus(skuIds, 'on_sale')" :disabled="!(store.can('product:sku:update'))">批量在售</el-button><el-button @click="store.setSkuStatus(skuIds, 'off_sale')" :disabled="!(store.can('product:sku:update'))">批量停售</el-button><el-button type="danger" @click="removeSkuMany" :disabled="!(store.can('product:sku:delete'))">批量删除</el-button>
       </div>
       <div v-if="listData.listViews.length > 1" class="row-actions" style="margin-bottom: 10px">
-        <span class="muted">已存筛选</span>
+        <span class="muted">筛选预设（仅替换筛选条件）</span>
         <el-tag v-for="view in listData.listViews" :key="view.id" :type="listData.activeViewId === view.id ? 'primary' : 'info'" style="cursor: pointer" @click="applyPreset(view.id)" @close="removePreset(view.id)" :closable="view.id !== 'view-all'">{{ view.name }}</el-tag>
       </div>
-      <p v-if="presentation.manualBlocked" class="warn">手工排序已保存。当前还有分组，请先清除分组，再按手工顺序查看。分组不会被自动改掉。</p>
+      <p v-if="presentation.errors.length" class="warn">{{presentation.errors.join('；')}}</p><p v-if="manualOn" class="manual-scope">手工排序范围：{{manualScopeLabel}}。仅调整完整匹配结果内同组记录，不按当前页局限排序。</p><p v-if="manualOn&&dropMessage" class="warn" data-manual-drop-error>{{dropMessage}}</p><p v-if="stageIds.length && !stageContextValid" class="warn" data-stage-context-error>范围已变化，暂存内容保留；请重新核对并暂存，不会自动只提交仍可见部分。</p>
       <div v-if="manualOn && pickedIds.length" class="row-actions" style="margin-bottom: 8px">
         <span data-stage-pick>待放入暂存 {{ pickedIds.length }} 条</span>
         <el-button size="small" type="primary" @click="addStage" :disabled="!(store.can('product:view:update'))">加入排序暂存区</el-button>
       </div>
       <div v-if="manualOn && stageIds.length" class="stage-bar">
-        <span>排序暂存区（{{ stageIds.length }}）</span>
+        <span>排序暂存区（{{ stageIds.length }}） · {{stageGroupLabel}}</span>
         <el-button size="small" @click="stageOpen = true">展开暂存</el-button>
         <el-button size="small" @click="clearStage" :disabled="!(store.can('product:view:update'))">清空暂存</el-button>
       </div>
       <template v-for="group in shownGroups" :key="group.key">
-      <button v-if="group.label" type="button" class="group-head" :data-group-key="group.label" @click="toggleGroup(group.label)">{{ collapsed[group.label] ? '展开' : '收起' }} {{ group.label }}（{{ group.total }}）</button>
-      <el-table v-if="listMode === 'spu'" v-show="!group.label || !collapsed[group.label]" class="spu-table" :data="group.families" row-key="id" @selection-change="onFamilySelect">
+      <button v-if="group.label" type="button" class="group-head" :data-group-key="group.key" @click="toggleGroup(group.key)">{{ collapsed[group.key] ? '展开' : '收起' }} {{ group.label }}（{{ group.total }}）</button>
+      <el-table v-if="listMode === 'spu'" v-show="!group.label || !collapsed[group.key]" class="spu-table" :data="group.families" row-key="id" :row-class-name="manualRowClass" @dragover="onTableDragOver" @drop="onTableDrop" @selection-change="onFamilySelect">
         <template #empty><span data-empty="spu">{{ spuEmpty }}</span></template>
         <el-table-column v-if="manualOn" width="46">
-          <template #default="{ row }"><span class="drag-handle" draggable="true" :data-drag-id="row.id" @dragstart="onRowDrag(row.id)" @dragover.prevent @drop="onRowDrop(row.id)">☰</span></template>
+          <template #default="{ row }"><button type="button" class="drag-handle" draggable="true" :disabled="manualBusy || !canSaveView" :data-drag-id="row.id" :aria-label="`拖动排序 ${row.name}`" @dragstart="onRowDrag(row.id,$event)" @dragend="endDrag">☰</button></template>
         </el-table-column>
         <el-table-column v-if="manualOn" width="42">
-          <template #default="{ row }"><el-checkbox :data-pick-id="row.id" :model-value="pickedIds.includes(row.id)" @change="(value: boolean | string | number) => togglePick(row.id, Boolean(value))" /></template>
+          <template #default="{ row }"><el-checkbox :disabled="manualBusy || !canSaveView" :data-pick-id="row.id" :model-value="pickedIds.includes(row.id)" @change="(value: boolean | string | number) => togglePick(row.id, Boolean(value))" /></template>
         </el-table-column>
         <el-table-column type="selection" width="42" />
         <el-table-column type="expand">
@@ -179,15 +145,16 @@
             <el-dropdown-item @click="removeFamily(row.id, row.name)" :disabled="!(store.can('product:spu:delete'))">删除</el-dropdown-item>
             <el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'before')" :disabled="!(store.can('product:view:update'))">插到前面</el-dropdown-item>
             <el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'after')" :disabled="!(store.can('product:view:update'))">插到后面</el-dropdown-item>
+            <el-dropdown-item v-if="manualOn" :disabled="!canSaveView || manualBusy" @click="askBoundary('top',[row.id])">移到{{activeQuery.grouping?'当前分组':'当前匹配范围'}}顶部</el-dropdown-item><el-dropdown-item v-if="manualOn" :disabled="!canSaveView || manualBusy" @click="askBoundary('bottom',[row.id])">移到{{activeQuery.grouping?'当前分组':'当前匹配范围'}}底部</el-dropdown-item>
             </el-dropdown-menu></template></el-dropdown>
           </template>
         </el-table-column>
       </el-table>
-      <el-table v-else v-show="!group.label || !collapsed[group.label]" class="sku-table" :data="group.skus" row-key="id" @selection-change="(rows: { id: string }[]) => onSkuSelect(group.key, rows)">
+      <el-table v-else v-show="!group.label || !collapsed[group.key]" class="sku-table" :data="group.skus" row-key="id" @selection-change="(rows: { id: string }[]) => onSkuSelect(group.key, rows)">
         <el-table-column type="selection" width="42" reserve-selection />
         <template #empty><span data-empty="sku">{{ skuEmpty }}</span></template>
         <el-table-column v-if="manualOn" width="46">
-          <template #default="{ row }"><span class="drag-handle" draggable="true" :data-drag-id="row.id" @dragstart="onRowDrag(row.id)" @dragover.prevent @drop="onRowDrop(row.id)">☰</span></template>
+          <template #default="{ row }"><button type="button" class="drag-handle" draggable="true" :disabled="manualBusy || !canSaveView" :data-drag-id="row.id" :aria-label="`拖动排序 ${row.name}`" @dragstart="onRowDrag(row.id,$event)" @dragend="endDrag">☰</button></template>
         </el-table-column>
         <el-table-column v-if="manualOn" width="42">
           <template #default="{ row }"><el-checkbox :data-pick-id="row.id" :model-value="pickedIds.includes(row.id)" @change="(value: boolean | string | number) => togglePick(row.id, Boolean(value))" /></template>
@@ -242,15 +209,16 @@
       <p v-if="activeView.id === defaultViewId" class="muted">默认视图不能删除，可以调整它的列。</p>
     </el-dialog>
     <el-drawer v-model="stageOpen" title="排序暂存区" size="360px">
-      <p class="muted">共 {{ stageIds.length }} 条。插入目标并确认后，才会改展示顺序。</p>
+      <p class="muted">共 {{ stageIds.length }} 条 · {{stageGroupLabel}}。插入或移到同组边界，保存成功后才清理暂存。</p><p v-if="!stageContextValid" class="warn">暂存范围已失效，原内容保留。</p><div class="row-actions"><el-button :disabled="!stageContextValid || manualBusy || !canSaveView" @click="askBoundary('top')">移到范围顶部</el-button><el-button :disabled="!stageContextValid || manualBusy || !canSaveView" @click="askBoundary('bottom')">移到范围底部</el-button></div>
       <ul class="column-list">
         <li v-for="id in stageIds" :key="id">
-          <span>{{ stageLabel(id) }}</span>
+          <span>{{ stageLabel(id) }}<small class="stage-path">{{groupLabelForId(id)}}</small></span>
           <el-button link type="danger" @click="removeStaged(id)">移除</el-button>
         </li>
       </ul>
       <el-button @click="clearStage" :disabled="!(store.can('product:view:update'))">清空暂存</el-button>
     </el-drawer>
+    <el-drawer v-if="narrowScreen" v-model="categoryOpen" title="商品分类" size="min(340px,96vw)"><template v-if="!categoryQuick.simple"><p>分类使用复杂条件，请到更多筛选管理。</p><el-button @click="categoryOpen=false;filterOpen=true">管理分类条件</el-button></template><CategoryFilterTree v-else :categories="store.data.categories" :selected-ids="selectedCategoryIds" @toggle="toggleCategory" @clear="clearCategory"/></el-drawer>
     <ProductListFilterDialog
       v-model:visible="filterOpen" :rows="filterRows" :fields="filterFields"
       :categories="store.data.categories" :exposed="activeQuery.exposed"
@@ -264,8 +232,8 @@
 
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import CategoryFilterTree from '../components/CategoryFilterTree.vue'
 import ProductListFilterDialog from '../components/product-list/ProductListFilterDialog.vue'
 import AccessoryCompatibilityDrawer from '../components/compatibility/AccessoryCompatibilityDrawer.vue'
@@ -273,6 +241,10 @@ import { compatibilityFamilyRole } from '../domain/deviceResolution'
 import { conditionRange, filterOperators, filterSummaries, quickFilterState, type FilterEditorRow, type FilterField } from '../components/product-list/filterPresentation'
 import PageHead from '../components/PageHead.vue'
 import ProductListViewTools from '../components/product-list/ProductListViewTools.vue'
+import ProductListViewTabs from '../components/product-list/ProductListViewTabs.vue'
+import ProductListExposedFilters from '../components/product-list/ProductListExposedFilters.vue'
+import {planScopedManualOrder,resolveManualOrder} from '../domain/productListManual'
+import type {ListManualGuard} from '../domain/listManualCommit'
 import { useProductListManualOrder } from '../components/product-list/useProductListManualOrder'
 import { useProductListCategoryLayout } from '../components/product-list/useProductListCategoryLayout'
 import { presentTableGroups } from '../components/product-list/tablePresentation'
@@ -281,8 +253,8 @@ import { catalogRole, compatibilitySkuBlock, roleOfType } from '../domain/compat
 import { categoryPath, shelfOf, shelfText, templateById } from '../domain/logic'
 import { materialPlanningIds } from '../domain/materialRelations'
 import { fixedListWidth, contentListWidth } from '../components/product-list/columnPresentation'
-import { emptyModeQuery, groupFields, knownFilterFields, presentProductList, resolveCategoryFilter, sortFields, sortModeOf } from '../domain/productListQuery'
-import { DEFAULT_PRODUCT_LIST_VIEW_ID, activeProductListView, copyProductListView, createProductListView, currentModeQuery, deleteProductListView, insertViewManual, moveViewManual, orderedColumns, renameProductListView, reorderProductListColumn, resetProductListColumns, selectProductListView, setProductListColumnVisible, applyPresetToActiveView, setViewCategoryLayout, setViewExposed, setViewFieldValues, setViewGrouping, setViewKeyword, setViewSortMode, setViewSorting } from '../domain/productListViews'
+import { emptyModeQuery, groupFields, knownFilterFields, presentProductList, resolveCategoryFilter, sortFields, sortModeOf, unfilteredIds, clearProductListFilterValue, setProductListFilterValue, productCategorySelection, updateProductCategorySelection } from '../domain/productListQuery'
+import { DEFAULT_PRODUCT_LIST_VIEW_ID, activeProductListView, copyProductListView, createProductListView, currentModeQuery, deleteProductListView, orderedColumns, renameProductListView, reorderProductListColumn, resetProductListColumns, selectProductListView, setProductListColumnVisible, applyPresetToActiveView, setViewCategoryLayout, setViewExposed, setViewGrouping, setViewKeyword, setViewSortMode, setViewSorting } from '../domain/productListViews'
 import type { ListView, ProductFamily, ProductListMode, ProductListPageState, ProductListFilterOperator, ProductListViewFilter, Sku } from '../domain/types'
 import { productListPageData } from '../domain/productListPages'
 import { spuRemovalBlock } from '../domain/spuSku'
@@ -307,15 +279,53 @@ watch(scopeId, id => {
   next.views.forEach(view => { view.skuQuery = emptyModeQuery('sku') })
   temporary.value = next
 }, { immediate: true })
-const listData = computed(() => productListPageData(store.data, mode, temporary.value))
+const clonePage = (value: ProductListPageState): ProductListPageState => JSON.parse(JSON.stringify(value))
+const pageDraft = ref<ProductListPageState>(clonePage(store.data.productListPages![mode]))
+const savedPageStamp = ref(JSON.stringify(store.data.productListPages![mode])), pageSaving = ref(false), saveError = ref(''), manualSaveError = ref('')
+let pendingClearRetry:{ids:string[];stamp:string}|undefined
+let pendingManualRetry: {ids:string[];targetId?:string;place:'before'|'after'|'top'|'bottom';context:string}|undefined
+const canSaveView = computed(() => store.can('product:view:update'))
+let alive = true, savingOwnPage = false, saveTimer: ReturnType<typeof setTimeout> | undefined, savePromise: Promise<boolean> | undefined
+const listData = computed(() => productListPageData(store.data, mode, temporary.value || pageDraft.value))
+const draftDirty = computed(() => JSON.stringify(pageDraft.value) !== savedPageStamp.value)
+const saveStatus = computed(() => !canSaveView.value ? '临时查询 · 当前身份不保存视图' : pageSaving.value ? '正在保存…' : saveError.value || manualSaveError.value ? '保存失败 · 未落盘' : draftDirty.value ? '配置未保存' : '配置已保存')
+async function persistPage() : Promise<boolean> {
+  clearTimeout(saveTimer)
+  if (!canSaveView.value || temporary.value) return true
+  if (savePromise) { if (!await savePromise) return false; return persistPage() }
+  if (!draftDirty.value) return true
+  const next = clonePage(pageDraft.value), captured = JSON.stringify(next), expected = savedPageStamp.value, actor = store.activeUserId, preview = store.previewUserId
+  pageSaving.value = true; savingOwnPage = true
+  savePromise = (async () => {
+    try {
+      const result = await store.commitSpuPage(next, expected, () => alive && actor === store.activeUserId && preview === store.previewUserId)
+      if (!result.ok) { saveError.value = result.message || '视图设置没有写入本机。'; return false }
+      savedPageStamp.value = JSON.stringify(store.data.productListPages![mode]); saveError.value = ''
+      return true
+    } catch (error) { saveError.value = error instanceof Error ? error.message : '视图设置保存失败。'; return false }
+    finally { pageSaving.value = false; savingOwnPage = false }
+  })()
+  const result = await savePromise; savePromise = undefined
+  if (result && captured !== JSON.stringify(pageDraft.value)) return persistPage()
+  return result
+}
+async function retryPageSave() { if(pendingClearRetry){if(pendingClearRetry.stamp!==JSON.stringify(pageDraft.value)){saveError.value='输入已变化，请重新点击清除外露值确认当前范围。';return}await commitClearFilterValues(pendingClearRetry.ids);return}saveError.value='';if(!await persistPage())return;const pending=pendingManualRetry;if(!pending)return;if(pending.context!==manualContext()){manualSaveError.value='排序范围已变化，请重新选择目标；暂存仍保留。';return}const result=await commitManual(pending.ids,pending.targetId,pending.place);if(result.ok){for(const id of pending.ids)removeStaged(id)}}
+watch(pageDraft, () => { clearTimeout(saveTimer); if (canSaveView.value && !saveError.value) saveTimer = setTimeout(() => { void persistPage() }, 180) }, {deep:true})
+watch(() => JSON.stringify(store.data.productListPages?.[mode]), stamp => {
+  if (!stamp || savingOwnPage || stamp === savedPageStamp.value) return
+  if (!draftDirty.value) { pageDraft.value = clonePage(store.data.productListPages![mode]); savedPageStamp.value = stamp }
+  else saveError.value = '已保存的视图由其他操作更新，本页输入未覆盖；请先核对当前设置。'
+})
+onBeforeUnmount(() => { alive = false; clearTimeout(saveTimer) })
 const query = computed(() => listData.value.listQuery)
-const columnOpen = ref(false)
+const columnOpen = ref(false),toolsSection=ref<'columns'|'group'|'sort'|'display'>('columns')
+function openToolsSection(section:'group'|'sort') {toolsSection.value=section;columnOpen.value=true}
 const createOpen = ref(false)
 const settingsOpen = ref(false)
 const filterOpen = ref(false)
 const stageOpen = ref(false)
 const collapsed = reactive<Record<string, boolean>>({})
-const draftName = ref('')
+const draftName = ref(''),pendingCreatedViewId=ref('')
 const renameDraft = ref('')
 const nameError = ref('')
 const renameError = ref('')
@@ -368,16 +378,53 @@ const filterRows = computed<FilterEditorRow[]>(() => activeQuery.value.filters.m
   text: textValue(filter), values: Array.isArray(filter.value) ? filter.value : [], range: conditionRange(filter),
   categoryId: filter.field === 'category' ? categoryConditionId(filter) : '',
   categoryIds: filter.field === 'category' ? categoryConditionIds(filter) : [],
+  valueKind: Array.isArray(filter.value) ? 'array' : filter.value && typeof filter.value === 'object' ? 'range' : 'text',
 })))
+const exposedRows = computed(() => exposedFields.value.map(field => {
+  const state=quickState(field),operator=state.filter?.operator || (field.kind==='date'?'between':field.kind==='text'?'contains':'in'),filter=state.filter || {id:`quick:${field.field}`,field:field.field,operator,value:operator==='between'?{from:'',to:''}:operator==='in'?[]:''}
+  return {id:filter.id,field:field.field,label:field.label,simple:state.simple,operator,kind:field.kind,options:fieldOptions(field.field),operators:filterOperators(field.kind,field.field),text:typeof filter.value==='string'?filter.value:'',values:Array.isArray(filter.value)?filter.value:[],range:conditionRange(filter),categoryId:'',categoryIds:[]}
+}))
 const groupOptions = computed(() => groupFields(store.data, listMode.value))
 const sortOptions = computed(() => sortFields(listMode.value))
 const sortMode = computed(() => sortModeOf(activeQuery.value))
-const manualOn = computed(() => sortMode.value === 'manual' && !activeQuery.value.grouping)
-const { pickedIds, stageIds, confirmStage, onRowDrag, onRowDrop, togglePick, addStage, clearStage, removeStaged, askInsert } = useProductListManualOrder({
-  move: (dragId, targetId, place) => moveViewManual(listData.value, dragId, targetId, place),
-  insert: (stagedIds, targetId, place) => insertViewManual(listData.value, stagedIds, targetId, place),
-  hasFilters: () => filterCount.value > 0,
+const manualOn = computed(() => sortMode.value === 'manual')
+const fullPresentation = computed(() => presentProductList(store.data, activeView.value, 1, Number.MAX_SAFE_INTEGER))
+const manualScopeLabel = computed(() => activeQuery.value.grouping ? `当前匹配范围的「${groupStatusLabel.value}」同一分组` : '当前完整匹配范围')
+function manualContext() { return JSON.stringify([activeView.value.id, scopeId.value, activeQuery.value.keyword, activeQuery.value.filters, activeQuery.value.grouping, sortMode.value, fullPresentation.value.allIds.slice().sort(), Object.fromEntries(Object.entries(fullPresentation.value.groupKeys).sort(([a],[b])=>a.localeCompare(b))), store.activeUserId, store.previewUserId]) }
+function groupLabelForId(id:string) { const key=fullPresentation.value.groupKeys[id],label=fullPresentation.value.groups.find(group=>group.key===key)?.label;return label?`${groupStatusLabel.value} / ${label}`:key==='all'?'当前匹配范围':'已不在当前匹配范围' }
+function validateManualIds(ids:string[]) : {ok:true}|{ok:false;message:string} {
+  if (!canSaveView.value || !manualOn.value) return {ok:false,message:'需要视图修改权限及手工排序模式。'}
+  const rows=fullPresentation.value
+  if (rows.errors.length) return {ok:false,message:rows.errors.join('；')}
+  if (!ids.length || ids.some(id=>!rows.allIds.includes(id))) return {ok:false,message:'有来源不在当前完整匹配结果中，原暂存保留。'}
+  if (new Set(ids.map(id=>rows.groupKeys[id])).size!==1) return {ok:false,message:'只能调整当前完整匹配范围的同一分组，不能跨组提交。'}
+  return {ok:true}
+}
+async function commitManual(ids:string[], targetId?:string, place:'before'|'after'|'top'|'bottom'='before') : Promise<{ok:true}|{ok:false;message:string}> {
+  const context=manualContext()
+  if (!await persistPage()) return {ok:false,message:saveError.value || '请先保存当前视图配置。'}
+  if (context!==manualContext()) return {ok:false,message:'排序范围已变化，请重新核对；暂存保留。'}
+  const valid=validateManualIds(targetId?[...ids,targetId]:ids);if(!valid.ok)return valid
+  const before=activeView.value, matches=fullPresentation.value, next=clonePage(pageDraft.value), view=next.views.find(view=>view.id===before.id)!
+  const order=resolveManualOrder(before.manualOrder?.spuIds,unfilteredIds(store.data,before,'spu'))
+  const plan=planScopedManualOrder({order,matchedIds:matches.allIds,groupKeys:matches.groupKeys,movingIds:ids,targetId,place})
+  if(!plan.ok)return {ok:false,message:plan.message||'无法调整顺序。'}
+  if(!plan.changed)return {ok:true}
+  view.manualOrder={...view.manualOrder,spuIds:plan.order,skuIds:view.manualOrder?.skuIds||[]};view.updatedAt=new Date().toISOString()
+  const guard:ListManualGuard={viewId:before.id,configStamp:JSON.stringify(before),search:currentModeQuery(before).keyword,scopeId:'',sourceIds:[...ids],targetId,...(place==='top'||place==='bottom'?{edge:place}:{place}),matchedIds:[...matches.allIds],groupKeys:{...matches.groupKeys}}
+  const actor=store.activeUserId,preview=store.previewUserId;savingOwnPage=true;pageSaving.value=true
+  const failed=(message:string)=>{manualSaveError.value=message;pendingManualRetry={ids:[...ids],targetId,place,context};return {ok:false as const,message}}
+  try {const result=await store.commitSpuPage(next,savedPageStamp.value,()=>alive&&context===manualContext()&&actor===store.activeUserId&&preview===store.previewUserId,guard);if(!result.ok)return failed(result.message||'顺序没有保存，暂存已保留。');manualSaveError.value='';pendingManualRetry=undefined;savedPageStamp.value=JSON.stringify(store.data.productListPages![mode]);pageDraft.value=clonePage(store.data.productListPages![mode]);saveError.value='';return {ok:true}}
+  catch(error){return failed(error instanceof Error?error.message:'顺序没有保存，暂存已保留。')}finally{savingOwnPage=false;pageSaving.value=false}
+}
+const { pickedIds, stageIds, busy:manualBusy, stageContextValid, stageGroupLabel, dropMessage, confirmStage, onRowDrag, onRowOver, onRowDrop, endDrag, rowDropClass, togglePick, addStage, clearStage, removeStaged, askInsert, askBoundary } = useProductListManualOrder({
+  move:(id,target,place)=>commitManual([id],target,place),insert:(ids,target,place)=>commitManual(ids,target,place),boundary:(ids,edge)=>commitManual(ids,undefined,edge),
+  hasFilters:()=>filterCount.value>0,context:manualContext,validateStage:validateManualIds,groupLabel:groupLabelForId,
 })
+function manualRowClass({row}:{row:ProductFamily}) {return rowDropClass(row.id)}
+function rowIdFromDrag(event:DragEvent) {const row=event.target instanceof Element?event.target.closest('.el-table__row'):null;return row?.querySelector<HTMLElement>('[data-drag-id]')?.dataset.dragId}
+function onTableDragOver(event:DragEvent) {const id=rowIdFromDrag(event);if(id)onRowOver(id,event)}
+function onTableDrop(event:DragEvent) {const id=rowIdFromDrag(event);if(id)void onRowDrop(id,event)}
 const groupStatusLabel = computed(() => {
   const field = activeQuery.value.grouping?.field
   if (!field) return ''
@@ -390,8 +437,8 @@ const sortStatusLabel = computed(() => {
   const label = sortOptions.value.find((item) => item.field === field)?.label
   return label ? `按${label}` : '按字段'
 })
-const categoryQuick = computed(() => quickFilterState(activeQuery.value, { field: 'category', label: '商品分类', kind: 'enum' }))
-const categoryState = computed(() => resolveCategoryFilter(store.data, chosen('category')))
+const categoryState = computed(() => productCategorySelection(store.data,activeQuery.value))
+const categoryQuick = computed(() => ({simple:categoryState.value.supported}))
 const selectedCategoryIds = computed(() => categoryState.value.ids)
 const categorySummary = computed(() => {
   const names = selectedCategoryIds.value.map(id => categoryPath(store.data, id)).filter(Boolean)
@@ -427,47 +474,51 @@ function warn(result: { ok: true } | { ok: false; message: string }) {
 }
 async function switchDisplayView(id: string) {
   if (id === activeView.value.id) return
-  if (!(await confirmStage())) return
-  if (!warn(selectProductListView(listData.value, id))) return
-  query.value.page = 1
+  if (!(await confirmStage(false)) || !await persistPage()) return
+  const previous=clonePage(pageDraft.value)
+  if (!warn(selectProductListView(listData.value,id)))return
+  query.value.page=1
+  if(await persistPage())clearStage();else {pageDraft.value=previous}
 }
 function onKeyword(value: string) {
   setViewKeyword(listData.value, value)
 }
 function quickState(field: FilterField) { return quickFilterState(activeQuery.value, field) }
-function chosen(field: string) {
-  const definition = filterFields.value.find(item => item.field === field)
-  if (!definition) return []
-  const state = quickState(definition)
-  if (!state.simple) return []
-  const value = state.filter?.value
-  return Array.isArray(value) ? value : typeof value === 'string' && value ? [value] : []
-}
-function setExposedValue(field: string, values: string[]) {
-  const definition = filterFields.value.find(item => item.field === field)
-  if (!definition || !quickState(definition).simple) { filterOpen.value = true; return }
-  setViewFieldValues(listData.value, field, values)
-}
-function quickText(field: FilterField) {
-  const value = quickState(field).filter?.value
-  return typeof value === 'string' ? value : ''
-}
-function setQuickText(field: FilterField, value: string) {
-  const state = quickState(field)
-  if (!state.simple) return
-  if (state.filter) state.filter.value = value
-  else liveQuery().filters.push({ id: uid('filter'), field: field.field, operator: 'contains', value })
-  touchFilters()
-}
-function toggleCategory(id: string) {
-  // Keep unresolved historical categories until explicitly cleared as well.
-  const current = [...selectedCategoryIds.value, ...categoryState.value.missing]
-  setExposedValue('category', current.includes(id) ? current.filter(item => item !== id) : [...current, id])
+function toggleCategory(id:string) {
+  const ids=selectedCategoryIds.value.includes(id)?selectedCategoryIds.value.filter(value=>value!==id):[...selectedCategoryIds.value,id]
+  const next=updateProductCategorySelection(store.data,liveQuery(),ids)
+  if(!next){filterOpen.value=true;return}Object.assign(liveQuery(),next);touchFilters()
 }
 function clearCategory() {
-  liveQuery().filters = liveQuery().filters.filter(item => item.field !== 'category')
+  const next=updateProductCategorySelection(store.data,liveQuery(),[])
+  if(next)Object.assign(liveQuery(),next);else liveQuery().filters=liveQuery().filters.filter(item=>item.field!=='category')
   touchFilters()
 }
+function hasFilterValue(value:ProductListViewFilter['value']) {return Array.isArray(value)?value.some(item=>item.trim()):typeof value==='string'?!!value.trim():!!(value.from?.trim()||value.to?.trim())}
+function setExposedTypedValue(fieldName:string,value:ProductListViewFilter['value']) {
+  const field=filterFields.value.find(field=>field.field===fieldName);if(!field)return
+  const state=quickState(field);if(!state.simple){filterOpen.value=true;return}
+  const queryState=liveQuery();let filter=state.filter&&queryState.filters.find(filter=>filter.id===state.filter!.id)
+  if(!filter){const operator=field.kind==='date'?'between':field.kind==='text'?'contains':'in';filter={id:uid('filter'),field:fieldName,operator,value:operator==='between'?{from:'',to:''}:operator==='in'?[]:'',active:false};queryState.filters.push(filter)}
+  Object.assign(queryState,hasFilterValue(value)?setProductListFilterValue(queryState,filter.id,value):clearProductListFilterValue(queryState,filter.id));touchFilters()
+}
+async function commitClearFilterValues(ids:string[]) {
+  if(pageSaving.value || manualBusy.value || !ids.length)return
+  clearTimeout(saveTimer)
+  const stamp=JSON.stringify(pageDraft.value),next=clonePage(pageDraft.value),data=productListPageData(store.data,mode,next),view=activeProductListView(data),queryState=currentModeQuery(view)
+  let cleared=queryState;for(const id of ids)cleared=clearProductListFilterValue(cleared,id)
+  if(view.mode==='spu')view.spuQuery=cleared;else view.skuQuery=cleared
+  view.updatedAt=new Date().toISOString();next.query.page=1
+  if(!canSaveView.value){pageDraft.value=next;return}
+  const actor=store.activeUserId,preview=store.previewUserId;savingOwnPage=true;pageSaving.value=true
+  try {const result=await store.commitSpuPage(next,savedPageStamp.value,()=>alive&&JSON.stringify(pageDraft.value)===stamp&&actor===store.activeUserId&&preview===store.previewUserId);if(!result.ok){saveError.value=result.message||'外露值没有清除，原输入已保留。';pendingClearRetry={ids:[...ids],stamp};return}savedPageStamp.value=JSON.stringify(store.data.productListPages![mode]);if(JSON.stringify(pageDraft.value)===stamp)pageDraft.value=next;saveError.value='';pendingClearRetry=undefined}
+  catch(error){saveError.value=error instanceof Error?error.message:'外露值没有清除，原输入已保留。';pendingClearRetry={ids:[...ids],stamp}}
+  finally{pageSaving.value=false;savingOwnPage=false}
+}
+async function clearExposedField(fieldName:string) {const field=filterFields.value.find(field=>field.field===fieldName);if(!field)return;const state=quickState(field);if(!state.simple||!state.filter)return;await commitClearFilterValues([state.filter.id])}
+async function clearExposedValues() {const ids=exposedFields.value.flatMap(field=>{const state=quickState(field);return state.simple&&state.filter?[state.filter.id]:[]});await commitClearFilterValues(ids);if(exposedFields.value.some(field=>!quickState(field).simple))ElMessage.info('复杂条件已保留，请在更多筛选中管理。')}
+function unexposeField(field:string) {setViewExposed(listData.value,field,false)}
+function unexposeAll() {for(const field of [...exposedFields.value])setViewExposed(listData.value,field.field,false)}
 function removeSummary(id: string) {
   if (id === '$keyword') onKeyword('')
   else removeCondition(id)
@@ -492,7 +543,7 @@ function fieldOptions(field: string) {
   return []
 }
 function operatorsFor(field: string) {
-  return filterOperators(kindOf(field))
+  return filterOperators(kindOf(field),field)
 }
 function liveQuery() {
   const view = activeView.value
@@ -509,7 +560,7 @@ function addCondition() {
   const field = filterFields.value[0]
   if (!field) return
   const operator = operatorsFor(field.field)[0].value
-  liveQuery().filters.push({ id: uid('filter'), field: field.field, operator, value: operator === 'between' ? { from: '', to: '' } : operator === 'in' ? [] : '' })
+  liveQuery().filters.push({ id: uid('filter'), field: field.field, operator, value: operator === 'between' ? { from: '', to: '' } : ['in','descendants'].includes(operator) ? [] : '', active:false })
   touchFilters()
 }
 function changeFilterField(id: string, field: string) {
@@ -517,14 +568,14 @@ function changeFilterField(id: string, field: string) {
   if (!filter) return
   filter.field = field
   filter.operator = operatorsFor(field)[0].value
-  filter.value = filter.operator === 'between' ? { from: '', to: '' } : filter.operator === 'in' ? [] : ''
+  filter.value = filter.operator === 'between' ? { from: '', to: '' } : ['in','descendants'].includes(filter.operator) ? [] : '';filter.active=false
   touchFilters()
 }
 function changeFilterOperator(id: string, operator: ProductListFilterOperator) {
   const filter = liveQuery().filters.find((item) => item.id === id)
   if (!filter) return
   filter.operator = operator
-  filter.value = operator === 'between' ? { from: '', to: '' } : operator === 'in' ? [] : ''
+  filter.value = operator === 'between' ? { from: '', to: '' } : ['in','descendants'].includes(operator) ? [] : '';filter.active=false
   touchFilters()
 }
 function categoryConditionId(filter: ProductListViewFilter) {
@@ -544,23 +595,12 @@ function textValue(filter: ProductListViewFilter) {
 function setConditionValue(id: string, value: ProductListViewFilter['value']) {
   const filter = liveQuery().filters.find((item) => item.id === id)
   if (!filter) return
-  filter.value = value
+  Object.assign(liveQuery(),hasFilterValue(value)?setProductListFilterValue(liveQuery(),id,value):clearProductListFilterValue(liveQuery(),id))
   touchFilters()
 }
 function removeCondition(id: string) {
   const queryState = liveQuery()
   queryState.filters = queryState.filters.filter((item) => item.id !== id)
-  touchFilters()
-}
-function dateRange(field: string): [string, string] | null {
-  const filter = activeQuery.value.filters.find((item) => item.field === field && item.operator === 'between')
-  return filter ? conditionRange(filter) : null
-}
-function setDate(value: [string, string] | null) {
-  if (!quickState({ field: 'created', label: '创建日期', kind: 'date' }).simple) return
-  const queryState = liveQuery()
-  const rest = queryState.filters.filter((item) => item.field !== 'created')
-  queryState.filters = value ? [...rest, { id: 'f-created', field: 'created', operator: 'between', value: { from: value[0], to: value[1] } }] : rest
   touchFilters()
 }
 function toggleGroup(label: string) {
@@ -592,56 +632,60 @@ function manageView(action: 'create' | 'settings' | 'save-filter' | 'import') {
 }
 function resetColumns() {
   if (!warn(resetProductListColumns(listData.value, activeView.value.id, listMode.value, store.defaultColumns()))) return
-  ElMessage.success('已恢复当前模式的默认列')
+  void persistPage()
 }
-function openCreate() {
+async function openCreate() {
+  if(!canSaveView.value||!await confirmStage(false))return
+  pendingCreatedViewId.value=''
   draftName.value = ''
   nameError.value = ''
   createOpen.value = true
 }
-function confirmCreate() {
-  const result = createProductListView(listData.value, draftName.value, activeView.value.id, () => uid('view'))
-  if (!result.ok) {
-    nameError.value = result.message
-    return
-  }
-  createOpen.value = false
-  query.value.page = 1
-  ElMessage.success('视图已创建')
+async function confirmCreate() {
+  if(!canSaveView.value)return
+  if(pendingCreatedViewId.value){const renamed=renameProductListView(listData.value,pendingCreatedViewId.value,draftName.value);if(!renamed.ok){nameError.value=renamed.message;return}}
+  else {const result=createProductListView(listData.value,draftName.value,activeView.value.id,()=>uid('view'));if(!result.ok){nameError.value=result.message;return}pendingCreatedViewId.value=result.id;const created=pageDraft.value.views.find(view=>view.id===result.id);if(created)created.categoryFilterLayout='popover'}
+  query.value.page=1
+  if(!await persistPage()){nameError.value=saveError.value;return}
+  pendingCreatedViewId.value='';createOpen.value=false;clearStage();ElMessage.success('视图已创建并保存')
 }
 function openSettings() {
   renameDraft.value = activeView.value.name
   renameError.value = ''
   settingsOpen.value = true
 }
-function confirmRename() {
+async function confirmRename() {
+  if(!canSaveView.value)return
   const result = renameProductListView(listData.value, activeView.value.id, renameDraft.value)
   if (!result.ok) {
     renameError.value = result.message
     return
   }
+  if(!await persistPage()){renameError.value=saveError.value;return}
   ElMessage.success('名称已保存')
 }
-function confirmCopy() {
+async function confirmCopy() {
+  if(!canSaveView.value||!await confirmStage(false)||!await persistPage())return
   const result = copyProductListView(listData.value, activeView.value.id, () => uid('view'))
   if (!warn(result)) return
-  settingsOpen.value = false
-  query.value.page = 1
-  ElMessage.success('已复制为独立视图')
+  query.value.page=1
+  if(!await persistPage())return
+  settingsOpen.value=false;clearStage();ElMessage.success('已复制并保存为独立视图')
 }
 async function confirmDelete() {
   await ElMessageBox.confirm(`删除视图「${activeView.value.name}」？商品不会被删除。`, '删除视图')
   const result = deleteProductListView(listData.value, activeView.value.id)
   if (!warn(result)) return
-  settingsOpen.value = false
-  query.value.page = 1
-  ElMessage.success('视图已删除')
+  query.value.page=1
+  if(!await persistPage())return
+  settingsOpen.value=false;ElMessage.success('视图已删除')
 }
-function saveFilter() {
+async function saveFilter() {
+  if(!canSaveView.value)return
   const page = listData.value
   const view: ListView = { id: uid('view'), name: `筛选${page.listViews.length}`, query: { ...JSON.parse(JSON.stringify(query.value)), page: 1 }, columns: [], keyword: activeQuery.value.keyword, viewFilters: JSON.parse(JSON.stringify(activeQuery.value.filters)) }
   page.listViews.push(view); page.activeViewId = view.id
-  ElMessage.success('筛选已保存，刷新后还在')
+  if(await persistPage())ElMessage.success('筛选预设已保存，不会创建新视图')
 }
 function familyRole(row: ProductFamily) {
   if (row.productTypeId) return roleOfType(store.data, row.productTypeId)
@@ -738,10 +782,17 @@ async function batchStatus(familyId: string, status: Sku['status']) {
 onMounted(() => {
   if (route.query.panel === 'columns') columnOpen.value = true
 })
-const { categoryOpen, categorySideClosed, narrowScreen, categoryLayout, showSidebar, setCategorySidebar } = useProductListCategoryLayout(
+const { categoryOpen, narrowScreen, categoryLayout, showSidebar, setCategorySidebar, openCategory, closeSidebar } = useProductListCategoryLayout(
   activeView,
   layout => setViewCategoryLayout(listData.value, layout),
 )
+async function allowListLeave() {
+  if(pageSaving.value || manualBusy.value)return false
+  if(!await confirmStage(false))return false
+  return await persistPage()
+}
+onBeforeRouteLeave(allowListLeave)
+onBeforeRouteUpdate((to,from)=>mode==='sku'&&String(to.query.spu||'')!==String(from.query.spu||'')?allowListLeave():true)
 watch(presentation, () => {
   if (query.value.page !== presentation.value.page) query.value.page = presentation.value.page
 }, { immediate: true })
@@ -760,7 +811,7 @@ watch(
 .list-main{overflow:hidden}.view-save-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.view-save-actions .el-button{margin:0}.list-switch{padding-bottom:12px;border-bottom:1px solid var(--el-border-color-lighter);margin-bottom:12px}.filters{gap:8px}.spu-table :deep(th){color:var(--el-text-color-secondary);font-weight:600}.spu-table .linkish{text-align:left;font-weight:600;overflow-wrap:anywhere}.spu-table .sku-hint{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;color:var(--el-text-color-secondary)}.spu-table :deep(.el-dropdown){margin-left:12px;vertical-align:middle}
 
 .panel.is-category-side { display: flex; align-items: flex-start; gap: 12px; }
-.category-side { width: 240px; flex: none; max-height: 70vh; overflow: auto; }
+.category-side { width:var(--product-category-width,240px); flex:0 0 var(--product-category-width,240px); min-width:0; overflow:hidden; }
 .list-main { flex: 1; min-width: 0; }
 .category-chip { max-width: 100%; overflow-wrap: anywhere; font-size: 13px; color: var(--text-secondary); }
 .category-side-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
@@ -777,7 +828,9 @@ watch(
 .view-mode { margin-left: 6px; }
 .column-list { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow: auto; }
 .column-list li { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
-.drag-handle { cursor: grab; color: var(--text-secondary, #607089); user-select: none; }
+.drag-handle { cursor:grab;color:var(--el-text-color-secondary);user-select:none;border:0;background:transparent;padding:5px;font:inherit }.drag-handle:disabled{cursor:default;opacity:.4}
+.spu-table :deep(.manual-drop-before>td){box-shadow:inset 0 2px var(--el-color-primary)}.spu-table :deep(.manual-drop-after>td){box-shadow:inset 0 -2px var(--el-color-primary)}.spu-table :deep(.manual-drop-blocked>td){background:var(--el-color-warning-light-9)}
+.configuration-pop{display:flex;flex-direction:column;gap:10px}.list-configuration{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}.list-configuration .el-button{margin-left:0}.view-save-state{font-size:12px;color:var(--el-text-color-secondary)}.view-save-state.failed{color:var(--el-color-danger)}.manual-scope{font-size:12px;color:var(--el-text-color-secondary);line-height:1.6}.stage-path{display:block;font-size:12px;color:var(--el-text-color-secondary)}
 .stage-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .sku-expand { padding: 0 12px 8px; }
 .group-head { display: block; width: 100%; margin: 8px 0 4px; padding: 8px 10px; border: 0; border-radius: 6px; background: var(--app-surface-muted); color: inherit; text-align: left; cursor: pointer; }

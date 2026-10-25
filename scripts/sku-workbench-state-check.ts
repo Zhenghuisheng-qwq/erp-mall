@@ -146,11 +146,13 @@ assert.ok((await workbench.setDefault(created.id)).ok)
 const changed = cloneSku(workbench.config.value)
 changed.density = 'compact'
 const beforeWrites = writes
+const beforeFailedApply = cloneSku(workbench.config.value), retainedDraft = cloneSku(changed)
 failStorage = true
 assert.equal((await workbench.apply(changed)).ok, false)
-assert.equal(workbench.config.value.density, 'compact')
-assert.equal(workbench.dirty.value, true)
-assert.equal((await workbench.save()).ok, false)
+assert.deepEqual(workbench.config.value, beforeFailedApply, 'Failed application keeps the last accepted working configuration')
+assert.deepEqual(changed, retainedDraft, 'The caller retains the complete candidate for an explicit retry')
+assert.equal(workbench.dirty.value, false)
+assert.equal((await workbench.apply(changed)).ok, false)
 const beforeImport = cloneSku(store.data)
 const incoming = cloneSku(store.data)
 const incomingFamily = incoming.families[0]
@@ -160,11 +162,14 @@ await assert.rejects(async () => (await store.importJson(JSON.stringify({ versio
 assert.deepEqual(store.data, beforeImport, 'Failed migration during import must not replace live data or settings')
 assert.equal(writes, beforeWrites)
 failStorage = false
+assert.ok((await workbench.apply(changed)).ok)
+assert.equal(workbench.config.value.density, 'compact')
+assert.equal(workbench.dirty.value, true)
 assert.ok((await workbench.save()).ok)
 assert.equal(catalogMigrationError(), '')
 assert.equal(workbench.dirty.value, false)
 await nextTick()
-assert.equal(writes, beforeWrites + 1, 'Explicit save must not duplicate deep-watch persistence')
+assert.equal(writes, beforeWrites + 2, 'Explicit retry application and named-view save each persist once without a watch echo')
 assert.ok((await workbench.apply({ ...cloneSku(workbench.config.value), density: 'comfortable' })).ok)
 assert.ok((await workbench.select(SYSTEM_SKU_VIEW_ID)).ok)
 assert.ok((await workbench.select(created.id)).ok)
