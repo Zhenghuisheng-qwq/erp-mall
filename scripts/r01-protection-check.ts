@@ -7,13 +7,17 @@ import { dictionaryRemovalBlock, valueRenameDecision } from '../src/domain/dicti
 import { allowedBusinessValues, businessIssues, defaultBusinessDefinitions, resolveNodeBusiness } from '../src/domain/nodeBusiness'
 import { normalizeStored, useCatalogStore } from '../src/stores/catalog'
 import { DATA_VERSION, STORAGE_KEY, type AppData } from '../src/domain/types'
+import { ensureRbac } from '../src/domain/rbac'
+import { RBAC_ENFORCEMENT_ENABLED } from '../src/domain/accessMode'
 installCatalogTestLocks()
-const out=process.env.R01_PROTECTION_OUTPUT!;assert(out);mkdirSync(out,{recursive:true})
-const checks:string[]=[];const pass=(s:string)=>{checks.push(s);console.log('PASS '+s)}
+const artifacts=process.argv.includes('--artifacts'),out=process.env.R01_PROTECTION_OUTPUT||'work/r01-protection';if(artifacts)mkdirSync(out,{recursive:true})
+const checks:string[]=[];const pass=(s:string)=>{checks.push(s);if(artifacts)console.log('PASS '+s)}
 const disk=new Map<string,string>()
 Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(k:string)=>disk.get(k)??null,setItem:(k:string,v:string)=>disk.set(k,v),removeItem:(k:string)=>disk.delete(k)}})
+const session=new Map<string,string>()
+Object.defineProperty(globalThis,'sessionStorage',{configurable:true,value:{getItem:(k:string)=>session.get(k)??null,setItem:(k:string,v:string)=>session.set(k,v),removeItem:(k:string)=>session.delete(k)}})
 const f=r01ProtectionFixture(), payload=(data:AppData)=>JSON.stringify({version:DATA_VERSION,data})
-async function open(data=structuredClone(f.data)){disk.set(STORAGE_KEY,payload(data));setActivePinia(createPinia());const s=useCatalogStore();await s.waitForPersistence();return s}
+async function open(data=structuredClone(f.data)){session.clear();session.set('iyge-rbac-simulated-user','u-admin');disk.set(STORAGE_KEY,payload(data));setActivePinia(createPinia());const s=useCatalogStore();await s.waitForPersistence();return s}
 const node=(d:AppData)=>d.productSpecNodes.find(n=>n.id===f.nodeId)!
 for(const source of ['draft','snapshot']) {
   const d=structuredClone(f.data)
@@ -36,16 +40,27 @@ for(const source of ['draft','snapshot']) {
   pass('same text in another attribute and frozen but unselected candidates remain maintainable')
 }
 for(const field of ['directory','draft','snapshot','frozen']) {
-  const d=structuredClone(f.data);d.activeRole='operator';const s=await open(d),before=s.exportJson(),raw=disk.get(STORAGE_KEY),next=JSON.parse(before)
+  const d=structuredClone(f.data);d.activeRole='operator';ensureRbac(d)
+  const operator=d.rbac!.roles.find(role=>role.id==='role:operator')!
+  operator.permissionCodes=[...new Set([...operator.permissionCodes,'product:import:read','product:import:execute','product:export:execute'])]
+  const s=await open(d);assert(s.startPermissionPreview('u-op').ok)
+  const before=s.exportJson(),raw=disk.get(STORAGE_KEY),next=JSON.parse(before),sessionUser=s.currentUser?.id
   next.data.activeRole='admin' // incoming role must never authorize this import
   if(field==='directory'){next.data.businessDefinitions=defaultBusinessDefinitions();next.data.businessDefinitions[0].name='运营改目录'}
   else {
     const n=(field==='draft'?next.data.productSpecNodes:next.data.specModelVersions.find((v:{id:string})=>v.id==='protection-v1').nodesSnapshot).find((n:{id:string})=>n.id===f.nodeId)
     if(field==='frozen')n.businessConfigs[0].dictionarySnapshot.name='运营改冻结词典';else n.businessConfigs[0].enabled=false
   }
-  await assert.rejects(()=>s.importJson(JSON.stringify(next)),/当前角色仅可查看节点业务配置/)
-  await s.waitForPersistence();assert.equal(s.exportJson(),before);assert.equal(disk.get(STORAGE_KEY),raw);assert.equal(s.data.activeRole,'operator');s.$dispose()
-  pass(`operator ${field} import rejected atomically using pre-import role`)
+  if(RBAC_ENFORCEMENT_ENABLED){
+    await assert.rejects(()=>s.importJson(JSON.stringify(next)),/没有 product:model|无权导入/)
+    await s.waitForPersistence();assert.equal(s.exportJson(),before);assert.equal(disk.get(STORAGE_KEY),raw)
+  }else{
+    await s.importJson(JSON.stringify(next));await s.waitForPersistence()
+    const expected=structuredClone(next.data);expected.activeRole='operator'
+    assert.deepEqual(JSON.parse(s.exportJson()).data,expected);assert.deepEqual(JSON.parse(disk.get(STORAGE_KEY)!).data,expected)
+  }
+  assert.equal(s.currentUser?.id,sessionUser);assert.equal(s.data.activeRole,'operator');s.$dispose()
+  pass(`operator ${field}: strict pre-import authorization rejects atomically; default uses explicit unrestricted policy without changing session`)
 }
 {
   const s=await open(),backup=s.exportJson();await s.importJson(backup)
@@ -85,4 +100,5 @@ for(const future of ['unknown-definition','unknown-kind']){
   assert.deepEqual(node(s.data).businessConfigs,node(d).businessConfigs);s.$dispose()
   pass(`${future}: valid raw record retained and affected publication refused`)
 }
-writeFileSync(`${out}/checks.json`,JSON.stringify({passed:checks.length,checks},null,2))
+if(artifacts)writeFileSync(`${out}/checks.json`,JSON.stringify({passed:checks.length,checks},null,2))
+console.log(`PASS R01 protection ${RBAC_ENFORCEMENT_ENABLED?'strict':'default'} ${checks.length} groups`)

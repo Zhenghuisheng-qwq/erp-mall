@@ -50,10 +50,10 @@ export const foundationManuals: Record<string, GuideManualContent> = {
   'page-params': {
     purpose:'维护全局属性词典、取值和取值分组，为方案与模型提供稳定引用。',
     features:[
-      feature('params-search','查参数与取值','查找词典并查看使用方案。','在“搜索参数或取值”输入关键词；查看“用在”列。','筛选不改词典；使用方案摘要不等于全部历史引用。'),
+      feature('params-search','按名称、ID和取值查词典','辨认同名属性，并查看真实属性身份和使用方案。','搜索属性名称、ID或取值；在“属性 ID”列或编辑区复制完整 ID，查看“用在”列。','ID只读，不是行号；筛选和复制不改词典，使用方案摘要不等于全部历史引用。'),
       feature('params-create','新建参数','创建空的全局属性。','点“新建参数”打开抽屉，填写名称后“保存名称”。','建立参数记录，模型后续按属性 ID 引用。',{primary:true,actionIds:['action-dictionary-save']}),
       feature('params-name','修改全局名称','修改词典属性名称。','行“编辑”，在抽屉改名，读引用提示后点“保存名称”，必要时确认。','不是给单个节点起别名；引用保护通过后才写入，不改发布快照。',{primary:true,actionIds:['action-dictionary-save']}),
-      feature('params-values','添加和移除取值','维护当前属性自己的候选值。','抽屉中搜取值；填“新取值”按 Enter/添加，或点某值“删除”。','添加去重；删除检查实际引用，不能按同文字跨属性处理。',{actionIds:['action-dictionary-value-remove']}),
+      feature('params-values','批量添加或移除取值','维护当前属性自己的候选值，不创建模型节点。','在编辑区每行输入一个取值，核对待添加预览，可移除或取消，再“确认添加”；删除仍点具体取值的“删除”。','去空行并保序去重，已有值跳过；批量写入失败保留全部输入且原词典不变。标点、单位和有效空格不拆分；删除继续检查引用。',{actionIds:['action-dictionary-value-remove']}),
       feature('params-groups','维护取值分组','把已有候选值分成便于复用的小组。','抽屉“新增分组”，修改组名并多选当前属性取值。','分组和“参与旧结构”开关直接修改本机词典，由数据持久化队列保存。'),
       feature('params-brand','打开品牌属性词典','快捷查看品牌这一公共属性。','点“维护品牌”。','打开品牌属性的词典抽屉；品牌中心目录与旧商品品牌文字仍需分别理解。'),
       feature('params-delete','删除空闲参数','移除未被保护引用的属性。','对应行“删除”。','删除检查引用；不会自动改写在用模型、商品或历史版本。',{risk:true})
@@ -90,7 +90,9 @@ export const foundationManuals: Record<string, GuideManualContent> = {
     purpose:'用画布、清单或幕布编辑真实模型分支，并发布可追溯的合法组合与建档依据。',
     features:[
       feature('specs-context','定位分类、类型和模型','从全局总览或单模型设计打开明确模型。','左侧选分类/产品类型/模型，或切“全局总览／单模型设计”；查看模式可点“进入编辑”。','进入编辑需模型修改权限，不按名称自动合并模型。'),
-      feature('specs-structure','维护属性与值分支','添加、引用、改选、删除或调整当前节点。','选节点后用操作条/右键菜单；属性下加值，值下加条件属性；词典选择器可多选连续加入。','节点保存属性 ID 和对应值；不同分支可采用不同属性顺序。',{primary:true,actionIds:['action-model-edit']}),
+      feature('specs-structure','区分添加节点与更换引用','在明确位置新增节点，或只更换当前节点引用。','用“添加属性／添加属性值”增加节点；点击已有节点进入“更换属性引用／更换属性值引用”，核对后确认。','添加可多选，更换保持单选；不把替换做成新建同级节点，也不以更换引用改全局名称。',{primary:true,actionIds:['action-model-edit']}),
+      feature('specs-attribute-batch','混选已有属性与新属性','已有多选和本次新属性一起暂存，按真实 ID 区分同名项。','按名称或 ID 搜索已有属性；输入新名称“加入待添加”，可连续追加并移除，最后“确认添加”。','确认前不写词典或插节点；同名歧义须明确选择 ID。更换属性仍检查已有子节点和业务配置，编辑全局名称是独立操作。',{primary:true,actionIds:['action-model-edit']}),
+      feature('specs-value-batch','一次添加多个属性值','在明确的所属属性下混选已有值，并输入多个新值。','核对属性名、ID和路径；多选已有值，每行补充一个新值，检查预览并移除不需要的项，再“确认添加”。','末尾有效输入也纳入本次；当前父节点已有值明确跳过。整批合法并保存成功才关闭，一次确认对应一次撤销；取消不落盘。',{primary:true,actionIds:['action-model-edit']}),
       feature('specs-views','三视图与快捷键','在同一结构上使用画布、清单或幕布。','顶部视图切换；先聚焦结构区再用“全部快捷键”列出的操作。','视图共享节点；输入框、下拉和弹窗中的按键不会被结构快捷键抢用。'),
       feature('specs-layout','布局、缩放和展开','整理位置并查看大树。','用“自动布局／手工摆放／适应全部”、缩放菜单、小地图及“全部展开/收起”。','调整位置不改父子关系；自动布局才重新对齐手工位置。'),
       feature('specs-business','配置值节点业务','设置销售定位、物料策略和路径允许值。','选属性值节点点“业务配置”；选功能、范围、参数，点“保存节点配置”。','配置是值节点附属实例，不新增规格轴；目录复用不代表实例共用。',{primary:true,actionIds:['action-node-business-save']}),
@@ -104,6 +106,7 @@ export const foundationManuals: Record<string, GuideManualContent> = {
     restrictions:[
       restriction('specs-path','词典未绑定、属性值不属于所引属性、路径重复/不完整或结构非法','正式发布和建档被阻止。','用“结构检查”及规则卡定位；修正当前分支，不全局补出不存在的组合。',['rule-model-dictionary','rule-model-structure'],true),
       restriction('specs-config','允许值失效、未知配置或多条不一致配置','显示不支持/冲突并阻止受影响发布，不自动覆盖或取交集。','保留原文，定位节点并明确调整；尚未确认的覆盖规则仍待业务确认。',['rule-node-config']),
+        restriction('specs-dictionary-batch','本批任一取值超出当前路径允许范围，或创建词典项的权限不足','整批不提交，不能将路径禁用误作词典缺值，也不能静默放宽上级配置。','保留选择和输入，移除非法项或明确维护允许范围后重试。只引用已有词典项无需词典修改权限；新属性需创建权限，新值需词典修改权限。',['rule-node-config','rule-dictionary-reference','rule-permission']),
       restriction('specs-frozen','查看模式、历史版本或历史来源','只读冻结依据，布局和新草稿不重写原快照、编号及 MAT/SKU 身份。','要调整未来行为请进入草稿编辑并发布新版本。',['rule-model-history','rule-identity-separation']),
       restriction('specs-material-source','未发布、规划停用、来源依据变化或人工兼容保护命中','不能凭草稿预览或确认版本范围绕过建档/人工保护。','核对具体版本、节点范围和预览；新操作使用新请求，保留旧来源。',['rule-material-source','rule-material-request','rule-compatibility-manual-protection']),
       restriction('specs-unsaved','保存失败或准备离开尚未保存的编辑','保留编辑和错误提示；离开需明确确认，不把发布失败写成已发布。','先保存成功或明确放弃；打开页面说明不会触发业务离开。',['rule-persistence'])

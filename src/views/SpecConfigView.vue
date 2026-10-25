@@ -2,12 +2,12 @@
   <div class="designer" :aria-busy="modelSaving || copying || publishing">
     <RuleExplanation v-if="publishFailure" :failure="publishFailure" :supported-recovery="['edit-input']" @recover="recoverPublish" />
     <div class="studio-switch">
-      <el-radio-group :model-value="surface" size="small" @change="setSurface">
+      <el-radio-group :model-value="surface" :disabled="composerBusy" size="small" @change="setSurface">
         <el-radio-button value="overview">全局总览</el-radio-button>
         <el-radio-button value="design">单模型设计</el-radio-button>
       </el-radio-group>
     </div>
-    <div class="workbench" :class="{ 'is-cat-fold': treeFold, 'is-rail-fold': railFold, 'is-overview': surface === 'overview' }">
+    <div class="workbench" :inert="composerBusy" :class="{ 'is-cat-fold': treeFold, 'is-rail-fold': railFold, 'is-overview': surface === 'overview' }">
       <CategoryCatalog
         :rows="categoryRows"
         :leaf-id="leafId"
@@ -345,7 +345,7 @@
         @toggle="toggleExpand"
         @move="moveOutline"
         @menu="openNodeMenu"
-        @bind="openBindAttribute"
+        @bind="openReferencePicker"
       />
       <ModelOutline
         v-else
@@ -378,7 +378,7 @@
         @toggle="toggleExpand"
         @move="moveOutline"
         @menu="openNodeMenu"
-        @bind="openBindAttribute"
+        @bind="openReferencePicker"
       />
         </div>
         </template>
@@ -418,61 +418,33 @@
     <NodeBusinessDialog :open="businessOpen" :nodes="nodes" :node-id="businessNodeId" :readonly="!canEditStructure" :busy="businessBusy" :save="saveBusiness" @close="businessOpen = false" @pending="businessBusy = $event" @naming="businessOpen = false; selected = businessNodeId; namingOpen = true" @locate="locateBusiness" />
     <MaterialRelationDialog :open="relationOpen" :source="{kind:'node',modelId:templateId,versionId:comboVersionId,anchorNodeId:selected,scope:'current'}" @close="relationOpen=false" />
     <NamingRuleDialog :open="namingOpen" :readonly="!canEditStructure" :node-id="selected" :template-id="templateId" @close="namingOpen = false" @saved="markWorkingDraft" />
-    <NodeAddPanel v-model="attributeOpen" :title="attributeTitle" :anchor="addAnchor" @closed="resetAttrComposer">
-      <el-select v-if="attributeBindId" ref="attrBindSelect" v-model="attributePick" filterable placement="top-start" popper-class="dict-select-popper" placeholder="搜索已有属性" style="width: 100%" :filter-method="rememberAttrQuery" @visible-change="dictDropOpen = $event">
-        <el-option v-for="item in filteredAttributeChoices" :key="item.id" :label="item.name" :value="item.id" />
-        <template #empty><p class="dict-empty">没有匹配「{{ attrQuery.trim() || '当前关键字' }}」</p></template>
-      </el-select>
-      <el-select v-else ref="attrMultiSelect" v-model="attributeIds" multiple filterable collapse-tags collapse-tags-tooltip placement="top-start" popper-class="dict-select-popper" placeholder="搜索已有属性，可多选" style="width: 100%" :filter-method="rememberAttrQuery" @visible-change="dictDropOpen = $event">
-        <el-option v-for="item in filteredAttributeChoices" :key="item.id" :label="item.name" :value="item.id" />
-        <template #empty><p class="dict-empty">没有匹配「{{ attrQuery.trim() || '当前关键字' }}」</p></template>
-      </el-select>
-      <p v-if="attrQuery.trim() && !exactAttribute" class="dict-empty">没有找到「{{ attrQuery.trim() }}」。</p>
-      <div class="dict-create">
-        <el-button v-if="attrQuery.trim() && !exactAttribute" link type="primary" @click="beginCreateAttribute(attrQuery)">新增属性：{{ attrQuery.trim() }}</el-button>
-        <el-button v-else-if="!creatingAttr" link type="primary" @click="creatingAttr = true">新增属性</el-button>
-        <template v-if="creatingAttr">
-          <el-input v-model="newAttrName" placeholder="新属性名称" @keydown.enter="createDictionaryAttribute" />
-          <el-button type="primary" :loading="dictBusy" :disabled="!store.can('product:dictionary:create')" @click="createDictionaryAttribute">保存到词典并引用</el-button>
-        </template>
-      </div>
-      <div v-if="boundParam" class="dict-global">
-        <p>上面的选择只更换当前节点的引用，不会改「{{ boundParam.name }}」这个全局词典。</p>
-        <el-button link type="primary" @click="openGlobalRename">编辑全局词典名称</el-button>
-        <template v-if="globalRenameOpen">
-          <p class="dict-empty">{{ globalRenameHint }}</p>
-          <el-input v-model="globalName" :disabled="!globalRenameAllowed" placeholder="新的全局名称" />
-          <el-button type="primary" :disabled="!globalRenameAllowed" @click="saveGlobalName">保存全局名称</el-button>
-        </template>
-      </div>
-      <template #footer>
-        <el-button @click="attributeOpen = false">取消</el-button>
-        <el-button type="primary" @click="addAttribute">确定</el-button>
-      </template>
+    <NodeAddPanel v-model="attributeOpen" :title="attributeBindId ? '更换属性引用' : '添加属性'" :anchor="addAnchor" :busy="composerBusy" @closed="resetAttrComposer">
+      <p class="composer-context">位置：{{ composerPath(attributeBindId || attachParent || '') }}</p>
+      <p v-if="boundParam" class="composer-context">当前属性：<strong>{{ boundParam.name }}</strong> · {{ boundParam.id }}</p>
+      <el-select v-if="attributeBindId" ref="attrBindSelect" v-model="attributePick" :disabled="composerBusy" clearable filterable placement="top-start" popper-class="dict-select-popper" placeholder="搜索属性名称或 ID，选择一个引用" aria-label="选择替换属性" style="width:100%" :filter-method="rememberAttrQuery" @visible-change="dictDropOpen=$event"><el-option v-for="item in filteredAttributeChoices" :key="item.id" :label="item.name" :value="item.id"><span>{{ item.name }}</span><small class="composer-option-id">{{ item.id }}</small></el-option></el-select>
+      <el-select v-else ref="attrMultiSelect" v-model="attributeIds" :disabled="composerBusy" multiple filterable collapse-tags collapse-tags-tooltip placement="top-start" popper-class="dict-select-popper" placeholder="搜索属性名称或 ID，可多选" aria-label="选择已有属性" style="width:100%" :filter-method="rememberAttrQuery" @visible-change="dictDropOpen=$event"><el-option v-for="item in filteredAttributeChoices" :key="item.id" :label="item.name" :value="item.id"><span>{{ item.name }}</span><small class="composer-option-id">{{ item.id }}</small></el-option></el-select>
+      <div class="dict-create"><el-input v-model="newAttrName" :disabled="composerBusy" placeholder="输入新属性名称" aria-label="新属性名称" @keydown.enter.stop="queueAttributeFromInput($event)"/><el-button :disabled="composerBusy||!newAttrName.trim()" @click="queueAttributeFromInput()">加入待添加</el-button></div>
+      <p class="dict-empty">新属性仅加入本地待选；最后确认才保存词典和节点。已有同名项请按 ID 明确选择。</p>
+      <section class="composer-preview" aria-label="属性待添加预览"><h4>{{ attributeBindId ? '目标引用（单选）' : '待添加预览' }} · {{ attributeCandidateInput.length }}</h4><article v-for="(item,index) in attributeCandidateInput" :key="attributeCandidateKey(item)" :data-pending-attribute="attributeCandidateKey(item)"><div><strong>{{ attributeCandidateLabel(item) }}</strong><small>{{ item.source==='existing' ? `词典已有 · ${item.attributeId}` : attributePreview.items[index]?.dictionary==='existing' ? `将引用已有属性 · ${attributePreview.items[index]?.attributeId}` : '新属性 · 未保存，确认时分配 ID' }}</small><p v-if="attributePreview.items[index]?.message">{{ attributePreview.items[index]?.message }}</p></div><el-button link :disabled="composerBusy" :aria-label="`移除属性 ${attributeCandidateLabel(item)}`" @click="removeAttributeCandidate(item)">移除</el-button></article><p v-if="!attributeCandidateInput.length" class="dict-empty">可混选已有属性并连续加入新属性。</p></section>
+      <p class="dict-empty">将添加／更换 {{ attributePreview.items.filter(item=>item.status==='ready').length }} 项，跳过 {{ attributePreview.items.filter(item=>item.status==='skipped').length }} 项；跳过项不重复写入。</p>
+      <el-alert v-if="composerProblem||composerError||!attributePreview.ok&&attributeCandidateInput.length" :title="composerProblem||composerError||attributePreview.message" type="error" :closable="false" data-composer-error/>
+      <p v-if="missingComposerPermissions.length" class="issue-error">缺少权限：{{ missingComposerPermissions.join('、') }}。待选内容已保留。</p>
+      <div v-if="composerBasisChanged" class="composer-basis"><p>模型结构已变化，待选内容已保留。核对预览后再更新依据。</p><el-button :disabled="composerBusy||!!composerProblem" @click="refreshComposerBasis">已核对，更新依据</el-button></div>
+      <div v-if="boundParam" class="dict-global"><el-button link :disabled="composerBusy" @click="openGlobalRename">编辑全局词典名称（独立操作）</el-button><template v-if="globalRenameOpen"><p class="dict-empty">{{ globalRenameHint }}</p><el-input v-model="globalName" :disabled="!globalRenameAllowed||dictBusy" placeholder="新的全局名称"/><el-button :disabled="!globalRenameAllowed||dictBusy" @click="saveGlobalName">保存全局名称</el-button></template></div>
+      <template #footer><el-button :disabled="composerBusy" @click="attributeOpen=false">取消</el-button><el-button type="primary" :loading="composerBusy" :disabled="!!composerProblem||composerBasisChanged||!attributeCandidateInput.length||!attributePreview.ok||!!missingComposerPermissions.length" @click="submitAttributeComposer">{{ attributeBindId ? '确认更换引用' : `确认添加（${attributeCandidateInput.length}项）` }}</el-button></template>
     </NodeAddPanel>
-    <NodeAddPanel v-model="valueOpen" title="添加属性值" :anchor="addAnchor" @closed="resetValueComposer">
-      <p v-if="valueParentName" class="dict-empty">只搜索「{{ valueParentName }}」自己的取值，不会搜到其他属性。</p>
-      <el-select v-if="valueBindNodeId" ref="valueBindSelect" v-model="valueBindPick" filterable placement="top-start" popper-class="dict-select-popper" placeholder="搜索已有取值" style="width: 100%" :filter-method="rememberValueQuery" @visible-change="dictDropOpen = $event">
-        <el-option v-for="item in filteredRebindValues" :key="item" :label="item" :value="item" />
-        <template #empty><p class="dict-empty">「{{ valueParentName }}」下没有匹配「{{ valueQuery.trim() || '当前关键字' }}」</p></template>
-      </el-select>
-      <el-select v-else ref="valueMultiSelect" v-model="valuePicks" multiple filterable collapse-tags collapse-tags-tooltip placement="top-start" popper-class="dict-select-popper" placeholder="搜索已有取值，可多选" style="width: 100%" :filter-method="rememberValueQuery" @visible-change="dictDropOpen = $event">
-        <el-option v-for="item in filteredValueChoices" :key="item" :label="item" :value="item" />
-        <template #empty><p class="dict-empty">「{{ valueParentName }}」下没有匹配「{{ valueQuery.trim() || '当前关键字' }}」</p></template>
-      </el-select>
-      <p v-if="valueQuery.trim() && !exactValue" class="dict-empty">没有找到「{{ valueQuery.trim() }}」。</p>
-      <div class="dict-create">
-        <el-button v-if="valueQuery.trim() && !exactValue" link type="primary" @click="beginCreateValue(valueQuery)">新增属性值：{{ valueQuery.trim() }}</el-button>
-        <template v-if="creatingValue">
-          <el-input v-model="newDictValue" placeholder="新属性值" @keydown.enter="createDictionaryValueForNode" />
-          <el-button type="primary" :loading="dictBusy" :disabled="!store.can('product:dictionary:update')" @click="createDictionaryValueForNode">保存到词典并引用</el-button>
-        </template>
-      </div>
-      <template #footer>
-        <el-button @click="valueOpen = false">取消</el-button>
-        <el-button v-if="valueBindNodeId" type="primary" :disabled="!valueBindPick" @click="rebindPickedValue">引用所选</el-button>
-        <el-button v-else type="primary" :disabled="!valuePicks.length" @click="addValues">确定</el-button>
-      </template>
+    <NodeAddPanel v-model="valueOpen" :title="valueBindNodeId ? '更换属性值引用' : '添加属性值'" :anchor="addAnchor" :busy="composerBusy" @closed="resetValueComposer">
+      <div class="composer-context" data-value-owner><strong>{{ valueOwnerParam?.name || '属性引用已失效' }}</strong><span>属性 ID：{{ composerOwnerAttributeId }}</span><span>父节点：{{ valueParentId }}</span><span>路径：{{ composerPath(valueParentId) }}</span></div>
+      <p v-if="valueBindNodeId" class="dict-empty">当前值：{{ nodes.find(node=>node.id===valueBindNodeId)?.valueId }}。选择一个目标引用，不会修改原词典名称。</p>
+      <el-select v-if="valueBindNodeId" ref="valueBindSelect" v-model="valueBindPick" :disabled="composerBusy" clearable filterable placement="top-start" popper-class="dict-select-popper" placeholder="搜索已有取值，选择一个引用" aria-label="选择替换属性值" style="width:100%" :filter-method="rememberValueQuery" @visible-change="dictDropOpen=$event"><el-option v-for="item in filteredRebindValues" :key="item" :label="item" :value="item"><span>{{ item }}</span><small v-if="pathValueBlocked(item)" class="composer-option-id">当前路径不允许</small></el-option></el-select>
+      <el-select v-else ref="valueMultiSelect" v-model="valuePicks" :disabled="composerBusy" multiple filterable collapse-tags collapse-tags-tooltip placement="top-start" popper-class="dict-select-popper" placeholder="搜索已有取值，可多选" aria-label="选择已有属性值" style="width:100%" :filter-method="rememberValueQuery" @visible-change="dictDropOpen=$event"><el-option v-for="item in filteredValueChoices" :key="item" :label="item" :value="item"><span>{{ item }}</span><small v-if="pathValueBlocked(item)" class="composer-option-id">当前路径不允许</small></el-option></el-select>
+      <label class="composer-field-label">{{ valueBindNodeId ? '输入一个新值，用作替换引用' : '补充取值（每行一个；标点、空格和单位保留）' }}</label><el-input v-model="newDictValue" :disabled="composerBusy" :type="valueBindNodeId ? 'text' : 'textarea'" :rows="4" :placeholder="valueBindNodeId ? '例如：蓝色（仅一项）' : '蓝色\n白色'" :aria-label="valueBindNodeId ? '新属性值单项输入' : '新属性值多行输入'" @keydown.enter="valueBindNodeId && !($event as KeyboardEvent).isComposing && ($event as KeyboardEvent).keyCode!==229 && queueValueLines()"/><el-button :disabled="composerBusy||!newDictValue.trim()" @click="queueValueLines">加入待添加</el-button>
+      <section class="composer-preview" aria-label="属性值待添加预览"><h4>{{ valueBindNodeId ? '目标引用（单选）' : '待添加预览' }} · {{ valueCandidateInput.length }}</h4><article v-for="(item,index) in valueCandidateInput" :key="item.value" :data-pending-value="item.value"><div><strong>{{ item.value }}</strong><small>{{ valueOwnerParam?.values.includes(item.value) ? '词典已有' : '尚未加入当前属性词典' }}<span v-if="pathValueBlocked(item.value)"> · 当前路径不允许</span></small><p v-if="valuePreview.items[index]?.message">{{ valuePreview.items[index]?.message }}</p></div><el-button link :disabled="composerBusy" :aria-label="`移除属性值 ${item.value}`" @click="removeValueCandidate(item.value)">移除</el-button></article></section>
+      <p class="dict-empty">将添加／更换 {{ valuePreview.items.filter(item=>item.status==='ready').length }} 项，跳过 {{ valuePreview.items.filter(item=>item.status==='skipped').length }} 项；父节点已有值不重复添加。</p>
+      <el-alert v-if="composerProblem||composerError||!valuePreview.ok&&valueCandidateInput.length" :title="composerProblem||composerError||valuePreview.message" type="error" :closable="false" data-composer-error/>
+      <p v-if="missingComposerPermissions.length" class="issue-error">缺少权限：{{ missingComposerPermissions.join('、') }}。待选内容已保留。</p>
+      <div v-if="composerBasisChanged" class="composer-basis"><p>模型结构已变化，待选内容已保留。核对预览后再更新依据。</p><el-button :disabled="composerBusy||!!composerProblem" @click="refreshComposerBasis">已核对，更新依据</el-button></div>
+      <template #footer><el-button :disabled="composerBusy" @click="valueOpen=false">取消</el-button><el-button type="primary" :loading="composerBusy" :disabled="!!composerProblem||composerBasisChanged||!valueCandidateInput.length||!valuePreview.ok||!!missingComposerPermissions.length" @click="submitValueComposer">{{ valueBindNodeId ? '确认更换引用' : `确认添加（${valueCandidateInput.length}项）` }}</el-button></template>
     </NodeAddPanel>
     <el-dialog v-model="nodeDraftOpen" title="新增节点" width="420px">
       <p class="muted">类型</p>
@@ -533,11 +505,13 @@ import TemplateCompatibilityDialog from '../components/template-compatibility/Te
 import TypeModelRail from '../components/model-editor/TypeModelRail.vue'
 import { categoryChain, visibleCategoryRows } from '../domain/categoryTree'
 import { nearestNamingRule } from '../domain/naming'
-import { arrangeSpecPositions, categoryPath, latestPublishedVersion, layoutSpecTree, modelVersionsOf, sameSpecSnapshot, specNodeSize, specTreeAdvance, SPEC_LINK_GAP, SPEC_TREE_GAP, SPEC_TREE_ORIGIN_X, SPEC_TREE_ORIGIN_Y, SPEC_VALUE_TO_VALUE } from '../domain/logic'
+import { arrangeSpecPositions, categoryPath, latestPublishedVersion, layoutSpecTree, modelVersionsOf, sameSpecSnapshot, specNodeSize, specTreeAdvance, SPEC_LINK_GAP, SPEC_TREE_GAP, SPEC_TREE_ORIGIN_Y, SPEC_VALUE_TO_VALUE } from '../domain/logic'
 import { defaultOverviewCategoryId, overviewRootId as graphRootId } from '../domain/overviewGraph'
-import { attributeRenameDecision, createDictionaryParam, createDictionaryValue } from '../domain/dictionaryGuard'
+import { attributeRenameDecision } from '../domain/dictionaryGuard'
 import { readTemplateCompatibilityConfig, templateCompatibilityContentSignature } from '../domain/templateCompatibility'
-import { outlineChoices, rebindSpecNode } from '../domain/outlineEdit'
+import { outlineChoices } from '../domain/outlineEdit'
+import { commandPermissions, effectivePermissions } from '../domain/rbac'
+import {modelDictionaryBasis,previewModelDictionaryBatch,parseDictionaryValueLines,type ModelDictionaryAttribute,type ModelDictionaryBatchInput} from '../domain/modelDictionaryCommands'
 import { legalComboMaterialStatus } from '../domain/comboMaterialStatus'
 import { previewDraftCombinations, publishImpactText } from '../domain/draftComboPreview'
 import NamingRuleDialog from '../components/NamingRuleDialog.vue'
@@ -661,16 +635,19 @@ function belongsToLeaf(id: string) {
   return typeGroups.value.some((group) => group.models.some((item) => item.templateId === id))
 }
 function selectCategory(id: string) {
+  if(composerBusy.value)return
   leafId.value = id
   if (!leafTypes.value.some((item) => item.id === activeTypeId.value)) activeTypeId.value = leafTypes.value[0]?.id || ''
   if (templateId.value && !belongsToLeaf(templateId.value)) clearOpenModel()
 }
 function focusType(typeId: string) {
+  if(composerBusy.value)return
   activeTypeId.value = typeId
   const owns = typeGroups.value.find((group) => group.id === typeId)?.models.some((item) => item.templateId === templateId.value)
   if (templateId.value && !owns) clearOpenModel()
 }
 function openModel(id: string) {
+  if(composerBusy.value)return
   templateId.value = id
   router.replace({ path: '/specs', query: viewing.value ? { template: id, mode: 'view' } : { template: id } })
 }
@@ -768,8 +745,11 @@ function closeDictDropdown() {
 function onDictEsc(event: KeyboardEvent) {
   if (event.key !== 'Escape' || event.isComposing) return
   if (!attributeOpen.value && !valueOpen.value) return
+  if (visibleOverlay('.el-overlay-dialog, .el-message-box, .el-drawer')) return
+  if (!(event.target instanceof Element) || !event.target.closest('.node-add-panel,.dict-select-popper')) return
   event.preventDefault()
   event.stopImmediatePropagation()
+  if (composerBusy.value) return
   if (dictSelects().some((item) => selectExpanded(item))) {
     closeDictDropdown()
     return
@@ -783,8 +763,8 @@ const templateCompatibilityOpen = ref(false)
 const compatibilityNodeId = ref('')
 const namingOpen = ref(false)
 const businessOpen = ref(false), businessBusy = ref(false), businessNodeId = ref('')
-onBeforeRouteLeave(() => !businessBusy.value)
-onBeforeRouteUpdate(() => !businessBusy.value)
+onBeforeRouteLeave(() => !businessBusy.value&&!composerBusy.value)
+onBeforeRouteUpdate(() => !businessBusy.value&&!composerBusy.value)
 const businessProblems = computed(() => businessIssues(store.data, nodes.value))
 const businessSummary = computed(() => ['sales-position', 'material-policy'].map(kind => {
   const result = resolveNodeBusiness(store.data, nodes.value, selected.value, kind)
@@ -812,11 +792,12 @@ const copyTargetTypeId = ref('')
 const attributeIds = ref<string[]>([])
 const attributeBindId = ref('')
 const attributePick = ref('')
-const attributeTitle = ref('选择属性')
-const creatingAttr = ref(false)
 const newAttrName = ref('')
 const attrQuery = ref('')
-const dictBusy = ref(false)
+const dictBusy = ref(false),composerBusy=ref(false),composerError=ref(''),composerExpected=ref(''),composerOwnerAttributeId=ref('')
+const pendingAttributes=ref<ModelDictionaryAttribute[]>([]),pendingValues=ref<{value:string;source:'existing'|'new'}[]>([])
+let composerSequence=0,composerActor={id:'',preview:'',access:''}
+const composerAccessStamp=computed(()=>JSON.stringify([store.authorizationReady,store.currentUser?.enabled,store.rbacEnforced?[...effectivePermissions(store.data,store.previewUserId||store.activeUserId)].sort():[],['product:model:update','product:template:update','product:dictionary:create','product:dictionary:update'].map(code=>store.can(code))]))
 const globalRenameOpen = ref(false)
 const globalName = ref('')
 const valueOpen = ref(false)
@@ -825,7 +806,6 @@ const valueBindNodeId = ref('')
 const valueBindPick = ref('')
 const valuePicks = ref<string[]>([])
 const valueQuery = ref('')
-const creatingValue = ref(false)
 const newDictValue = ref('')
 const copyName = ref('')
 const rootId = 'model-root'
@@ -1019,9 +999,8 @@ const attributeChoices = computed(() => store.data.params.slice().sort((a, b) =>
 const filteredAttributeChoices = computed(() => {
   const query = attrQuery.value.trim().toLowerCase()
   if (!query) return attributeChoices.value
-  return attributeChoices.value.filter((item) => item.name.toLowerCase().includes(query))
+  return attributeChoices.value.filter((item) => item.name.toLowerCase().includes(query)||item.id.toLowerCase().includes(query))
 })
-const exactAttribute = computed(() => attributeChoices.value.some((item) => item.name === attrQuery.value.trim()))
 const boundParam = computed(() => {
   const node = nodes.value.find((item) => item.id === attributeBindId.value && item.nodeType === 'ATTRIBUTE')
   return store.data.params.find((item) => item.id === node?.attributeId)
@@ -1036,31 +1015,12 @@ const globalRenameAllowed = computed(() => {
   const probe = globalName.value.trim() && globalName.value.trim() !== boundParam.value.name ? globalName.value : `${boundParam.value.name}新名`
   return attributeRenameDecision(store.data, boundParam.value.id, probe).ok
 })
-const valueChoices = computed(() => {
-  const parent = nodes.value.find((item) => item.id === valueParentId.value && item.nodeType === 'ATTRIBUTE')
-  const defined = parent ? allowedBusinessValues(store.data, nodes.value, parent.id).values : []
-  const used = new Set(nodes.value.filter((item) => item.parentId === valueParentId.value && item.nodeType === 'VALUE').map((item) => item.valueId))
-  return defined.filter((item) => !used.has(item))
-})
-const valueParentName = computed(() => {
-  const parent = nodes.value.find((item) => item.id === valueParentId.value)
-  return parent ? nodeTitle(parent) : ''
-})
-const parentParamValues = computed(() => {
-  const parent = nodes.value.find((item) => item.id === valueParentId.value && item.nodeType === 'ATTRIBUTE')
-  return parent ? allowedBusinessValues(store.data, nodes.value, parent.id).values : []
-})
-const exactValue = computed(() => parentParamValues.value.includes(valueQuery.value.trim()))
+const valueChoices=computed(()=>valueOwnerParam.value?.values||[])
 const filteredValueChoices = computed(() => {
   const query = valueQuery.value.trim().toLowerCase()
   return valueChoices.value.filter((item) => !query || item.toLowerCase().includes(query))
 })
-const filteredRebindValues = computed(() => {
-  const node = nodes.value.find((item) => item.id === valueBindNodeId.value)
-  const used = new Set(nodes.value.filter((item) => item.parentId === valueParentId.value && item.id !== node?.id && item.nodeType === 'VALUE').map((item) => item.valueId))
-  const query = valueQuery.value.trim().toLowerCase()
-  return parentParamValues.value.filter((item) => (item === node?.valueId || !used.has(item)) && (!query || item.toLowerCase().includes(query)))
-})
+const filteredRebindValues=computed(()=>{const query=valueQuery.value.trim().toLowerCase();return (valueOwnerParam.value?.values||[]).filter(value=>!query||value.toLowerCase().includes(query))})
 const schemeTitle = computed(() => store.data.specCanvases.find((item) => item.templateId === templateId.value)?.name?.trim() || store.data.templates.find((item) => item.id === templateId.value)?.name?.trim() || '商品模型')
 const currentProductType = computed(() => {
   const canvasRow = store.data.specCanvases.find((item) => item.templateId === templateId.value)
@@ -1119,6 +1079,7 @@ watch(() => [editorMode.value, viewMode.value], () => {
   invalidateEditorDialogs()
 }, { flush: 'sync' })
 const dialogContexts = new Map<string, ReturnType<typeof editContext> & { nodeId: string }>()
+watch(()=>[store.activeUserId,store.previewUserId,composerAccessStamp.value],()=>{editSession++;pendingUndo=undefined;undoStack.value=[];if(attributeOpen.value||valueOpen.value)composerError.value='模拟身份或授权已变化，旧待选内容已保留但不会提交；请取消后重新打开。';nodeDraftOpen.value=false;menu.value.open=false},{flush:'sync'})
 for (const [kind, open] of [['attribute', attributeOpen], ['value', valueOpen], ['node', nodeDraftOpen]] as const) {
   watch(open, value => {
     interaction += 1
@@ -1139,10 +1100,10 @@ function validDialog(kind: string, nodeId?: string) {
 }
 watch(() => [canEditStructure.value, nodes.value.map(n => n.id).join('|')], () => {
   for (const [kind, open] of [['attribute', attributeOpen], ['value', valueOpen]] as const) {
-    if (open.value && !validDialog(kind)) open.value = false
+    if (open.value && !validDialog(kind)) composerError.value='操作上下文已变化，待选内容保留，请核对节点或取消。'
   }
 })
-watch(comboVersionId, () => { dragStart = undefined; attributeOpen.value = false; valueOpen.value = false })
+watch(comboVersionId, () => { dragStart = undefined })
 function invalidateEditorDialogs() {
   interaction += 1
   dragStart = undefined
@@ -1157,7 +1118,7 @@ function invalidateEditorDialogs() {
 watch(templateId, () => {
   if (!templateId.value) return
   selected.value = ''
-  if (viewing.value || route.query.mode === 'view') {
+  if (viewing.value || route.query.mode === 'view' || !store.can('product:model:update')) {
     viewClosed.value = store.data.productSpecNodes.filter((item) => item.templateId === templateId.value && item.expanded === false).map((item) => item.id)
   } else {
     ensureCanvas()
@@ -1193,7 +1154,7 @@ watch(()=>route.fullPath,()=>{if(typeof route.query.materialVersion==='string')c
 watch(
   () => `${templateId.value}#${nodes.value.map((item) => `${item.id}:${item.parentId}:${item.nodeType}:${item.attributeId}:${item.valueId}:${item.role || ''}:${item.sort}`).join('|')}`,
   (_next, prev) => {
-    if (!prev || viewing.value) return
+    if (!prev || viewing.value || composerBusy.value || !store.can('product:model:update')) return
     if (prev.slice(0, prev.indexOf('#')) !== templateId.value) return
     markWorkingDraft()
   },
@@ -1290,60 +1251,14 @@ function attributeHint(node: ProductSpecNode): { bound: boolean; source: string;
 function outlineOptions(node: ProductSpecNode) {
   return outlineChoices(store.data, node.id)
 }
-function applyOutlineCreate(payload: { id: string; name: string }) {
-  if (!canEditStructure.value) return
-  if (viewing.value) return
-  const node = nodes.value.find((item) => item.id === payload.id)
-  if (!node) return
-  if (node.nodeType === 'ATTRIBUTE') {
-    attributeBindId.value = node.id
-    attributePick.value = node.attributeId
-    attributeTitle.value = '新增属性'
-    beginCreateAttribute(payload.name)
-    attributeOpen.value = true
-    return
-  }
-  valueBindNodeId.value = node.id
-  valueParentId.value = node.parentId || ''
-  valueBindPick.value = node.valueId
-  beginCreateValue(payload.name)
-  valueOpen.value = true
-}
+function applyOutlineCreate(payload:{id:string;name:string}){openReferencePicker(payload.id);if(attributeOpen.value)newAttrName.value=payload.name;if(valueOpen.value)newDictValue.value=payload.name}
 function rememberAttrQuery(query: string) {
   attrQuery.value = query
 }
 function rememberValueQuery(query: string) {
   valueQuery.value = query
 }
-function beginCreateAttribute(name: string) {
-  creatingAttr.value = true
-  newAttrName.value = name.trim()
-}
-function beginCreateValue(name: string) {
-  creatingValue.value = true
-  newDictValue.value = name.trim()
-}
-function resetValueComposer() {
-  valueQuery.value = ''
-  creatingValue.value = false
-  newDictValue.value = ''
-  valueBindNodeId.value = ''
-  valueBindPick.value = ''
-}
-function applyOutlineChoice(payload: { id: string; token: string }) {
-  if (!canEditStructure.value) return
-  const node = nodes.value.find((item) => item.id === payload.id)
-  if (!node) return
-  if (!payload.token) {
-    ElMessage.warning(node.nodeType === 'ATTRIBUTE' ? '属性词典里还没有可选属性' : '这个属性还没有可选取值')
-    return
-  }
-  pushUndo()
-  const result = rebindSpecNode(store.data, node.id, node.nodeType === 'ATTRIBUTE' ? { attributeId: payload.token } : { valueId: payload.token })
-  if (!result.ok || !result.changed) cancelUndo()
-  if (!result.ok) ElMessage.warning(result.message)
-  else if (result.changed) reflowTree()
-}
+function applyOutlineChoice(payload:{id:string;token:string}){openReferencePicker(payload.id);if(attributeOpen.value)attributePick.value=payload.token;if(valueOpen.value)valueBindPick.value=payload.token}
 function openHostConfig() {
   if (viewing.value || !current.value) return
   openTemplateCompatibility(selected.value)
@@ -1663,30 +1578,7 @@ function onNodeDoubleClick(payload: { event: { target?: EventTarget | null }; no
   if (target?.closest?.('.fold, .inline-edit, .pick-attr')) return
   beginEdit(payload.node.id)
 }
-function beginEdit(id: string) {
-  if (!canEditStructure.value) return
-  if (viewing.value) return
-  if (id === rootId) {
-    selected.value = id
-    editingId.value = ''
-    return
-  }
-  const node = nodes.value.find((item) => item.id === id)
-  if (!node) return
-  if (node.nodeType === 'ATTRIBUTE' && !attributeHint(node).bound) {
-    selected.value = id
-    openBindAttribute(id)
-    return
-  }
-  const options = node.nodeType === 'ATTRIBUTE' ? attributeOptions() : valueOptions(node)
-  if (!options.length) {
-    ElMessage.warning(node.nodeType === 'ATTRIBUTE' ? '当前模型还没有可选属性' : '这个属性还没有可选取值')
-    return
-  }
-  selected.value = id
-  editingId.value = id
-  nextTick(() => document.querySelector<HTMLSelectElement>('.inline-edit')?.focus())
-}
+function beginEdit(id:string){if(!canEditStructure.value||composerBusy.value)return;selected.value=id;if(id!==rootId)openReferencePicker(id)}
 function cueOutline(id: string) {
   selected.value = id
   outlineCue.value = { id, tick: outlineCue.value.tick + 1 }
@@ -1745,11 +1637,12 @@ function cancelUndo() {
     else if (index >= 0) store.data.params.splice(index, 1)
   }
 }
-function undoOutline() {
-  if (!canEditStructure.value) return
+async function undoOutline() {
+  if (!canEditStructure.value||composerBusy.value) return
   finishUndo()
   const entry = undoStack.value.at(-1)
   if (!entry) return
+  if(entry.commandId){const context=editContext(),actor={id:store.activeUserId,preview:store.previewUserId,access:composerAccessStamp.value},previousFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;composerBusy.value=true;try{const result=await store.undoModelDictionaryBatch(entry,context.modelId,context.session,()=>sameContext(context)&&actor.id===store.activeUserId&&actor.preview===store.previewUserId&&actor.access===composerAccessStamp.value);if(!result.ok){ElMessage.warning(result.message);return}if(sameContext(context)){undoStack.value.pop();selected.value='';paint()}}catch(error){ElMessage.error(error instanceof Error?error.message:'撤销未保存，历史记录仍保留。')}finally{await nextTick();composerBusy.value=false;await nextTick();if(sameContext(context)&&actor.id===store.activeUserId&&actor.preview===store.previewUserId&&actor.access===composerAccessStamp.value&&document.activeElement===document.body&&previousFocus?.closest('.board')){const target=previousFocus.isConnected?previousFocus:document.querySelector<HTMLElement>('.board');target?.focus({preventScroll:true})}}return}
   const candidate = prepareEditorUndo(store.data, entry, templateId.value, editSession)
   if (!candidate.ok) { ElMessage.warning(candidate.message); return }
   store.data.productSpecNodes = candidate.nodes
@@ -1768,88 +1661,7 @@ function undoOutline() {
   markWorkingDraft()
   paint()
 }
-function attachParam(paramId: string) {
-  if (!paramId) return undefined
-  if (!store.data.templateParams.some((item) => item.templateId === templateId.value && item.paramId === paramId)) {
-    store.data.templateParams.push({ templateId: templateId.value, paramId, role: 'variant', required: false })
-    const order = store.data.templates.find((item) => item.id === templateId.value)
-    if (order && !order.structureOrder.includes(paramId)) order.structureOrder.push(paramId)
-  }
-  return store.data.templateParams.find((item) => item.templateId === templateId.value && item.paramId === paramId)
-}
-function ensureParam(name: string) {
-  const result = createDictionaryParam(store.data, name, () => uid('p'))
-  if (!result.ok || !result.id) {
-    ElMessage.warning(result.message)
-    return undefined
-  }
-  attachParam(result.id)
-  return store.data.params.find((item) => item.id === result.id)
-}
-function linkAttribute(node: ProductSpecNode, paramId: string) {
-  const result = rebindSpecNode(store.data, node.id, { attributeId: paramId })
-  if (!result.ok) {
-    cancelUndo()
-    ElMessage.warning(result.message)
-    return false
-  }
-  const bound = attachParam(paramId)
-  node.role = bound?.role === 'common' ? 'COMMON' : 'VARIANT'
-  return true
-}
-async function renameOutline(payload: { id: string; name: string }) {
-  if (!canEditStructure.value) return
-  const context = editContext()
-  const node = nodes.value.find((item) => item.id === payload.id)
-  const text = payload.name.trim()
-  if (!node || !text || text === nodeTitle(node)) return
-  if (node.nodeType === 'ATTRIBUTE') {
-    const found = store.data.params.find((item) => item.name === text)
-    if (found) {
-      pushUndo()
-      if (!linkAttribute(node, found.id)) return
-      return
-    }
-    const current = store.data.params.find((item) => item.id === node.attributeId)
-    const usedElsewhere = store.data.productSpecNodes.some((item) => item.id !== node.id && item.attributeId === current?.id && !(item.parentId === node.id && item.nodeType === 'VALUE'))
-      || store.data.templateParams.some((item) => item.paramId === current?.id && item.templateId !== templateId.value)
-    if (current && !usedElsewhere) {
-      const decision = attributeRenameDecision(store.data, current.id, text)
-      if (!decision.ok) {
-        ElMessage.warning(decision.message)
-        return
-      }
-      pushUndo()
-      current.name = text
-      return
-    }
-    try {
-      await ElMessageBox.confirm(`属性词典里没有「${text}」。是否创建新的属性？`, '创建属性')
-      if (!validContext(context)) return
-    } catch {
-      return
-    }
-    if (!validContext(context, node.id)) return
-    pushUndo()
-    const created = ensureParam(text)
-    if (!created) return
-    pushUndo()
-    if (!linkAttribute(node, created.id)) return
-    return
-  }
-  const allowed = node.parentId ? allowedBusinessValues(store.data, nodes.value, node.parentId).values : []
-  if (!allowed.includes(text)) {
-    ElMessage.warning('请从该属性的属性值里选择')
-    return
-  }
-  const duplicated = nodes.value.some((item) => item.parentId === node.parentId && item.id !== node.id && item.nodeType === 'VALUE' && item.valueId === text)
-  if (duplicated) {
-    ElMessage.warning('同一个属性下已有这个取值')
-    return
-  }
-  pushUndo()
-  node.valueId = text
-}
+function renameOutline(payload:{id:string;name:string}){applyOutlineCreate(payload)}
 function addOutline(payload: { id: string; kind: 'sibling' | 'child-value' | 'child-attribute' }) {
   if (!canEditStructure.value) return
   if (viewing.value) return
@@ -1954,89 +1766,11 @@ function shiftOutline(payload: { id: string; direction: -1 | 1 }) {
   cueOutline(node.id)
 }
 function openNodeDraft() {
-  if (!canEditStructure.value) return
+  if (!canEditStructure.value||composerBusy.value) return
   nodeDraft.value = { type: 'ATTRIBUTE', name: '' }
   nodeDraftOpen.value = true
 }
-async function confirmNodeDraft(event?: Event) {
-  if (event instanceof KeyboardEvent && event.isComposing) return
-  event?.preventDefault()
-  if (!validDialog('node', dialogContexts.get('node')?.nodeId)) return
-  if (!canEditStructure.value) return
-  const context = editContext()
-  const name = nodeDraft.value.name.trim()
-  const nodeType = nodeDraft.value.type
-  if (!name) {
-    ElMessage.warning('请填写名称')
-    return
-  }
-  const sourceId = dialogContexts.get('node')?.nodeId
-  const source = nodes.value.find(item => item.id === sourceId)
-  let parentId: string | null = null
-  if (nodeType === 'VALUE') {
-    const parent = source?.nodeType === 'ATTRIBUTE' ? source : nodes.value.find((item) => item.id === source?.parentId && item.nodeType === 'ATTRIBUTE')
-    if (!parent) {
-      ElMessage.warning('属性值只能挂在属性下面')
-      return
-    }
-    parentId = parent.id
-  } else if (source?.nodeType === 'VALUE' || source?.nodeType === 'ATTRIBUTE') {
-    parentId = source.id
-  }
-  if (nodeType === 'ATTRIBUTE' && !store.data.params.some((item) => item.name === name)) {
-    try {
-      await ElMessageBox.confirm(`属性词典里没有「${name}」。是否创建并绑定到当前模型？`, '创建属性')
-      if (!validContext(context)) return
-    } catch {
-      return
-    }
-  }
-  if (!validContext(context, source?.id)) return
-  pushUndo()
-  let valueText = name
-  if (nodeType === 'VALUE') {
-    const ownerId = nodes.value.find((row) => row.id === parentId)?.attributeId || ''
-    if (!ownerId) {
-      ElMessage.warning('请先为上一级选择属性')
-      return
-    }
-    const duplicated = nodes.value.some((item) => item.parentId === parentId && item.nodeType === 'VALUE' && item.valueId === name)
-    if (duplicated) {
-      ElMessage.warning('同一个属性下已有这个取值')
-      return
-    }
-    const created = createDictionaryValue(store.data, ownerId, name)
-    if (!created.ok || !created.value) {
-      ElMessage.warning(created.message)
-      return
-    }
-    valueText = created.value
-    if (created.created) ElMessage.success(`${created.message} 模型不会因此发布。`)
-  }
-  const attributeId = nodeType === 'VALUE'
-    ? nodes.value.find((item) => item.id === parentId)?.attributeId || ''
-    : ensureParam(name)?.id || ''
-  if (!attributeId) return
-  pushUndo()
-  const id = uid('sn')
-  const bound = store.data.templateParams.find((item) => item.templateId === templateId.value && item.paramId === attributeId)
-  store.data.productSpecNodes.push({
-    id,
-    templateId: templateId.value,
-    parentId,
-    nodeType: nodeType,
-    attributeId,
-    valueId: nodeType === 'VALUE' ? valueText : '',
-    role: nodeType === 'ATTRIBUTE' ? (bound?.role === 'common' ? 'COMMON' : 'VARIANT') : undefined,
-    sort: nextSort(parentId),
-    positionX: 0,
-    positionY: 0,
-  })
-  if (source) source.expanded = true
-  reflowTree()
-  nodeDraftOpen.value = false
-  cueOutline(id)
-}
+function confirmNodeDraft(event?:Event){if(event instanceof KeyboardEvent&&(event.isComposing||event.keyCode===229))return;event?.preventDefault();if(!canEditStructure.value||composerBusy.value)return;const name=nodeDraft.value.name.trim(),kind=nodeDraft.value.type,source=nodes.value.find(node=>node.id===selected.value);nodeDraftOpen.value=false;if(kind==='VALUE'){const parent=source?.nodeType==='ATTRIBUTE'?source:nodes.value.find(node=>node.id===source?.parentId&&node.nodeType==='ATTRIBUTE');if(!parent){ElMessage.warning('属性值只能挂在属性下面');return}openValuePicker(parent.id);newDictValue.value=name}else{openAttributeAt(source?.id||null);newAttrName.value=name}}
 function moveOutline(payload: { id: string; targetId: string; place: 'before' | 'after' | 'inside' }) {
   if (!canEditStructure.value) return
   const node = nodes.value.find((item) => item.id === payload.id)
@@ -2075,44 +1809,7 @@ function moveOutline(payload: { id: string; targetId: string; place: 'before' | 
   reflowTree()
   cueOutline(node.id)
 }
-function commitInline(id: string, kind: 'attribute' | 'value', event: Event) {
-  if (!canEditStructure.value) return
-  const value = (event.target as HTMLSelectElement).value
-  const node = nodes.value.find((item) => item.id === id)
-  if (!node || !value) return
-  if (value === '__create__') {
-    editingId.value = ''
-    if (kind === 'attribute' && node.nodeType === 'ATTRIBUTE') {
-      openBindAttribute(id)
-      creatingAttr.value = true
-      return
-    }
-    if (kind === 'value' && node.nodeType === 'VALUE') {
-      valueBindNodeId.value = id
-      valueParentId.value = node.parentId || ''
-      valueBindPick.value = node.valueId
-      valueQuery.value = ''
-      creatingValue.value = true
-      newDictValue.value = ''
-      valueOpen.value = true
-    }
-    return
-  }
-  if (kind === 'attribute' && node.nodeType === 'ATTRIBUTE') {
-    if (node.attributeId !== value) {
-      pushUndo()
-      if (!linkAttribute(node, value)) return
-    }
-  }
-  if (kind === 'value' && node.nodeType === 'VALUE' && node.valueId !== value) {
-    pushUndo()
-    const result = rebindSpecNode(store.data, node.id, { valueId: value })
-    if (!result.ok || !result.changed) cancelUndo()
-    if (!result.ok) ElMessage.warning(result.message)
-  }
-  editingId.value = ''
-  reflowTree()
-}
+function commitInline(id:string,_kind:'attribute'|'value',event:Event){const token=(event.target as HTMLSelectElement).value;if(token==='__create__')openReferencePicker(id);else applyOutlineChoice({id,token})}
 function openNodeMenu(payload: { id: string; x: number; y: number }) {
   if (!canEditStructure.value) return
   if (viewing.value) return
@@ -2455,26 +2152,8 @@ function markWorkingDraft() {
   row.versionName = `V${next}`
   row.updatedAt = new Date().toISOString()
 }
-function openAttributeAt(parentId: string | null) {
-  if (!canEditStructure.value) return
-  attributeOpen.value = false
-  if (viewing.value) return
-  attributeBindId.value = ''
-  attachParent.value = parentId
-  attributeIds.value = []
-  attributePick.value = ''
-  creatingAttr.value = false
-  newAttrName.value = ''
-  attributeTitle.value = nodes.value.find(n => n.id === parentId)?.nodeType === 'VALUE' ? '添加条件属性' : parentId ? '添加子属性' : '添加属性'
-  attributeOpen.value = true
-}
-function resetAttrComposer() {
-  creatingAttr.value = false
-  newAttrName.value = ''
-  attrQuery.value = ''
-  globalRenameOpen.value = false
-  globalName.value = ''
-}
+function openAttributeAt(parentId:string|null){if(!canEditStructure.value||composerBusy.value)return;attributeOpen.value=false;resetAttrComposer();attributeBindId.value='';attachParent.value=parentId;startComposerContext();attributeOpen.value=true}
+function resetAttrComposer(){attributeIds.value=[];attributePick.value='';pendingAttributes.value=[];newAttrName.value='';attrQuery.value='';globalRenameOpen.value=false;globalName.value='';attributeBindId.value=''}
 function openGlobalRename() {
   if (!canEditStructure.value) return
   globalName.value = boundParam.value?.name || ''
@@ -2509,241 +2188,47 @@ async function saveGlobalName() {
   globalRenameOpen.value = false
   ElMessage.success('已修改全局属性名称。节点引用和已发布快照没有改写。')
 }
-function openValuePicker(attributeNodeId: string) {
-  if (!canEditStructure.value) return
-  valueOpen.value = false
-  if (viewing.value) return
-  const node = nodes.value.find((item) => item.id === attributeNodeId && item.nodeType === 'ATTRIBUTE')
-  if (!node) {
-    ElMessage.warning('属性值只能挂在属性下面')
-    return
-  }
-  if (!attributeHint(node).bound) {
-    ElMessage.warning('请先选择属性')
-    openBindAttribute(node.id)
-    return
-  }
-  valueParentId.value = node.id
-  valueBindNodeId.value = ''
-  valuePicks.value = []
-  valueQuery.value = ''
-  creatingValue.value = false
-  newDictValue.value = ''
-  selected.value = node.id
-  valueOpen.value = true
-}
-function openBindAttribute(id: string) {
-  if (!canEditStructure.value) return
-  attributeOpen.value = false
-  if (viewing.value || !id || id === rootId) return
-  const node = nodes.value.find((item) => item.id === id && item.nodeType === 'ATTRIBUTE')
-  if (!node) return
-  attributeBindId.value = id
-  attributePick.value = attributeChoices.value.some((item) => item.id === node.attributeId) ? node.attributeId : ''
-  attributeTitle.value = '选择已有属性引用'
-  selected.value = id
-  attributeOpen.value = true
-}
+function resetValueComposer(){valueBindNodeId.value='';valueBindPick.value='';valuePicks.value=[];pendingValues.value=[];valueQuery.value='';newDictValue.value='';valueParentId.value='';if(!valueOpen.value)composerOwnerAttributeId.value=''}
+function openValuePicker(attributeNodeId:string){if(!canEditStructure.value||composerBusy.value)return;const parent=nodes.value.find(node=>node.id===attributeNodeId&&node.nodeType==='ATTRIBUTE');if(!parent)return;if(!attributeHint(parent).bound){openBindAttribute(parent.id);return}valueOpen.value=false;resetValueComposer();valueParentId.value=parent.id;composerOwnerAttributeId.value=parent.attributeId;selected.value=parent.id;startComposerContext();valueOpen.value=true}
+function openBindAttribute(id:string){if(!canEditStructure.value||composerBusy.value)return;const node=nodes.value.find(node=>node.id===id&&node.nodeType==='ATTRIBUTE');if(!node)return;attributeOpen.value=false;resetAttrComposer();attributeBindId.value=node.id;attachParent.value=node.parentId;attributePick.value=node.attributeId;pendingAttributes.value=node.attributeId?[{source:'existing',attributeId:node.attributeId}]:[];selected.value=id;startComposerContext();attributeOpen.value=true}
+function openValueReference(id:string){if(!canEditStructure.value||composerBusy.value)return;const node=nodes.value.find(node=>node.id===id&&node.nodeType==='VALUE'),parent=nodes.value.find(parent=>parent.id===node?.parentId&&parent.nodeType==='ATTRIBUTE');if(!node||!parent)return;valueOpen.value=false;resetValueComposer();valueParentId.value=parent.id;composerOwnerAttributeId.value=parent.attributeId;valueBindNodeId.value=node.id;valueBindPick.value=node.valueId;pendingValues.value=[{value:node.valueId,source:'existing'}];selected.value=id;startComposerContext();valueOpen.value=true}
+function openReferencePicker(id:string){const node=nodes.value.find(node=>node.id===id);if(node?.nodeType==='ATTRIBUTE')openBindAttribute(id);else if(node?.nodeType==='VALUE')openValueReference(id)}
 function nextSort(parentId: string | null) {
   return nodes.value.filter((item) => item.parentId === parentId).reduce((max, item) => Math.max(max, item.sort), 0) + 1
 }
-function insertAttributeNodes(paramIds: string[]) {
-  if (!canEditStructure.value) return
-  const parentId = attachParent.value
-  const parent = nodes.value.find((item) => item.id === parentId)
-  if (parent && parent.expanded === false) parent.expanded = true
-  const siblings = nodes.value.filter((item) => item.parentId === parentId)
-  const baseX = parent ? (parent.positionX ?? SPEC_TREE_ORIGIN_X) + specTreeAdvance(parent.nodeType, nodeTitle(parent)) : SPEC_TREE_ORIGIN_X
-  let cursorY = siblings.length ? Math.max(...siblings.map((item) => item.positionY ?? 12)) + 54 : (parent?.positionY ?? 12)
-  let sort = nextSort(parentId)
-  let lastId = ''
-  paramIds.forEach((paramId) => {
-    const id = uid('sn')
-    const bound = attachParam(paramId)
-    store.data.productSpecNodes.push({
-      id,
-      templateId: templateId.value,
-      parentId,
-      nodeType: 'ATTRIBUTE',
-      attributeId: paramId,
-      valueId: '',
-      role: bound?.role === 'common' ? 'COMMON' : 'VARIANT',
-      sort,
-      positionX: baseX,
-      positionY: cursorY,
-    })
-    sort += 1
-    cursorY += 54
-    lastId = id
-  })
-  reflowTree()
-  selected.value = lastId
-  attributeOpen.value = false
-  attributeBindId.value = ''
-  revealNode(lastId)
+function attributeCandidateKey(item:ModelDictionaryAttribute){return item.source==='existing'?item.attributeId:item.draftKey}
+function attributeCandidateLabel(item:ModelDictionaryAttribute){return item.source==='existing'?store.data.params.find(param=>param.id===item.attributeId)?.name||`已失效 ${item.attributeId}`:item.name}
+const attributeCandidateInput=computed<ModelDictionaryAttribute[]>(()=>{const typed=newAttrName.value.trim();if(!typed)return pendingAttributes.value;const item:ModelDictionaryAttribute={source:'new',name:typed,draftKey:'typing-attribute'};return attributeBindId.value?[item]:pendingAttributes.value.some(row=>row.source==='new'&&row.name===typed)?pendingAttributes.value:[...pendingAttributes.value,item]})
+const valueOwnerParam=computed(()=>store.data.params.find(item=>item.id===composerOwnerAttributeId.value))
+const valueCandidateInput=computed(()=>{const lines=parseDictionaryValueLines(newDictValue.value),items=lines.map(value=>({value,source:valueOwnerParam.value?.values.includes(value)?'existing' as const:'new' as const}));if(valueBindNodeId.value&&lines.length)return items;const unique=new Map(pendingValues.value.map(item=>[item.value,item]));for(const item of items)if(!unique.has(item.value))unique.set(item.value,item);return [...unique.values()]})
+function composerPath(id:string){if(!id)return schemeTitle.value;const chain:string[]=[],seen=new Set<string>();let node=nodes.value.find(item=>item.id===id);while(node&&!seen.has(node.id)){seen.add(node.id);chain.unshift(nodeTitle(node));node=nodes.value.find(item=>item.id===node!.parentId)}return `${schemeTitle.value} / ${chain.join(' / ')}`}
+function pathValueBlocked(value:string){const parent=nodes.value.find(node=>node.id===valueParentId.value&&node.nodeType==='ATTRIBUTE');if(!parent)return false;const result=resolveNodeBusiness(store.data,nodes.value,parent.id,'allowed-values',composerOwnerAttributeId.value);return !!result.message||!!result.parameters&&!(result.parameters.values as string[]).includes(value)}
+function composerInput(kind:'attribute'|'value'):ModelDictionaryBatchInput{return {modelId:templateId.value,session:editSession,expected:composerExpected.value,mode:kind==='attribute'?attributeBindId.value?'rebind-attribute':'add-attributes':valueBindNodeId.value?'rebind-value':'add-values',...(kind==='attribute'?{parentId:attachParent.value,nodeId:attributeBindId.value||undefined,attributes:attributeCandidateInput.value}:{parentId:valueParentId.value,nodeId:valueBindNodeId.value||undefined,ownerAttributeId:composerOwnerAttributeId.value,values:valueCandidateInput.value})}}
+function composerPreview(kind:'attribute'|'value'){const input=composerInput(kind);return previewModelDictionaryBatch(store.data,input,commandPermissions('commitModelDictionaryBatch',[input],store.data))}
+const attributePreview=computed(()=>composerPreview('attribute')),valuePreview=computed(()=>composerPreview('value'))
+const composerBasisChanged=computed(()=>!!composerExpected.value&&composerExpected.value!==modelDictionaryBasis(store.data,templateId.value))
+const composerProblem=computed(()=>{if(!attributeOpen.value&&!valueOpen.value)return '';if(composerActor.id!==store.activeUserId||composerActor.preview!==store.previewUserId||composerActor.access!==composerAccessStamp.value)return '模拟身份或授权已变化，当前待选内容保留；请取消后重新打开本次操作。';if(!canEditStructure.value)return '当前视图或角色无模型修改权限，待选内容保留。';const context=dialogContexts.get(attributeOpen.value?'attribute':'value');if(!context||!sameContext(context))return '模型编辑上下文已变化，待选内容未提交。';if(context.nodeId&&!nodes.value.some(node=>node.id===context.nodeId))return '操作节点已不存在，待选内容保留，请取消并重新选择父节点。';if(valueOpen.value&&nodes.value.find(node=>node.id===valueParentId.value)?.attributeId!==composerOwnerAttributeId.value)return '父节点的属性引用已变化，待选内容未提交。';return ''})
+const missingComposerPermissions=computed(()=>(attributeOpen.value?attributePreview.value:valuePreview.value).requiredPermissions.filter(code=>!store.can(code)))
+function startComposerContext(){composerError.value='';composerExpected.value=modelDictionaryBasis(store.data,templateId.value);composerActor={id:store.activeUserId,preview:store.previewUserId,access:composerAccessStamp.value}}
+function refreshComposerBasis(){if(composerBusy.value||composerProblem.value)return;composerExpected.value=modelDictionaryBasis(store.data,templateId.value);composerError.value=''}
+watch(attributeIds,ids=>{if(attributeBindId.value)return;const selected=new Set(ids);pendingAttributes.value=pendingAttributes.value.filter(item=>item.source==='new'||selected.has(item.attributeId));for(const id of ids)if(!pendingAttributes.value.some(item=>item.source==='existing'&&item.attributeId===id))pendingAttributes.value.push({source:'existing',attributeId:id})},{deep:true,flush:'sync'})
+watch(attributePick,id=>{if(!attributeBindId.value)return;pendingAttributes.value=id?[{source:'existing',attributeId:id}]:[];newAttrName.value=''},{flush:'sync'})
+watch(valuePicks,values=>{if(valueBindNodeId.value)return;const selected=new Set(values);pendingValues.value=pendingValues.value.filter(item=>item.source==='new'||selected.has(item.value));for(const value of values)if(!pendingValues.value.some(item=>item.value===value))pendingValues.value.push({value,source:'existing'})},{deep:true,flush:'sync'})
+watch(valueBindPick,value=>{if(!valueBindNodeId.value)return;pendingValues.value=value?[{value,source:'existing'}]:[];newDictValue.value=''},{flush:'sync'})
+function queueAttributeFromInput(event?:KeyboardEvent){if(event?.isComposing||event?.keyCode===229||composerBusy.value)return;event?.preventDefault();const name=newAttrName.value.trim();if(!name)return;const item:ModelDictionaryAttribute={source:'new',name,draftKey:`attribute-draft-${++composerSequence}`};if(attributeBindId.value){attributePick.value='';pendingAttributes.value=[item]}else if(!pendingAttributes.value.some(row=>row.source==='new'&&row.name===name))pendingAttributes.value.push(item);newAttrName.value='';composerError.value=''}
+function queueValueLines(){if(composerBusy.value)return;const lines=parseDictionaryValueLines(newDictValue.value);if(valueBindNodeId.value&&lines.length>1){composerError.value='更换属性值引用只能选择一个取值；输入已保留。';return}const items=lines.map(value=>({value,source:valueOwnerParam.value?.values.includes(value)?'existing' as const:'new' as const}));if(valueBindNodeId.value){valueBindPick.value='';pendingValues.value=items}else{for(const item of items)if(!pendingValues.value.some(row=>row.value===item.value))pendingValues.value.push(item);valuePicks.value=pendingValues.value.filter(item=>item.source==='existing').map(item=>item.value)}newDictValue.value='';composerError.value=''}
+function removeAttributeCandidate(item:ModelDictionaryAttribute){if(item.source==='new'&&item.draftKey==='typing-attribute'){newAttrName.value='';return}pendingAttributes.value=pendingAttributes.value.filter(row=>attributeCandidateKey(row)!==attributeCandidateKey(item));if(item.source==='existing'){attributeIds.value=attributeIds.value.filter(id=>id!==item.attributeId);if(attributeBindId.value)attributePick.value=''}}
+function removeValueCandidate(value:string){pendingValues.value=pendingValues.value.filter(item=>item.value!==value);valuePicks.value=valuePicks.value.filter(item=>item!==value);if(valueBindNodeId.value&&valueBindPick.value===value)valueBindPick.value='';newDictValue.value=parseDictionaryValueLines(newDictValue.value).filter(item=>item!==value).join('\n')}
+async function submitComposer(kind:'attribute'|'value'){
+ if(composerBusy.value)return
+ composerError.value='';if(composerProblem.value){composerError.value=composerProblem.value;return}
+ const input=JSON.parse(JSON.stringify(composerInput(kind))) as ModelDictionaryBatchInput,context=editContext(),actor={...composerActor}
+ const current=()=>sameContext(context)&&canEditStructure.value&&actor.id===store.activeUserId&&actor.preview===store.previewUserId&&actor.access===composerAccessStamp.value
+ finishUndo();composerBusy.value=true
+ try{const result=await store.commitModelDictionaryBatch(input,current);if(!result.ok){composerError.value=result.message;return}if(!current()){composerError.value='保存期间上下文已变化，请核对当前模型；旧输入未用于其他模型。';return}if(result.historyEntry){undoStack.value.push(result.historyEntry);if(undoStack.value.length>40)undoStack.value.shift()}selected.value=result.nodeIds.at(-1)||input.nodeId||input.parentId||rootId;paint();if(kind==='attribute')attributeOpen.value=false;else valueOpen.value=false;ElMessage.success(result.message)}catch(error){composerError.value=error instanceof Error?error.message:'本次未保存，待选内容保留。'}finally{await nextTick();composerBusy.value=false;await nextTick();if(context.modelId===templateId.value&&context.session===editSession&&actor.id===store.activeUserId&&actor.preview===store.previewUserId&&actor.access===composerAccessStamp.value&&!attributeOpen.value&&!valueOpen.value&&document.activeElement===document.body)document.querySelector<HTMLElement>('.board')?.focus({preventScroll:true})}
 }
-function createDictionaryAttribute(event?: Event) {
-  if (event instanceof KeyboardEvent && event.isComposing) return
-  event?.preventDefault()
-  if (!validDialog('attribute', attributeBindId.value || attachParent.value || undefined)) return
-  if (!canEditStructure.value) return
-  if (viewing.value || dictBusy.value) return
-  pushUndo()
-  dictBusy.value = true
-  const result = createDictionaryParam(store.data, newAttrName.value, () => uid('p'))
-  if (!result.ok || !result.id) {
-    dictBusy.value = false
-    ElMessage.warning(result.message)
-    return
-  }
-  attachParam(result.id)
-  if (attributeBindId.value) {
-    const node = nodes.value.find((item) => item.id === attributeBindId.value && item.nodeType === 'ATTRIBUTE')
-    if (!node) {
-      cancelUndo()
-      dictBusy.value = false
-      ElMessage.warning('请选择属性节点')
-      return
-    }
-    pushUndo()
-    const rebound = rebindSpecNode(store.data, node.id, { attributeId: result.id })
-    if (!rebound.ok) {
-      cancelUndo()
-      dictBusy.value = false
-      ElMessage.warning(rebound.message)
-      return
-    }
-    if (!linkAttribute(node, result.id)) return
-    attributeOpen.value = false
-    attributeBindId.value = ''
-  } else {
-    pushUndo()
-    insertAttributeNodes([result.id])
-  }
-  creatingAttr.value = false
-  newAttrName.value = ''
-  dictBusy.value = false
-  ElMessage.success(`${result.message} 当前节点已引用。模型不会因此发布。`)
-}
-function createDictionaryValueForNode(event?: Event) {
-  if (event instanceof KeyboardEvent && event.isComposing) return
-  event?.preventDefault()
-  if (!validDialog('value', valueParentId.value)) return
-  if (!canEditStructure.value) return
-  if (viewing.value || dictBusy.value) return
-  const parent = nodes.value.find((item) => item.id === valueParentId.value && item.nodeType === 'ATTRIBUTE')
-  if (!parent?.attributeId) {
-    ElMessage.warning('请先为上一级选择属性')
-    return
-  }
-  const proposed = (newDictValue.value || valueQuery.value).trim()
-  const restriction = resolveNodeBusiness(store.data, nodes.value, parent.id, 'allowed-values', parent.attributeId)
-  if (restriction.message || (restriction.parameters && !(restriction.parameters.values as string[]).includes(proposed))) { ElMessage.warning(restriction.message || '新值超出当前路径允许范围，请先维护上级业务配置。'); return }
-  pushUndo()
-  dictBusy.value = true
-  const result = createDictionaryValue(store.data, parent.attributeId, newDictValue.value || valueQuery.value)
-  if (!result.ok || !result.value) {
-    dictBusy.value = false
-    ElMessage.warning(result.message)
-    return
-  }
-  if (valueBindNodeId.value) {
-    pushUndo()
-    const rebound = rebindSpecNode(store.data, valueBindNodeId.value, { valueId: result.value })
-    if (!rebound.ok) {
-      cancelUndo()
-      dictBusy.value = false
-      ElMessage.warning(rebound.message)
-      return
-    }
-  } else if (!nodes.value.some((item) => item.parentId === parent.id && item.nodeType === 'VALUE' && item.valueId === result.value)) {
-    valuePicks.value = [result.value]
-    addValues()
-  }
-  creatingValue.value = false
-  newDictValue.value = ''
-  valueOpen.value = false
-  dictBusy.value = false
-  ElMessage.success(`${result.message} 当前节点已引用。模型不会因此发布。`)
-}
-function rebindPickedValue() {
-  if (!validDialog('value', valueBindNodeId.value)) return
-  if (!canEditStructure.value) return
-  if (viewing.value || !valueBindNodeId.value || !valueBindPick.value) return
-  pushUndo()
-  const result = rebindSpecNode(store.data, valueBindNodeId.value, { valueId: valueBindPick.value })
-  if (!result.ok) {
-    cancelUndo()
-    ElMessage.warning(result.message)
-    return
-  }
-  valueOpen.value = false
-  if (result.changed) ElMessage.success('已更换当前节点的取值引用，原词典没有修改。')
-}
-function addAttribute() {
-  if (!validDialog('attribute', attributeBindId.value || attachParent.value || undefined)) return
-  if (!canEditStructure.value) return
-  if (attributeBindId.value) {
-    const paramId = attributePick.value
-    const node = nodes.value.find((item) => item.id === attributeBindId.value && item.nodeType === 'ATTRIBUTE')
-    if (!paramId || !node) {
-      ElMessage.warning('请选择属性')
-      return
-    }
-    if (node.attributeId === paramId) {
-      attributeOpen.value = false
-      attributeBindId.value = ''
-      return
-    }
-    pushUndo()
-    if (!linkAttribute(node, paramId)) return
-    attributeOpen.value = false
-    attributeBindId.value = ''
-    return
-  }
-  const ids = [...new Set(attributeIds.value.filter(Boolean))]
-  if (!ids.length || ids.some(id => !store.data.params.some(p => p.id === id))) {
-    ElMessage.warning('请选择仍存在的属性词典项')
-    return
-  }
-  pushUndo()
-  insertAttributeNodes(ids)
-}
-function addValues() {
-  if (!validDialog('value', valueParentId.value)) return
-  if (!canEditStructure.value) return
-  const parent = nodes.value.find((item) => item.id === valueParentId.value && item.nodeType === 'ATTRIBUTE')
-  const allowed = new Set(parent ? allowedBusinessValues(store.data, nodes.value, parent.id).values : [])
-  if (valuePicks.value.some(value => !allowed.has(value))) { ElMessage.warning('所选值超出当前路径允许范围，请修正选择或上级配置。'); return }
-  const fresh = [...new Set(valuePicks.value.filter((item) => allowed.has(item)))]
-    .filter((item) => !nodes.value.some((row) => row.parentId === parent?.id && row.nodeType === 'VALUE' && row.valueId === item))
-  if (!parent?.attributeId || !fresh.length) {
-    ElMessage.warning('请选择属性值')
-    return
-  }
-  pushUndo()
-  parent.expanded = true
-  let sort = nextSort(parent.id)
-  fresh.forEach((valueId) => {
-    const id = uid('sn')
-    store.data.productSpecNodes.push({
-      id,
-      templateId: templateId.value,
-      parentId: parent.id,
-      nodeType: 'VALUE',
-      attributeId: parent.attributeId,
-      valueId,
-      sort,
-      positionX: 0,
-      positionY: 0,
-    })
-    sort += 1
-  })
-  reflowTree()
-  selected.value = parent.id
-  valueOpen.value = false
-  revealNode(parent.id)
-}
+function submitAttributeComposer(){return submitComposer('attribute')}
+function submitValueComposer(){return submitComposer('value')}
 function descendantIds(id: string): string[] {
   const children = nodes.value.filter((item) => item.parentId === id)
   return children.flatMap((item) => [item.id, ...descendantIds(item.id)])
@@ -2915,11 +2400,12 @@ function openTemporary(familyId: string, skuId: string) {
 function visibleOverlay(selector: string) {
   return [...document.querySelectorAll(selector)].some((el) => {
     const overlay = (el.closest('.el-overlay') || el) as HTMLElement
-    return getComputedStyle(overlay).display !== 'none' && getComputedStyle(overlay).visibility !== 'hidden'
+    const rect=el.getBoundingClientRect(),style=getComputedStyle(el)
+    return rect.width>0&&rect.height>0&&style.display!=='none'&&style.visibility!=='hidden'&&getComputedStyle(overlay).display !== 'none' && getComputedStyle(overlay).visibility !== 'hidden'
   })
 }
 function shortcutBlocked() {
-  if (modelSaving.value || copying.value || publishing.value || businessBusy.value) return true
+  if (modelSaving.value || copying.value || publishing.value || businessBusy.value||composerBusy.value) return true
   if (attributeOpen.value || valueOpen.value || copyOpen.value || nodeDraftOpen.value || editingId.value || namingOpen.value || businessOpen.value || temporaryOpen.value || templateCompatibilityOpen.value || comboManageOpen.value) return true
   if (document.querySelector('.v3-material-dialog')) return true
   return visibleOverlay('.el-overlay-dialog, .el-message-box')
@@ -2932,7 +2418,7 @@ function isTypingTarget(target: EventTarget | null) {
   return Boolean(node.closest('.node-add-panel, .el-dialog, .el-message-box, .el-popper, .el-select, .context-menu, #nav-flyout, .category-tree-select, .category-tree-select-panel'))
 }
 function onKey(event: KeyboardEvent) {
-  if (viewing.value || event.isComposing) return
+  if (viewing.value || event.isComposing||composerBusy.value) return
   if (isTypingTarget(event.target) || shortcutBlocked()) return
   const target = event.target as HTMLElement | null
   if (!target?.closest?.('.board')) return

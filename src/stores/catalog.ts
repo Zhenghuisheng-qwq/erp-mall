@@ -29,6 +29,8 @@ import {
 } from '../domain/categoryTree'
 import { applyAccessoryCategoryFix, PHONE_CASE_CATEGORY_FIX } from '../domain/categoryFix'
 import { dictionaryRemovalBlock } from '../domain/dictionaryGuard'
+import { applyModelDictionaryBatch, modelDictionaryInputProblem, type ModelDictionaryBatchInput, type ModelDictionaryBatchResult } from '../domain/modelDictionaryCommands'
+import { captureEditor, editorEntry, prepareEditorUndo, type EditorHistoryEntry } from '../domain/editorHistory'
 import { blankVariantAttrs, categoryPath, descendantIds, familySkus, sameSpecSnapshot, specPublishProblems } from '../domain/logic'
 import { reconcilePlanningRecords } from '../domain/planning'
 import { compatibilityModelBlock, compatibilitySkuBlock } from '../domain/compatibility'
@@ -295,6 +297,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   const caughtFailure = (error:unknown,message:string,savedState:GuideFailure['savedState']='unconfirmed') => { const known=getFailure(error);return known?{...known,message,savedState}:unknownFailure(message,executingAction,savedState) }
   const publicData=catalogPublicData(data,can)
   const editorGeneration = ref(0)
+  const dictionaryCommandReceipts = new Map<string, { actor: string; generation: number; entry: EditorHistoryEntry; codes: string[] }>()
   const persistence = createCatalogPersistence(originalRaw)
   onScopeDispose(persistence.dispose)
   ensureProductListPages(data)
@@ -941,6 +944,66 @@ export const useCatalogStore = defineStore('catalog', () => {
     return true
   }
 
+  function appendDictionaryValues(attributeId: string, values: readonly string[], isCurrent: () => boolean) {
+    const fail = (message: string) => ({ ok: false, message, addedValues: [] as string[], existingValues: [] as string[] })
+    if (typeof attributeId !== 'string' || !attributeId.trim()) return fail('请选择有效的属性词典 ID。')
+    if (typeof isCurrent !== 'function' || !isCurrent()) return fail('属性编辑上下文已变化，本次没有保存；原输入保留。')
+    if (!Array.isArray(values) || values.some(value => typeof value !== 'string')) return fail('属性值必须是文字列表。')
+    const owner = data.params.find(param => param.id === attributeId)
+    if (!owner) return fail('属性词典已不存在，请重新选择属性。')
+    if (!can('product:dictionary:update')) return fail('没有修改属性词典的权限，本次没有保存。')
+    // Values supplied as individual identities are not split again (a value may contain punctuation).
+    const cleaned = [...new Set(values.map(value => value.trim()).filter(Boolean))]
+    const addedValues = cleaned.filter(value => !owner.values.includes(value)), existingValues = cleaned.filter(value => owner.values.includes(value))
+    if (!cleaned.length) return fail('请至少输入一行有效属性值。')
+    const next = cloneCompatibility(data)
+    next.params.find(param => param.id === attributeId)!.values.push(...addedValues)
+    return commitCandidate(next, { ok: true, message: addedValues.length ? `已保存 ${addedValues.length} 个新取值${existingValues.length ? `，跳过 ${existingValues.length} 个已有取值` : ''}。` : '所选取值均已存在，没有重复写入。', addedValues, existingValues }, ['params'])
+  }
+
+  function markDictionaryDraft(next: AppData, modelId: string) {
+    const canvas = next.specCanvases.find(item => item.templateId === modelId)
+    if (!canvas || canvas.status === 'offline') return
+    const latest = next.specModelVersions.filter(item => item.templateId === modelId && item.status === 'published').sort((a, b) => a.version - b.version).at(-1)
+    const sameCompatibility = templateCompatibilityContentSignature(next.templateCompatibilityConfigs?.find(item => item.modelId === modelId)) === templateCompatibilityContentSignature(latest?.templateCompatibilitySnapshot)
+    if (latest && sameSpecSnapshot(latest.nodesSnapshot, next.productSpecNodes.filter(item => item.templateId === modelId)) && sameCompatibility) {
+      canvas.status = 'published'; canvas.version = latest.version; canvas.versionName = latest.versionName
+    } else {
+      canvas.status = 'draft'; canvas.version = (latest?.version || 0) + 1; canvas.versionName = `V${canvas.version}`
+      canvas.updatedAt = new Date().toISOString()
+    }
+  }
+  function commitModelDictionaryBatch(input: ModelDictionaryBatchInput, isCurrent: () => boolean) {
+    const inputProblem = modelDictionaryInputProblem(input)
+    if (inputProblem) return { ok: false, message: inputProblem }
+    if (typeof isCurrent !== 'function' || !isCurrent()) return { ok: false, message: '模型编辑上下文已变化，本次没有保存；原输入保留。' }
+    const codes = commandPermissions('commitModelDictionaryBatch', [input], data)
+    if (!codes.every(can)) return { ok: false, message: `当前授权不足：${codes.filter(code => !can(code)).join('、')}。原输入保留。` }
+    const before = captureEditor(data, input.modelId), next = cloneCompatibility(data)
+    const planned = { ...applyModelDictionaryBatch(next, input, uid), requiredPermissions: codes }
+    if (!planned.ok) return planned
+    const historyEntry = editorEntry(input.modelId, input.session, before, captureEditor(next, input.modelId))
+    if (historyEntry) { historyEntry.commandId = uid('editor-command'); markDictionaryDraft(next, input.modelId) }
+    if (!isCurrent()) return { ok: false, message: '模型编辑上下文已变化，本次没有保存；原输入保留。' }
+    const committed = commitCandidate(next, { ...planned, historyEntry }, ['params', 'templates', 'templateParams', 'productSpecNodes', 'specCanvases'])
+    if (committed.ok && historyEntry?.commandId) dictionaryCommandReceipts.set(historyEntry.commandId, { actor: effectiveUserId.value, generation: editorGeneration.value, entry: cloneCompatibility(historyEntry), codes })
+    return committed
+  }
+  function undoModelDictionaryBatch(entry: EditorHistoryEntry, modelId: string, session: number, isCurrent: () => boolean) {
+    const receipt = entry?.commandId && dictionaryCommandReceipts.get(entry.commandId)
+    if (!isCurrent() || !receipt || receipt.actor !== effectiveUserId.value || receipt.generation !== editorGeneration.value || JSON.stringify(entry) !== JSON.stringify(receipt.entry)) return { ok: false, message: '本次撤销回执或编辑身份已失效，未修改当前数据。' }
+    if (![...receipt.codes, ...commandPermissions('undoModelDictionaryBatch', [receipt.entry], data)].every(can)) return { ok: false, message: '当前授权已变化，不能撤销这次词典和模型操作。' }
+    const prepared = prepareEditorUndo(data, receipt.entry, modelId, session)
+    if (!prepared.ok) return prepared
+    const next = cloneCompatibility(data)
+    next.params = prepared.params; next.productSpecNodes = prepared.nodes; next.templateParams = prepared.bindings; next.nodeCompatibilityRules = prepared.nodeRules
+    next.templates.find(item => item.id === modelId)!.structureOrder = prepared.order
+    markDictionaryDraft(next, modelId)
+    const committed = commitCandidate(next, { ok: true, message: '已撤销这一次批量操作，其他模型和历史版本保持。' }, ['params', 'templates', 'templateParams', 'productSpecNodes', 'nodeCompatibilityRules', 'specCanvases'])
+    if (committed.ok) dictionaryCommandReceipts.delete(entry.commandId!)
+    return committed
+  }
+
   function removeParam(id: string) {
     const message = dictionaryRemovalBlock(data, id)
     if (message) return message
@@ -1540,6 +1603,18 @@ export const useCatalogStore = defineStore('catalog', () => {
     removeSku,
     setSkuStatus,
     addParamValue,
+    appendDictionaryValues: (attributeId: string, values: readonly string[], isCurrent: () => boolean = () => true) => {
+      const copied = Array.isArray(values) ? [...values] : values
+      return command(() => appendDictionaryValues(attributeId, copied, isCurrent))
+    },
+    commitModelDictionaryBatch: (input: ModelDictionaryBatchInput, isCurrent: () => boolean = () => true) => {
+      const copied = input === undefined ? input : cloneCompatibility(input)
+      return command(() => commitModelDictionaryBatch(copied, isCurrent)).then((result): ModelDictionaryBatchResult => ({ changed: false, nodeIds: [], skipped: [], items: [], requiredPermissions: [], ...result }))
+    },
+    undoModelDictionaryBatch: (entry: EditorHistoryEntry, modelId: string, session: number, isCurrent: () => boolean = () => true) => {
+      const copied = cloneCompatibility(entry)
+      return command(() => undoModelDictionaryBatch(copied, modelId, session, isCurrent))
+    },
     removeParam,
     removeParamValue,
     categoryRemovalBlock,

@@ -131,4 +131,4 @@ function apply(data: AppData, candidate: ReturnType<typeof prepareEditorUndo>) {
   store.$dispose(); restore()
   checks.push('queued draft save revalidates context inside persistence coordinator')
 }
-console.log(JSON.stringify({ checks, result: 'PASS' }, null, 2))
+console.log(`PASS editor safety: ${checks.length} groups`)

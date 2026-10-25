@@ -3,10 +3,11 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createServer } from 'vite'
 import { chromium } from 'playwright-core'
-if (!process.env.EDITOR_SAFETY_OUTPUT_DIR) throw Error('Explicit unique output directory required')
-const output=resolve(process.env.EDITOR_SAFETY_OUTPUT_DIR), checks=[]
-mkdirSync(output,{recursive:true})
-const server=await createServer({cacheDir:resolve(output,'vite-cache'),server:{host:'127.0.0.1',port:0,open:false,hmr:false,watch:null}})
+import {createTestRuntime,removeTestRuntime} from './test-runtime.mjs'
+const artifacts=process.argv.includes('--artifacts'),strict=process.argv.includes('--strict'),runtime=createTestRuntime('editor-safety')
+const output=resolve(process.env.EDITOR_SAFETY_OUTPUT_DIR||'work/editor-safety'), checks=[]
+if(artifacts)mkdirSync(output,{recursive:true})
+const server=await createServer({cacheDir:resolve(runtime,'vite-cache'),logLevel:'error',define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify(String(strict))},server:{host:'127.0.0.1',port:0,open:false,hmr:false,watch:null}})
 let browser, page
 const errors=[]
 try {
@@ -37,7 +38,7 @@ try {
   const changed=JSON.stringify(before.productSpecNodes)!==JSON.stringify(after.productSpecNodes)
   assert.equal(changed,process.env.BASELINE==='1')
   checks.push({name:'A ArrowDown → same-component query B → real Ctrl+Z',corruptionReproduced:changed,bNodesAfter:after.productSpecNodes.filter(x=>x.templateId==='safety-b').length})
-  await page.screenshot({path:resolve(output,'cross-model.png')})
+  if(artifacts)await page.screenshot({path:resolve(output,'cross-model.png')})
   if(process.env.BASELINE!=='1') {
     const mark=name=>{checks.push({name,ok:true});console.log('PASS '+name)}
     const go=async query=>{await page.evaluate(async query=>{await document.querySelector('#app').__vue_app__.config.globalProperties.$router.push('/specs?'+query)},query);await page.waitForTimeout(200)}
@@ -63,7 +64,7 @@ try {
       await page.locator('[data-expand-toggle]').click();await page.locator('[data-expand-toggle]').click();assert.equal(business(await read()),before)
       mark(mode+' projection: real keys, double-click, menu, drag and expansion are readonly')
     }
-    await page.screenshot({path:resolve(output,'projection.png')})
+    if(artifacts)await page.screenshot({path:resolve(output,'projection.png')})
     await page.locator('.view-switch').getByText('大纲视图',{exact:true}).click();await page.locator('[data-line="g-cap"]').press('ArrowDown');await page.waitForTimeout(200)
     assert.equal((await read()).productSpecNodes.find(x=>x.id==='g-cap').sort,2)
     await page.locator('.view-switch').getByText('幕布模式',{exact:true}).click();await page.locator('[data-line="g-cap"]').press('ArrowUp');await page.waitForTimeout(200)
@@ -87,25 +88,28 @@ try {
     await page.locator('.canvas-tools').getByText('属性',{exact:true}).click();await page.waitForTimeout(200);assert.equal(await page.locator('.model-attr[data-material-highlight]').count(),2);assert.equal(business(await read()),materialBefore)
     await page.getByText('显示关联物料',{exact:true}).click();await page.locator('.canvas-tools').getByText('完整结构',{exact:true}).click();await select('g-cap');await press('Control+z');assert.equal((await read()).productSpecNodes.find(x=>x.id==='g-cap').sort,1)
     mark('projection material highlight is readonly and adds no undo entry')
-    await page.screenshot({path:resolve(output,'drag-restored.png')})
+    if(artifacts)await page.screenshot({path:resolve(output,'drag-restored.png')})
     // A late confirmation is resolved by clicking its real button after the route changed.
     await select('g-cap');await press('Delete');await page.locator('.el-message-box').waitFor();await go('template=safety-b');const late=business(await read());await page.locator('.el-message-box').getByRole('button',{name:'确定',exact:true}).click();await page.waitForTimeout(250);assert.equal(business(await read()),late)
     mark('late delete confirmation cannot modify model B')
     await reset();await select('model-root');await page.locator('.node-ops').getByRole('button',{name:'添加属性',exact:true}).click()
     let dialog=page.getByRole('dialog',{name:/^(选择属性|添加属性)$/})
-    await dialog.getByRole('button',{name:'新增属性',exact:true}).click()
-    const text=dialog.getByPlaceholder('新属性名称');await text.click();await page.keyboard.type('native undo');await page.keyboard.press('Control+z');assert.notEqual(await text.inputValue(),'native undo')
-    await text.fill('共享测试新属性');await dialog.getByRole('button',{name:'保存到词典并引用',exact:true}).click();await dialog.waitFor({state:'hidden'});await page.waitForTimeout(250)
+    const text=dialog.getByRole('textbox',{name:'新属性名称',exact:true});await text.click();await page.keyboard.type('native undo');await page.keyboard.press('Control+z');assert.notEqual(await text.inputValue(),'native undo')
+    const dictionaryDraftBefore=business(await read())
+    await text.fill('共享测试新属性');await dialog.getByRole('button',{name:'加入待添加',exact:true}).click()
+    assert.equal(business(await read()),dictionaryDraftBefore);assert.equal(await dialog.locator('[data-pending-attribute]').count(),1)
+    await dialog.getByRole('button',{name:/^确认添加/}).click();await dialog.waitFor({state:'hidden'});await page.waitForTimeout(250)
     const newParam=(await read()).params.find(p=>p.name==='共享测试新属性');assert(newParam)
+    const finishDictionaryUndo=async()=>{await page.evaluate(async()=>{window.__editorSafetyStore=(await import('/src/stores/catalog.ts')).useCatalogStore();await window.__editorSafetyStore.waitForPersistence()});await page.waitForFunction(()=>Boolean(document.activeElement?.closest('.board')))}
     // Simulate a later independent model edit; do not invoke designer handlers.
     await page.evaluate(async id=>{const s=(await import('/src/stores/catalog.ts')).useCatalogStore();s.data.templateParams.push({templateId:'safety-b',paramId:id,role:'variant',required:false});s.data.params.push({id:'late-dict',name:'独立后续词典',values:[],valueGroups:[],participateInStructure:true})},newParam.id)
-    await select('g-cap');const conflict=business(await read());await press('Control+z');assert.equal(business(await read()),conflict);await press('Control+z');assert.equal(business(await read()),conflict)
+    await select('g-cap');const conflict=business(await read());await press('Control+z');await finishDictionaryUndo();assert.equal(business(await read()),conflict);await press('Control+z');await finishDictionaryUndo();assert.equal(business(await read()),conflict)
     assert.match(await page.locator('body').innerText(),/词典已被/)
     await page.evaluate(async id=>{const s=(await import('/src/stores/catalog.ts')).useCatalogStore();s.data.templateParams=s.data.templateParams.filter(p=>!(p.templateId==='safety-b'&&p.paramId===id))},newParam.id)
-    await press('Control+z');assert(!(await read()).params.some(p=>p.id===newParam.id));assert((await read()).params.some(p=>p.id==='late-dict'))
+    await press('Control+z');await finishDictionaryUndo();await page.waitForFunction(id=>!window.__editorSafetyStore.data.params.some(p=>p.id===id),newParam.id);assert(!(await read()).params.some(p=>p.id===newParam.id));assert((await read()).params.some(p=>p.id==='late-dict'))
     mark('real dictionary create/undo; shared-reference conflict retains history; unrelated later dictionary preserved; input native undo')
-    await reset();await select('model-root');await page.locator('.node-ops').getByRole('button',{name:'添加属性',exact:true}).click();dialog=page.getByRole('dialog',{name:/^(选择属性|添加属性)$/});await dialog.getByRole('button',{name:'新增属性',exact:true}).click()
-    const ime=dialog.getByPlaceholder('新属性名称');const imeBefore=business(await read());await ime.fill('中文输入验收')
+    await reset();await select('model-root');await page.locator('.node-ops').getByRole('button',{name:'添加属性',exact:true}).click();dialog=page.getByRole('dialog',{name:/^(选择属性|添加属性)$/})
+    const ime=dialog.getByRole('textbox',{name:'新属性名称',exact:true});const imeBefore=business(await read());await ime.fill('中文输入验收')
     // CompositionEvent is a synthetic IME contract check, not a claim of OS input-method automation.
     await ime.evaluate(el=>{el.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,isComposing:true}));el.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true,data:'中文输入验收'}))});assert.equal(business(await read()),imeBefore)
     await dialog.getByRole('button',{name:'取消',exact:true}).click();mark('Chinese input and synthetic composing Enter do not trigger structural command')
@@ -123,6 +127,6 @@ try {
     mark('import, deletion and reset invalidate old history (store operations + real keyboard)')
   }
   assert.deepEqual(errors,[])
-  writeFileSync(resolve(output,'result.json'),JSON.stringify({browser:await browser.version(),baseline:process.env.BASELINE==='1',checks},null,2))
-  console.log(JSON.stringify(checks))
-} catch(error) {await page?.screenshot({path:resolve(output,'failure.png')}).catch(()=>{});writeFileSync(resolve(output,'failure.json'),JSON.stringify({checks,errors,error:String(error).slice(0,1400)},null,2));throw error} finally {await browser?.close();await server.close()}
+  if(artifacts)writeFileSync(resolve(output,'result.json'),JSON.stringify({browser:await browser.version(),baseline:process.env.BASELINE==='1',checks},null,2))
+  console.log(`PASS editor safety Chrome ${strict?'strict':'default'}: ${checks.length} groups`)
+} catch(error) {if(artifacts){await page?.screenshot({path:resolve(output,'failure.png')}).catch(()=>{});writeFileSync(resolve(output,'failure.json'),JSON.stringify({checks,errors,error:String(error).slice(0,1400)},null,2))};throw error} finally {await browser?.close();await server.close();removeTestRuntime(runtime)}

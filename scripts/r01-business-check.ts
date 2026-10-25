@@ -13,7 +13,7 @@ import { specPublishProblems } from '../src/domain/logic'
 import { previewDraftCombinations } from '../src/domain/draftComboPreview'
 import { nearestNamingRule } from '../src/domain/naming'
 installCatalogTestLocks()
-const output=process.env.R01_DOMAIN_OUTPUT || 'work/r01-20261025/domain';mkdirSync(output,{recursive:true})
+const artifacts=process.argv.includes('--artifacts'),output=process.env.R01_DOMAIN_OUTPUT || 'work/r01-20261025/domain';if(artifacts)mkdirSync(output,{recursive:true})
 const checks:string[]=[];const pass=(s:string)=>{checks.push(s);console.log('PASS R01 '+s)}
 const disk=new Map<string,string>();let fail=false
 Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(k:string)=>disk.get(k)??null,setItem:(k:string,v:string)=>{if(fail){fail=false;throw Error('quota')};disk.set(k,v)},removeItem:(k:string)=>disk.delete(k)}})
@@ -141,4 +141,4 @@ assert((await save(apple,[])).ok)
 const raw=disk.get(STORAGE_KEY)!,external=JSON.parse(raw);external.data.templates[0].name='外部编辑';disk.set(STORAGE_KEY,JSON.stringify(external))
 assert(!(await save(apple,draft)).ok);assert.equal(draft[0]!.parameters.value,'independent')
 pass('增改停删与刷新；配额失败原子性；未知配置保留并阻止发布；外部更新拒绝且输入保留')
-store.$dispose();writeFileSync(`${output}/result.json`,JSON.stringify({passed:true,checks},null,2))
+store.$dispose();if(artifacts)writeFileSync(`${output}/result.json`,JSON.stringify({passed:true,checks},null,2))

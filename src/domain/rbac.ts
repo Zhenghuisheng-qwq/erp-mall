@@ -1,5 +1,6 @@
 import { RBAC_ENFORCEMENT_ENABLED } from './accessMode'
 import type { AppData, Sku } from './types'
+import { modelDictionaryPermissions, type ModelDictionaryBatchInput } from './modelDictionaryCommands'
 import { isMaterialArchive } from './catalogIdentity'
 import { adminPage, defaultMenuNodes, type MenuNode } from './menuConfig'
 
@@ -243,6 +244,16 @@ export function templateAccessResource(data: AppData, template: string | {id?: s
 
 /** Store command bindings. An unknown command fails closed. These are execution points, not labels. */
 export function commandPermissions(name: string, args: unknown[] = [], data?: AppData): string[] {
+  if (name === 'commitModelDictionaryBatch') {
+    const input = args[0] as ModelDictionaryBatchInput | undefined
+    const codes = data ? modelDictionaryPermissions(data, input as ModelDictionaryBatchInput) : ['product:model:update']
+    if (data && typeof input?.modelId === 'string' && templateAccessResource(data, input.modelId) === 'template') codes.push('product:template:update')
+    return [...new Set(codes)]
+  }
+  if (name === 'undoModelDictionaryBatch') {
+    const entry = args[0] as { modelId?: string; dictionary?: { before?: unknown }[] } | undefined
+    return [...new Set(['product:model:update', ...(data && typeof entry?.modelId === 'string' && templateAccessResource(data, entry.modelId) === 'template' ? ['product:template:update'] : []), ...(Array.isArray(entry?.dictionary) ? entry.dictionary.map(change => change.before ? 'product:dictionary:update' : 'product:dictionary:create') : [])])]
+  }
   const first = args[0] as Record<string,unknown> | undefined
   const save = (resource:string, exists:boolean) => [`product:${resource}:${exists ? 'update' : 'create'}`]
   if (name === 'saveRbacRole') return [`system:role:${(data ? state(data) : undefined)?.roles.some(role => role.id === first?.id) ? 'update' : 'create'}`]
@@ -289,7 +300,7 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
     appendSkus:['product:sku:create'],editSku:['product:sku:update'],patchSku:['product:sku:update'],setSkuStatus:['product:sku:update'],removeSku:['product:sku:delete'],removeFamily:['product:spu:delete'],
     removeBenefitFramework:['product:framework:delete'],setBenefitPackageStatus:['product:benefit:update'],setBenefitPackageFavorite:['product:benefit:update'],generateBenefitDelivery:['product:delivery:create'],
     commitDeviceBinding:['product:compatibility:update'],clearDeviceBinding:['product:compatibility:update'],removeDeviceModel:['product:compatibility:delete'],
-    addParamValue:['product:dictionary:update'],removeParam:['product:dictionary:delete'],removeParamValue:['product:dictionary:update'],removeProductType:['product:type:delete'],setProductTypeStatus:['product:type:update'],
+    addParamValue:['product:dictionary:update'],appendDictionaryValues:['product:dictionary:update'],removeParam:['product:dictionary:delete'],removeParamValue:['product:dictionary:update'],removeProductType:['product:type:delete'],setProductTypeStatus:['product:type:update'],
     commitCategoryMove:['product:category:update'],commitCategoryMoves:['product:category:update'],renameCategoryName:['product:category:update'],
     addCategory:['product:category:create'],copyCategory:['product:category:create'],moveCategory:['product:category:update'],shiftCategory:['product:category:update'],relocateCategory:['product:category:update'],updateCategory:['product:category:update'],removeCategory:['product:category:delete'],setCategoryMapping:['product:template:update'],removeGroup:['product:group:delete'],
     commitSkuPage:['product:sku:read'],saveView:['product:view:update'],applyView:['product:spu:read'],removeView:['product:view:update'],

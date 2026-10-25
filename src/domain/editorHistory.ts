@@ -1,9 +1,13 @@
 import type { AppData, ParamDef, ProductSpecNode } from './types'
+import type { SkuViewConfig } from './skuWorkbenchTypes'
+import { skuFields } from './skuWorkbenchFields'
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 export type EditorSnapshot = ReturnType<typeof captureEditor>
 export interface EditorHistoryEntry {
+  /** In-memory receipt for an accepted atomic dictionary/model command. Never persisted. */
+  commandId?: string
   modelId: string
   session: number
   before: Omit<EditorSnapshot, 'params'>
@@ -42,6 +46,18 @@ function contains(value: unknown, target: string): boolean {
   if (Array.isArray(value)) return value.some(v => contains(v, target))
   return !!value && typeof value === 'object' && Object.entries(value).some(([key, v]) => key === target || contains(v, target))
 }
+/** SKU alias dictionaries cache labels for every attribute, including unused ones. */
+function withoutSkuAliasMetadata(data: AppData): AppData {
+  const config = (value: SkuViewConfig) => { const { attributeNames: _names, ...rest } = value; return rest }
+  const view = (value: NonNullable<AppData['productListViews']>[number]) => value.skuWorkbench ? { ...value, skuWorkbench: config(value.skuWorkbench) } : value
+  const pages = data.productListPages && { ...data.productListPages }
+  if (pages) for (const mode of ['spu', 'sku'] as const) {
+    const page = pages[mode]
+    if (!page) continue
+    pages[mode] = { ...page, views: page.views.map(view), ...(page.skuWorkbench ? { skuWorkbench: { ...page.skuWorkbench, working: Object.fromEntries(Object.entries(page.skuWorkbench.working).map(([id, value]) => [id, config(value)])) } } : {}) }
+  }
+  return { ...data, ...(data.productListViews ? { productListViews: data.productListViews.map(view) } : {}), ...(pages ? { productListPages: pages } : {}) }
+}
 /** Build the entire candidate before touching live state. Conflicts never consume history. */
 export function prepareEditorUndo(data: AppData, entry: EditorHistoryEntry, modelId: string, session: number) {
   const fail = (message: string) => ({ ok: false as const, message })
@@ -49,14 +65,28 @@ export function prepareEditorUndo(data: AppData, entry: EditorHistoryEntry, mode
   const current = captureEditor(data, modelId)
   if (!sameEditorModel(current, entry.after)) return fail('模型已有后续修改，未执行撤销。')
   const params = clone(data.params)
-  const nodes = [...data.productSpecNodes.filter(n => n.templateId !== modelId), ...clone(entry.before.nodes)]
+  const restoredNodes = clone(entry.before.nodes).map(node => {
+    const current = data.productSpecNodes.find(item => item.id === node.id && item.templateId === modelId)
+    const after = entry.after.nodes.find(item => item.id === node.id)
+    if (current) for (const key of ['positionX', 'positionY', 'expanded'] as const) {
+      // Undo this command's own layout only. Preserve a field changed after it.
+      const value = current[key] === after?.[key] ? node[key] : current[key]
+      if (value === undefined) delete node[key]
+      else Object.assign(node, { [key]: value })
+    }
+    return node
+  })
+  const nodes = [...data.productSpecNodes.filter(n => n.templateId !== modelId), ...restoredNodes]
   const bindings = [...data.templateParams.filter(n => n.templateId !== modelId), ...clone(entry.before.bindings)]
+  const external = withoutSkuAliasMetadata({ ...data, params: [], productSpecNodes: nodes.filter(n => n.templateId !== modelId), templateParams: bindings.filter(n => n.templateId !== modelId), templates: data.templates.filter(t => t.id !== modelId) })
+  const registeredFields = new Set(skuFields(data).map(field => field.id))
   for (const change of entry.dictionary) {
     const index = params.findIndex(p => p.id === change.id)
     if (!same(params[index], change.after)) return fail('词典已有后续修改，未执行撤销。')
     // Reject shared edits rather than silently altering another model or published snapshot.
-    const external = { ...data, params: [], productSpecNodes: nodes.filter(n => n.templateId !== modelId), templateParams: bindings.filter(n => n.templateId !== modelId), templates: data.templates.filter(t => t.id !== modelId) }
-    if (contains(external, change.id) || (change.after && contains(external, change.after.name))) return fail('词典已被其他模型或历史数据引用，未执行撤销。')
+    // attr:<ID> is the registered SKU/SPU dynamic-field identity, not a name guess.
+    const fieldId = `attr:${change.id}`
+    if (contains(external, change.id) || (registeredFields.has(fieldId) && contains(external, fieldId)) || (change.after && contains(external, change.after.name))) return fail('词典已被其他模型或历史数据引用，未执行撤销。')
     if (change.before) {
       if (index < 0) params.push(clone(change.before))
       else params[index] = clone(change.before)

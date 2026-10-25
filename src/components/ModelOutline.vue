@@ -1,6 +1,6 @@
 <template>
   <div ref="rootEl" class="outline" :class="{ 'is-mubu': mubu }" @focusout="clearEditing">
-    <p v-if="mubu && editingText" class="editing-now">正在编辑：{{ editingText }}</p>
+    <p v-if="mubu" class="editing-now" :aria-hidden="!editingText"><template v-if="editingText">正在编辑：{{ editingText }}</template></p>
     <div v-if="!viewing && !mubu" class="outline-tools">
       <el-button link type="primary" @click="emit('ask')">新增节点</el-button>
     </div>
@@ -30,41 +30,15 @@
       <span v-else class="twist"></span>
       <span v-if="!viewing" class="grip" draggable="true" @dragstart.stop="onDragStart(row.node.id, $event)" @dragend="drop = { id: '', place: '' }">⋮⋮</span>
       <span class="line-wrap">
-        <el-select
-          v-if="!viewing && pickingId === row.node.id"
-          class="line-pick"
-          :model-value="boundToken(row.node)"
-          filterable
-          default-first-option
-          automatic-dropdown
-          :filter-method="rememberQuery"
-          placeholder="搜索词典，没有时可新增"
-          style="flex: 1; min-width: 160px"
-          :data-line="row.node.id"
-          @change="onPick(row.node, $event)"
-          @visible-change="onPickVisible"
-          @keydown.esc.stop.prevent="closePick"
-          @keydown.delete.stop
-          @keydown.enter.stop
-          @keydown.tab.stop
-          @mousedown.stop
-          @click.stop
-        >
-          <el-option v-for="item in shownOptions(row.node)" :key="item.value" :label="item.label" :value="item.value" />
-          <el-option v-if="createOffer(row.node)" :key="createOffer(row.node)?.value" :label="createOffer(row.node)?.label" :value="createOffer(row.node)?.value || ''" />
-          <template #empty>
-            <p class="pick-empty">{{ pickQuery.trim() ? `没有匹配「${pickQuery.trim()}」` : '词典里还没有可选项，输入名称后可以新增' }}</p>
-          </template>
-        </el-select>
         <button
-          v-else-if="!viewing && canPick(row.node)"
+          v-if="!viewing && canPick(row.node)"
           type="button"
           class="line"
           :class="{ 'is-unbound': isUnbound(row.node) }"
           :title="label(row.node)"
           :data-line="row.node.id"
           @focus="markEditing(row.node.id, $event)"
-          @click.stop="openPick(row.node)"
+          @click.stop="emit('bind',row.node.id)"
           @keydown="onLineKey(row.node, $event)"
         >{{ label(row.node) }}<em v-if="ruleText(row.node)" class="rule-mark" :class="{ 'is-inherit': ruleText(row.node) === '继承' }">{{ ruleText(row.node) }}</em></button>
         <input v-else class="line" :class="{ 'is-unbound': isUnbound(row.node) }" :title="label(row.node)" :data-line="row.node.id" :value="label(row.node)" readonly @focus="markEditing(row.node.id, $event)" />
@@ -138,11 +112,6 @@ const drop = ref({ id: '', place: '' as '' | 'before' | 'after' | 'inside' })
 const draggingId = ref('')
 const editingId = ref('')
 const editingText = ref('')
-const pickingId = ref('')
-const pickQuery = ref('')
-let pickOpened = false
-let lastCommit = ''
-let skipCommit = false
 
 const rows = computed(() => {
   const list: { node: ProductSpecNode; depth: number; hasChildren: boolean }[] = []
@@ -164,16 +133,10 @@ watch(
   () => props.focusTick,
   () => {
     if (!props.focusId) return
-    const node = props.nodes.find((item) => item.id === props.focusId)
-    if (node && !props.viewing && canPick(node)) {
-      pickingId.value = node.id
-      emit('select', node.id)
-      return
-    }
     nextTick(() => {
-      const input = rootEl.value?.querySelector<HTMLInputElement>(`[data-line="${props.focusId}"]`)
+      const input = rootEl.value?.querySelector<HTMLElement>(`[data-line="${props.focusId}"]`)
       input?.focus()
-      input?.select()
+      if(input instanceof HTMLInputElement||input instanceof HTMLTextAreaElement)input.select()
     })
   },
 )
@@ -193,56 +156,6 @@ function isUnbound(node: ProductSpecNode) {
 function canPick(node: ProductSpecNode) {
   return node.nodeType === 'ATTRIBUTE' || node.nodeType === 'VALUE'
 }
-function boundToken(node: ProductSpecNode) {
-  return node.nodeType === 'ATTRIBUTE' ? node.attributeId : node.valueId
-}
-function rememberQuery(query: string) {
-  pickQuery.value = query
-}
-function shownOptions(node: ProductSpecNode) {
-  const query = pickQuery.value.trim().toLowerCase()
-  const options = props.optionsFor(node)
-  if (!query) return options
-  return options.filter((item) => item.label.toLowerCase().includes(query) || item.value.toLowerCase().includes(query))
-}
-function createOffer(node: ProductSpecNode) {
-  const query = pickQuery.value.trim()
-  if (!query) return null
-  const options = props.optionsFor(node)
-  if (options.some((item) => item.label === query || item.value === query)) return null
-  return { value: `__create__:${query}`, label: node.nodeType === 'ATTRIBUTE' ? `新增属性：${query}` : `新增属性值：${query}` }
-}
-function openPick(node: ProductSpecNode) {
-  pickQuery.value = ''
-  pickingId.value = node.id
-  pickOpened = false
-  emit('select', node.id)
-  nextTick(() => rootEl.value?.querySelector<HTMLElement>('.line-pick')?.querySelector('input')?.click())
-}
-function onPick(node: ProductSpecNode, token: string | number | boolean) {
-  const next = String(token)
-  const name = pickQuery.value.trim()
-  pickingId.value = ''
-  pickOpened = false
-  pickQuery.value = ''
-  if (next.startsWith('__create__:')) {
-    emit('create', { id: node.id, name: next.slice('__create__:'.length) || name })
-    return
-  }
-  if (next && next !== boundToken(node)) emit('choose', { id: node.id, token: next })
-}
-function onPickVisible(open: boolean) {
-  if (open) {
-    pickOpened = true
-    return
-  }
-  if (!pickOpened) return
-  pickOpened = false
-  pickingId.value = ''
-}
-function closePick() {
-  pickingId.value = ''
-}
 function openMenu(id: string, event: MouseEvent) {
   if (props.viewing) return
   emit('menu', { id, x: event.clientX, y: event.clientY })
@@ -252,9 +165,10 @@ function scrollActive() {
   if (!id || !rootEl.value) return
   rootEl.value.querySelector(`[data-line="${id}"]`)?.scrollIntoView({ block: 'nearest' })
 }
-function markEditing(id: string, event: FocusEvent) {
+function markEditing(id: string, _event: FocusEvent) {
   editingId.value = id
-  editingText.value = (event.target as HTMLInputElement).value.trim()
+  const node=props.nodes.find(node=>node.id===id)
+  editingText.value = id===props.rootId?props.rootTitle:node?props.label(node):''
   emit('select', id)
 }
 function clearEditing(event: FocusEvent) {
@@ -264,21 +178,6 @@ function clearEditing(event: FocusEvent) {
   editingText.value = ''
 }
 
-function commitLine(node: ProductSpecNode, event: Event) {
-  if (skipCommit) {
-    skipCommit = false
-    return
-  }
-  const input = event.target as HTMLInputElement
-  const next = input.value.trim()
-  const key = `${node.id}:${next}`
-  if (lastCommit === key) return
-  lastCommit = key
-  if (next && next !== props.label(node)) emit('rename', { id: node.id, name: next })
-  nextTick(() => {
-    input.value = props.label(node)
-  })
-}
 function onRootKey(event: KeyboardEvent) {
   if (props.viewing || event.isComposing) return
   if (event.key === 'Enter') {
@@ -292,7 +191,7 @@ function onRootKey(event: KeyboardEvent) {
 function onLineKey(node: ProductSpecNode, event: KeyboardEvent) {
   if (props.viewing || event.isComposing) return
   const input = event.target as HTMLInputElement
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') return
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault();event.stopPropagation();emit('undo');return }
   if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
     event.preventDefault()
     input.blur()
@@ -300,26 +199,22 @@ function onLineKey(node: ProductSpecNode, event: KeyboardEvent) {
   }
   if (event.key === 'Escape') {
     event.preventDefault()
-    skipCommit = true
     input.value = props.label(node)
     input.blur()
     return
   }
   if (event.key === 'Enter') {
     event.preventDefault()
-    commitLine(node, event)
     emit('add', { id: node.id, kind: 'sibling' })
     return
   }
   if (event.key === 'Tab' && event.shiftKey) {
     event.preventDefault()
-    commitLine(node, event)
     emit('promote', node.id)
     return
   }
   if (event.key === 'Tab') {
     event.preventDefault()
-    commitLine(node, event)
     emit('add', { id: node.id, kind: 'child-attribute' })
     return
   }
@@ -369,7 +264,7 @@ function onDrop(targetId: string, root: boolean) {
 .outline.is-mubu .outline-row.is-attribute .line { font-weight: 600; color: var(--spec-attr-text, #303133); }
 .outline.is-mubu .outline-row.is-value .line { font-size: 14px; color: var(--spec-value-text, #253044); font-weight: 400; }
 .outline.is-mubu .outline-row, .outline.is-mubu .outline-root { min-height: 32px; }
-.editing-now { margin: 0 0 8px; color: #8aa0b8; font-size: 12px; }
+.editing-now { min-height:18px; line-height:18px; margin: 0 0 8px; color: #8aa0b8; font-size: 12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .outline-empty { margin: 4px 0 12px 26px; }
 .outline-empty p { margin: 0; color: #909399; font-size: 13px; }
 .outline-start { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; color: #909399; font-size: 12px; }
