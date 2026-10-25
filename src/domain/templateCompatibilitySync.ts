@@ -270,6 +270,10 @@ export function previewTemplateCompatibilitySync(data: AppData, input: { modelId
     const safeOrigin = (origin: TemplateCompatibilityOrigin, link: CompatibilityLink | undefined) => origin.state === 'managed' && link && link.provenance?.kind === 'template' && link.provenance.template?.state === 'managed' && link.provenance.template.originKey === origin.key && sameContent(claimOf(link), origin.baseline) && origin.sourceStamp === sourceStamp
     const manual = links.filter(link => !origins.some(origin => origin.declarationId === link.id && safeOrigin(origin, link)))
     const append = (item: Omit<TemplateSyncItem, 'id' | 'target' | 'targetName' | 'defaultSelected'> & { defaultSelected?: boolean }) => items.push({ ...item, id: `${key}:${item.originKey}`, target, targetName: sku.skuName || sku.code || sku.id, defaultSelected: item.defaultSelected ?? ['add', 'update', 'remove'].includes(item.state) })
+    if (data.materialRelations?.some(r => r.materialId === sku.id && r.lifecycle === 'active')) {
+      append({state:'protected',originKey:'material-relations',ruleIds:[],claimIds:[],message:'该 MAT 有独立版本的规划／节点范围关联。请通过物料关联预览确认新版本，不能用单条完整规格覆盖多路径贡献。'})
+      continue
+    }
     let entry = sourceContexts.get(versionId)
     if (!entry) { const context = versionId === input.targetVersionId ? targetContext : createTemplateCompatibilityContext(data, { modelId: input.modelId, versionId }); entry = { context, index: lookup(context, data) }; sourceContexts.set(versionId, entry); if (context !== targetContext) { stats.contextBuilds++; stats.combinationExpansions += context.stats.combinationExpansions } }
     const current = findCombination(entry.index, family, sku)

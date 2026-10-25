@@ -1,0 +1,26 @@
+[
+  {
+    "unchanged": true,
+    "file": "src/components/ProductModelSelector.vue",
+    "baseline": "30cc44fba1ff12c156b56f38bba27a28439932a8",
+    "current": "30cc44fba1ff12c156b56f38bba27a28439932a8"
+  },
+  {
+    "unchanged": true,
+    "file": "src/domain/logic.ts",
+    "baseline": "2aec1a84fed20d92dec0303c976b2e12b791efff",
+    "current": "2aec1a84fed20d92dec0303c976b2e12b791efff"
+  },
+  {
+    "unchanged": true,
+    "file": "src/domain/planning.ts",
+    "baseline": "7e1e5f483bb40281d45fc399bcb8a3b23c6bb5dd",
+    "current": "7e1e5f483bb40281d45fc399bcb8a3b23c6bb5dd"
+  },
+  {
+    "unchanged": true,
+    "file": "src/stores/catalogPersistence.ts",
+    "baseline": "6a795e848cdc80a9b86c3b30346ce2ef2ac0f0b7",
+    "current": "6a795e848cdc80a9b86c3b30346ce2ef2ac0f0b7"
+  }
+]

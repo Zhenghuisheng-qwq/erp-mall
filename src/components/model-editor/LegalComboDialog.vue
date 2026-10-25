@@ -100,6 +100,7 @@
             <template #default="{ row }: { row: ComboTableRow }">
               <el-button link type="primary" :disabled="row.materialCount === 0" @click="emit('openCombo', row, 'list')">查看物料</el-button>
               <el-button link type="primary" :disabled="!row.planningId" @click="emit('openCombo', row, 'create')">单条创建</el-button>
+                <el-button link type="primary" :disabled="!row.planningId" @click="emit('openCombo', row, 'link')">关联已有物料</el-button>
             </template>
           </el-table-column>
           <template #empty>没有符合条件的组合。</template>

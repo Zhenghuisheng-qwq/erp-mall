@@ -514,6 +514,8 @@ export interface Profile {
 }
 
 export interface AppData {
+  materialRelations?: import('./materialRelations').MaterialRelation[]
+  materialContributions?: import('./materialRelations').MaterialContribution[]
   businessDefinitions?: import('./nodeBusiness').BusinessDefinition[]
   /** Optional V15 extension. No historical SKU/MAT or declaration is backfilled on load. */
   templateCompatibilityConfigs?: TemplateCompatibilityConfig[]

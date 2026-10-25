@@ -31,7 +31,7 @@ try{
   await page.goto(`${base}/specs?template=r01-model`,{waitUntil:'networkidle'})
   await open('r01-model-apple');await button('添加业务配置',panel()).click();await pick('配置功能','销售定位');await pick('作用范围','当前值及其下级');await pick('配置值','畅销');await save()
   assert.match(await panel().innerText(),/来源：Apple/)
-  await button('添加业务配置',panel()).click();await pick('配置功能','物料策略');await pick('配置值','共用物料（仅策略，尚未共用建档）');await save()
+  await button('添加业务配置',panel()).click();await pick('配置功能','物料策略');await pick('配置值','共用物料（需明确选择目标）');await save()
   await button('添加业务配置',panel()).click();await pick('配置功能','允许值限制');await pick('下级目标属性','R01颜色')
   for(let i=1;i<=5;i++)await pick('允许词典值',`颜色${i}`)
   await save();await page.screenshot({path:resolve(out,'desktop-config.png')});await close()
@@ -91,7 +91,7 @@ try{
   // Two pages share an isolated origin, while their forms keep independent drafts.
   const first=page,second=await context.newPage();second.setDefaultTimeout(12000);second.on('pageerror',e=>errors.push(String(e)))
   page=second;await page.goto(`${base}/specs?template=r01-model`,{waitUntil:'networkidle'});await open('r01-model-apple')
-  await button('编辑配置',record('物料策略')).click();await pick('配置值','共用物料（仅策略，尚未共用建档）')
+  await button('编辑配置',record('物料策略')).click();await pick('配置值','共用物料（需明确选择目标）')
   page=first;await page.locator('[data-line="r01-model-apple"]').click();await page.keyboard.press('Escape');await page.keyboard.press('Escape');await page.locator('[data-open-business]').click();await button('编辑配置',record('物料策略')).click();await pick('配置值','独立物料');await save()
   const newest=JSON.stringify(await read())
   page=second;await page.locator('[data-save-business]').click();await page.waitForTimeout(250)

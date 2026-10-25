@@ -1,4 +1,5 @@
 import { isMaterialArchive } from './catalogIdentity'
+import { relatedMaterials } from './materialRelations'
 import { latestPublishedVersion, projectAttrs } from './logic'
 import { filedNameSource, suggestMaterialName, suggestTemporaryName } from './naming'
 import { legalPlanningCombinations } from './planning'
@@ -128,7 +129,7 @@ export function materialOfferings(data: AppData, productModelId: string): { vers
       identityKey: combo.identityKey,
       modelVersionId: version.id,
       versionName: version.versionName,
-      materialCount: matched && matched.origin !== 'temporary' ? materialsOfPlanning(data, matched.planningId).length : 0,
+      materialCount: matched && matched.origin !== 'temporary' ? materialsOfPlanning(data, matched.planningId, version.id).length : 0,
       retired: matched?.status === 'retired',
       grade: matched?.origin === 'temporary' ? undefined : matched?.grade,
     }
@@ -136,9 +137,9 @@ export function materialOfferings(data: AppData, productModelId: string): { vers
   return { version, rows }
 }
 
-export function materialsOfPlanning(data: AppData, planningId: string) {
+export function materialsOfPlanning(data: AppData, planningId: string, versionId?: string) {
   if (!planningId) return []
-  return data.skus.filter((item) => item.planningId === planningId)
+  return relatedMaterials(data, planningId, versionId)
 }
 
 /** 商品列表上的物料摘要。只统计这一款商品下的物料，规划编号去重，不读取模型的合法组合。 */

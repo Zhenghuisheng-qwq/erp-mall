@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { businessDefinitions, businessImportProblems, businessIssues, businessPath, configProblem, copyBusinessConfigs, freezeBusinessNodes, type BusinessDefinition, type NodeBusinessConfig } from '../domain/nodeBusiness'
 import { businessImportSignature } from '../domain/nodeBusinessStructure'
+import { executeMaterialRelation, materialRelationImportProblems, materialRelationImportSignature, markMaterialContributionChanges, revokeMaterialRelation } from '../domain/materialRelationCommands'
+import { materialRelationBlock } from '../domain/materialRelations'
 import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { createCatalogPersistence } from './catalogPersistence'
 import {
@@ -71,6 +73,8 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   if (version < 1 || version > DATA_VERSION) return null
   const businessProblems = businessImportProblems(data)
   if (businessProblems.length) throw new Error(`节点业务配置结构校验失败：${businessProblems.join(' ')} 原始记录已保留。`)
+  const relationProblems = materialRelationImportProblems(data)
+  if (relationProblems.length) throw new Error(`物料关联校验失败：${relationProblems.join(' ')} 原始记录已保留。`)
   const benefitProblems = benefitPackageImportProblems(data)
   if (benefitProblems.length) throw new Error(`权益包数据校验失败：${benefitProblems.join(' ')} 原始记录已保留。`)
   const templateProblems = [...templateCompatibilityImportProblems(data), ...templateCompatibilityOriginProblems(data)]
@@ -291,7 +295,18 @@ export const useCatalogStore = defineStore('catalog', () => {
       return result
     } catch (error) { return { ok: false, message: `无法保存到本机：${error instanceof Error ? error.message : String(error)}。当前数据未改变，操作草稿已保留，请重试。` } }
   }
-  const creationKeys: (keyof AppData)[] = ['families', 'skus', 'planningRecords', 'materialReceipts', 'compatibilities', 'templateCompatibilityOrigins']
+  const creationKeys: (keyof AppData)[] = ['families', 'skus', 'planningRecords', 'materialReceipts', 'compatibilities', 'templateCompatibilityOrigins', 'materialRelations', 'materialContributions']
+  function saveMaterialRelation(input: Parameters<typeof executeMaterialRelation>[1]) {
+    if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看物料关联。', materialId: '', relationId: '' }
+    const next = cloneCompatibility(data)
+    const result = executeMaterialRelation(next, input, uid)
+    return commitCandidate(next, result, creationKeys)
+  }
+  function unlinkMaterialRelation(id: string, basis: string) {
+    if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看物料关联。' }
+    const next = cloneCompatibility(data)
+    return commitCandidate(next, revokeMaterialRelation(next, id, basis), creationKeys)
+  }
   function commitCreated<T extends { ok: boolean; message?: string }>(next: AppData, result: T, ids: string[], now: string) {
     if (!isAdmin.value) return { ok: false as const, message: '当前角色仅可查看商品与物料，请由管理员创建。', choices: undefined, reason: undefined }
     if (!result.ok) return result
@@ -525,8 +540,8 @@ export const useCatalogStore = defineStore('catalog', () => {
   /** Only these compatibility-owned arrays are changed, after the full payload is stored. */
   function commitCompatibilityState(next: AppData, result: CompatibilityCommandResult): CompatibilityCommandResult {
     if (!result.ok) return result
-    const before = JSON.stringify([data.compatibilities, data.deviceModels, data.deviceBindings, data.templateCompatibilityOrigins])
-    if (before === JSON.stringify([next.compatibilities, next.deviceModels, next.deviceBindings, next.templateCompatibilityOrigins])) return result
+    const before = JSON.stringify([data.compatibilities, data.deviceModels, data.deviceBindings, data.templateCompatibilityOrigins, data.materialContributions])
+    if (before === JSON.stringify([next.compatibilities, next.deviceModels, next.deviceBindings, next.templateCompatibilityOrigins, next.materialContributions])) return result
     try {
       persistence.write(next)
       data.compatibilities = next.compatibilities
@@ -536,6 +551,8 @@ export const useCatalogStore = defineStore('catalog', () => {
       else delete data.deviceBindings
       if (next.templateCompatibilityOrigins !== undefined) data.templateCompatibilityOrigins = next.templateCompatibilityOrigins
       else delete data.templateCompatibilityOrigins
+        if (next.materialContributions !== undefined) data.materialContributions = next.materialContributions
+        else delete data.materialContributions
       explicitlyPersisted = JSON.stringify(data)
       migrationStorageError = ''
       return result
@@ -551,6 +568,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     const now = new Date().toISOString()
     const result = applyCompatibilityChanges(next, changes, () => uid('compat'), now)
     if (result.ok) markTemplateManualChanges(next, (result.preview?.items || []).filter(item => item.state === 'edit' || item.state === 'remove').map(item => item.change), now)
+    if (result.ok) markMaterialContributionChanges(next, (result.preview?.items || []).filter(item => item.state === 'edit' || item.state === 'remove').map(item => item.change))
     return commitCompatibilityState(next, result)
   }
 
@@ -628,6 +646,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (next.benefitDeliveries === undefined) delete data.benefitDeliveries
     if (next.templateCompatibilityConfigs === undefined) delete data.templateCompatibilityConfigs
     if (next.templateCompatibilityOrigins === undefined) delete data.templateCompatibilityOrigins
+    if (next.materialRelations === undefined) delete data.materialRelations
+    if (next.materialContributions === undefined) delete data.materialContributions
   }
 
   function resetAll() {
@@ -667,6 +687,8 @@ export const useCatalogStore = defineStore('catalog', () => {
       next.feedbacks = fresh.feedbacks
       next.profile = fresh.profile
     }
+    const relationProblems = materialRelationImportProblems(next)
+    if (relationProblems.length) return { ok: false as const, message: `本模块重置会破坏物料关联：${relationProblems.join(' ')}；请保留当前数据或恢复完整备份。` }
     persistence.write(next, true)
     replaceAll(next)
     explicitlyPersisted = JSON.stringify(data)
@@ -681,8 +703,11 @@ export const useCatalogStore = defineStore('catalog', () => {
     const parsed = JSON.parse(text) as StoredPayload
     if (!parsed.data) throw new Error('导入文件缺少商品数据，当前数据没有被替换。')
     if (!Array.isArray(parsed.data.skus) || !Array.isArray(parsed.data.families)) throw new Error('导入文件缺少有效的商品数组，当前数据没有被替换。')
+    if (!isAdmin.value && materialRelationImportSignature(parsed.data) !== materialRelationImportSignature(data)) throw new Error('当前角色仅可查看物料关联，不能通过导入修改范围、关联或兼容贡献。')
     const businessProblems = businessImportProblems(parsed.data)
     if (businessProblems.length) throw new Error(`节点业务配置结构校验失败：${businessProblems.join(' ')} 当前数据没有被替换。`)
+    const relationProblems = materialRelationImportProblems(parsed.data)
+    if (relationProblems.length) throw new Error(`物料关联校验失败：${relationProblems.join(' ')} 当前数据没有被替换。`)
     if (!isAdmin.value && businessImportSignature(parsed.data) !== businessImportSignature(data)) throw new Error('当前角色仅可查看节点业务配置，不能通过导入修改业务目录、草稿配置或历史配置（含冻结信息）。')
     if (!isAdmin.value && JSON.stringify([parsed.data.compatibilities || [], parsed.data.deviceModels, parsed.data.deviceBindings]) !== JSON.stringify([data.compatibilities, data.deviceModels, data.deviceBindings])) throw new Error('当前角色仅可查看适用关系，不能通过导入修改声明或设备绑定。')
     if (!isAdmin.value && JSON.stringify([parsed.data.benefitPackages || [], parsed.data.benefitDeliveries || []]) !== JSON.stringify([data.benefitPackages || [], data.benefitDeliveries || []])) throw new Error('当前角色仅可查看权益包，不能通过导入修改配置或交付清单。')
@@ -748,6 +773,10 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function removeFamily(id: string) {
+    for (const sku of data.skus.filter(s => s.familyId === id)) {
+      const blocked = materialRelationBlock(data, 'material', sku.id)
+      if (blocked) return blocked
+    }
     const blocked = spuRemovalBlock(data, id)
     if (blocked) return blocked
     data.families = data.families.filter((item) => item.id !== id)
@@ -762,6 +791,8 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function removeSku(id: string) {
+    const relationBlock = materialRelationBlock(data, 'material', id)
+    if (relationBlock) return relationBlock
     const benefitBlock = benefitPackageReferenceProblem(data, 'sku', id)
     if (benefitBlock) return benefitBlock
     const blocked = compatibilitySkuBlock(data, id)
@@ -1049,6 +1080,8 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   function modelRemovalBlock(ids: string[]) {
     for (const id of ids) {
+      const relationBlock = materialRelationBlock(data, 'model', id)
+      if (relationBlock) return relationBlock
       const benefitBlock = benefitPackageReferenceProblem(data, 'model', id) || benefitPackageReferenceProblem(data, 'model', `template:${id}`)
       if (benefitBlock) return benefitBlock
     }
@@ -1292,6 +1325,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     removeTemplate,
     publishSpecModel: (...args: Parameters<typeof publishSpecModel>) => command(() => publishSpecModel(...args)),
     createMaterial: (...args: Parameters<typeof createMaterial>) => command(() => createMaterial(...args)),
+    saveMaterialRelation: (...args: Parameters<typeof saveMaterialRelation>) => command(() => saveMaterialRelation(...args)),
+    unlinkMaterialRelation: (...args: Parameters<typeof unlinkMaterialRelation>) => command(() => unlinkMaterialRelation(...args)),
     createTemporary: (...args: Parameters<typeof createTemporary>) => command(() => createTemporary(...args)),
     markPlanningGrades,
     updateMaterial,

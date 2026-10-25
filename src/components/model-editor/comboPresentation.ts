@@ -1,7 +1,7 @@
 import type { ComboMaterialCard, LegalComboMaterialRow } from '../../domain/comboMaterialStatus'
 import { gradeText } from '../../domain/material'
 
-export type MaterialLaunchMode = 'create' | 'list'
+export type MaterialLaunchMode = 'create' | 'list' | 'link'
 
 /** 仅用于设计器组合表格的展示结果，不是可写的规划记录。 */
 export interface ComboTableRow extends Readonly<Pick<LegalComboMaterialRow, 'label' | 'modelVersionId' | 'retired' | 'grade' | 'materialCount' | 'filed'>> {

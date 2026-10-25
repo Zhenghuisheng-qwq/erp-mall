@@ -60,7 +60,8 @@ function hostShape(value: unknown): value is CompatibilityHost {
 }
 function provenanceProblem(value: unknown): string {
   if (value === undefined) return ''
-  if (!object(value) || !oneOf(value.kind, ['manual', 'legacy', 'material-copy', 'template']) || !string(value.detail)) return '声明来源结构无效。'
+  if (!object(value) || !oneOf(value.kind, ['manual', 'legacy', 'material-copy', 'template', 'material-relation']) || !string(value.detail)) return '声明来源结构无效。'
+  if (value.kind === 'material-relation' && (!string(value.contributionId) || !value.contributionId.trim())) return '物料关联声明缺少贡献来源。'
   if (value.kind === 'template') {
     const source = value.template
     if (!object(source) || ![source.originKey, source.modelId, source.sourceVersionId].every(item => string(item) && Boolean(item)) || !Array.isArray(source.ruleIds) || !source.ruleIds.length || !source.ruleIds.every(string) || !Array.isArray(source.claimIds) || !source.claimIds.length || !source.claimIds.every(string) || !oneOf(source.state, ['managed', 'modified', 'stale'])) return '模板声明来源结构无效。'

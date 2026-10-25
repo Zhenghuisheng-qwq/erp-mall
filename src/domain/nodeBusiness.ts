@@ -14,7 +14,7 @@ export const BUSINESS_KINDS = ['sales-position', 'material-policy', 'allowed-val
 export function defaultBusinessDefinitions(): BusinessDefinition[] {
   return [
     { id:'business:sales', kind:'sales-position', name:'销售定位', description:'畅销或不畅销，不改变规格和商品等级。', enabled:true },
-    { id:'business:material', kind:'material-policy', name:'物料策略', description:'独立物料或共用物料；本轮只解析策略，尚未执行多路径共用 MAT 建档。', enabled:true },
+    { id:'business:material', kind:'material-policy', name:'物料策略', description:'独立物料或共用物料；执行时明确选择 MAT 并确认发布版本范围。', enabled:true },
     { id:'business:allowed', kind:'allowed-values', name:'允许值限制', description:'限制本值分支下指定属性的词典候选，不修改全局词典。', enabled:true },
     { id:'business:naming', kind:'naming', name:'命名规则', description:'进入原命名编辑器，沿用最近祖先继承与发布版本。', enabled:true },
   ]
@@ -130,4 +130,4 @@ export function freezeBusinessNodes(data:AppData,nodes:ProductSpecNode[]) {
 export function copyBusinessConfigs(node:ProductSpecNode,modelId:string,nodeId:string,nextId:(prefix:string)=>string) {
   return node.businessConfigs?.map(c=>{const copy=clone(c);delete copy.definitionSnapshot;delete copy.dictionarySnapshot;return {...copy,id:nextId('bc'),modelId,nodeId}})
 }
-export function businessLabel(value:unknown) { return ({hot:'畅销','not-hot':'不畅销',independent:'独立物料',shared:'共用物料（仅策略，尚未共用建档）'} as Record<string,string>)[String(value)] || String(value || '未配置') }
+export function businessLabel(value:unknown) { return ({hot:'畅销','not-hot':'不畅销',independent:'独立物料',shared:'共用物料（需明确选择目标）'} as Record<string,string>)[String(value)] || String(value || '未配置') }

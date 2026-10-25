@@ -1,4 +1,5 @@
 import { createCatalogIdentityContext } from './catalogIdentity'
+import { relatedMaterials } from './materialRelations'
 import { legalPlanningCombinations } from './planning'
 import type { AppData, PlanningRecord, Sku } from './types'
 
@@ -156,6 +157,11 @@ export function materialsOfRecord(data: AppData, record: PlanningRecord, version
   if (missingVersion) notes.push(`另有 ${missingVersion} 条物料没有建档版本，只在来源版本里展示，没有改写。`)
   if (foreignVersion) notes.push(`有 ${foreignVersion} 条物料记下了本规划未关联的版本，没有并入，也没有改写。`)
   notes.push(...(index.missingReceipts.get(record.planningId) || []))
+  for (const sku of relatedMaterials(data, record.planningId, versionId)) {
+    if (!cards.some(c => c.skuId === sku.id)) cards.push(cardOf(index, sku, ''))
+    const i = historical.findIndex(c => c.skuId === sku.id)
+    if (i >= 0) historical.splice(i, 1)
+  }
   return { cards, historical, notes }
 }
 

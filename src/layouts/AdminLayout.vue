@@ -145,7 +145,7 @@ function download() {
 }
 function pickFile() {
   if (dataBusy.value) return
-  if (!store.isAdmin) ElMessage.info('运营导入仍受只读权限约束，不能修改业务目录、节点配置或历史冻结信息。')
+  if (!store.isAdmin) ElMessage.info('运营导入仍受只读权限约束，不能修改业务目录、节点配置、物料关联或历史冻结信息。')
   fileRef.value?.click()
 }
 async function onImport(event: Event) {

@@ -41,6 +41,7 @@
         <p v-for="item in active.manualAttrs || []" :key="item.attributeId" class="muted">{{ item.attributeName }} {{ item.value }} · {{ item.source === 'manual' ? '手工填写' : '词典取值' }}</p>
         <p v-if="active.manualAttrs?.some((item) => item.source === 'manual')" class="muted">手工填写的值只属于这条物料，不会改成词典取值，也不会写进商品模型。</p>
         <h3>物料</h3>
+        <MaterialSourceList :material-id="active.id" />
         <label>物料名称<span class="req">必填</span><el-input v-model="draft.skuName" /></label>
         <p v-if="active.nameSource" class="muted">名称来源：{{ originLabel(active.nameSource) }}。当前显示的是已保存名称。</p>
         <p v-if="active.suggestedName" class="muted">建档时的建议名称：{{ active.suggestedName }}</p>
@@ -79,6 +80,7 @@
 
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
+import MaterialSourceList from './MaterialSourceList.vue'
 import { isMaterialArchive } from '../domain/catalogIdentity'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -174,8 +176,10 @@ function regenerate() {
   if (!active.value || !family.value) return
   const model = family.value.productModelId || family.value.templateId
   const record = store.data.planningRecords.find((item) => item.planningId === active.value?.planningId)
-  const versionId = active.value.modelVersionId || record?.modelVersionId || ''
-  if (!versionId || !record) {
+    const scope = store.data.materialRelations?.find(r => r.materialId === active.value?.id && r.kind === 'scope-v1' && r.original)
+    const versionId = scope?.source.versionId || active.value.modelVersionId || record?.modelVersionId || ''
+    const steps = scope?.prefix || record?.steps
+    if (!versionId || !steps) {
     errorText.value = '这条物料没有可追溯的已发布版本。'
     return
   }
@@ -183,7 +187,7 @@ function regenerate() {
     productModelId: model,
     modelVersionId: versionId,
     productTypeName: store.data.productTypes.find((item) => item.id === family.value?.productTypeId)?.name || '',
-    steps: record.steps.map((step) => ({ valueNodeId: step.valueNodeId, attributeId: step.attributeId, valueId: step.valueId })),
+      steps: steps.map((step) => ({ valueNodeId: step.valueNodeId, attributeId: step.attributeId, valueId: step.valueId })),
   })
   if (suggestion.canAuto === false) {
     errorText.value = suggestion.message

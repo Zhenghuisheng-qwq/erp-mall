@@ -14,7 +14,8 @@ export type CompatibilityCondition =
   | { kind: 'manual'; text: string }
 
 export interface CompatibilityProvenance {
-  kind: 'manual' | 'legacy' | 'material-copy' | 'template'
+  kind: 'manual' | 'legacy' | 'material-copy' | 'template' | 'material-relation'
+  contributionId?: string
   detail: string
   template?: {
     originKey: string

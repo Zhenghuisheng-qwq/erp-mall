@@ -79,6 +79,7 @@
         <el-button size="small" @click.stop="emit('add', { id: row.node.id, kind: 'sibling' })">{{ row.node.nodeType === 'VALUE' ? '添加同级属性值' : '添加同级属性' }}</el-button>
         <el-button size="small" type="danger" @click.stop="emit('remove', row.node.id)">删除</el-button>
       </el-button-group>
+      <div v-if="materialVersionId && row.node.nodeType === 'VALUE'" class="outline-material-slot"><NodeMaterialSummary :model-id="row.node.templateId" :version-id="materialVersionId" :node-id="row.node.id" /></div>
     </div>
     <div v-if="rows.length === 0" class="outline-empty">
       <p>还没有商品结构</p>
@@ -94,9 +95,11 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import type { ProductSpecNode } from '../domain/types'
+import NodeMaterialSummary from './model-editor/NodeMaterialSummary.vue'
 
 const props = defineProps<{
   nodes: ProductSpecNode[]
+  materialVersionId?: string
   rootTitle: string
   rootId: string
   activeId: string
@@ -372,6 +375,9 @@ function onDrop(targetId: string, root: boolean) {
 .outline-start { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; color: #909399; font-size: 12px; }
 .outline-tools { margin: 0 0 8px; }
 .outline-root, .outline-row { display: flex; align-items: center; gap: 8px; min-height: 32px; border-radius: 6px; }
+.outline-row { flex-wrap:wrap; }
+.outline-material-slot { flex-basis:100%; min-width:0; padding:0 0 4px 28px; box-sizing:border-box; }
+.outline-material-slot:not(:has(.node-material-summary)) { display:none; }
 .outline-root { margin-bottom: 4px; }
 .outline-row.is-on, .outline-root.is-on { background: #e8f1ff; box-shadow: inset 3px 0 0 #2f6fed; }
 .outline.is-mubu .outline-row.is-editing, .outline.is-mubu .outline-root.is-editing { background: #fff; box-shadow: inset 0 0 0 1.5px #2f6fed; }
@@ -437,6 +443,7 @@ button.line { width: 100%; text-align: left; cursor: pointer; }
 .twist { width: 18px; height: 18px; border: 0; background: transparent; color: #8aa0b8; cursor: pointer; padding: 0; }
 .grip { color: #d5dde8; cursor: grab; user-select: none; letter-spacing: -2px; font-size: 12px; }
 .ops { display: none; flex: none; margin-right: 4px; }
+.ops { flex-wrap:wrap; max-width:100%; }
 .outline-row:hover .ops,
 .outline-row.is-on .ops,
 .outline-row:focus-within .ops { display: inline-flex; }

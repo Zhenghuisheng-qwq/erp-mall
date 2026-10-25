@@ -192,7 +192,7 @@
           </ul>
           <p v-if="temporaryListOpen && temporaryMaterials.length > 30" class="insight-empty">这里只列出前 30 条。其余到商品列表按供应商编码或物料编码搜索。</p>
         </section>
-        <div v-if="templateId && editorMode === 'canvas'" class="structure-material-toggle"><el-checkbox v-model="showStructureMaterials">显示关联物料</el-checkbox></div>
+        <div v-if="templateId" class="structure-material-toggle"><el-checkbox v-model="showStructureMaterials">显示关联物料</el-checkbox><el-button v-if="current?.nodeType === 'VALUE'" size="small" :disabled="!store.isAdmin || !comboVersionId" @click="relationOpen = true">节点范围建档／关联</el-button><span v-if="comboVersionId"> · 节点物料依据 {{ publishedComboVersions.find(v=>v.id===comboVersionId)?.versionName }}</span></div>
         <StructureMaterials v-if="templateId && showStructureMaterials && editorMode === 'canvas'" :key="templateId" :data="store.data" :model-id="templateId" :nodes="nodes" :status="comboStatus" :versions="publishedComboVersions" :version-id="comboVersionId" @version="id => comboVersionId = id" @locate="ids => materialHighlight = new Set(ids)" @close="showStructureMaterials = false; materialHighlight = new Set()" />
         <LegalComboDialog
           v-model="comboManageOpen"
@@ -232,6 +232,7 @@
               match-version
               :open-create-tick="materialLaunch.mode === 'create' ? materialLaunch.token : 0"
               :open-list-tick="materialLaunch.mode === 'list' ? materialLaunch.token : 0"
+              :open-link-tick="materialLaunch.mode === 'link' ? materialLaunch.token : 0"
             />
           </template>
         </LegalComboDialog>
@@ -286,6 +287,7 @@
             </div>
           </template>
           <template #node-value="{ data }">
+            <div>
             <div class="model-value" :data-material-highlight="showStructureMaterials && materialHighlight.has(data.id) ? data.id : undefined" :class="{ 'is-material-combo': showStructureMaterials && materialHighlight.has(data.id), 'is-on': data.selected, 'is-path': data.onPath, 'is-quiet': data.quiet }" :style="{ width: data.boxWidth + 'px' }" :title="data.label">
               <Handle type="target" :position="Position.Left" />
               <select v-if="editingId === data.id" class="inline-edit" :value="data.editValue" @change="commitInline(data.id, 'value', $event)" @blur="editingId = ''" @mousedown.stop @pointerdown.stop @click.stop @dblclick.stop>
@@ -295,6 +297,8 @@
               <i v-if="data.ruleKind" class="rule-mark" :class="{ 'is-inherit': data.ruleKind === 'inherited' }" :title="data.ruleTitle">{{ data.ruleKind === 'own' ? '自有' : '继承' }}</i>
               <button v-if="data.childCount" type="button" class="fold" @click.stop="toggleExpand(data.id)" @dblclick.stop>{{ data.expanded ? '−' : data.childCount }}</button>
               <Handle type="source" :position="Position.Right" />
+            </div>
+            <NodeMaterialSummary :model-id="templateId" :version-id="comboVersionId" :node-id="data.id" />
             </div>
           </template>
         </VueFlow>
@@ -312,6 +316,7 @@
       </div>
       <ModelOutline
         v-else-if="editorMode === 'outline'"
+        :material-version-id="comboVersionId"
         :nodes="nodes"
         :root-title="schemeTitle"
         :root-id="rootId"
@@ -344,6 +349,7 @@
       <ModelOutline
         v-else
         mubu
+        :material-version-id="comboVersionId"
         :nodes="nodes"
         :root-title="schemeTitle"
         :root-id="rootId"
@@ -409,6 +415,7 @@
       </section>
     </el-drawer>
     <NodeBusinessDialog :open="businessOpen" :nodes="nodes" :node-id="businessNodeId" :readonly="!canEditStructure" :busy="businessBusy" :save="saveBusiness" @close="businessOpen = false" @pending="businessBusy = $event" @naming="businessOpen = false; selected = businessNodeId; namingOpen = true" @locate="locateBusiness" />
+    <MaterialRelationDialog :open="relationOpen" :source="{kind:'node',modelId:templateId,versionId:comboVersionId,anchorNodeId:selected,scope:'current'}" @close="relationOpen=false" />
     <NamingRuleDialog :open="namingOpen" :readonly="!canEditStructure" :node-id="selected" :template-id="templateId" @close="namingOpen = false" @saved="markWorkingDraft" />
     <NodeAddPanel v-model="attributeOpen" :title="attributeTitle" :anchor="addAnchor" @closed="resetAttrComposer">
       <el-select v-if="attributeBindId" ref="attrBindSelect" v-model="attributePick" filterable placement="top-start" popper-class="dict-select-popper" placeholder="搜索已有属性" style="width: 100%" :filter-method="rememberAttrQuery" @visible-change="dictDropOpen = $event">
@@ -531,6 +538,9 @@ import { legalComboMaterialStatus } from '../domain/comboMaterialStatus'
 import { previewDraftCombinations, publishImpactText } from '../domain/draftComboPreview'
 import NamingRuleDialog from '../components/NamingRuleDialog.vue'
 import NodeBusinessDialog from '../components/model-editor/NodeBusinessDialog.vue'
+import MaterialRelationDialog from '../components/MaterialRelationDialog.vue'
+import NodeMaterialSummary from '../components/model-editor/NodeMaterialSummary.vue'
+import { nodeMaterialCards } from '../domain/materialRelations'
 import { allowedBusinessValues, businessIssues, businessStructureProblem, businessLabel, resolveNodeBusiness, type NodeBusinessConfig } from '../domain/nodeBusiness'
 import TemporaryMaterialDialog from '../components/TemporaryMaterialDialog.vue'
 import V3MaterialActions from '../components/V3MaterialActions.vue'
@@ -830,6 +840,7 @@ const comboKeyword = ref('')
 const comboUnfiledOnly = ref(false)
 const comboVersionId = ref('')
 const showStructureMaterials = ref(false)
+const relationOpen = ref(false)
 const materialHighlight = ref(new Set<string>())
 const materialAttributeHighlight = computed(() => showStructureMaterials.value && viewMode.value === 'attribute'
   ? new Set(nodes.value.filter(node => materialHighlight.value.has(node.id)).map(node => node.parentId).filter(Boolean))
@@ -1173,6 +1184,8 @@ watch(
 watch(viewMode, () => {
   frameCanvas()
 })
+watch(()=>[comboVersionId.value,JSON.stringify(store.data.materialRelations),store.data.skus.map(s=>`${s.id}:${s.skuName}:${s.materialCode}`).join('|')],()=>{paint();nextTick(frameCanvas)})
+watch(()=>route.fullPath,()=>{if(typeof route.query.materialVersion==='string')comboVersionId.value=route.query.materialVersion;if(typeof route.query.materialNode==='string')nextTick(()=>{selected.value=String(route.query.materialNode);revealNode(selected.value)})},{immediate:true})
 watch(
   () => `${templateId.value}#${nodes.value.map((item) => `${item.id}:${item.parentId}:${item.nodeType}:${item.attributeId}:${item.valueId}:${item.role || ''}:${item.sort}`).join('|')}`,
   (_next, prev) => {
@@ -1460,6 +1473,21 @@ function paint() {
     }),
   ]
   const buses = new Map<string, string[]>()
+  // View-only boxes reserve space for the fixed summary and popover trigger.
+  // Neither these offsets nor the cards enter the specification snapshot.
+  const placed: {x:number;y:number;width:number;height:number}[] = []
+  const materialNodeIds = new Set(flowNodes.value.filter(item=>item.type === 'value' && nodeMaterialCards(store.data,templateId.value,comboVersionId.value,item.id).length > 0).map(item=>item.id))
+  for (const item of materialNodeIds.size ? [...flowNodes.value].sort((a,b)=>a.position.y-b.position.y) : []) {
+    const hasCards = materialNodeIds.has(item.id)
+    const width = Math.max(item.data.boxWidth || 120, hasCards ? 220 : 0), height = item.type === 'value' ? (hasCards ? 90 : 34) : 48
+    let y = item.position.y
+    for (let pass=0;pass<=placed.length;pass++) {
+      const hits=placed.filter(b=>item.position.x<b.x+b.width+12&&item.position.x+width+12>b.x&&y<b.y+b.height+12&&y+height+12>b.y)
+      if(!hits.length)break
+      y=Math.max(...hits.map(b=>b.y+b.height+12))
+    }
+    item.position={...item.position,y};placed.push({x:item.position.x,y,width,height})
+  }
   visible.forEach((node) => {
     const parent = visibleAnchor(node)
     const list = buses.get(parent) || []

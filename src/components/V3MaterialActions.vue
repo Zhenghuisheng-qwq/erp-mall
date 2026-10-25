@@ -9,6 +9,7 @@
       <div class="row-actions">
         <el-button type="primary" :disabled="!store.isAdmin" @click="openCreate">创建物料</el-button>
         <el-button :disabled="count === 0" @click="listOpen = true">查看已有物料</el-button>
+        <el-button :disabled="!store.isAdmin" @click="relationOpen = true">关联已有物料</el-button>
       </div>
       <p v-if="lastCode" class="meta">刚创建 {{ lastCode }}。<button type="button" class="linkish" @click="listOpen = true">查看</button></p>
     </template>
@@ -43,6 +44,7 @@
     </el-dialog>
 
     <el-dialog v-model="listOpen" class="v3-material-dialog" title="已有物料" width="560px" append-to-body>
+      <el-button :disabled="!store.isAdmin" @click="relationOpen = true">关联已有物料</el-button>
       <el-input v-model="keyword" placeholder="搜物料编码或规格" clearable />
       <p v-if="filtered.length === 0 && !(matchVersion && historicalCards.length)" class="muted">还没有物料。</p>
       <ul v-if="filtered.length" class="materials">
@@ -69,11 +71,14 @@
         </li>
       </ul>
     </el-dialog>
+    <MaterialRelationDialog :open="relationOpen" :source="{kind:'planning',modelId:productModelId,versionId:modelVersionId,planningId,scope:'current'}" @close="relationOpen=false" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
+import MaterialRelationDialog from './MaterialRelationDialog.vue'
+import { relatedMaterials } from '../domain/materialRelations'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { familyChoicesFor, filingText, gradeText, resolveV3MaterialSpec } from '../domain/material'
@@ -95,6 +100,7 @@ const props = defineProps<{
   bare?: boolean
   openCreateTick?: number
   openListTick?: number
+  openLinkTick?: number
   matchVersion?: boolean
 }>()
 
@@ -102,6 +108,8 @@ const store = useCatalogStore()
 const router = useRouter()
 const createOpen = ref(false)
 const listOpen = ref(false)
+const relationOpen = ref(false)
+watch(()=>props.openLinkTick, tick=>{if(tick)relationOpen.value=true},{immediate:true})
 const saving = ref(false)
 const requestId = ref('')
 const errorText = ref('')
@@ -133,12 +141,7 @@ const compatibilityPreview = computed(() => {
 })
 const compatibilitySummary = computed(() => compatibilityPreview.value ? templateCreationSummary([compatibilityPreview.value], preview.value?.versionName || '', 'MAT') : '')
 const compatibilityProblem = computed(() => compatibilityPreview.value && ['conflict', 'invalid'].includes(compatibilityPreview.value.state) ? compatibilityPreview.value.message : '')
-function listedMaterial(item: { planningId?: string; modelVersionId?: string }) {
-  if (item.planningId !== props.planningId) return false
-  if (!props.matchVersion) return true
-  return (item.modelVersionId || '') === props.modelVersionId
-}
-const count = computed(() => store.data.skus.filter((item) => listedMaterial(item)).length)
+const count = computed(() => materials.value.length)
 const existingName = computed(() => {
   if (!preview.value) return ''
   const found = familyChoicesFor(store.data, {
@@ -149,7 +152,7 @@ const existingName = computed(() => {
   })
   return found.length === 1 ? found[0].name : ''
 })
-const materials = computed(() => store.data.skus.filter((item) => listedMaterial(item)))
+const materials = computed(() => relatedMaterials(store.data,props.planningId,props.matchVersion?props.modelVersionId:undefined))
 const codeText = computed(() => materials.value.map((item) => item.materialCode).filter(Boolean).join('、'))
 const filtered = computed(() => {
   const text = keyword.value.trim()

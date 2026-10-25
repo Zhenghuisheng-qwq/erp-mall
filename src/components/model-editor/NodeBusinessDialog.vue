@@ -16,7 +16,7 @@
             <span>{{ effective(kind).message || businessLabel(effective(kind).parameters?.value) }}</span>
             <div v-for="source in effective(kind).sources" :key="source" class="muted">来源：{{ source }}</div>
           </section>
-          <p class="muted">共用物料仅表示策略，本轮尚未执行多路径共用 MAT 建档。</p>
+          <p class="muted">共用策略不指定具体物料。请通过物料建档／关联入口明确选择 MAT，预览并确认作用范围。</p>
           <section v-if="restriction.hits.length" class="business-result"><strong>当前路径允许值：</strong>{{ restriction.message || (restriction.parameters?.values as string[] || []).join('、') }}<div v-for="source in restriction.sources" :key="source" class="muted">来源：{{ source }}</div></section>
           <p>命名规则：{{ namingSource }} <el-button v-if="!versionId" link type="primary" @click="emit('naming')">{{ readOnly ? '查看原命名规则' : '打开原命名编辑器' }}</el-button></p>
           <div v-for="config in records" :key="config.id" class="business-record">
