@@ -11,8 +11,9 @@ const mark=name=>checks.push(name)
 try{
   browser=await chromium.launch({channel:'chrome',headless:true})
   for(const strict of [false,true]){
-    const server=await createServer({cacheDir:`${runtime}/${strict?'strict':'default'}`,logLevel:'error',define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify(String(strict))},server:{host:'127.0.0.1',port:0,watch:null,hmr:false,ws:false}});servers.push(server)
+    const server=await createServer({cacheDir:`${runtime}/${strict?'strict':'default'}`,logLevel:'error',define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify(String(strict))},server:{host:'127.0.0.1',port:0,watch:null,hmr:false}});servers.push(server)
     const {createBenefitPackageFixture}=await server.ssrLoadModule('/scripts/benefit-package-fixtures.ts'),{normalizeStored}=await server.ssrLoadModule('/src/stores/catalog.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
+    const {guidePages}=await server.ssrLoadModule('/src/domain/guide/registry.ts'),{guideManualContents}=await server.ssrLoadModule('/src/domain/guide/content/manuals.ts')
     const fixture=createBenefitPackageFixture(),data=normalizeStored({version:DATA_VERSION,data:fixture.data})
     data.categories.push({id:'guide-move-source',name:'说明测试来源',parentId:null,sort:200,enabled:true},{id:'guide-move-child',name:'说明测试来源子类',parentId:'guide-move-source',sort:1,enabled:true},{id:'guide-move-source-b',name:'说明测试来源二',parentId:null,sort:201,enabled:true},{id:'guide-move-child-b',name:'说明测试来源二子类',parentId:'guide-move-source-b',sort:1,enabled:true},{id:'guide-move-target',name:'说明测试目标',parentId:null,sort:202,enabled:true})
     data.rbac.roles.push({id:'guide-reading-only',code:'guide-reading-only',name:'说明只读',description:'isolated browser fixture',enabled:true,permissionCodes:['system:guide:read']})
@@ -45,13 +46,42 @@ try{
 
     await openPage('/guide/articles/manual-spus')
     await page.locator('[data-manual-page="page-spus"]').waitFor()
-    const moduleText=await page.locator('[data-manual-page="page-spus"]').innerText()
+    const readingText=element=>element.textContent.replace(/\s+/g,' ').trim()
+    const readingStyle=element=>{
+      const cell=element.querySelector('.guide-feature-table td'),channel=text=>{const values=text.match(/[\d.]+/g)?.map(Number)||[0,0,0,0];return [...values.slice(0,3),values[3]??1]},blend=(foreground,background)=>foreground.slice(0,3).map((value,index)=>value*foreground[3]+background[index]*(1-foreground[3]))
+      const chain=[];let current=cell;while(current){chain.unshift(channel(getComputedStyle(current).backgroundColor));current=current.parentElement}
+      let background=[255,255,255];for(const color of chain)background=blend(color,background)
+      const foreground=blend(channel(getComputedStyle(cell).color),background),luminance=color=>color.map(value=>{value/=255;return value<=.04045?value/12.92:((value+.055)/1.055)**2.4}).reduce((sum,value,index)=>sum+value*[.2126,.7152,.0722][index],0)
+      const f=luminance(foreground),b=luminance(background)
+      return {dark:document.documentElement.classList.contains('dark'),contrast:(Math.max(f,b)+.05)/(Math.min(f,b)+.05),font:parseFloat(getComputedStyle(cell).fontSize),overflow:document.documentElement.scrollWidth-innerWidth,rows:element.querySelectorAll('[data-guide-feature]').length}
+    }
+    const moduleText=await page.locator('[data-manual-page="page-spus"]').evaluate(readingText)
     assertEqual(await page.locator('[data-guide-block]>h2').allTextContents(),['功能说明','规则限制','关联页面'],'three core blocks')
     assert.equal(await page.getByText('内容维护',{exact:true}).count(),0);assert.equal(await page.getByRole('button',{name:'收藏',exact:true}).count(),0)
     assert(await page.locator('.guide-directory [data-guide-page="page-skus"]').isVisible())
     await page.getByRole('textbox',{name:'搜索系统功能说明'}).fill('SKU');assert(await page.locator('.guide-directory [data-guide-page="page-skus"]').isVisible());await page.getByRole('textbox',{name:'搜索系统功能说明'}).clear()
+    const manualBefore=await snapshot()
+    for(const registered of guidePages){
+      await page.locator(`.guide-directory [data-guide-page="${registered.id}"]`).click()
+      const manual=page.locator(`[data-manual-page="${registered.id}"]`);await manual.waitFor()
+      assertEqual(await manual.locator('[data-guide-block]>h2').allTextContents(),['功能说明','规则限制','关联页面'],registered.id+' core blocks')
+      assertEqual(await manual.locator('[data-guide-feature]').evaluateAll(rows=>rows.map(row=>({id:row.dataset.guideFeature,cells:[...row.children].map(cell=>cell.textContent)}))),guideManualContents[registered.id].features.map(row=>({id:row.id,cells:[row.title,row.description,row.operation,row.result]})),registered.id+' authored functions')
+      assert.equal(await manual.locator('.guide-action,.guide-rule').count(),0,'legacy templates are not expanded behind the function table')
+      assert.equal(await manual.locator('details[open]').count(),0,'complex details are opt-in')
+    }
+    const manualAfter=await snapshot();assertEqual(manualAfter.memory,manualBefore.memory,'all manuals read without business mutation');assertEqual(manualAfter.disk,manualBefore.disk,'all manuals leave business and legacy guide storage untouched')
+    await page.locator('.guide-directory [data-guide-page="page-spus"]').click();await page.locator('[data-manual-page="page-spus"]').waitFor()
+    await page.getByRole('textbox',{name:'搜索系统功能说明'}).fill('批量下架');assert(await page.locator('.guide-directory [data-guide-page="page-spus"]').isVisible());await page.getByRole('textbox',{name:'搜索系统功能说明'}).clear()
+    assert.equal(await page.locator('.guide-related-actions').getByRole('link',{name:'前往列表选择 SPU',exact:true}).getAttribute('href'),'/spus')
+    for(const articleId of ['action-spu-delete','rule-spu-reference']){await page.goto(base+'/guide/articles/'+articleId,{waitUntil:'networkidle'});assert.equal(await page.locator('[data-guide-article="'+articleId+'"]').count(),1);assert.equal(await page.getByText('未找到这份页面说明',{exact:true}).count(),0);assert.equal(await page.locator('[data-guide-article] .guide-section').count()>0,true)}
+    mark(`${strict?'strict':'default'}: all ${guidePages.length} page tables match their authored rows, details stay folded, function search and safe list links work; old action/rule URLs remain readable`)
     await page.close();await openPage('/spus');let before=await snapshot();await openHelp()
-    assert.equal(await drawer().locator('[data-manual-page="page-spus"]').innerText(),moduleText,'top help and full module share exact renderer/content')
+    assert.equal(await drawer().locator('[data-manual-page="page-spus"]').evaluate(readingText),moduleText,'top help and full module share exact renderer/content')
+    for(const width of [1920,1366,900,375]){await page.setViewportSize({width,height:950});const geometry=await drawer().locator('[data-manual-page="page-spus"]').evaluate(element=>{const table=element.querySelector('.guide-feature-table'),cell=table.querySelector('td'),heading=element.querySelector('h1');return {scroll:document.documentElement.scrollWidth,viewport:innerWidth,overflow:table.scrollWidth-table.clientWidth,font:parseFloat(getComputedStyle(cell).fontSize),title:parseFloat(getComputedStyle(heading).fontSize),clipped:[...table.querySelectorAll('td,tbody th')].some(cell=>cell.scrollWidth>cell.clientWidth+1),rowLayout:getComputedStyle(table.querySelector('tbody tr')).display}});assert(geometry.scroll<=geometry.viewport+1&&geometry.overflow<=1&&!geometry.clipped);assert(geometry.font>=14&&geometry.title>=24);assert.equal(geometry.rowLayout,'block','drawer uses a readable labelled layout')}
+    await page.setViewportSize({width:1366,height:950})
+    const lightStyle=await drawer().locator('[data-manual-page="page-spus"]').evaluate(readingStyle);assert.equal(lightStyle.dark,false);assert(lightStyle.contrast>=4.5&&lightStyle.font>=14&&lightStyle.overflow<=1)
+    await closeHelp();await page.locator('.theme-switch').click();await openHelp();const darkStyle=await drawer().locator('[data-manual-page="page-spus"]').evaluate(readingStyle);assert.equal(darkStyle.dark,true);assert(darkStyle.contrast>=4.5&&darkStyle.font>=14&&darkStyle.overflow<=1);assert.equal(darkStyle.rows,lightStyle.rows);assert.equal(await drawer().locator('[data-manual-page="page-spus"]').evaluate(readingText),moduleText)
+    await closeHelp();await page.locator('.theme-switch').click();await openHelp()
     await drawer().locator('.guide-related-actions button').first().click();await page.waitForFunction(()=>document.querySelector('.page-guide-drawer [data-manual-page]')?.getAttribute('data-manual-page')!=='page-spus')
     await closeHelp();assertEqual(await snapshot(),before,'reading/switching/closing never changes URL or data');await page.close()
     mark(`${strict?'strict':'default'}: one menu directory/renderer, three blocks and same top-help content; no legacy guide IO`)
@@ -95,8 +125,8 @@ try{
     mark(`${strict?'strict':'default'}: multiple staged subtrees, independent checks, explicit target/search and feedback cancellation preserve context without writes`)
 
     await openPage('/guide/articles/manual-specs');before=await snapshot()
-    for(const width of [1280,1366,1440,1920,2560,900]){await page.setViewportSize({width,height:950});await page.waitForTimeout(70);const geometry=await page.locator('.guide-manual').evaluate(el=>({width:el.getBoundingClientRect().width,parent:el.parentElement.getBoundingClientRect().width,scroll:document.documentElement.scrollWidth,viewport:innerWidth}));assert(geometry.width<=geometry.parent+1&&geometry.scroll<=geometry.viewport+1,'desktop explanation remains inside content')}
-    await page.locator('.theme-switch').click();await page.setViewportSize({width:1366,height:950});assert(await page.locator('[data-guide-block="rules"]').isVisible());await page.locator('.theme-switch').click()
+    for(const width of [1280,1366,1440,1920,2560,900,375]){await page.setViewportSize({width,height:950});const geometry=await page.locator('.guide-manual').evaluate(el=>({width:el.getBoundingClientRect().width,parent:el.parentElement.getBoundingClientRect().width,scroll:document.documentElement.scrollWidth,viewport:innerWidth,clipped:[...el.querySelectorAll('.guide-feature-table td,.guide-feature-table tbody th')].some(cell=>cell.scrollWidth>cell.clientWidth+1),font:parseFloat(getComputedStyle(el.querySelector('.guide-feature-table td')).fontSize)}));assert(geometry.width<=geometry.parent+1&&geometry.scroll<=geometry.viewport+1&&!geometry.clipped&&geometry.font>=14,'explanation tables remain readable inside content')}
+    await page.locator('.theme-switch').click();await page.setViewportSize({width:1366,height:950});assert(await page.locator('[data-guide-block="rules"]').isVisible());const fullDarkStyle=await page.locator('.guide-manual').evaluate(readingStyle);assert(fullDarkStyle.dark&&fullDarkStyle.contrast>=4.5&&fullDarkStyle.font>=14&&fullDarkStyle.overflow<=1);await page.locator('.theme-switch').click()
     await page.locator('[data-group="product"]').hover();await page.locator('[data-nav-pin]').click();await page.mouse.move(1200,500);assert(await page.locator('[data-manual-page]').isVisible());await page.locator('[data-nav-pin]').click();assertEqual(await snapshot(),before,'layout/theme changes preserve all business and old guide data')
     if(artifacts){mkdirSync('work/guide-reading',{recursive:true});await page.screenshot({path:`work/guide-reading/${strict?'strict':'default'}.png`})}await page.close()
     for(const retired of ['/guide/manage','/guide/learn','/guide/learn/old-flow']){await openPage(retired);assert.equal(new URL(page.url()).pathname,'/guide');assert(await page.getByRole('heading',{name:'系统功能说明',exact:true}).isVisible());await page.close()}

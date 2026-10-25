@@ -1757,7 +1757,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-spu-view",
     "title": "配置 SPU 视图",
     "kind": "action",
-    "summary": "配置 SPU 视图：配置按现有本机约定恢复",
+    "summary": "配置 SPU 视图：当前视图的查询、列、分组和排序自动保存在本机",
     "aliases": [
       "配置 SPU 视图",
       "spu-view"
@@ -1789,14 +1789,14 @@ export const guideActionArticles: GuideArticle[] = [
         "steps": [
           "打开列表设置",
           "调整字段顺序、分组排序",
-          "核对自动保存或另存视图"
+          "在当前视图自动保存配置；需要独立副本时点击“另存视图”"
         ]
       },
       {
         "id": "results",
         "title": "可观察结果",
         "paragraphs": [
-          "配置按现有本机约定恢复"
+          "当前视图的查询、列、分组和排序自动保存在本机"
         ]
       },
       {

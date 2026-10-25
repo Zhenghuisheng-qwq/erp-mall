@@ -12,7 +12,7 @@
     <div v-if="editing" class="category-selection-tools">
       <span>已勾选 {{ checkedSourceIds.length }} 项</span>
       <el-button type="primary" plain :disabled="!checkedSourceIds.length || saving || renameBusy || !!saveError" data-category-add-checked @click="stageChecked">加入已选</el-button>
-      <el-button :disabled="!checkedSourceIds.length || saving || renameBusy" @click="checkedSourceIds = []">取消勾选</el-button>
+      <el-button :disabled="!checkedSourceIds.length || saving || renameBusy" @click="clearCheckedSources">取消勾选</el-button>
     </div>
     <div v-if="staged" class="source-strip" data-category-source>
       <div><strong>待移动 {{ sourceRootIds.length }} 项</strong><span>包含 {{ sourceDescendants }} 个子分类<span v-if="sourceSelection.merged.length">；{{ sourceSelection.merged.length }} 个已选后代归并到祖先子树</span></span></div>
@@ -26,9 +26,9 @@
       <div v-for="panel in panels" :key="panel.id" class="category-pane" :class="{'is-move-source':panel.id !== panels[0]?.id}">
         <CategoryBrowsePanel :ref="el => bindPanel(panel.id,el)" :panel-id="panel.id" :title="panel.id === panels[0]?.id ? '分类目录与目标' : '待移动分类'" :categories="panelCategories(panel.id)" :initial-id="panel.initialId"
           :root-ids="panel.id !== panels[0]?.id ? sourceRootIds : undefined" :pending="panel.id !== panels[0]?.id" :path-labels="categoryPaths" :hide-move-footer="true" empty-description="在左侧勾选分类并加入待移动区"
-          :editing="editing && panel.id === panels[0]?.id" :can-rename="editing" :can-stage="editing && panel.id === panels[0]?.id" :can-drag="editing && !staged && panel.id === panels[0]?.id" :selectable="editing && panel.id === panels[0]?.id" :checked-ids="checkedSourceIds" :pending-ids="pendingIdList"
+          :editing="editing && panel.id === panels[0]?.id" :can-rename="editing" :can-stage="editing && panel.id === panels[0]?.id" :can-drag="editing && !staged && panel.id === panels[0]?.id" :target-mode="staged && panel.id === panels[0]?.id" :target-id="moveTarget" :selectable="editing && panel.id === panels[0]?.id" :checked-ids="checkedSourceIds" :pending-ids="pendingIdList"
           :busy="saving || renameBusy || !!saveError" :closable="panels.length > 1 && panel.id !== panels[0]?.id" :badges="productBadges" :source-id="sourceRootIds[0] || ''" :dragging="!!drag" :drop="dropState" :block-target="targetBlock"
-          @close="closePanel(panel.id)" @select="id => selectInPanel(panel.id,id)" @check="checkSource" @remove="removePending" @stage="id => stageSource(panel.id,id)" @move="chooseMoveTarget"
+          @close="closePanel(panel.id)" @select="(id,meta) => selectInPanel(panel.id,id,meta)" @rename-intent="id => restoreNameSelection(panel.id,id)" @settle-selection="settleNameSelection(panel.id)" @check="checkSource" @remove="removePending" @stage="id => stageSource(panel.id,id)" @move="chooseMoveTarget"
           @action="(id,action) => panelAction(panel.id,id,action)" @rename="renameCategory" @dragstart="(id,event) => startDrag(panel.id,id,event)" @dragover="(id,position,event) => dragOver(panel.id,id,position,event)" @drop="(id,position,event) => drop(panel.id,id,position,event)" @dragend="cancelDrag()" />
         <section v-if="staged && panel.id !== panels[0]?.id" class="panel move-confirm-panel" data-category-move-confirm>
           <strong>移动到：{{ moveTargetPath }}</strong>
@@ -154,6 +154,7 @@ const sourceDescendants = computed(() => [...pendingIds.value].filter(id=>catego
 const missingSources = computed(() => requestedSources.value.filter(id=>!categoryLookup.value.has(id)))
 function sourceName(id:string){return categoryLookup.value.get(id)?.name||sourceSnapshots.get(id)||id}
 const mergeDescription = computed(() => sourceSelection.value.merged.map(item=>`「${sourceName(item.id)}」随「${sourceName(item.ancestorId)}」整体移动`).join('；'))
+let nameSelectionIntent:{panelId:string;id:string;selected:string;activePanel:string;target:string|null|undefined;error:string;failure:GuideFailure|undefined}|undefined
 const moveTarget = ref<string | null | undefined>(), moveError = ref(''),moveFailure=ref<GuideFailure>()
 const batchPreview = computed(() => staged.value&&moveTarget.value!==undefined?previewCategoryMoves(store.data.categories,{sourceIds:requestedSources.value,targetId:moveTarget.value},typedIds.value):undefined)
 const targetFailure = computed(() => getFailure(batchPreview.value))
@@ -163,12 +164,14 @@ const confirmDisabledReason = computed(() => !editing.value?'需要编辑模式�
 watch([moveError,moveTarget],()=>{if(!moveError.value)moveFailure.value=undefined})
 function recoverMove(action:string){if(action==='retry')void confirmStagedMove();if(action==='choose-target')void nextTick(()=>document.querySelector<HTMLButtonElement>('[data-category-root-target]')?.focus())}
 function panelCategories(panelId:string){return panelId===panels.value[0]?.id?store.data.categories:store.data.categories.filter(item=>pendingIds.value.has(item.id))}
-function checkSource(id:string,checked:boolean){if(!canMutate())return;checkedSourceIds.value=checked?[...new Set([...checkedSourceIds.value,id])]:checkedSourceIds.value.filter(value=>value!==id)}
-function chooseMoveTarget(id:string|null){if(saving.value||renameBusy.value||!staged.value)return;moveTarget.value=id;moveError.value=''}
-function cancelMove(closeRight=false){if(saving.value||renameBusy.value)return;requestedSources.value=[];moveTarget.value=undefined;moveError.value='';moveFailure.value=undefined;cancelDrag();if(closeRight)panels.value=panels.value.slice(0,1)}
-function removePending(id:string){if(saving.value||renameBusy.value)return;const removed=new Set<string>(),stack=[id];while(stack.length){const value=stack.pop()!;if(removed.has(value))continue;removed.add(value);stack.push(...(categoryChildren.value.get(value)||[]))}requestedSources.value=requestedSources.value.filter(value=>!removed.has(value));checkedSourceIds.value=checkedSourceIds.value.filter(value=>!removed.has(value));moveError.value='';if(!requestedSources.value.length)moveTarget.value=undefined}
+function clearCheckedSources(){settleNameSelection();checkedSourceIds.value=[]}
+function checkSource(id:string,checked:boolean){if(!canMutate())return;settleNameSelection();checkedSourceIds.value=checked?[...new Set([...checkedSourceIds.value,id])]:checkedSourceIds.value.filter(value=>value!==id)}
+function chooseMoveTarget(id:string|null,preserveNameIntent=false){if(saving.value||renameBusy.value||!staged.value)return;if(!preserveNameIntent)settleNameSelection();moveTarget.value=id;moveError.value=''}
+function cancelMove(closeRight=false){if(saving.value||renameBusy.value)return;settleNameSelection();requestedSources.value=[];moveTarget.value=undefined;moveError.value='';moveFailure.value=undefined;cancelDrag();if(closeRight)panels.value=panels.value.slice(0,1)}
+function removePending(id:string){if(saving.value||renameBusy.value)return;settleNameSelection();const removed=new Set<string>(),stack=[id];while(stack.length){const value=stack.pop()!;if(removed.has(value))continue;removed.add(value);stack.push(...(categoryChildren.value.get(value)||[]))}requestedSources.value=requestedSources.value.filter(value=>!removed.has(value));checkedSourceIds.value=checkedSourceIds.value.filter(value=>!removed.has(value));moveError.value='';if(!requestedSources.value.length)moveTarget.value=undefined}
 async function confirmStagedMove(){
   if(!staged.value||confirmDisabledReason.value||moveTarget.value===undefined)return
+  settleNameSelection()
   const ids=[...requestedSources.value],target=moveTarget.value,completed=new Set(pendingIds.value)
   saving.value=true;moveError.value='';moveFailure.value=undefined
   try{
@@ -222,11 +225,26 @@ function bindPanel(id: string, element: unknown) {
 }
 function openPanel(){if(panels.value.length>1)return;panelSequence++;panels.value.push({id:`panel-${panelSequence}`,title:'待移动分类',initialId:sourceRootIds.value[0]||''})}
 function closePanel(id:string){if(id!==panels.value[0]?.id){cancelMove(true);return}if(panels.value.length>1){cancelDrag();panels.value=panels.value.filter(panel=>panel.id!==id)}}
-function selectInPanel(panelId:string,id:string){activePanel.value=panelId;selected.value=id;if(staged.value&&panelId===panels.value[0]?.id)chooseMoveTarget(id)}
+function settleNameSelection(panelId?:string){if(!panelId||nameSelectionIntent?.panelId===panelId)nameSelectionIntent=undefined}
+  function selectInPanel(panelId:string,id:string,meta?:{origin:'name'}){
+    if(saving.value||renameBusy.value)return
+    settleNameSelection()
+    if(meta?.origin==='name')nameSelectionIntent={panelId,id,selected:selected.value,activePanel:activePanel.value,target:moveTarget.value,error:moveError.value,failure:moveFailure.value}
+    activePanel.value=panelId;selected.value=id
+    if(staged.value&&panelId===panels.value[0]?.id)chooseMoveTarget(id,meta?.origin==='name')
+  }
+  function restoreNameSelection(panelId:string,id:string){
+    const previous=nameSelectionIntent
+    settleNameSelection()
+    if(!previous||previous.panelId!==panelId||previous.id!==id||!editing.value||saving.value||renameBusy.value)return
+    selected.value=previous.selected;activePanel.value=previous.activePanel
+    if(staged.value&&panelId===panels.value[0]?.id){moveTarget.value=previous.target;moveError.value=previous.error;moveFailure.value=previous.failure}
+  }
 function pick(id:string){selected.value=id;panelRefs.get(activePanel.value)?.reveal(id,true)}
 function reveal(id:string){panelRefs.get(activePanel.value)?.reveal(id)}
 function addSources(ids:string[]){
   if(!canMutate())return
+  settleNameSelection()
   const missing=ids.filter(id=>!categoryLookup.value.has(id));if(missing.length){interactionMessage.value=`分类「${missing.map(sourceName).join('、')}」已不存在，请核对勾选；没有追加来源。`;return}
   const existing=new Set(requestedSources.value)
   for(const id of ids){const item=categoryLookup.value.get(id);if(item&&!existing.has(id)){existing.add(id);sourceSnapshots.set(id,item.name)}}
@@ -238,6 +256,7 @@ function openMove(id:string){addSources([id])}
 function locateSource(){const id=sourceRootIds.value[0];if(id)panelRefs.get(panels.value[1]?.id||panels.value[0]!.id)?.reveal(id,true)}
 function targetBlock(targetId:string){if(!staged.value)return '';const preview=previewCategoryMoves(store.data.categories,{sourceIds:requestedSources.value,targetId},typedIds.value);return preview.ok?'':preview.message}
 function panelAction(panelId: string, id: string, action: string) {
+  settleNameSelection()
   activePanel.value=panelId;selected.value=id
   if (action === 'detail') { detailsOpen.value = true; return }
   if (!canMutate()) return
@@ -320,10 +339,10 @@ async function renameCategory(id:string,name:string,done:(ok:boolean,message?:st
   finally{renameBusy.value=false}
 }
 watch(structureStamp,()=>{if(drag.value)cancelDrag('分类结构已变化，本次拖动已取消。')},{flush:'sync'})
-watch(()=>[treeMode.value,store.editorGeneration,store.activeUserId,store.can('product:category:update')],()=>{contextEpoch++;if(drag.value)cancelDrag('操作上下文已变化，本次拖动已取消。');if(!editing.value){createOpen.value=false;editOpen.value=false}},{flush:'sync'})
+watch(()=>[treeMode.value,store.editorGeneration,store.activeUserId,store.can('product:category:update')],()=>{contextEpoch++;settleNameSelection();if(drag.value)cancelDrag('操作上下文已变化，本次拖动已取消。');if(!editing.value){createOpen.value=false;editOpen.value=false}},{flush:'sync'})
 function escape(event: KeyboardEvent) { if (event.key === 'Escape' && drag.value) { event.preventDefault(); cancelDrag('已取消拖动。') } }
 onMounted(() => window.addEventListener('keydown',escape,true))
-onBeforeRouteLeave(() => { contextEpoch++; cancelDrag() })
+onBeforeRouteLeave(() => { contextEpoch++; settleNameSelection(); cancelDrag() })
 onBeforeUnmount(() => { alive = false; contextEpoch++; cancelDrag(); window.removeEventListener('keydown',escape,true) })
 function openCreate(parentId: string | null) {
   if (!canMutate()) return

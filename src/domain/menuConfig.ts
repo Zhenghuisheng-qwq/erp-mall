@@ -277,6 +277,7 @@ export function railModel(role: UserRole | ((location: {path:string;query?:Recor
 }
 
 export function menuRouteForLocation(path: string, query: { panel?: unknown } = {}) {
+  if (/^\/guide\/articles\/[^/]+\/?$/.test(path)) return '/guide'
   if (['/products','/spus','/skus'].includes(path) && query.panel === 'columns') return '/products?panel=columns'
   if (/^\/(products|spus|materials)(\/|$)/.test(path)) return '/spus'
   if (/^\/skus(\/|$)/.test(path)) return '/skus'

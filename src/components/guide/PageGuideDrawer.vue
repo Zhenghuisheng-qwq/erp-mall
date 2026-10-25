@@ -33,5 +33,5 @@ watch(()=>route.fullPath,()=>{if(guideUI.open)closeGuide()})
 watch(()=>catalog.can('system:guide:read'),allowed=>{if(!allowed&&guideUI.open)closeGuide()})
 </script>
 <style>
-.page-guide-drawer .el-drawer__body{padding:16px 22px;overscroll-behavior:contain}.page-guide-drawer .el-drawer__header{margin-bottom:12px}.page-guide-drawer .guide-manual-heading h1{font-size:21px}.guide-return-page{margin-bottom:16px}.guide-drawer-footer{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:13px}.guide-drawer-footer a{color:var(--el-color-primary)}@media(max-width:600px){.page-guide-drawer .el-drawer__body{padding:12px 16px}}
+.page-guide-drawer .el-drawer__body{padding:16px 22px;overscroll-behavior:contain}.page-guide-drawer .el-drawer__header{margin-bottom:12px}.page-guide-drawer .guide-manual-heading h1{font-size:24px}.guide-return-page{margin-bottom:16px}.guide-drawer-footer{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:13px}.guide-drawer-footer a{color:var(--el-color-primary)}@media(max-width:600px){.page-guide-drawer .el-drawer__body{padding:12px 16px}}
 </style>

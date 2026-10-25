@@ -29,6 +29,20 @@ try{
   ctx=await context('u-admin',true,'培训操作说明');assert.equal(await guide().getAttribute('aria-label'),'培训操作说明');await ctx.close();ctx=await context('u-admin',true,'保留隐藏的说明',true);assert.equal(await guide().count(),0);await ctx.close();groups++
   for(const user of ['guide-reader','guide-legacy-reader']){ctx=await context(user,true);assert.equal(await guide().count(),1);assert.equal(new URL(page.url()).pathname,strict?'/guide':'/categories');await guide().click();await page.waitForURL('**/guide');assert.equal(await fly().count(),0);if(strict){assert.equal(await page.locator('.rail-scroll [data-group]').count(),1);const powers=await page.evaluate(async()=>{const s=(await import('/src/stores/catalog.ts')).useCatalogStore();return[s.can('product:category:update'),s.canRoute({path:'/categories'}),s.can('product:spu:update')]});assert.deepEqual(powers,[false,false,false]);await go('/categories');await page.waitForURL('**/forbidden?**')}await ctx.close();groups++}
   ctx=await context('no-guide');if(strict){assert.equal(await guide().count(),0);await go('/guide');await page.waitForURL('**/forbidden?**')}else assert.equal(await guide().count(),1);await ctx.close();groups++
+  ctx=await context();const articleData=await raw()
+  for(const state of [{layout:'dual',pinned:false,collapsed:false},{layout:'dual',pinned:false,collapsed:true},{layout:'dual',pinned:true,collapsed:false},{layout:'dual',pinned:true,collapsed:true},{layout:'single',pinned:false,collapsed:false},{layout:'single',pinned:false,collapsed:true}]){
+   await page.evaluate(state=>localStorage.setItem('iyge-nav-layout',JSON.stringify({...state,openeds:['product']})),state)
+   await go('/guide')
+   const activeGuide=()=>page.locator(state.layout==='single'&&!state.collapsed?'.sider a[href="/guide"]':state.layout==='single'?'.compact-single a[data-group="guide"]':'.rail-scroll [data-group="guide"]')
+   const assertPlace=async()=>{assert.equal(await activeGuide().getAttribute('aria-current'),'page');assert.equal(await fly().count(),0);assert.equal(await page.locator('.rail-scroll [data-group="product"].is-current').count(),0);const pref=await page.evaluate(()=>JSON.parse(localStorage.getItem('iyge-nav-layout')));assert.equal(pref.pinned,state.pinned);assert.equal(pref.layout,state.layout);assert.equal(pref.collapsed,state.collapsed);assert.equal(await raw(),articleData)}
+   await assertPlace()
+   await page.locator('[data-guide-page="page-categories"]').click();await page.waitForURL('**/guide/articles/manual-categories');await assertPlace()
+   await page.locator('[data-guide-page="page-product-types"]').click();await page.waitForURL('**/guide/articles/manual-product-types');await assertPlace()
+   await page.reload({waitUntil:'networkidle'});await assertPlace()
+   await page.goBack({waitUntil:'networkidle'});await page.waitForURL('**/guide/articles/manual-categories');await assertPlace()
+   await page.goForward({waitUntil:'networkidle'});await page.waitForURL('**/guide/articles/manual-product-types');await assertPlace();groups++
+  }
+  await ctx.close()
  }
  assert.deepEqual(errors,[]);console.log(`PASS standalone system explanation Chrome (${groups} default/strict groups)`)
 }finally{for(const ctx of contexts)await ctx.close().catch(()=>{});await browser?.close();for(const server of servers)await server.close();removeTestRuntime(runtime)}

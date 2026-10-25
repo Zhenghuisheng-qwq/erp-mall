@@ -1092,8 +1092,8 @@ export const guideRuleArticles: GuideArticle[] = [
           ],
           "rows": [
             [
-              "已下架且无实际 SKU/MAT/受保护引用，按确认删除",
-              "已发布直接删、有子记录或历史引用仍删除"
+              "本页未发布的空主体：草稿或已下架，且没有 SKU/MAT 子记录及受保护关系，明确确认删除",
+              "本页直接删除已发布主体，或仍有 SKU/MAT 子记录时删除；不会级联清理子记录"
             ]
           ]
         }
@@ -1125,7 +1125,7 @@ export const guideRuleArticles: GuideArticle[] = [
         "id": "next",
         "title": "当前下一步",
         "paragraphs": [
-          "先查看真实子记录及引用，按原流程处理"
+          "已发布主体先下架；有 SKU 或 MAT 时先到对应页面处理子记录及引用，再回本页确认删除空主体。"
         ]
       },
       {

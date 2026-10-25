@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import {defaultMenuNodes,loadMenu,sanitizeMenu,railModel,MENU_KEY,saveMenu} from '../src/domain/menuConfig'
+import {defaultMenuNodes,loadMenu,sanitizeMenu,railModel,MENU_KEY,saveMenu,menuRouteForLocation} from '../src/domain/menuConfig'
 import {createSeed} from '../src/domain/seed'
 import {ensureRbac,canPermission,routePermissions} from '../src/domain/rbac'
 import {RBAC_ENFORCEMENT_ENABLED} from '../src/domain/accessMode'
@@ -7,6 +7,9 @@ const disk=new Map<string,string>();let writes=0,failWrite=false
 Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(key:string)=>disk.get(key)||null,setItem:(key:string,value:string)=>{if(failWrite)throw Error('menu quota');disk.set(key,value);writes++},removeItem:(key:string)=>disk.delete(key)}})
 const clone=<T>(value:T):T=>JSON.parse(JSON.stringify(value))
 const defaultNodes=defaultMenuNodes(),guide=defaultNodes.find(n=>n.route==='/guide')!
+for(const path of ['/guide','/guide/articles/manual-spus','/guide/articles/rule-category-cycle/'])assert.equal(menuRouteForLocation(path),'/guide')
+assert.equal(menuRouteForLocation('/guide-not-registered'),'/guide-not-registered')
+assert.deepEqual(routePermissions('/guide/articles/manual-spus'),['system:guide:read'])
 assert.equal(guide.parentId,'guide');assert.equal(guide.title,'系统说明')
 const fresh=railModel(()=>true,defaultNodes);assert.equal(fresh.find(g=>g.key==='guide')?.directIndex,'/guide');assert(fresh.findIndex(g=>g.key==='guide')>fresh.findIndex(g=>g.key==='system'))
 const legacy=defaultNodes.filter(n=>n.id!=='guide').map(n=>n.route==='/guide'?{...n,parentId:'product',title:'业务指南',permissionCode:'system:guide:read'}:n)
