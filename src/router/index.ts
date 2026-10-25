@@ -14,9 +14,9 @@ const router = createRouter({
       component: AdminLayout,
       children: [
         { path: 'guide', name: 'guide', component: () => import('../views/guide/GuideHomeView.vue'), meta: { title: '业务指南' } },
-        { path: 'guide/manage', name: 'guide-manage', component: () => import('../views/guide/GuideManageView.vue'), meta: { title: '指南内容维护' } },
+        { path: 'guide/manage', name: 'guide-manage', redirect: '/guide' },
         { path: 'guide/articles/:articleId', name: 'guide-article', component: () => import('../views/guide/GuideArticleView.vue'), meta: { title: '业务指南文章' } },
-        { path: 'guide/learn/:flowId', name: 'guide-learn', component: () => import('../views/guide/GuideLearnView.vue'), meta: { title: '新人学习' } },
+        { path: 'guide/learn/:flowId', name: 'guide-learn', redirect: '/guide' },
         { path: '', name: 'home', component: () => import('../views/WorkbenchView.vue'), meta: { title: '商品工作台', group: '商品工作台', mode: 'daily' } },
         { path: 'products', redirect: to => ({ path: '/spus', query: to.query }) },
         { path: 'spus', name: 'spus', component: () => import('../views/ProductListView.vue'), props: { mode: 'spu' }, meta: { title: 'SPU 管理' } },

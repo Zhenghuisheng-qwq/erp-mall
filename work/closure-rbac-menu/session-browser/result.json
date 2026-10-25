@@ -1,9 +1,0 @@
-{
-  "browser": "156.0.8078.47",
-  "checks": [
-    "legal backup lacking import/reset recovers registered super permissions through real role-page command",
-    "admin-issued simulation survives actual browser refresh and exits explicitly without changing AppData",
-    "ordinary session with matching forged return/proof but no issued capability cannot return to admin or restore its privileges"
-  ],
-  "errors": []
-}

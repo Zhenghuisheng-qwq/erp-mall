@@ -1,30 +1,29 @@
 <template>
-  <el-alert v-if="guide.contentError" :title="guide.contentError" type="warning" :closable="false"/>
-  <template v-if="article">
-    <div class="guide-reader-actions"><el-button size="small" :aria-pressed="favorite" @click="act(()=>guide.favorite(article!.id))">{{favorite?'已收藏':'收藏'}}</el-button><el-button size="small" :aria-pressed="!!readRevision" @click="act(()=>guide.mark(article!.id,'read',!readRevision))">{{readRevision?'已阅读':'标记已阅读'}}</el-button><el-button size="small" :aria-pressed="!!practiceRevision" @click="act(()=>guide.mark(article!.id,'practiced',!practiceRevision))">{{practiceRevision?'已练习':'标记已练习'}}</el-button><el-button size="small" :disabled="!store.can('system:feedback:create')" :title="store.can('system:feedback:create') ? '' : '需要反馈新增权限'" @click="feedback">反馈本篇</el-button></div>
-    <p v-if="readRevision&&readRevision<article.revision || practiceRevision&&practiceRevision<article.revision" class="guide-update">内容已有更新，保留原学习记录；可复习后重新标记。<el-button link @click="act(()=>guide.mark(article!.id,'read'))">更新阅读记录</el-button></p>
-    <el-alert v-if="error || guide.progressError" :title="error||guide.progressError" type="warning" :closable="false"/>
-    <ArticleRenderer :article="article" :anchor-prefix="anchorPrefix" :maintenance="store.can('system:guide:update')"/>
-    <nav class="guide-related" aria-label="相关内容"><strong>相关内容</strong><button v-for="item in related" :key="item.id" @click="$emit('open',item.id)">{{item.title}}</button><p v-if="!related.length">本篇暂无关联条目。</p></nav>
-    <div class="guide-prev-next"><el-button v-if="previous" @click="$emit('open',previous.id)">上一条：{{previous.title}}</el-button><el-button v-if="next" @click="$emit('open',next.id)">下一条：{{next.title}}</el-button></div>
-  </template><el-empty v-else description="这篇文章不存在或已不可用"><el-button @click="$emit('home')">返回指南首页</el-button></el-empty>
+  <article v-if="article" class="guide-manual" :data-guide-article="article.id" :data-manual-page="manual?.page.id">
+    <header class="guide-manual-heading"><h1>{{manual&&article.kind==='page'?manual.page.title:article.title}}</h1><p>{{article.summary}}</p><p v-if="article.status==='business-pending'" class="guide-caution">此项仍待业务确认，说明不构成新增业务限制。</p><p v-else-if="article.status==='historical'" class="guide-caution">这是保留的历史入口说明。</p></header>
+    <section class="guide-manual-block" data-guide-block="functions"><h2>功能说明</h2><ArticleRenderer :sections="features" :anchor-prefix="`${anchorPrefix}-functions`"/><details v-for="action in actions" :key="action.id" class="guide-action"><summary>{{action.title}}</summary><p>{{action.summary}}</p><ArticleRenderer :sections="visibleSections(action.sections)" :anchor-prefix="`${anchorPrefix}-${action.id}`" heading-level="h4"/></details><p v-if="!features.length&&!actions.length" class="guide-muted">此页暂无额外操作说明。</p></section>
+    <section class="guide-manual-block" data-guide-block="rules"><h2>使用规则</h2><ArticleRenderer :sections="manual?.restrictions||[]" :anchor-prefix="`${anchorPrefix}-restrictions`"/><details v-for="rule in rules" :key="rule.id" class="guide-rule" :open="article.kind==='rule'&&article.id===rule.id" :data-rule-id="rule.id"><summary>{{rule.title}}<span v-if="rule.status==='business-pending'" class="guide-caution"> · 待业务确认</span></summary><p>{{rule.summary}}</p><ArticleRenderer :sections="visibleSections(rule.sections)" :anchor-prefix="`${anchorPrefix}-${rule.id}`" heading-level="h4"/></details><p v-if="!manual?.restrictions.length&&!rules.length" class="guide-muted">本页暂无单独登记的使用规则；实际操作仍按现有校验执行。</p></section>
+    <section class="guide-manual-block" data-guide-block="related"><h2>关联页面</h2><ul v-if="manual?.relatedPages.length" class="guide-related-pages"><li v-for="item in manual.relatedPages" :key="`${item.kind}-${item.pageId}`"><div><strong>{{item.page.title}}</strong><p>{{item.reason}}</p></div><div class="guide-related-actions"><button type="button" @click="$emit('open',item.page.articleId)">查看说明</button><router-link v-if="catalog.canRoute(item.to)" :to="item.to">前往页面</router-link><span v-else class="guide-muted">当前无页面访问权限</span></div></li></ul><p v-else class="guide-muted">暂未登记关联页面。</p></section>
+  </article>
+  <el-empty v-else description="未找到这份页面说明"><el-button @click="$emit('home')">查看说明目录</el-button></el-empty>
 </template>
 <script setup lang="ts">
-import {computed,ref,watch} from 'vue'
+import {computed} from 'vue'
 import ArticleRenderer from './ArticleRenderer.vue'
 import {useGuideStore} from '../../stores/guide'
 import {useCatalogStore} from '../../stores/catalog'
-import {requestGuideFeedback} from '../../domain/guide/presentation'
-const props=withDefaults(defineProps<{articleId:string;anchorPrefix?:string}>(),{anchorPrefix:'reader'})
+import {pageManual} from '../../domain/guide/readModel'
+import type {GuideSection} from '../../domain/guide/types'
+const props=withDefaults(defineProps<{articleId?:string;pageId?:string;anchorPrefix?:string}>(),{articleId:'',pageId:'',anchorPrefix:'manual'})
 defineEmits<{open:[id:string];home:[]}>()
-const guide=useGuideStore(),store=useCatalogStore(),error=ref('')
-const article=computed(()=>guide.article(props.articleId)),favorite=computed(()=>guide.progress.favorites.includes(props.articleId)),readRevision=computed(()=>guide.progress.read[props.articleId]),practiceRevision=computed(()=>guide.progress.practiced[props.articleId])
-const related=computed(()=>[...new Set([...(article.value?.related||[]),...(article.value?.actionIds||[]),...(article.value?.ruleIds||[])])].map(id=>guide.article(id)).filter((a):a is NonNullable<typeof a>=>!!a&&a.id!==props.articleId))
-const index=computed(()=>guide.articles.findIndex(a=>a.id===props.articleId)),previous=computed(()=>index.value>0?guide.articles[index.value-1]:undefined),next=computed(()=>index.value>=0?guide.articles[index.value+1]:undefined)
-async function act(action:()=>Promise<{ok:boolean;message?:string}>){try{const r=await action();error.value=r.ok?'':r.message||'个人记录未保存。'}catch(e){error.value=String(e)}}
-function feedback(){if(article.value)requestGuideFeedback({articleId:article.value.id,pageId:article.value.pageIds[0],ruleId:article.value.kind==='rule'?article.value.id:undefined,actionId:article.value.kind==='action'?article.value.id:undefined,contentRevision:article.value.revision})}
-watch(()=>props.articleId,()=>{error.value='';if(article.value)void act(()=>guide.remember(props.articleId))},{immediate:true})
+const guide=useGuideStore(),catalog=useCatalogStore(),requested=computed(()=>props.articleId?guide.article(props.articleId):undefined)
+const manual=computed(()=>pageManual(props.pageId||requested.value?.pageIds.find(id=>!!pageManual(id))||''))
+const article=computed(()=>props.articleId?requested.value:manual.value?.article)
+const visibleSections=(sections:readonly GuideSection[])=>sections.filter(section=>section.id!=='verification')
+const features=computed(()=>article.value&&article.value.kind==='concept'?visibleSections(article.value.sections):manual.value?.features||(!manual.value&&article.value?.kind!=='rule'?visibleSections(article.value?.sections||[]):[]))
+const actions=computed(()=>article.value?.kind==='action'?[article.value]:manual.value?.actions||[])
+const rules=computed(()=>article.value?.kind==='rule'?[article.value]:manual.value?.rules||[])
 </script>
 <style>
-.guide-reader-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}.guide-reader-actions .el-button+.el-button{margin-left:0}.guide-update{font-size:13px;color:var(--el-color-warning)}.guide-related{margin-top:30px;padding-top:18px;border-top:1px solid var(--el-border-color)}.guide-related strong{display:block}.guide-related button{display:block;max-width:100%;background:none;border:0;color:var(--el-color-primary);text-align:left;cursor:pointer;padding:6px 0;overflow-wrap:anywhere}.guide-prev-next{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:18px}.guide-prev-next .el-button{white-space:normal;height:auto;min-height:32px;max-width:100%;margin:0}
+.guide-manual{max-width:900px;margin:0 auto;min-width:0;overflow-wrap:anywhere}.guide-manual-heading h1{font-size:23px;line-height:1.45;margin:0 0 10px}.guide-manual-heading>p{color:var(--text-secondary);font-size:14px;line-height:1.7;margin:6px 0}.guide-manual-block{margin-top:26px;padding-top:20px;border-top:1px solid var(--el-border-color)}.guide-manual-block>h2{font-size:17px;margin:0 0 12px}.guide-action,.guide-rule{padding:12px 0;border-bottom:1px solid var(--el-border-color-lighter)}.guide-action>summary,.guide-rule>summary{cursor:pointer;line-height:1.6;font-weight:550}.guide-action>p,.guide-rule>p{font-size:13px;color:var(--text-secondary);line-height:1.7}.guide-caution{color:var(--el-color-warning)!important;font-size:12px}.guide-related-pages{list-style:none;padding:0;margin:0}.guide-related-pages li{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--el-border-color-lighter)}.guide-related-pages strong{font-weight:550}.guide-related-pages p{margin:5px 0;color:var(--text-secondary);font-size:13px;line-height:1.65}.guide-related-actions{display:flex;flex-wrap:wrap;align-content:center;align-items:center;gap:8px 14px;flex-shrink:0}.guide-related-actions button{padding:0;border:0;background:none;color:var(--el-color-primary);font:inherit;cursor:pointer;font-size:13px}.guide-related-actions a{font-size:13px;color:var(--el-color-primary)}@media(max-width:650px){.guide-related-pages li{display:block}.guide-related-actions{margin-top:8px}}
 </style>

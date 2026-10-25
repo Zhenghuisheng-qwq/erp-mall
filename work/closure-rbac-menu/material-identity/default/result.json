@@ -1,9 +1,0 @@
-{
-  "status": "PASS",
-  "rbacEnforced": false,
-  "checks": [
-    "all eight owned arrays reject newly duplicated stable identities before authorization or persistence",
-    "MAT import cannot append a differently-valued shadow row under an existing sales SKU ID",
-    "existing historical duplicates remain unchanged; count growth rejects and each changed occurrence receives actual resource authorization"
-  ]
-}

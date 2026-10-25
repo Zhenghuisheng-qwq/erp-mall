@@ -1,8 +1,0 @@
-{
-  "error": "TimeoutError: locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /管理组合/ })\u001b[22m\n",
-  "checks": [
-    "real UI configures shared policies and publishes model with capacity/color children",
-    "node range creates one real MAT with prefix only; quota failure preserves input/data and retry succeeds"
-  ],
-  "errors": []
-}

@@ -1,7 +1,0 @@
-{
-  "error": "Error: page.goto: net::ERR_NETWORK_ACCESS_DENIED at http://127.0.0.1:62405/specs?template=r01-model\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:62405/specs?template=r01-model\", waiting until \"networkidle\"\u001b[22m\n",
-  "checks": [],
-  "errors": [
-    "SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
-  ]
-}

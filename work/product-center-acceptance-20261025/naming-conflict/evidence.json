@@ -1,7 +1,0 @@
-{
-  "browser": "156.0.8078.47",
-  "checks": [
-    "published parallel branches with different naming sources show explicit conflict in actual MAT filing; no arbitrary name or write; cancel preserves frozen tree"
-  ],
-  "errors": []
-}

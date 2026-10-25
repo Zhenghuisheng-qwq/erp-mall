@@ -1,8 +1,0 @@
-{
-  "browser": "156.0.8078.47",
-  "checks": [
-    "real UI reversed conditions and reversed/duplicate in values share one MAT and one declaration with both real source pairs",
-    "real UI cancellation → template note-only save → V2 publish → original MAT preview remains protected; confirm disabled and tombstone unchanged"
-  ],
-  "errors": []
-}
