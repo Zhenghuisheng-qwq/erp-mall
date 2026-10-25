@@ -1,6 +1,7 @@
 import { benefitSkuCandidates, benefitSkuSummary, benefitRuleStructureIssues, cloneBenefit } from './benefitPackages'
 import { queryDeviceAccessories, queryModelAccessories } from './accessoryCompatibilityQuery'
 import { compatibilityRecordRole } from './deviceResolution'
+import { isMaterialArchive } from './catalogIdentity'
 import type { AppData } from './types'
 import type { BenefitFramework, BenefitFrameworkSnapshot, BenefitPackageDraft, BenefitSelectionGroup, BenefitIssue } from './benefitPackageTypes'
 /** Object key order is not a rule or request change; array order remains explicit. */
@@ -50,7 +51,7 @@ export function resolveBenefitRange(data:AppData,draft:BenefitPackageDraft) {
    const typed=sale.filter(s=>membership(s.skuId).some(m=>m.id===g.id))
    return `「${g.name}」：${!typed.length?'类型范围内没有当前在售的真实销售 SKU。':g.scope?.compatibleOnly&&!draft.device?'尚未选择适配主机。':'在售商品没有匹配本次主机的正式基本适用结论，需检查精确规划、待确认或不适用声明。'}`
  })
- return {groups,problems,membership,reason,candidates,emptyReasons}
+ return {groups,problems,membership,reason,candidates,emptyReasons,recommendedSkuIds:compatible}
 
 }
 export function frameworkSelectionIssues(data:AppData,draft:BenefitPackageDraft):BenefitIssue[]{
@@ -83,10 +84,25 @@ export function frameworkImportProblems(data:AppData):string[]{
  for(const p of data.benefitPackages||[])if(p.status==='available'&&p.framework?.kind==='type-v1'&&!frameworkSnapshotProblem(p.framework)&&p.framework.groups.every(g=>g.scope?.kind==='product-types')){
   const range=resolveBenefitRange(data,p)
   for(const line of p.goods){if(line.skuId===p.includedPhoneSkuId&&compatibilityRecordRole(data,line.skuId)==='host')continue
+    // Missing live references remain repairable; existing out-of-group identities are still rejected.
+    const sku=data.skus.find(s=>s.id===line.skuId)
+    if(!sku||(!isMaterialArchive(data,sku)&&!data.families.some(f=>f.id===sku.familyId)))continue
     if(range.membership(line.skuId).length!==1)issues.push(`可用权益包「${p.name}」成员不属于唯一框架类型组；不能通过导入绕过选配范围。`)
   }
  }
  for(const d of data.benefitDeliveries||[])if(d.framework){const e=frameworkSnapshotProblem(d.framework);if(e)issues.push(e)}
+ return issues
+}
+/** Product reset must not invalidate a previously resolvable framework member or host. */
+export function frameworkProductResetProblems(before:AppData,after:AppData):string[]{
+ const issues:string[]=[]
+ for(const p of before.benefitPackages||[])if(p.framework){
+  const refs=[...p.goods.map(l=>({id:l.skuId,name:l.snapshot.name})),...(p.device?.kind==='sku'?[{id:p.device.skuId,name:'适配主机'}]:[])]
+  for(const ref of refs){
+   const old=benefitSkuSummary(before,ref.id),next=benefitSkuSummary(after,ref.id)
+   if(old&&(!next||old.familyId!==next.familyId||old.productTypeId!==next.productTypeId))issues.push(`权益包「${p.name}」的「${ref.name}」（${ref.id}）引用将失效或改变。`)
+  }
+ }
  return issues
 }
 export function frameworkReference(data:AppData,kind:'framework'|'type',id:string):string {

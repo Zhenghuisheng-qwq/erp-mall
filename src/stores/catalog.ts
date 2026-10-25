@@ -1,4 +1,4 @@
-import { frameworkCommand, frameworkReference, frameworkSnapshot, frameworkSnapshotProblem, frameworkProblems, frameworkSignature } from '../domain/benefitFrameworks'
+import { frameworkProductResetProblems, frameworkCommand, frameworkReference, frameworkSnapshot, frameworkSnapshotProblem, frameworkProblems, frameworkSignature } from '../domain/benefitFrameworks'
 import type { BenefitFramework } from '../domain/benefitPackageTypes'
 import { defineStore } from 'pinia'
 import { businessDefinitions, businessImportProblems, businessIssues, businessPath, configProblem, copyBusinessConfigs, freezeBusinessNodes, type BusinessDefinition, type NodeBusinessConfig } from '../domain/nodeBusiness'
@@ -713,6 +713,10 @@ export const useCatalogStore = defineStore('catalog', () => {
       next.users = fresh.users
       next.feedbacks = fresh.feedbacks
       next.profile = fresh.profile
+    }
+    if(name==='products'){
+      const problems=frameworkProductResetProblems(data,next)
+      if(problems.length)return {ok:false,message:`商品模块重置被拒绝：${problems.join(' ')} 请先修正相关框架包。`}
     }
     const frameworkResetProblems=(next.benefitFrameworks||[]).filter(f=>!f.deletedAt).flatMap(f=>f.history.flatMap(v=>frameworkProblems(next,v.groups)))
     if(frameworkResetProblems.length)return {ok:false,message:`模块重置会破坏权益包框架：${frameworkResetProblems.join(' ')}`}

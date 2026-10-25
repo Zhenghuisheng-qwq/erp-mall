@@ -204,7 +204,8 @@ export function compatibilityImportProblems(data: AppData): string[] {
       if (!extended) return
       if (!oneOf(link.targetKind, ['sku', 'material']) || !string(link.targetId) || !link.targetId || link.accessorySkuId !== link.targetId) problems.push(`声明 ${link.id} 的对象身份无效。`)
       const target = data.skus.find(item => item.id === link.targetId)
-      if (target && (link.targetKind === 'sku' ? !isRealSku(data, target) : !isMaterialArchive(data, target))) problems.push(`声明 ${link.id} 的 SKU / MAT 类型不符。`)
+      // A missing family is a repairable live reference; explicit SKU/MAT identity conflicts still fail.
+      if (target && (link.targetKind === 'sku' ? isMaterialArchive(data, target) : !isMaterialArchive(data, target))) problems.push(`声明 ${link.id} 的 SKU / MAT 类型不符。`)
       if (!oneOf(link.conclusion, ['compatible', 'conditional', 'incompatible']) || !oneOf(link.verification, ['confirmed', 'pending']) || !oneOf(link.capability, ['basic', 'fast-charge', 'other']) || !Array.isArray(link.conditions) || link.conditions.some(condition => conditionProblem(condition)) || !string(link.source)) problems.push(`声明 ${link.id} 的结论、条件或来源无效。`)
       if (link.conclusion === 'conditional' && Array.isArray(link.conditions) && !link.conditions.length) problems.push(`声明 ${link.id} 缺少使用条件。`)
       const provenance = provenanceProblem(link.provenance)

@@ -46,8 +46,9 @@ export function useBenefitPackageEditor() {
   const commonPackages = computed(() => (store.data.benefitPackages || []).filter(item => item.favorite && item.status !== 'disabled'))
   const models = computed(() => listDeviceModels(store.data))
   const deviceSkus = computed(() => store.data.skus.filter(sku => isRealSku(store.data, sku) && compatibilityRecordRole(store.data, sku.id) === 'host').map(sku => benefitSkuSummary(store.data, sku.id)).filter(item => item !== undefined))
-  const allCandidates = computed(() => draft.value.framework?resolveBenefitRange(store.data,draft.value).candidates:benefitSkuCandidates(store.data, draft.value.device))
-  const candidates = computed(() => draft.value.framework?allCandidates.value.filter(s=>(!productTypeId.value||s.productTypeId===productTypeId.value)&&(!keyword.value||`${s.name} ${s.code} ${s.spec}`.toLowerCase().includes(keyword.value.toLowerCase()))):benefitSkuCandidates(store.data, draft.value.device, { keyword: keyword.value, productTypeId: productTypeId.value, accessoriesOnly: candidateTab.value === 'recommended' }))
+  const frameworkRange = computed(() => resolveBenefitRange(store.data,draft.value))
+  const allCandidates = computed(() => draft.value.framework?frameworkRange.value.candidates:benefitSkuCandidates(store.data, draft.value.device))
+  const candidates = computed(() => draft.value.framework?allCandidates.value.filter(s=>(candidateTab.value!=='recommended'||frameworkRange.value.recommendedSkuIds.has(s.skuId))&&(!productTypeId.value||s.productTypeId===productTypeId.value)&&(!keyword.value||`${s.name} ${s.code} ${s.spec}`.toLowerCase().includes(keyword.value.toLowerCase()))):benefitSkuCandidates(store.data, draft.value.device, { keyword: keyword.value, productTypeId: productTypeId.value, accessoriesOnly: candidateTab.value === 'recommended' }))
   const types = computed(() => [...new Map(allCandidates.value.map(item => [item.productTypeId, { id: item.productTypeId, name: item.typeName }])).values()])
   const currentPhone = computed(() => draft.value.device?.kind === 'sku' ? benefitSkuSummary(store.data, draft.value.device.skuId) : undefined)
   const includedPhone = computed(() => draft.value.goods.find(line => line.skuId === draft.value.includedPhoneSkuId)?.snapshot)
@@ -232,15 +233,16 @@ export function useBenefitPackageEditor() {
   }
   async function locateIssue(issue: BenefitIssue) {
     membersOpen.value=true;await nextTick()
-    if(draft.value.framework&&issue.groupId){document.querySelector('[data-framework-binding]')?.scrollIntoView({block:'center'});return}
-    if (issue.groupId || issue.code.startsWith('group-')) {
+    if(!issue.skuId&&!issue.serviceId&&draft.value.framework&&issue.groupId){document.querySelector('[data-framework-binding]')?.scrollIntoView({block:'center'});return}
+    if (!issue.skuId && !issue.serviceId && (issue.groupId || issue.code.startsWith('group-'))) {
       advancedOpen.value = ['rules']; await nextTick(); await ruleEditor.value?.focusIssue(issue); return
     }
     narrowPane.value = 'contents'; await nextTick()
     const selector = issue.skuId ? `[data-benefit-goods="${CSS.escape(issue.skuId)}"]` : issue.serviceId ? `[data-benefit-service="${CSS.escape(issue.serviceId)}"]` : issue.code.startsWith('quote') ? '.quote-panel' : issue.code.startsWith('device') ? '.device-field' : issue.code === 'name' ? '[data-benefit-name]' : '[data-benefit-contents]'
     const target = document.querySelector<HTMLElement>(selector)
     if (issue.code === 'condition-confirmation') { const details = target?.querySelector('details'); if (details) details.open = true }
-    target?.scrollIntoView({ block: 'center', behavior: 'instant' }); target?.querySelector<HTMLElement>('input,textarea,button')?.focus({ preventScroll: true })
+    const input = issue.code.includes('quantity') ? target?.querySelector<HTMLElement>('[data-benefit-quantity] input') : undefined
+    target?.scrollIntoView({ block: 'center', behavior: 'instant' }); (input || target?.querySelector<HTMLElement>('input,textarea,button'))?.focus({ preventScroll: true })
   }
   async function manageCompatibility(skuId?: string) {
     if (busy.value) return

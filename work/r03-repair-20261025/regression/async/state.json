@@ -1,0 +1,21 @@
+{
+  "result": "PASS",
+  "checks": [
+    {
+      "name": "same-page-stale-SKU-candidate-rejected-in-lock",
+      "result": "PASS"
+    },
+    {
+      "name": "unrelated-SPU-preference-preserved-without-rejecting-SKU",
+      "result": "PASS"
+    },
+    {
+      "name": "composable-pending-rejects-second-name-save-no-duplicate",
+      "result": "PASS"
+    },
+    {
+      "name": "view-settings-only-and-disk-live-equality",
+      "result": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "checks": [
+    "real Store product reset rejects framework reference loss; memory and persisted bytes unchanged",
+    "missing SKU and missing family restore/reopen intact; actionable issue blocks available save/new delivery; frozen export unchanged",
+    "existing out-of-group SKU import still refused atomically",
+    "framework range retains pending/blocked/no-declaration; recommendations require basic proof; fast-only excluded; newly compatible SKU appears",
+    "legacy free package product reset and full reset retain prior semantics"
+  ]
+}

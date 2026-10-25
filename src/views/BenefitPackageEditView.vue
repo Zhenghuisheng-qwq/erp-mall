@@ -29,7 +29,7 @@
           <el-tabs v-model="candidateTab"><el-tab-pane label="适用销售配件" name="recommended" /><el-tab-pane label="其他商品" name="all" /><el-tab-pane label="常用包" name="common" /></el-tabs>
           <template v-if="candidateTab !== 'common'">
             <div class="candidate-tools"><el-input v-model="keyword" placeholder="搜索商品、编号或规格" clearable aria-label="搜索组包商品" data-benefit-search /><el-select v-model="productTypeId" aria-label="组包商品类型" placeholder="全部类型" data-benefit-type><el-option label="全部类型" value="" /><el-option v-for="type in types" :key="type.id" :label="type.name" :value="type.id" /></el-select></div>
-            <p class="candidate-note">{{ candidates.length }} 条真实销售 SKU<span v-if="candidateTab === 'recommended'"> · 按当前适配对象的正式声明查询</span></p>
+            <p class="candidate-note">{{ candidates.length }} 条真实销售 SKU<span v-if="candidateTab === 'recommended'"> · {{ draft.framework ? '框架允许范围内，当前主机有正式基本适用结论' : '按当前适配对象的正式声明查询' }}</span><span v-else-if="draft.framework"> · 框架允许范围，适配状态仍需逐项核对</span></p>
             <el-empty v-if="!candidates.length" :description="candidateTab === 'recommended' && !draft.device ? '先选择适配设备，或到“其他商品”自由组包。' : keyword || productTypeId ? '当前搜索或类型下没有匹配商品。' : '尚无可推荐的销售配件，可维护适用关系或添加其他商品。'" />
             <div class="candidate-list"><article v-for="sku in candidates" :key="sku.skuId" class="candidate-card" :data-benefit-candidate="sku.skuId"><div class="candidate-main"><div class="candidate-heading"><strong>{{ sku.name }}</strong><el-tag size="small" effect="plain">{{ sku.typeName }}</el-tag></div><p class="muted">{{ sku.code }} · {{ sku.familyName }}</p><p class="sku-spec">{{ sku.spec }}</p><p class="muted"><el-tag size="small" :type="candidateMatch(sku.skuId) ? compatibilityTag(candidateStatus(sku.skuId)) : 'info'">{{ candidateMatch(sku.skuId) ? compatibilityLabels[candidateStatus(sku.skuId)] : draft.device ? '未提供适配结论' : '未做设备适配校验' }}</el-tag><span v-if="candidateMatch(sku.skuId)?.capabilities.some(item => item.capability === 'fast-charge')" class="candidate-fast">快充单独判断</span></p></div><el-button v-if="store.isAdmin" type="primary" plain :disabled="(saving || generating) || busy" :data-benefit-add-sku="sku.skuId" @click="addSku(sku.skuId)">{{ draft.goods.some(line => line.skuId === sku.skuId) ? '已加入 · 继续添加' : '加入' }}</el-button></article></div>
           </template>
@@ -92,7 +92,7 @@ const candidateMatches = computed(() => {
   return new Map([...(result?.sales || []), ...(result?.pending || []), ...(result?.excluded || []), ...(result?.unavailable || [])].filter(item => item.target.kind === 'sku').map(item => [item.target.id, item]))
 })
 function candidateMatch(id: string) { return candidateMatches.value.get(id) }
-function candidateStatus(id: string) { return candidateMatch(id)?.status || 'pending' }
+function candidateStatus(id: string) { return (draft.value.framework ? candidateMatch(id)?.capabilities.find(c => c.capability === 'basic')?.status : candidateMatch(id)?.status) || 'pending' }
 </script>
 <style scoped>
 .package-summary { position:sticky; top:0; z-index:4; display:flex; align-items:center; flex-wrap:wrap; gap:16px 28px; margin-bottom:16px; padding:14px 18px; border:1px solid var(--border-default); border-radius:12px; background:var(--surface-bg); box-shadow:0 6px 18px rgba(0,0,0,.04); font-size:13px; }
