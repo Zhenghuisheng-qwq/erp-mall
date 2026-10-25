@@ -44,7 +44,7 @@
 import RuleExplanation from '../components/guide/RuleExplanation.vue'
 import { getFailure } from '../domain/guide/failure'
 import type { GuideFailure } from '../domain/guide/types'
-import { Goods, Moon, Setting, SetUp, Sunny } from '@element-plus/icons-vue'
+import { Goods, Moon, Setting, SetUp, Sunny, Notebook } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, markRaw, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Component } from 'vue'
@@ -56,7 +56,7 @@ import PageAssist from '../components/PageAssist.vue'
 import RailNav from './RailNav.vue'
 import { applyTheme, readTheme, type AppTheme } from '../theme'
 
-const ICONS: Record<string, Component> = { product: Goods, tools: SetUp, system: Setting }
+const ICONS: Record<string, Component> = { product: Goods, tools: SetUp, system: Setting, guide: Notebook }
 
 const store = useCatalogStore()
 const route = useRoute(), router = useRouter()

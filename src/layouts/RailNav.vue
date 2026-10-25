@@ -15,7 +15,9 @@
           @close="onMenuClose"
           @select="onMenuSelect"
         >
-          <el-sub-menu v-for="group in groups" :key="group.key" :index="group.key">
+          <template v-for="group in groups" :key="group.key">
+          <el-menu-item v-if="group.directIndex" :index="group.directIndex"><a :href="hrefOf(group.directIndex)" :aria-current="active===group.directIndex?'page':undefined" @click.stop="goDirect($event,group.directIndex)"><el-icon :size="18"><component :is="group.icon"/></el-icon><span>{{group.title}}</span></a></el-menu-item>
+          <el-sub-menu v-else :index="group.key">
             <template #title>
               <el-icon :size="18"><component :is="group.icon" /></el-icon>
               <span>{{ group.title }}</span>
@@ -26,13 +28,15 @@
               <el-menu-item v-for="leaf in section.items" :key="leaf.index" :index="leaf.index"><a :href="hrefOf(leaf.index)" :aria-current="active === leaf.index ? 'page' : undefined" @click.stop="go($event, leaf.index)">{{ leaf.title }}</a></el-menu-item>
             </el-sub-menu>
           </el-sub-menu>
+          </template>
         </el-menu>
       </div>
       </aside>
       <nav v-else-if="layout==='single'" class="compact-single" aria-label="主导航">
         <template v-for="group in groups" :key="group.key">
-          <button class="rail-btn" :data-group="group.key" :title="group.title" :aria-label="group.title" :aria-expanded="openeds.includes(group.key)" :class="{'is-current':currentGroup===group.key}" @click="toggleSingle(group.key)"><el-icon :size="20"><component :is="group.icon"/></el-icon></button>
-          <template v-if="openeds.includes(group.key)">
+          <a v-if="group.directIndex" class="rail-btn" :data-group="group.key" :title="group.title" :aria-label="group.title" :href="hrefOf(group.directIndex)" :aria-current="active===group.directIndex?'page':undefined" :class="{'is-current':currentGroup===group.key}" @click="goDirect($event,group.directIndex)"><el-icon :size="20"><component :is="group.icon"/></el-icon></a>
+          <button v-else class="rail-btn" :data-group="group.key" :title="group.title" :aria-label="group.title" :aria-expanded="openeds.includes(group.key)" :class="{'is-current':currentGroup===group.key}" @click="toggleSingle(group.key)"><el-icon :size="20"><component :is="group.icon"/></el-icon></button>
+          <template v-if="!group.directIndex&&openeds.includes(group.key)">
             <a v-for="item in group.items" :key="item.index" class="compact-entry" :class="{'is-current':active===item.index}" :title="item.title" :aria-label="item.title" :aria-current="active===item.index?'page':undefined" :href="hrefOf(item.index)" @click="go($event,item.index)"><el-icon><Document/></el-icon></a>
             <section v-for="section in group.sections" :key="section.key" class="compact-section" :aria-label="section.title">
               <a v-for="item in section.items" :key="item.index" class="compact-entry" :class="{'is-current':active===item.index}" :title="section.title+' · '+item.title" :aria-label="item.title" :aria-current="active===item.index?'page':undefined" :href="hrefOf(item.index)" @click="go($event,item.index)"><el-icon><Document/></el-icon></a>
@@ -41,7 +45,7 @@
         </template>
       </nav>
       <aside v-else ref="railRef" class="rail" :class="{'is-icons':effectiveCollapsed}" aria-label="主导航">
-        <div class="rail-scroll"><button v-for="(group,index) in groups" :key="group.key" type="button" class="rail-btn" :class="{'is-current':currentGroup===group.key,'is-open':shownKey===group.key}" :data-group="group.key" :title="group.title" :aria-label="group.title" :aria-expanded="shownKey===group.key" :aria-controls="shownGroup?'nav-flyout':undefined" @mouseenter="showGroup(group.key)" @focus="onGroupFocus(group.key)" @click="showGroup(group.key)" @keydown="onRailKeydown($event,index)"><el-icon :size="20"><component :is="group.icon"/></el-icon><span>{{group.title}}</span></button></div>
+        <div class="rail-scroll"><component :is="group.directIndex?'a':'button'" v-for="(group,index) in groups" :key="group.key" :type="group.directIndex?undefined:'button'" :href="group.directIndex?hrefOf(group.directIndex):undefined" class="rail-btn" :class="{'is-current':currentGroup===group.key,'is-open':shownKey===group.key}" :data-group="group.key" :title="group.title" :aria-label="group.title" :aria-expanded="group.directIndex?undefined:shownKey===group.key" :aria-current="group.directIndex&&active===group.directIndex?'page':undefined" :aria-controls="!group.directIndex&&shownKey===group.key?'nav-flyout':undefined" @mouseenter="onGroupHover(group)" @focus="onGroupFocus(group.key)" @click="group.directIndex?goDirect($event,group.directIndex):showGroup(group.key)" @keydown="onRailKeydown($event,index)"><el-icon :size="20"><component :is="group.icon"/></el-icon><span>{{group.title}}</span></component></div>
       </aside>
       <a v-if="canManageMenus" class="menu-recovery" :href="hrefOf('/menus')" @click="go($event,'/menus')" title="菜单配置" aria-label="菜单配置恢复入口"><el-icon><Setting/></el-icon></a>
       <nav class="nav-dock" aria-label="布局选择" @mouseenter="openLayout(false)" @mouseleave="scheduleLayoutClose">
@@ -69,12 +73,12 @@ import {menuRouteIcon} from './navigationIcons'
 import {NAV_KEY,readNavigation,type NavigationLayout} from './navigationPreferences'
 type Leaf={index:string;title:string}
 type Section={key:string;title:string;items:Leaf[]}
-export type RailGroup={key:string;title:string;icon:Component;items:Leaf[];sections:Section[]}
+export type RailGroup={key:string;title:string;icon:Component;items:Leaf[];sections:Section[];directIndex?:string}
 const props=defineProps<{groups:RailGroup[];active:string;currentGroup:string;temporaryCompact?:boolean}>()
 const router=useRouter(),catalog=useCatalogStore(),canManageMenus=computed(()=>catalog.can('system:menu:read'))
 const wrapRef=ref<HTMLElement>(),railRef=ref<HTMLElement>(),flyoutRef=ref<HTMLElement>(),layoutBtnRef=ref<HTMLButtonElement>(),layoutPopRef=ref<HTMLElement>(),menuRef=ref<{open:(index:string)=>void;updateActiveIndex:(index:string)=>void}>()
-const visibleKeys=()=>props.groups.flatMap(g=>[g.key,...g.sections.map(s=>s.key)])
-const placeKeys=()=>props.groups.flatMap(g=>[...(g.key===props.currentGroup?[g.key]:[]),...g.sections.filter(s=>s.items.some(i=>i.index===props.active)).map(s=>s.key)])
+const visibleKeys=()=>props.groups.flatMap(g=>g.directIndex?[]:[g.key,...g.sections.map(s=>s.key)])
+const placeKeys=()=>props.groups.flatMap(g=>g.directIndex?[]:[...(g.key===props.currentGroup?[g.key]:[]),...g.sections.filter(s=>s.items.some(i=>i.index===props.active)).map(s=>s.key)])
 function storedPreferences(){try{return localStorage.getItem(NAV_KEY)}catch{return null}}
 const saved=readNavigation(storedPreferences(),visibleKeys(),placeKeys())
 const layout=ref(saved.layout),collapsed=ref(saved.collapsed),pinned=ref(saved.pinned),openeds=ref(saved.openeds),openGroup=ref(''),layoutOpen=ref(false),viewport=ref(window.innerWidth),overlayDismissed=ref(false),navigationSpace=ref(window.innerWidth),fontFamily=ref('sans-serif')
@@ -82,16 +86,16 @@ const NAV_WIDTH={primary:96,single:228,icons:58} as const
 const layoutChoices:{id:NavigationLayout;label:string}[]=[{id:'single',label:'单栏'},{id:'dual',label:'双栏'}]
 const effectiveCollapsed=computed(()=>collapsed.value||props.temporaryCompact||viewport.value<700)
 const candidateKey=computed(()=>openGroup.value||props.currentGroup||props.groups[0]?.key||'')
-const candidateGroup=computed(()=>props.groups.find(group=>group.key===candidateKey.value))
+const candidateGroup=computed(()=>props.groups.find(group=>group.key===candidateKey.value&&!group.directIndex))
 const primaryWidth=computed(()=>effectiveCollapsed.value?NAV_WIDTH.icons:layout.value==='single'?NAV_WIDTH.single:NAV_WIDTH.primary)
 const minimumMainWidth=computed(()=>Math.max(640,Math.min(960,navigationSpace.value*.6)))
 const canDock=computed(()=>!props.temporaryCompact&&navigationSpace.value-primaryWidth.value-detailWidth.value>=minimumMainWidth.value)
-const docked=computed(()=>layout.value==='dual'&&pinned.value&&canDock.value&&!overlayDismissed.value)
+const docked=computed(()=>layout.value==='dual'&&pinned.value&&canDock.value&&!overlayDismissed.value&&Boolean(candidateGroup.value))
 const mode=computed(()=>effectiveCollapsed.value?'icons':layout.value)
 const shownKey=computed(()=>layout.value==='dual'?(openGroup.value||(docked.value?candidateKey.value:'')):'')
-const shownGroup=computed(()=>props.groups.find(g=>g.key===shownKey.value))
+const shownGroup=computed(()=>props.groups.find(g=>g.key===shownKey.value&&!g.directIndex))
 const compactLabel=computed(()=>props.temporaryCompact||viewport.value<700?'打开导航菜单':effectiveCollapsed.value?'展开导航文字':'收起导航文字')
-const menuStamp=computed(()=>visibleKeys().join('|'))
+const menuStamp=computed(()=>props.groups.map(group=>[group.key,group.directIndex||'',...group.sections.map(section=>section.key)].join('|')).join('|'))
 // Natural width follows actual labels; wide screens do not inflate an otherwise compact menu.
 const detailColumns=computed(()=>navigationSpace.value<600||((candidateGroup.value?.sections.length||0)<2)?1:2)
 let textContext:CanvasRenderingContext2D|null|undefined
@@ -116,7 +120,8 @@ function clearTransientFlyout(){if(pinned.value&&!docked.value)overlayDismissed.
 function scheduleClose(){cancelClose();if(!docked.value)closeTimer=setTimeout(()=>{if(!keyboardFocusInNavigation())clearTransientFlyout()},180)}
 function onNavigationKeydown(e:KeyboardEvent){if(['Tab','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter',' '].includes(e.key)){navigationInput='keyboard';cancelClose()}}
 function onNavigationPointer(){navigationInput='pointer'}
-function onGroupFocus(key:string){if(!restoringFocus)showGroup(key)}
+function onGroupHover(group:RailGroup){if(group.directIndex){if(!docked.value)scheduleClose()}else showGroup(group.key)}
+function onGroupFocus(key:string){if(restoringFocus)return;if(props.groups.find(group=>group.key===key)?.directIndex){if(!docked.value){cancelClose();openGroup.value=''}}else showGroup(key)}
 function closeFlyoutFromKeyboard(){
   const trigger=groupButton(shownKey.value),restore=Boolean(flyoutRef.value?.contains(document.activeElement))
   cancelClose();clearTransientFlyout();navigationInput='pointer'
@@ -126,7 +131,7 @@ function cancelLayoutClose(){clearTimeout(layoutTimer);layoutTimer=undefined}
 function scheduleLayoutClose(){cancelLayoutClose();layoutTimer=setTimeout(()=>{if(!layoutPopRef.value?.contains(document.activeElement))layoutOpen.value=false},220)}
 function onFocusOut(e:FocusEvent){if(!wrapRef.value?.contains(e.relatedTarget as Node))scheduleClose()}
 function onLayoutFocusOut(e:FocusEvent){if(!layoutPopRef.value?.contains(e.relatedTarget as Node)&&e.relatedTarget!==layoutBtnRef.value)scheduleLayoutClose()}
-function showGroup(key:string){cancelClose();overlayDismissed.value=false;openGroup.value=key;layoutOpen.value=false;nextTick(placePop)}
+function showGroup(key:string){if(props.groups.find(group=>group.key===key)?.directIndex)return;cancelClose();overlayDismissed.value=false;openGroup.value=key;layoutOpen.value=false;nextTick(placePop)}
 function togglePin(){cancelClose();overlayDismissed.value=false;pinned.value=!pinned.value;if(!pinned.value)openGroup.value=''}
 function toggleSingle(key:string){openeds.value=openeds.value.includes(key)?openeds.value.filter(k=>k!==key):[...openeds.value,key]}
 function persist(){try{localStorage.setItem(NAV_KEY,JSON.stringify({layout:layout.value,collapsed:collapsed.value,pinned:pinned.value,openeds:openeds.value}))}catch{/* Keep navigation usable when preferences cannot be written. */}}
@@ -140,10 +145,11 @@ function onMenuOpen(key:string){if(!ignoreMenuEvents&&!openeds.value.includes(ke
 function onMenuClose(key:string){if(!ignoreMenuEvents)openeds.value=openeds.value.filter(k=>k!==key)}
 async function onMenuSelect(index:string){if(index.startsWith('/')&&router.resolve(index).fullPath!==router.currentRoute.value.fullPath){await router.push(index);menuRef.value?.updateActiveIndex(props.active)}}
 function hrefOf(index:string){return router.resolve(index).href}
+function goDirect(e:MouseEvent,index:string){if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){cancelClose();openGroup.value='';layoutOpen.value=false}go(e,index)}
 function go(e:MouseEvent,index:string){if(e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;e.preventDefault();onMenuSelect(index)}
-function groupButton(key:string){return [...(railRef.value?.querySelectorAll<HTMLButtonElement>('[data-group]')||[])].find(b=>b.dataset.group===key)}
+function groupButton(key:string){return [...(railRef.value?.querySelectorAll<HTMLElement>('[data-group]')||[])].find(b=>b.dataset.group===key)}
 function placePop(){popLeft.value=Math.round(wrapRef.value?.querySelector('.nav-column')?.getBoundingClientRect().right||primaryWidth.value)}
-function onRailKeydown(e:KeyboardEvent,index:number){if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();const buttons=railRef.value?.querySelectorAll<HTMLButtonElement>('[data-group]');if(buttons?.length)buttons[(index+(e.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length]?.focus()}else if(e.key==='ArrowRight'){e.preventDefault();showGroup(props.groups[index]!.key);nextTick(()=>flyoutRef.value?.querySelector<HTMLAnchorElement>('a')?.focus())}}
+function onRailKeydown(e:KeyboardEvent,index:number){if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();const buttons=railRef.value?.querySelectorAll<HTMLElement>('[data-group]');if(buttons?.length)buttons[(index+(e.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length]?.focus()}else if(e.key==='ArrowRight'){e.preventDefault();if(props.groups[index]!.directIndex)return;showGroup(props.groups[index]!.key);nextTick(()=>flyoutRef.value?.querySelector<HTMLAnchorElement>('a')?.focus())}}
 function onFlyoutKeydown(e:KeyboardEvent){if(e.key==='ArrowLeft'){e.preventDefault();groupButton(shownKey.value)?.focus()}}
 function onDocPointerDown(e:PointerEvent){const target=e.target as Node;if(!layoutPopRef.value?.contains(target)&&!layoutBtnRef.value?.contains(target))layoutOpen.value=false;if(!wrapRef.value?.contains(target)&&!docked.value)clearTransientFlyout()}
 function onDocKeydown(e:KeyboardEvent){if(e.key!=='Escape'||e.defaultPrevented)return;const target=e.target instanceof HTMLElement?e.target:null;if(target?.matches('input,textarea,select,[contenteditable=true]')||target?.closest('.el-dialog,.el-message-box,.el-popper,.context-menu'))return;if([...document.querySelectorAll<HTMLElement>('.el-overlay,.el-popper')].some(n=>n.getClientRects().length&&getComputedStyle(n).visibility!=='hidden'))return;if(layoutOpen.value){layoutOpen.value=false;layoutBtnRef.value?.focus()}else if(!docked.value){closeFlyoutFromKeyboard()}}
@@ -212,6 +218,7 @@ onBeforeUnmount(()=>{spaceObserver?.disconnect();cancelClose();cancelLayoutClose
   font-size: 12px;
   line-height: 1.25;
 }
+.rail-btn[href] { text-decoration: none; }
 .rail-btn span { white-space: nowrap; }
 .rail-btn:hover, .rail-btn.is-open { background: var(--nav-hover); color: var(--text-primary); }
 .rail-btn.is-current, .rail-btn.is-current:hover { background: var(--nav-current-bg); color: var(--nav-current-text); }

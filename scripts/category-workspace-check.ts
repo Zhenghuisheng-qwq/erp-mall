@@ -12,8 +12,9 @@ import { defaultSkuConfig } from '../src/domain/skuWorkbenchState'
 import { updateSkuCategorySelection } from '../src/domain/skuCategoryFilter'
 import { querySkuWorkbench } from '../src/domain/skuWorkbenchQuery'
 import { useCatalogStore } from '../src/stores/catalog'
+const artifacts=process.argv.includes('--artifacts')
 const checks:string[]=[]
-function check(name:string,run:()=>void){run();checks.push(name);console.log('PASS '+name)}
+function check(name:string,run:()=>void){run();checks.push(name);if(artifacts)console.log('PASS '+name)}
 const data=categoryWorkspaceFixture(), typed=new Set(data.productTypes.map(item=>item.categoryId))
 const relations=JSON.stringify({...data,categories:undefined})
 const descendants=data.categories.filter(item=>item.parentId==='r4-source').map(item=>({...item}))
@@ -80,6 +81,5 @@ assert.equal((await store.flushPersistence()).ok,true);assert.equal(categoryStru
 assert.equal(writes,priorWrites+1);assert.equal((await store.flushPersistence()).ok,true);assert.equal(writes,priorWrites+1)
 checks.push('real store persistence failure retains moved result; save-only retry once, no relative move replay')
 store.$dispose()
-if(!process.env.CATEGORY_WORKSPACE_OUTPUT)throw Error('CATEGORY_WORKSPACE_OUTPUT required')
-mkdirSync(process.env.CATEGORY_WORKSPACE_OUTPUT,{recursive:true});writeFileSync(resolve(process.env.CATEGORY_WORKSPACE_OUTPUT,'result.json'),JSON.stringify({checks,result:'PASS'},null,2))
+if(artifacts){const output=process.env.CATEGORY_WORKSPACE_OUTPUT||'work/category-workspace';mkdirSync(output,{recursive:true});writeFileSync(resolve(output,'result.json'),JSON.stringify({checks,result:'PASS'},null,2))}
 console.log(`PASS ${checks.length} category workspace groups`)

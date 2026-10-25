@@ -19,7 +19,7 @@ export interface MenuNode {
   custom?: boolean
 }
 
-type StoredMenu = { version: 1; nodes: MenuNode[] }
+type StoredMenu = { version: 1; guideCenterVersion?: 1; nodes: MenuNode[] }
 
 const BOTH: UserRole[] = ['admin', 'operator']
 const ADMIN: UserRole[] = ['admin']
@@ -32,6 +32,7 @@ export function defaultMenuNodes(): MenuNode[] {
     center('product', '商品中心', 1, BOTH),
     center('tools', '开发工具', 2, ADMIN),
     center('system', '系统管理', 3, ADMIN),
+    center('guide', '系统说明', 4, BOTH),
     page('/', '商品工作台', 'product', 1, BOTH),
     group('manage', '商品管理', 'product', 2, BOTH),
     group('model', '商品模型配置', 'product', 3, ADMIN),
@@ -62,7 +63,7 @@ export function defaultMenuNodes(): MenuNode[] {
     page('/menus', '菜单管理', 'system', 4, ADMIN),
     page('/roles', '角色管理', 'system', 5, ADMIN),
     page('/permissions', '权限管理', 'system', 6, ADMIN),
-    page('/guide', '系统功能说明', 'product', 2, BOTH),
+    page('/guide', '系统说明', 'guide', 1, BOTH),
   ]
 }
 
@@ -122,6 +123,15 @@ export function sanitizeMenu(nodes: MenuNode[]): MenuNode[] {
       byId.set(item.id, { id: item.id, kind: item.kind, title, parentId: item.kind === 'center' ? null : item.parentId, sort: item.sort || 1, route: '', hidden: Boolean(item.hidden), roles: rolesOf(item.roles, BOTH), custom: true })
     }
   }
+  // Only the explanation entrance changes ownership; all other saved menu nodes keep their configuration.
+  const guidePage = byId.get('page:/guide')!
+  guidePage.parentId = 'guide'
+  if (['业务指南', '系统功能说明'].includes(guidePage.title)) guidePage.title = '系统说明'
+  if (!accepted.has('guide')) {
+    const systemSort = byId.get('system')!.sort
+    const nextSort = Math.min(...[...byId.values()].filter(node => node.kind === 'center' && node.id !== 'guide' && node.sort > systemSort).map(node => node.sort))
+    byId.get('guide')!.sort = Number.isFinite(nextSort) ? (systemSort + nextSort) / 2 : systemSort + 1
+  }
   const list = [...byId.values()]
   const known = new Set(list.map((item) => item.id))
   for (const item of list) {
@@ -159,14 +169,21 @@ export function sanitizeMenu(nodes: MenuNode[]): MenuNode[] {
 export function loadMenu(): MenuNode[] {
   const stored = readStored()
   if (!stored) return defaultMenuNodes()
-  return sanitizeMenu(stored.nodes)
+  const clean = sanitizeMenu(stored.nodes)
+  const previous = stored.nodes.find(node => node.id === 'page:/guide')
+  const next = clean.find(node => node.id === 'page:/guide')!
+  if (stored.guideCenterVersion !== 1 || previous?.parentId !== 'guide' || previous.title !== next.title || !stored.nodes.some(node => node.id === 'guide' && node.kind === 'center')) {
+    try { localStorage.setItem(MENU_KEY, JSON.stringify({ version: 1, guideCenterVersion: 1, nodes: clean } satisfies StoredMenu)) }
+    catch { /* Read the migrated navigation safely; retain the old stored payload if writing is unavailable. */ }
+  }
+  return clean
 }
 
 export function saveMenu(nodes: MenuNode[]) {
   const message = validateMenu(nodes)
   if (message) throw new Error(message)
   const clean = sanitizeMenu(nodes)
-  localStorage.setItem(MENU_KEY, JSON.stringify({ version: 1, nodes: clean } satisfies StoredMenu))
+  localStorage.setItem(MENU_KEY, JSON.stringify({ version: 1, guideCenterVersion: 1, nodes: clean } satisfies StoredMenu))
   menuRevision.value += 1
   return clean
 }
@@ -239,32 +256,24 @@ function allowed(node: MenuNode, role: UserRole) {
 }
 
 export function railModel(role: UserRole | ((location: {path:string;query?:Record<string,string>})=>boolean), nodes = loadMenu()) {
-  if(typeof role === 'function'){
-    const allows = (n:MenuNode) => { const [path,search] = n.route.split('?'); return role({path:path||'/',query:Object.fromEntries(new URLSearchParams(search||''))}) }
-    return childrenOf(nodes,null).filter(c=>c.kind==='center'&&!c.hidden).map(center=>({key:center.id,title:center.title,items:childrenOf(nodes,center.id).filter(n=>n.kind==='page'&&!n.hidden&&allows(n)).map(n=>({index:n.route,title:n.title})),sections:childrenOf(nodes,center.id).filter(n=>n.kind==='group'&&!n.hidden).map(g=>({key:g.id,title:g.title,items:childrenOf(nodes,g.id).filter(n=>n.kind==='page'&&!n.hidden&&allows(n)).map(n=>({index:n.route,title:n.title}))})).filter(g=>g.items.length)})).filter(g=>g.items.length||g.sections.length)
+  const visible = (node: MenuNode) => {
+    if (node.hidden) return false
+    if (typeof role !== 'function') return allowed(node, role)
+    if (node.kind !== 'page') return true
+    const [path, search] = node.route.split('?')
+    return role({path:path || '/', query:Object.fromEntries(new URLSearchParams(search || ''))})
   }
-  return childrenOf(nodes, null)
-    .filter((center) => center.kind === 'center' && allowed(center, role))
-    .map((center) => {
-      const pages = childrenOf(nodes, center.id).filter((item) => item.kind === 'page' && allowed(item, role) && item.roles.includes(role))
-      const sections = childrenOf(nodes, center.id)
-        .filter((item) => item.kind === 'group' && allowed(item, role))
-        .map((group) => ({
-          key: group.id,
-          title: group.title,
-          items: childrenOf(nodes, group.id)
-            .filter((item) => item.kind === 'page' && allowed(item, role))
-            .map((item) => ({ index: item.route, title: item.title })),
-        }))
-        .filter((section) => section.items.length > 0)
-      return {
-        key: center.id,
-        title: center.title,
-        items: pages.map((item) => ({ index: item.route, title: item.title })),
-        sections,
-      }
-    })
-    .filter((group) => group.items.length > 0 || group.sections.length > 0)
+  return childrenOf(nodes, null).filter(center => center.kind === 'center' && visible(center)).map(center => {
+    const pages = childrenOf(nodes, center.id).filter(node => node.kind === 'page' && visible(node))
+    const sections = childrenOf(nodes, center.id).filter(node => node.kind === 'group' && visible(node)).map(group => ({
+      key:group.id, title:group.title,
+      items:childrenOf(nodes, group.id).filter(node => node.kind === 'page' && visible(node)).map(node => ({index:node.route, title:node.title})),
+    })).filter(group => group.items.length)
+    // A single-page center is a real link. If later customized to contain other entries,
+    // the regular center model keeps those entries reachable instead of hiding them.
+    const direct = center.id === 'guide' && pages.length === 1 && pages[0]!.route === '/guide' && !sections.length ? pages[0] : undefined
+    return {key:center.id, title:direct && center.title === '系统说明' ? direct.title : center.title, items:pages.map(node => ({index:node.route,title:node.title})), sections, ...(direct ? {directIndex:direct.route} : {})}
+  }).filter(group => group.items.length || group.sections.length)
 }
 
 export function menuRouteForLocation(path: string, query: { panel?: unknown } = {}) {

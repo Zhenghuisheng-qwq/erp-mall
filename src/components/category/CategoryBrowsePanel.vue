@@ -1,174 +1,88 @@
 <template>
-  <section class="panel category-panel" :data-category-panel="panelId">
-    <header>
-      <strong>{{ title }}</strong>
-      <div class="panel-actions">
-        <el-button link @click="expandAll">展开全部</el-button>
-        <el-button link @click="collapseAll">收起全部</el-button>
-        <el-button v-if="closable" link :aria-label="`关闭${title}`" @click="$emit('close')">关闭</el-button>
-      </div>
-    </header>
-    <el-input v-model="keyword" :disabled="!!rootId" placeholder="搜索并定位分类" :aria-label="`${title}搜索分类`" clearable />
+  <section ref="panelElement" class="panel category-panel" :data-category-panel="panelId">
+    <header><strong>{{title}}</strong><div class="panel-actions"><el-button link @click="expandAll">展开全部</el-button><el-button link @click="collapseAll">收起全部</el-button><el-button v-if="closable" link :aria-label="`关闭${title}`" @click="$emit('close')">关闭</el-button></div></header>
+    <el-input v-model="keyword" :disabled="pending||!!rootId" placeholder="搜索并定位分类" :aria-label="`${title}搜索分类`" clearable/>
     <div ref="scrollBox" class="category-scroll" @dragover.capture="edgeScroll" @dragleave="leaveScroll">
-      <div v-for="row in rows" :key="row.id" class="cat-row" :data-id="row.id"
-        :class="rowClasses(row.id)" :style="{ paddingLeft: `${8 + row.depth * 16}px` }"
-        :draggable="editing && !busy && renameId !== row.id" tabindex="0"
-        @click="pick(row.id, true)" @keydown.enter.self.prevent="pick(row.id, true, true)"
-        @dragstart="startDrag(row.id, $event)" @dragend="endDrag"
-        @dragover.prevent.stop="$emit('dragover', row.id, position($event), $event)"
-        @drop.prevent.stop="$emit('drop', row.id, position($event), $event)">
-        <button class="cat-expand" :aria-label="`${row.expanded ? '收起' : '展开'}${row.name}`" :aria-expanded="row.hasChildren ? row.expanded : undefined" @click.stop="toggle(row.id)">{{ row.hasChildren ? row.expanded ? '▼' : '▸' : '·' }}</button>
-        <input v-if="renameId === row.id" ref="renameInput" v-model="renameValue" class="cat-rename" aria-label="分类新名称"
-          @click.stop @dragstart.stop.prevent @keydown.enter.prevent="commitRename" @keydown.esc.stop.prevent="cancelRename" @blur="commitRename" />
-        <span v-else class="cat-name" :title="row.name" @dblclick.stop="startRename(row.id)"><template v-for="(part,index) in highlightParts(row.name,keyword)" :key="index"><mark v-if="part.hit">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></span>
-        <span v-if="!row.enabled" class="muted">停用</span>
-        <span v-if="badges.get(row.id)" class="muted count">{{ badges.get(row.id) }}</span>
-        <div class="cat-ops" @click.stop @dragstart.stop.prevent>
-          <el-button v-if="editing" link :disabled="busy" @click="$emit('stage',row.id)">移动</el-button>
-          <el-dropdown trigger="click" @command="(action: string) => command(row.id, action)">
-            <el-button link :aria-label="`${row.name}更多操作`">更多</el-button>
-            <template #dropdown><el-dropdown-menu>
-              <el-dropdown-item command="detail">查看详情</el-dropdown-item>
-              <template v-if="editing">
-                <el-dropdown-item command="rename" :disabled="busy">改名</el-dropdown-item>
-                <el-dropdown-item command="create" :disabled="busy">新增子分类</el-dropdown-item>
-                <el-dropdown-item command="edit" :disabled="busy">编辑与属性方案</el-dropdown-item>
-                <el-dropdown-item command="copy" :disabled="busy">复制子树</el-dropdown-item>
-                <el-dropdown-item command="remove" :disabled="busy" divided>删除分类</el-dropdown-item>
-              </template>
-            </el-dropdown-menu></template>
-          </el-dropdown>
+      <div v-for="row in rows" :key="row.id" class="cat-row" :data-id="row.id" :class="rowClasses(row.id)" :style="{paddingLeft:`${8+row.depth*16}px`}" tabindex="0" @click="rowClick(row.id)" @keydown.enter.self.prevent.stop="pick(row.id,true)" @dragover.prevent.stop="dragOver(row.id,$event)" @drop.prevent.stop="dropOn(row.id,$event)">
+        <button class="cat-expand" :aria-label="`${row.expanded?'收起':'展开'}${row.name}`" :aria-expanded="row.hasChildren?row.expanded:undefined" @click.stop="cancelNameClick();toggle(row.id)" @dblclick.stop @keydown.stop>{{row.hasChildren?row.expanded?'▼':'▸':'·'}}</button>
+        <el-checkbox v-if="selectable" :model-value="checked.has(row.id)" :disabled="busy||!canUpdate" :aria-label="`勾选${row.name}`" @click.stop="cancelNameClick" @dblclick.stop @keydown.stop="cancelNameClick" @change="$emit('check',row.id,Boolean($event))"/>
+        <button v-if="allowDrag" class="cat-drag" :draggable="!busy&&renameId!==row.id" :disabled="busy||renameId===row.id" :aria-label="`拖动${row.name}`" title="拖动调整分类位置" data-category-drag @pointerdown.stop="cancelNameClick" @click.stop @dblclick.stop @keydown.stop @dragstart.stop="startDrag(row.id,$event)" @dragend.stop="endDrag">⠿</button>
+        <div v-if="renameId===row.id" class="cat-rename-editor" @pointerdown.stop @click.stop @dblclick.stop @keydown.stop @keyup.stop @dragstart.stop.prevent>
+          <div class="cat-rename-controls"><input :ref="el=>setRenameInput(el)" v-model="renameValue" class="cat-rename" aria-label="分类新名称" :disabled="renaming||busy||!allowRename" @compositionstart="composing=true" @compositionend="composing=false" @keydown="renameKeydown"/><el-button size="small" :loading="renaming" :disabled="busy||!allowRename" @click="commitRename">保存</el-button><el-button size="small" :disabled="renaming" @click="cancelRename">取消</el-button></div>
+          <p v-if="renameError" class="cat-rename-error" role="alert" data-category-rename-error>{{renameError}}</p>
+        </div>
+        <span v-else class="cat-name" :title="pathOf(row.id)" @click.stop="nameClick(row.id,$event)" @dblclick.stop.prevent="startRename(row.id)" @dragstart.prevent><span class="cat-name-text"><template v-for="(part,index) in highlightParts(row.name,keyword)" :key="index"><mark v-if="part.hit">{{part.text}}</mark><template v-else>{{part.text}}</template></template></span><small v-if="nameCounts.get(row.name)!==1" class="cat-name-path">{{pathOf(row.id)}}</small></span>
+        <span v-if="pendingMembership.has(row.id)&&!pending" class="cat-pending-label">待移动</span><span v-if="!row.enabled" class="muted">停用</span><span v-if="badges.get(row.id)" class="muted count">{{badges.get(row.id)}}</span>
+        <div class="cat-ops" @pointerdown.stop="cancelNameClick" @click.stop="cancelNameClick" @dblclick.stop @keydown.stop="cancelNameClick" @dragstart.stop.prevent>
+          <el-button v-if="allowStage" link :disabled="busy" @click="$emit('stage',row.id)">加入待移动</el-button><el-button v-if="pending&&roots.has(row.id)" link :disabled="busy" :aria-label="`移除待移动${row.name}`" @click="$emit('remove',row.id)">移除</el-button>
+          <el-dropdown trigger="click" @command="(action:string)=>command(row.id,action)"><el-button link :aria-label="`${row.name}更多操作`">更多</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item command="detail">查看详情</el-dropdown-item><el-dropdown-item v-if="allowRename" command="rename" :disabled="busy">改名</el-dropdown-item><template v-if="editing"><el-dropdown-item command="create" :disabled="busy||!store.can('product:category:create')">新增子分类</el-dropdown-item><el-dropdown-item command="edit" :disabled="busy||!canUpdate">编辑与属性方案</el-dropdown-item><el-dropdown-item command="copy" :disabled="busy||!store.can('product:category:create')">复制子树</el-dropdown-item><el-dropdown-item command="remove" :disabled="busy||!store.can('product:category:delete')" divided>删除分类</el-dropdown-item></template></el-dropdown-menu></template></el-dropdown>
         </div>
       </div>
-      <el-empty v-if="!rows.length" :description="keyword ? '没有匹配的分类' : emptyDescription || '还没有分类'" :image-size="55" />
+      <el-empty v-if="!rows.length" :description="keyword?'没有匹配的分类':emptyDescription||'还没有分类'" :image-size="55"/>
     </div>
-    <footer v-if="sourceId && editing && !hideMoveFooter" class="move-target">
-      <span>移动「{{ sourceName }}」 · 目标父级：{{ selectedPath || '请在本栏选择分类' }}</span>
-      <el-button type="primary" :disabled="busy || !selected || !!targetMessage" @click="$emit('move',selected)">确认移入</el-button>
-      <small v-if="targetMessage">{{ targetMessage }}</small>
-    </footer>
+    <footer v-if="sourceId&&editing&&!hideMoveFooter" class="move-target"><span>移动「{{sourceName}}」 · 目标父级：{{selectedPath||'请在本栏选择分类'}}</span><el-button type="primary" :disabled="busy||!selected||!!targetMessage" @click="$emit('move',selected)">确认移入</el-button><small v-if="targetMessage">{{targetMessage}}</small></footer>
   </section>
 </template>
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
-import { branchIds, categoryChain, categoryPathLabel, highlightParts, visibleCategoryRows, type DropPosition } from '../../domain/categoryTree'
-import type { Category } from '../../domain/types'
-
-const props = defineProps<{
-  panelId: string; title: string; categories: Category[]; initialId: string; editing: boolean; busy: boolean
-  closable: boolean; badges: Map<string, number>; sourceId: string; dragging: boolean
-  drop?: { panelId: string; id: string; position: DropPosition; message: string } | null
-  blockTarget: (id: string) => string
-  rootId?: string; hideMoveFooter?: boolean; emptyDescription?: string
-}>()
-const emit = defineEmits<{
-  close: []; select: [id: string]; stage: [id: string]; move: [id: string]
-  action: [id: string, action: string]
-  rename: [id: string, name: string, done: (ok: boolean) => void]
-  dragstart: [id: string, event: DragEvent]; dragover: [id: string, position: DropPosition, event: DragEvent]
-  drop: [id: string, position: DropPosition, event: DragEvent]; dragend: []
-}>()
-const keyword = ref(''), selected = ref(props.initialId), located = ref('')
-const expanded = ref(new Set(categoryChain(props.categories, props.initialId).slice(0,-1).map(item => item.id)))
-const closed = ref(new Set<string>()), scrollBox = ref<HTMLElement>()
-const renameId = ref(''), renameValue = ref(''), renameInput = ref<HTMLInputElement[]>([])
-let renaming = false, alive = true, suppressClickUntil = 0, scrollFrame = 0, scrollSpeed = 0
-const browseCategories = computed(() => {
-  if(!props.rootId)return props.categories
-  const ids=new Set<string>([props.rootId]);let changed=true
-  while(changed){changed=false;for(const row of props.categories)if(row.parentId&&ids.has(row.parentId)&&!ids.has(row.id)){ids.add(row.id);changed=true}}
-  return props.categories.filter(row=>ids.has(row.id)).map(row=>row.id===props.rootId?{...row,parentId:null}:row)
-})
-const rows = computed(() => visibleCategoryRows(browseCategories.value, expanded.value, props.rootId?'':keyword.value, closed.value))
-watch(()=>props.rootId,id=>{if(id){keyword.value='';selected.value=id;expanded.value=new Set(branchIds(browseCategories.value));closed.value=new Set()}},{immediate:true})
+import {computed,nextTick,onBeforeUnmount,onMounted,ref,watch} from 'vue'
+import {categoryDisplayParents,highlightParts,type CategoryRow,type DropPosition} from '../../domain/categoryTree'
+import type {Category} from '../../domain/types'
+import {useCatalogStore} from '../../stores/catalog'
+const props=withDefaults(defineProps<{
+ panelId:string;title:string;categories:Category[];initialId:string;editing:boolean;busy:boolean;closable:boolean;badges:Map<string,number>;sourceId:string;dragging:boolean
+ drop?:{panelId:string;id:string;position:DropPosition;message:string}|null;blockTarget:(id:string)=>string
+ rootId?:string;rootIds?:string[];hideMoveFooter?:boolean;emptyDescription?:string;selectable?:boolean;checkedIds?:string[];pendingIds?:string[];pending?:boolean;pathLabels?:Map<string,string>;canRename?:boolean;canStage?:boolean;canDrag?:boolean
+}>(),{selectable:false,pending:false,checkedIds:()=>[],pendingIds:()=>[]})
+const emit=defineEmits<{close:[];select:[id:string];stage:[id:string];move:[id:string];check:[id:string,checked:boolean];remove:[id:string];action:[id:string,action:string];rename:[id:string,name:string,done:(ok:boolean,message?:string)=>void];dragstart:[id:string,event:DragEvent];dragover:[id:string,position:DropPosition,event:DragEvent];drop:[id:string,position:DropPosition,event:DragEvent];dragend:[]}>()
+const store=useCatalogStore(),canUpdate=computed(()=>store.can('product:category:update')),allowRename=computed(()=>(props.canRename??props.editing)&&canUpdate.value),allowStage=computed(()=>(props.canStage??props.editing)&&canUpdate.value&&!props.pending),allowDrag=computed(()=>(props.canDrag??props.editing)&&canUpdate.value&&!props.pending)
+const keyword=ref(''),selected=ref(props.initialId),located=ref(''),expanded=ref(new Set<string>()),closed=ref(new Set<string>()),scrollBox=ref<HTMLElement>(),panelElement=ref<HTMLElement>()
+const renameId=ref(''),renameValue=ref(''),renameError=ref(''),renameInput=ref<HTMLInputElement>(),renaming=ref(false),composing=ref(false)
+const checked=computed(()=>new Set(props.checkedIds)),pendingMembership=computed(()=>new Set(props.pendingIds)),rootOrder=computed(()=>props.rootIds||(props.rootId?[props.rootId]:[])),roots=computed(()=>new Set(rootOrder.value))
+let alive=true,nameClickTimer:ReturnType<typeof setTimeout>|undefined,scrollFrame=0,scrollSpeed=0
+// Rebuild this index only when category records change, not once per row or drag event.
+const index=computed(()=>{const byId=new Map(props.categories.map(item=>[item.id,item])),parents=categoryDisplayParents(props.categories),children=new Map<string|null,Category[]>(),names=new Map<string,number>();for(const item of props.categories){const parent=parents.get(item.id)||null,list=children.get(parent)||[];list.push(item);children.set(parent,list);names.set(item.name,(names.get(item.name)||0)+1)}for(const list of children.values())list.sort((a,b)=>a.sort-b.sort||a.id.localeCompare(b.id));return {byId,parents,children,names,paths:new Map<string,string>()}})
+const nameCounts=computed(()=>index.value.names)
+function pathOf(id:string){const supplied=props.pathLabels?.get(id);if(supplied)return supplied;const cached=index.value.paths.get(id);if(cached)return cached;const chain:string[]=[],seen=new Set<string>();let current:string|null=id;while(current&&!seen.has(current)){seen.add(current);const item=index.value.byId.get(current);if(!item)break;chain.unshift(item.name);current=index.value.parents.get(current)||null}const path=chain.join(' / ');index.value.paths.set(id,path);return path}
+const browseIds=computed(()=>{if(!props.pending&&!props.rootId&&!props.rootIds)return new Set(index.value.byId.keys());const included=new Set<string>(),stack=[...rootOrder.value];while(stack.length){const id=stack.pop()!;if(included.has(id)||!index.value.byId.has(id))continue;included.add(id);for(const item of index.value.children.get(id)||[])stack.push(item.id)}return included})
+const rows=computed<CategoryRow[]>(()=>{const {byId,parents,children}=index.value,kw=(props.pending||props.rootId?'':keyword.value).trim().toLowerCase(),visible=new Set<string>(),forceOpen=new Set<string>();if(kw)for(const item of props.categories){if(!browseIds.value.has(item.id)||!item.name.toLowerCase().includes(kw))continue;let current:string|null=item.id;const seen=new Set<string>();while(current&&!seen.has(current)){seen.add(current);visible.add(current);current=parents.get(current)||null;if(current)forceOpen.add(current)}}const result:CategoryRow[]=[],walked=new Set<string>();function walk(item:Category,depth:number){if(walked.has(item.id)||!browseIds.value.has(item.id)||kw&&!visible.has(item.id))return;walked.add(item.id);const kids=(children.get(item.id)||[]).filter(child=>browseIds.value.has(child.id)),open=kids.length>0&&(forceOpen.has(item.id)||!closed.value.has(item.id)&&expanded.value.has(item.id));result.push({id:item.id,name:item.name,enabled:item.enabled!==false,depth,parentId:item.parentId,hasChildren:kids.length>0,expanded:open,childCount:kids.length,icon:item.icon});if(open)for(const child of kids)walk(child,depth+1)}if(props.pending||props.rootId||props.rootIds){for(const id of rootOrder.value){const item=byId.get(id);if(item)walk(item,0)}}else for(const item of children.get(null)||[])walk(item,0);return result})
+function branchIds(){return [...index.value.children.keys()].filter((id):id is string=>!!id&&browseIds.value.has(id))}
+function openAncestors(id:string){let parent=index.value.parents.get(id);const seen=new Set<string>();while(parent&&!seen.has(parent)){seen.add(parent);expanded.value.add(parent);closed.value.delete(parent);parent=index.value.parents.get(parent)}}
+openAncestors(props.initialId)
+watch(()=>rootOrder.value.join('\u0000'),(_value,previous)=>{const old=new Set((previous||'').split('\u0000'));for(const root of rootOrder.value)if(!old.has(root)){const stack=[root],seen=new Set<string>();while(stack.length){const id=stack.pop()!;if(seen.has(id))continue;seen.add(id);expanded.value.add(id);for(const item of index.value.children.get(id)||[])stack.push(item.id)}}},{immediate:true})
+watch(keyword,()=>{cancelNameClick();closed.value=new Set();located.value=props.categories.find(item=>keyword.value.trim()&&item.name.toLowerCase().includes(keyword.value.trim().toLowerCase()))?.id||''})
+watch(()=>props.dragging,value=>{if(!value)stopScroll()})
 function clearSearch(){keyword.value='';located.value=''}
-const sourceName = computed(() => props.categories.find(item => item.id === props.sourceId)?.name || '来源已不存在')
-const selectedPath = computed(() => categoryPathLabel(props.categories, selected.value))
-const targetMessage = computed(() => selected.value ? props.blockTarget(selected.value) : '')
-watch(keyword, () => {
-  closed.value = new Set()
-  const match = props.categories.find(item => keyword.value.trim() && item.name.toLowerCase().includes(keyword.value.trim().toLowerCase()))
-  located.value = match?.id || ''
-  if (match) { selected.value = match.id; emit('select',match.id); void focusRow(match.id) }
-})
-watch(() => props.editing, value => { if (!value) cancelRename() })
-watch(() => props.dragging, (value, previous) => { if (!value) { stopScroll(); if (previous) suppressClickUntil = Date.now() + 250 } })
-function rowClasses(id: string) {
-  const drop = props.drop?.panelId === props.panelId && props.drop.id === id ? props.drop : undefined
-  return { 'is-active': selected.value === id, 'is-located': located.value === id, 'is-source': props.sourceId === id,
-    'is-drop-before': drop?.position === 'before' && !drop.message, 'is-drop-after': drop?.position === 'after' && !drop.message,
-    'is-drop-inner': drop?.position === 'inner' && !drop.message, 'is-drop-ban': !!drop?.message }
-}
-function toggle(id: string) {
-  const row = rows.value.find(item => item.id === id)
-  if (!row?.hasChildren) return
-  if (row.expanded) { expanded.value.delete(id); closed.value.add(id) }
-  else { expanded.value.add(id); closed.value.delete(id) }
-}
-function expandAll() { expanded.value = new Set(branchIds(browseCategories.value)); closed.value = new Set() }
-function collapseAll() { expanded.value = new Set(); closed.value = new Set(branchIds(browseCategories.value)) }
-function pick(id: string, toggleInView = false, keyboard = false) {
-  if ((!keyboard && Date.now() < suppressClickUntil) || props.dragging) return
-  selected.value = id; emit('select',id)
-  if (toggleInView && !props.editing) toggle(id)
-}
-async function focusRow(id: string) {
-  await nextTick()
-  const box = scrollBox.value, row = box?.querySelector<HTMLElement>(`[data-id="${CSS.escape(id)}"]`)
-  if (!box || !row) return
-  const delta = row.getBoundingClientRect().top - box.getBoundingClientRect().top
-  if (delta < 0) box.scrollTop += delta - 8
-  else if (delta + row.offsetHeight > box.clientHeight) box.scrollTop += delta + row.offsetHeight - box.clientHeight + 8
-  row.focus({ preventScroll: true })
-}
-function reveal(id: string, focus = false) {
-  if (focus) keyword.value = ''
-  for (const parent of categoryChain(props.categories,id).slice(0,-1)) { expanded.value.add(parent.id); closed.value.delete(parent.id) }
-  if (focus) { selected.value = id; located.value = id; emit('select',id); void focusRow(id) }
-}
-function startRename(id: string) {
-  if (!props.editing || props.busy || props.dragging || Date.now() < suppressClickUntil) return
-  renameId.value = id; renameValue.value = props.categories.find(item => item.id === id)?.name || ''; selected.value = id
-  void nextTick(() => { renameInput.value[0]?.focus(); renameInput.value[0]?.select() })
-}
-function cancelRename() { renameId.value = ''; renameValue.value = '' }
-function commitRename() {
-  if (!props.editing || props.busy || !renameId.value || renaming) return
-  renaming = true
-  const id = renameId.value
-  emit('rename', id, renameValue.value, ok => { renaming = false; if (alive && renameId.value === id && ok) cancelRename() })
-}
-function command(id: string, action: string) {
-  if (action === 'rename') startRename(id)
-  else { pick(id); emit('action',id,action) }
-}
-function position(event: DragEvent): DropPosition {
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  const ratio = (event.clientY - rect.top) / Math.max(1,rect.height)
-  return ratio < .28 ? 'before' : ratio > .72 ? 'after' : 'inner'
-}
-function startDrag(id: string, event: DragEvent) {
-  if (!props.editing || props.busy || (event.target as HTMLElement)?.closest('button,input')) { event.preventDefault(); return }
-  suppressClickUntil = Date.now() + 500
-  emit('dragstart', id, event)
-}
-function endDrag() { suppressClickUntil = Date.now() + 250; stopScroll(); emit('dragend') }
-function stopScroll() { cancelAnimationFrame(scrollFrame); scrollFrame = 0; scrollSpeed = 0 }
-function leaveScroll(event: DragEvent) { if (!scrollBox.value?.contains(event.relatedTarget as Node | null)) stopScroll() }
-function edgeScroll(event: DragEvent) {
-  if (!props.dragging || !scrollBox.value) return
-  event.preventDefault()
-  const rect = scrollBox.value.getBoundingClientRect()
-  scrollSpeed = event.clientY < rect.top + 42 ? -8 : event.clientY > rect.bottom - 42 ? 8 : 0
-  if (!scrollFrame && scrollSpeed) {
-    const step = () => { if (!props.dragging || !scrollBox.value || !scrollSpeed) { stopScroll(); return }; scrollBox.value.scrollTop += scrollSpeed; scrollFrame = requestAnimationFrame(step) }
-    scrollFrame = requestAnimationFrame(step)
-  }
-}
-onBeforeUnmount(() => { alive = false; stopScroll() })
-defineExpose({ reveal, selectedId: selected, clearSearch })
+const sourceName=computed(()=>index.value.byId.get(props.sourceId)?.name||'来源已不存在'),selectedPath=computed(()=>pathOf(selected.value)),targetMessage=computed(()=>selected.value?props.blockTarget(selected.value):'')
+function rowClasses(id:string){const drop=props.drop?.panelId===props.panelId&&props.drop.id===id?props.drop:undefined;return {'is-active':selected.value===id,'is-located':located.value===id,'is-source':props.sourceId===id||roots.value.has(id),'is-checked':checked.value.has(id),'is-drop-before':drop?.position==='before'&&!drop.message,'is-drop-after':drop?.position==='after'&&!drop.message,'is-drop-inner':drop?.position==='inner'&&!drop.message,'is-drop-ban':!!drop?.message}}
+function toggle(id:string){const row=rows.value.find(item=>item.id===id);if(!row?.hasChildren)return;if(row.expanded){expanded.value.delete(id);closed.value.add(id)}else{expanded.value.add(id);closed.value.delete(id)}}
+function expandAll(){cancelNameClick();expanded.value=new Set(branchIds());closed.value=new Set()}
+function collapseAll(){cancelNameClick();expanded.value=new Set();closed.value=new Set(branchIds())}
+function cancelNameClick(){if(nameClickTimer!==undefined){clearTimeout(nameClickTimer);nameClickTimer=undefined}}
+function pick(id:string,toggleInView=false){cancelNameClick();if(props.dragging||renaming.value)return;selected.value=id;emit('select',id);if(toggleInView&&!props.editing&&!props.pending)toggle(id)}
+function rowClick(id:string){pick(id,true)}
+function nameClick(id:string,event:MouseEvent){cancelNameClick();if(props.dragging||renaming.value)return;selected.value=id;if(event.detail>1)return;nameClickTimer=setTimeout(()=>{nameClickTimer=undefined;if(alive&&!props.dragging&&!renameId.value)pick(id,true)},500)}
+async function focusRow(id:string){await nextTick();const box=scrollBox.value,row=box?.querySelector<HTMLElement>(`[data-id="${CSS.escape(id)}"]`);if(!box||!row)return;const delta=row.getBoundingClientRect().top-box.getBoundingClientRect().top;if(delta<0)box.scrollTop+=delta-8;else if(delta+row.offsetHeight>box.clientHeight)box.scrollTop+=delta+row.offsetHeight-box.clientHeight+8;row.focus({preventScroll:true})}
+function reveal(id:string,focus=false){if(focus)keyword.value='';openAncestors(id);if(focus){selected.value=id;located.value=id;emit('select',id);void focusRow(id)}}
+function setRenameInput(element:unknown){renameInput.value=element instanceof HTMLInputElement?element:undefined}
+function startRename(id:string){cancelNameClick();if(!allowRename.value||props.busy||props.dragging||renaming.value)return;if(renameId.value){if(renameId.value!==id)renameError.value='请先保存或取消当前名称编辑。';void nextTick(()=>renameInput.value?.focus());return}const item=index.value.byId.get(id);if(!item)return;renameId.value=id;renameValue.value=item.name;renameError.value='';composing.value=false;void nextTick(()=>{renameInput.value?.focus();renameInput.value?.select()})}
+function cancelRename(){if(renaming.value)return;renameId.value='';renameValue.value='';renameError.value='';composing.value=false}
+function renameKeydown(event:KeyboardEvent){if(event.key==='Enter'){if(event.isComposing||composing.value||event.keyCode===229)return;event.preventDefault();commitRename()}else if(event.key==='Escape'){event.preventDefault();cancelRename()}}
+function commitRename(){if(renaming.value||props.busy||!renameId.value)return;if(!allowRename.value){renameError.value='没有修改分类名称的权限，当前输入保留。';return}const name=renameValue.value.trim(),id=renameId.value,item=index.value.byId.get(id);if(!name){renameError.value='分类名称不能为空。';return}if(!item){renameError.value='分类已不存在，当前输入保留，请核对最新数据。';return}if(name===item.name){cancelRename();return}renaming.value=true;renameError.value='';emit('rename',id,name,(ok,message)=>{renaming.value=false;if(!alive||renameId.value!==id)return;if(ok)cancelRename();else{renameError.value=message||'分类名称尚未保存，当前输入保留，可重试。';void nextTick(()=>renameInput.value?.focus())}})}
+function command(id:string,action:string){cancelNameClick();if(action==='rename')startRename(id);else{emit('action',id,action)}}
+function position(event:DragEvent):DropPosition{const rect=(event.currentTarget as HTMLElement).getBoundingClientRect(),ratio=(event.clientY-rect.top)/Math.max(1,rect.height);return ratio<.28?'before':ratio>.72?'after':'inner'}
+function startDrag(id:string,event:DragEvent){cancelNameClick();if(!allowDrag.value||props.busy||renameId.value===id){event.preventDefault();return}emit('dragstart',id,event)}
+function endDrag(){stopScroll();emit('dragend')}
+function dragOver(id:string,event:DragEvent){if(renameId.value!==id)emit('dragover',id,position(event),event)}
+function dropOn(id:string,event:DragEvent){if(renameId.value!==id)emit('drop',id,position(event),event)}
+function stopScroll(){cancelAnimationFrame(scrollFrame);scrollFrame=0;scrollSpeed=0}
+function leaveScroll(event:DragEvent){if(!scrollBox.value?.contains(event.relatedTarget as Node|null))stopScroll()}
+function edgeScroll(event:DragEvent){if(!props.dragging||!scrollBox.value)return;event.preventDefault();const rect=scrollBox.value.getBoundingClientRect();scrollSpeed=event.clientY<rect.top+42?-8:event.clientY>rect.bottom-42?8:0;if(!scrollFrame&&scrollSpeed){const step=()=>{if(!props.dragging||!scrollBox.value||!scrollSpeed){stopScroll();return}scrollBox.value.scrollTop+=scrollSpeed;scrollFrame=requestAnimationFrame(step)};scrollFrame=requestAnimationFrame(step)}}
+const outsidePointer=(event:PointerEvent)=>{if(!panelElement.value?.contains(event.target as Node))cancelNameClick()}
+onMounted(()=>document.addEventListener('pointerdown',outsidePointer,true))
+onBeforeUnmount(()=>{alive=false;cancelNameClick();stopScroll();document.removeEventListener('pointerdown',outsidePointer,true)})
+defineExpose({reveal,selectedId:selected,clearSearch})
 </script>
 <style scoped>
-.category-panel{min-width:0;padding:16px;display:flex;flex-direction:column;gap:12px}.category-panel header,.panel-actions{display:flex;align-items:center;justify-content:space-between;gap:8px}.panel-actions{flex-wrap:wrap}.category-scroll{height:clamp(300px,62vh,720px);overflow:auto;overscroll-behavior:contain;position:relative;border:1px solid var(--el-border-color-lighter);border-radius:6px}.cat-row{display:flex;align-items:center;gap:6px;min-height:40px;padding-right:8px;border-bottom:1px solid var(--el-border-color-extra-light);position:relative;color:var(--el-text-color-primary)}.cat-row[draggable=true]{cursor:grab}.cat-row:hover,.cat-row:focus-within{background:var(--el-fill-color-light)}.cat-row.is-active{background:var(--el-color-primary-light-9)}.cat-row.is-located{border-left:3px solid var(--el-color-primary)}.cat-row.is-source .cat-name{font-weight:650}.cat-expand{border:0;background:none;color:var(--el-text-color-secondary);width:24px;flex:none;cursor:pointer}.cat-name{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:14px}.cat-ops{display:flex;gap:6px}.cat-ops .el-button{margin:0}.muted{color:var(--el-text-color-secondary);font-size:12px}.cat-rename{width:100%;min-width:0;background:var(--el-bg-color);color:var(--el-text-color-primary);border:1px solid var(--el-color-primary);padding:4px}.is-drop-before::before,.is-drop-after::after{content:'';position:absolute;left:0;right:0;height:3px;background:var(--el-color-primary);z-index:2}.is-drop-before::before{top:0}.is-drop-after::after{bottom:0}.is-drop-inner{outline:2px dashed var(--el-color-primary);outline-offset:-2px;background:var(--el-color-primary-light-8)}.is-drop-ban{outline:2px dashed var(--el-color-danger);outline-offset:-2px;background:var(--el-color-danger-light-9)}.move-target{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;font-size:13px}.move-target span{overflow-wrap:anywhere}.move-target small{width:100%;color:var(--el-color-warning-dark-2)}mark{background:var(--el-color-warning-light-7);color:inherit}.cat-row:focus-visible{outline:2px solid var(--el-color-primary);outline-offset:-2px}
+.category-panel{min-width:0;padding:16px;display:flex;flex-direction:column;gap:12px}.category-panel header,.panel-actions{display:flex;align-items:center;justify-content:space-between;gap:8px}.panel-actions{flex-wrap:wrap}.category-scroll{height:clamp(300px,62vh,720px);overflow:auto;overscroll-behavior:contain;position:relative;border:1px solid var(--el-border-color-lighter);border-radius:6px}.cat-row{display:flex;align-items:center;gap:6px;min-height:40px;padding-right:8px;border-bottom:1px solid var(--el-border-color-extra-light);position:relative;color:var(--el-text-color-primary)}.cat-drag{border:0;background:none;color:var(--el-text-color-secondary);cursor:grab;padding:4px;flex:none}.cat-drag:disabled{cursor:default;opacity:.4}.cat-row:hover,.cat-row:focus-within{background:var(--el-fill-color-light)}.cat-row.is-active{background:var(--el-color-primary-light-9)}.cat-row.is-located{border-left:3px solid var(--el-color-primary)}.cat-row.is-source .cat-name{font-weight:650}.cat-expand{border:0;background:none;color:var(--el-text-color-secondary);width:24px;flex:none;cursor:pointer}.cat-name{flex:1;min-width:0;overflow:hidden;font-size:14px;cursor:text}.cat-name-text{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cat-name-path{display:block;font-size:11px;line-height:1.5;color:var(--el-text-color-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cat-pending-label{font-size:11px;color:var(--el-color-primary);white-space:nowrap}.cat-rename-editor{flex:1;min-width:0;padding:5px 0}.cat-rename-controls{display:flex;align-items:center;gap:5px}.cat-rename-controls .el-button+.el-button{margin-left:0}.cat-rename-controls input{flex:1;width:0}.cat-rename-error{font-size:12px;line-height:1.5;color:var(--el-color-danger);margin:5px 0}.cat-row.is-checked:not(.is-active){background:var(--el-fill-color-light)}.cat-ops{display:flex;gap:6px}.cat-ops .el-button{margin:0}.muted{color:var(--el-text-color-secondary);font-size:12px}.cat-rename{width:100%;min-width:0;background:var(--el-bg-color);color:var(--el-text-color-primary);border:1px solid var(--el-color-primary);padding:4px}.is-drop-before::before,.is-drop-after::after{content:'';position:absolute;left:0;right:0;height:3px;background:var(--el-color-primary);z-index:2}.is-drop-before::before{top:0}.is-drop-after::after{bottom:0}.is-drop-inner{outline:2px dashed var(--el-color-primary);outline-offset:-2px;background:var(--el-color-primary-light-8)}.is-drop-ban{outline:2px dashed var(--el-color-danger);outline-offset:-2px;background:var(--el-color-danger-light-9)}.move-target{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;font-size:13px}.move-target span{overflow-wrap:anywhere}.move-target small{width:100%;color:var(--el-color-warning-dark-2)}mark{background:var(--el-color-warning-light-7);color:inherit}.cat-row:focus-visible{outline:2px solid var(--el-color-primary);outline-offset:-2px}
 @media(max-width:700px){.category-panel{padding:12px}.category-scroll{height:360px}.panel-actions{gap:4px}.count{display:none}}
 </style>

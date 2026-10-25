@@ -32,8 +32,12 @@ export const guideRuleArticles: GuideArticle[] = [
           ],
           "rows": [
             [
-              "目标未绑定类型，且满足其他层级条件",
-              "把分类移入已经显式关联产品类型的目标"
+              "批次中有实际移入时，目标未绑定类型且其他层级校验通过；来源自身绑定类型不阻止整体迁移。",
+              "任何实际需要移入的来源，要放入已绑定类型、必须保持末级的目标时，整批拒绝。"
+            ],
+            [
+              "同父级且位置无变化的项可以跳过，不改序；整批无变化不写入。",
+              "不能把无变化项重新追加到末尾，或借部分提交绕过目标约束。"
             ]
           ]
         }
@@ -65,7 +69,7 @@ export const guideRuleArticles: GuideArticle[] = [
         "id": "next",
         "title": "当前下一步",
         "paragraphs": [
-          "在左侧选其他可接收子分类的目标；需要时查看目标关联类型"
+          "保留右侧全部来源，在左侧选择其他可接收子分类的目标，并核对完整路径；需要时查看目标的关联类型。不要默认建议解除来源的类型绑定。"
         ]
       },
       {
@@ -107,8 +111,8 @@ export const guideRuleArticles: GuideArticle[] = [
           ],
           "rows": [
             [
-              "目标不是来源本身，也不是其后代",
-              "移入自身或来源子孙"
+              "来源去重，祖先和已选后代归并为完整祖先子树；目标不是任一有效来源或其后代。",
+              "任一来源移入自身或后代、来源/目标已有循环时拒绝整批，不出现部分成功。"
             ]
           ]
         }
@@ -123,8 +127,8 @@ export const guideRuleArticles: GuideArticle[] = [
           ],
           "rows": [
             [
-              "把同层 A 移到独立目录 B",
-              "把 A 移到 A 的孩子之下"
+              "加入 A、A 的孩子和独立 B，明示归并后把 A 子树与 B 一起移到独立目录 T。",
+              "批次中 A 要进入 A 的后代，即使 B 单独合法，也不能先移动 B。"
             ]
           ]
         }
@@ -140,7 +144,7 @@ export const guideRuleArticles: GuideArticle[] = [
         "id": "next",
         "title": "当前下一步",
         "paragraphs": [
-          "保留来源，在目标树改选其他目录"
+          "保留有效来源，查看归并提示和目标完整路径，改选不在任何来源子树内的普通目录或顶级。"
         ]
       },
       {
@@ -183,8 +187,8 @@ export const guideRuleArticles: GuideArticle[] = [
           ],
           "rows": [
             [
-              "确认时来源存在且所选目标存在或明确顶级",
-              "来源已删除、目标已失效或结构依据不再匹配"
+              "提交时所有原始请求来源（含随后归并的后代）仍存在，目标仍存在或明确顶级；按最新结构、类型绑定及当前授权重新校验。",
+              "来源或目标已失效、出现新的非法层级/类型约束或提交时授权变化，不能沿用旧预览放行。"
             ]
           ]
         }
@@ -216,7 +220,7 @@ export const guideRuleArticles: GuideArticle[] = [
         "id": "next",
         "title": "当前下一步",
         "paragraphs": [
-          "重新核对当前树并选择来源/目标"
+          "来源、目标、搜索和批次保留，核对最新提示后移除失效项或重新选择目标；不要把未知失效项静默丢弃后提交其余分类。"
         ]
       },
       {
@@ -2814,7 +2818,7 @@ export const guideRuleArticles: GuideArticle[] = [
         "id": "impact",
         "title": "影响范围",
         "paragraphs": [
-          "适用于菜单配置；不追溯重写已有快照或凭说明新增限制。"
+          "菜单展示与路由/动作授权分层。“系统说明”迁为独立一级直达原 /guide，并沿用说明阅读权限；已有菜单只定向迁移该入口，其他分组、顺序、名称及隐藏配置保留。"
         ]
       },
       {
@@ -3387,7 +3391,8 @@ export const guideRuleArticles: GuideArticle[] = [
       "page-categories"
     ],
     "actionIds": [
-      "action-category-rename"
+      "action-category-rename",
+      "action-category-move"
     ],
     "ruleIds": [],
     "related": [
@@ -3404,8 +3409,12 @@ export const guideRuleArticles: GuideArticle[] = [
           ],
           "rows": [
             [
-              "分类记录存在且名称去空后非空",
-              "来源已失效或名称为空"
+              "分类存在且名称去空后非空；Enter 或保存按钮明确确认，且不处于输入法组字提交中。",
+              "空名称、来源失效，或把失焦/输入法组字 Enter 当成保存。"
+            ],
+            [
+              "批量移动有实际有效来源集合，并明确选择合法父级或顶级 null。",
+              "没有来源、目标未明确或请求字段无效时不能提交。"
             ]
           ]
         }
@@ -3437,7 +3446,7 @@ export const guideRuleArticles: GuideArticle[] = [
         "id": "next",
         "title": "当前下一步",
         "paragraphs": [
-          "定位名称并填写，再按原保存路径确认"
+          "名称输入可直接修正并重试，Esc/取消放弃；失焦不保存。改名不会清空移动批次。移动输入不完整时先加入来源并选择目标。"
         ]
       },
       {

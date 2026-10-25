@@ -1,4 +1,4 @@
-import { branchFailure, rejectGuide, getFailure, failureError, failureForResult, unknownFailure, withFailure } from '../domain/guide/failure'
+import { branchFailure, rejectGuide, getFailure, failureError, failureForResult, unknownFailure, withFailure, createFailure } from '../domain/guide/failure'
 import type { GuideFailure } from '../domain/guide/types'
 import { createCatalogSimulation } from './catalogSimulation'
 import { RBAC_ENFORCEMENT_ENABLED } from '../domain/accessMode'
@@ -14,6 +14,7 @@ import { executeMaterialRelation, materialRelationImportProblems, markMaterialCo
 import { materialRelationBlock } from '../domain/materialRelations'
 import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { createCatalogPersistence } from './catalogPersistence'
+import { categoryMovesCandidate } from '../domain/categoryMovement'
 import {
   blockChildOfTypedCategory,
   blockTypeOnNonLeaf,
@@ -290,7 +291,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   type CommandContext={codes:string[];actor:string;name:string}
   let invocation:CommandContext|undefined
   let executingAction = 'action-business-save'
-  const commandAction = (name:string) => ({ commitCategoryMove:'action-category-move', publishSpecModel:'action-model-publish', createMaterial:'action-material-create', createTemporary:'action-material-create', saveMaterialRelation:'action-material-create', saveSpu:'action-spu-save', saveBundle:'action-spu-save', appendSkus:'action-sku-save', editSku:'action-sku-save', commitDeviceBinding:'action-compatibility-bind', applyTemplateSync:'action-compatibility-sync', applyTemplateCompatibilitySync:'action-compatibility-sync', commitSkuPage:'action-view-save', saveBenefitPackage:'action-benefit-save', generateBenefitDelivery:'action-benefit-deliver', importJson:'action-json-import', commitMaterialImport:'action-json-import', saveView:'action-view-save', saveSkuView:'action-view-save', saveRbacRole:'action-rbac-authorize', grantRbacRole:'action-rbac-authorize' } as Record<string,string>)[name] || 'action-business-save'
+  const commandAction = (name:string) => ({ commitCategoryMove:'action-category-move', commitCategoryMoves:'action-category-move', renameCategoryName:'action-category-rename', publishSpecModel:'action-model-publish', createMaterial:'action-material-create', createTemporary:'action-material-create', saveMaterialRelation:'action-material-create', saveSpu:'action-spu-save', saveBundle:'action-spu-save', appendSkus:'action-sku-save', editSku:'action-sku-save', commitDeviceBinding:'action-compatibility-bind', applyTemplateSync:'action-compatibility-sync', applyTemplateCompatibilitySync:'action-compatibility-sync', commitSkuPage:'action-view-save', saveBenefitPackage:'action-benefit-save', generateBenefitDelivery:'action-benefit-deliver', importJson:'action-json-import', commitMaterialImport:'action-json-import', saveView:'action-view-save', saveSkuView:'action-view-save', saveRbacRole:'action-rbac-authorize', grantRbacRole:'action-rbac-authorize' } as Record<string,string>)[name] || 'action-business-save'
   const caughtFailure = (error:unknown,message:string,savedState:GuideFailure['savedState']='unconfirmed') => { const known=getFailure(error);return known?{...known,message,savedState}:unknownFailure(message,executingAction,savedState) }
   const publicData=catalogPublicData(data,can)
   const editorGeneration = ref(0)
@@ -1441,6 +1442,26 @@ export const useCatalogStore = defineStore('catalog', () => {
     if(problem)return rejectGuide(`category.move.${branch}`,problem,{savedState:'unchanged',context:{categoryId:sourceId,categoryName:data.categories.find(c=>c.id===sourceId)?.name||'',targetId:parentId||'',targetName:data.categories.find(c=>c.id===parentId)?.name||''},recovery:['choose-target']})
     return commitCandidate(next,{ok:true,message:'分类已移动。'},['categories'])
   }
+  function commitCategoryMoves(sourceIds: readonly string[], targetId: string | null) {
+    const planned = categoryMovesCandidate(data.categories, { sourceIds, targetId }, typedCategoryIds())
+    if (!planned.preview.ok || !planned.preview.changed) return planned.preview
+    const next = cloneCompatibility(data)
+    next.categories = planned.categories
+    return commitCandidate(next, planned.preview, ['categories'])
+  }
+  function renameCategoryName(id: string, inputName: string) {
+    const current = data.categories.find(item => item.id === id)
+    if (!current) return rejectGuide('category.move.source-missing', '分类已不存在，名称没有保存；当前输入保留。', { actionId: 'action-category-rename', savedState: 'unchanged', context: { categoryId: id }, recovery: ['edit-input'] })
+    const name = typeof inputName === 'string' ? inputName.trim() : ''
+    if (!name) {
+      const message = '请填写分类名称；当前输入保留。'
+      return withFailure({ ok: false, message }, createFailure({ kind: 'input', actionId: 'action-category-rename', ruleId: 'rule-category-input', message, savedState: 'unchanged', context: { categoryId: id, categoryName: current.name }, fields: ['name'], recovery: ['edit-input'] }))
+    }
+    if (current.name === name) return { ok: true, id, name, changed: false, message: '名称没有变化，未写入数据。' }
+    const next = cloneCompatibility(data), index = next.categories.findIndex(item => item.id === id)
+    next.categories[index] = { ...next.categories[index]!, name }
+    return commitCandidate(next, { ok: true, id, name, changed: true, message: '分类名称已保存。' }, ['categories'])
+  }
   function restoreSuperAdminAccess(){
     if(!isSuperAdmin(data,effectiveUserId.value))return {ok:false,message:'只有有效的内置超级管理员可恢复其权限。'}
     const next=cloneCompatibility(data),role=next.rbac?.roles.find(r=>r.id==='role:super-admin'&&r.superAdmin&&r.builtIn)
@@ -1465,6 +1486,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     saveRule:(...args:Parameters<typeof saveRule>)=>command(()=>saveRule(...args)),
     saveTemplateScheme:(...args:Parameters<typeof saveTemplateScheme>)=>command(()=>saveTemplateScheme(...args)),
     commitCategoryMove:(...args:Parameters<typeof commitCategoryMove>)=>command(()=>commitCategoryMove(...args)),
+    commitCategoryMoves:(sourceIds: readonly string[], targetId: string | null)=>{const requested=Array.isArray(sourceIds)?[...sourceIds]:sourceIds;return command(()=>commitCategoryMoves(requested,targetId))},
+    renameCategoryName:(...args:Parameters<typeof renameCategoryName>)=>command(()=>renameCategoryName(...args)),
     restoreSuperAdminAccess:()=>command(restoreSuperAdminAccess),
     importFeedbackPack:(...args:Parameters<typeof importFeedbackPack>)=>command(()=>importFeedbackPack(...args)),
     markFeedbacksExported:(...args:Parameters<typeof markFeedbacksExported>)=>command(()=>markFeedbacksExported(...args)),

@@ -290,7 +290,7 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
     removeBenefitFramework:['product:framework:delete'],setBenefitPackageStatus:['product:benefit:update'],setBenefitPackageFavorite:['product:benefit:update'],generateBenefitDelivery:['product:delivery:create'],
     commitDeviceBinding:['product:compatibility:update'],clearDeviceBinding:['product:compatibility:update'],removeDeviceModel:['product:compatibility:delete'],
     addParamValue:['product:dictionary:update'],removeParam:['product:dictionary:delete'],removeParamValue:['product:dictionary:update'],removeProductType:['product:type:delete'],setProductTypeStatus:['product:type:update'],
-    commitCategoryMove:['product:category:update'],
+    commitCategoryMove:['product:category:update'],commitCategoryMoves:['product:category:update'],renameCategoryName:['product:category:update'],
     addCategory:['product:category:create'],copyCategory:['product:category:create'],moveCategory:['product:category:update'],shiftCategory:['product:category:update'],relocateCategory:['product:category:update'],updateCategory:['product:category:update'],removeCategory:['product:category:delete'],setCategoryMapping:['product:template:update'],removeGroup:['product:group:delete'],
     commitSkuPage:['product:sku:read'],saveView:['product:view:update'],applyView:['product:spu:read'],removeView:['product:view:update'],
     exportJson:['product:export:execute'],importJson:['product:import:execute'],resetAll:['system:data:reset'],resetModule:['system:data:reset'],

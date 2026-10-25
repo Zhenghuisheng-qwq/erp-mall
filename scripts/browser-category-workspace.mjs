@@ -1,125 +1,78 @@
 import assert from 'node:assert/strict'
-import { mkdirSync,writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { createServer } from 'vite'
-import { chromium } from 'playwright-core'
-if(!process.env.CATEGORY_WORKSPACE_OUTPUT)throw Error('CATEGORY_WORKSPACE_OUTPUT required')
-const output=resolve(process.env.CATEGORY_WORKSPACE_OUTPUT),checks=[],diagnostics=[];mkdirSync(output,{recursive:true})
-const server=await createServer({cacheDir:resolve(output,'cache'),define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify('false')},server:{host:'127.0.0.1',port:0,hmr:false,watch:null}})
+import {createServer} from 'vite'
+import {chromium} from 'playwright-core'
+import {createTestRuntime,removeTestRuntime} from './test-runtime.mjs'
+
+const strict=process.argv.includes('--strict'),mode=strict?'strict':'default',runtime=createTestRuntime('category-workspace')
+const checks=[],diagnostics=[],server=await createServer({cacheDir:`${runtime}/cache`,logLevel:'error',define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify(String(strict))},server:{host:'127.0.0.1',port:0,hmr:false,watch:null}})
 let browser,page
-const mark=name=>{checks.push(name);console.log('PASS '+name)}
+const mark=name=>{checks.push(name);console.log(`PASS ${mode}: ${name}`)}
+const button=(scope,name)=>scope.getByRole('button',{name,exact:true})
 try{
- const {categoryWorkspaceFixture}=await server.ssrLoadModule('/scripts/category-workspace-fixture.ts'),fixture=categoryWorkspaceFixture();fixture.categories.find(c=>c.id==='r4-typed').sort=80.5
+ const {categoryWorkspaceFixture}=await server.ssrLoadModule('/scripts/category-workspace-fixture.ts'),{normalizeStored}=await server.ssrLoadModule('/src/stores/catalog.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
+ const fixture=normalizeStored({version:DATA_VERSION,data:categoryWorkspaceFixture()});fixture.categories.find(c=>c.id==='r4-typed').sort=80.5
  await server.listen();const base=`http://127.0.0.1:${server.httpServer.address().port}`
  browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'chrome',headless:true})
  const context=await browser.newContext({viewport:{width:1700,height:1100},locale:'zh-CN',reducedMotion:'reduce'})
- await context.addInitScript(data=>{
-  if(!localStorage.getItem('iyge-v2-mock-db'))localStorage.setItem('iyge-v2-mock-db',JSON.stringify({version:15,data}))
-  if(!localStorage.getItem('iyge-v2-theme'))localStorage.setItem('iyge-v2-theme','light')
-  window.__failSave=false;window.__writes=0
-  const set=Storage.prototype.setItem
-  Storage.prototype.setItem=function(key,value){if(key==='iyge-v2-mock-db'){if(window.__failSave)throw new DOMException('分类验收配额失败','QuotaExceededError');window.__writes++}return set.call(this,key,value)}
- },fixture)
- page=await context.newPage();page.setDefaultTimeout(12000)
- page.on('pageerror',error=>diagnostics.push(String(error)))
+ await context.addInitScript(({data,version})=>{if(location.protocol!=='http:')return;if(!localStorage.getItem('iyge-v2-mock-db')){localStorage.setItem('iyge-v2-mock-db',JSON.stringify({version,data}));localStorage.setItem('iyge-v2-theme','light')}window.__failSave=false;window.__writes=0;const set=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key==='iyge-v2-mock-db'){if(window.__failSave)throw new DOMException('分类验收配额失败','QuotaExceededError');window.__writes++}return set.call(this,key,value)}},{data:fixture,version:DATA_VERSION})
+ page=await context.newPage();page.setDefaultTimeout(12000);page.on('pageerror',error=>diagnostics.push(String(error)))
  page.on('console',message=>{if(['warning','error'].includes(message.type()))diagnostics.push(message.text())})
- const read=()=>page.evaluate(async()=>JSON.parse(JSON.stringify((await import('/src/stores/catalog.ts')).useCatalogStore().data)))
+ const read=()=>page.evaluate(async()=>JSON.parse(JSON.stringify((await import('/src/stores/catalog.ts')).useCatalogStore().data))),disk=()=>page.evaluate(()=>localStorage.getItem('iyge-v2-mock-db'))
  const settle=()=>page.evaluate(async()=>{await(await import('/src/stores/catalog.ts')).useCatalogStore().waitForPersistence()})
- const panels=()=>page.locator('[data-category-panel]'), left=()=>panels().nth(0),right=()=>panels().nth(1)
- const search=async(panel,text)=>{await panel.getByPlaceholder('搜索并定位分类').fill(text)}
- const row=(panel,id)=>panel.locator(`[data-id="${id}"]`)
- const parent=async id=>(await read()).categories.find(x=>x.id===id)?.parentId
- async function move(source,target,position='inner'){
-  await source.scrollIntoViewIfNeeded();await target.scrollIntoViewIfNeeded()
-  const rect=await target.boundingBox()
-  await source.locator('.cat-name').dragTo(target,{targetPosition:{x:90,y:position==='before'?3:position==='after'?rect.height-3:rect.height/2}})
-  await settle();await page.waitForTimeout(300)
- }
- async function begin(source,target,position='inner'){
-  await source.scrollIntoViewIfNeeded();await target.scrollIntoViewIfNeeded()
-  const a=await source.locator('.cat-name').boundingBox(),b=await target.boundingBox()
-  await page.mouse.move(a.x+Math.min(55,a.width/2),a.y+a.height/2);await page.mouse.down()
-  await page.mouse.move(a.x+Math.min(55,a.width/2)+15,a.y+a.height/2,{steps:5})
-  await page.mouse.move(b.x+90,b.y+(position==='before'?3:position==='after'?b.height-3:b.height/2),{steps:15})
-  await page.mouse.move(b.x+91,b.y+b.height/2)
- }
- await page.goto(base+'/categories',{waitUntil:'networkidle'});await settle();const initial=await read()
- assert.equal(await panels().count(),1);assert.equal(await page.locator('.cat-row[draggable=true]').count(),0)
- await page.locator('[data-open-category-panel]').click();assert.equal(await panels().count(),2)
- assert.equal(await right().locator('.cat-row').count(),0);assert.match(await right().innerText(),/从左侧分类行选择移动/)
- await left().getByRole('button',{name:'展开全部',exact:true}).click()
- const expandedLeft=await left().locator('.cat-row').count();await right().getByRole('button',{name:'收起全部',exact:true}).click();assert.equal(await left().locator('.cat-row').count(),expandedLeft)
- await search(left(),'移动子树');assert.equal(await row(left(),'r4-source').count(),1)
- assert.deepEqual((await read()).categories,initial.categories)
- await page.getByText('编辑模式',{exact:true}).click();await row(left(),'r4-source').getByRole('button',{name:'移动',exact:true}).click()
- assert.match(await page.locator('[data-category-source]').innerText(),/整理来源.*移动子树/s);assert.match(await page.locator('[data-category-source]').innerText(),/包含 1 个子分类/)
- assert.equal(await row(left(),'r4-source').count(),0);assert.deepEqual(await right().locator('.cat-row').evaluateAll(es=>es.map(e=>e.dataset.id)),['r4-source','r4-leaf'])
- assert(await right().getByPlaceholder('搜索并定位分类').isDisabled())
- assert.deepEqual((await read()).categories,initial.categories);const stagedWrites=await page.evaluate(()=>window.__writes)
- await search(left(),'来源同级');await page.getByRole('button',{name:'定位来源',exact:true}).click()
- assert.equal(await left().getByPlaceholder('搜索并定位分类').inputValue(),'来源同级');assert.equal(await row(right(),'r4-source').evaluate(el=>el===document.activeElement),true)
- await page.locator('[data-category-move-confirm]').getByRole('button',{name:'取消移动',exact:true}).click()
- assert.equal(await page.locator('[data-category-source]').count(),0);assert.equal(await right().locator('.cat-row').count(),0)
- assert.deepEqual((await read()).categories,initial.categories);assert.equal(await page.evaluate(()=>window.__writes),stagedWrites)
- mark('default single/view; right is empty pending area; left search/expansion, stage subtree, scoped locate and cancel are presentation-only')
- // The former two full trees are replaced by a source preview. Native reordering remains on the actual left tree.
- await search(left(),'');await left().getByRole('button',{name:'展开全部',exact:true}).click()
- await move(row(left(),'r4-source'),row(left(),'r4-b'));assert.equal(await parent('r4-source'),'r4-b');assert.equal(await parent('r4-leaf'),'r4-source')
- await search(left(),'移动子树');await row(left(),'r4-source').getByRole('button',{name:'移动',exact:true}).click();await search(left(),'整理来源');await row(left(),'r4-a').click();await page.locator('[data-category-confirm-move]').click();await page.locator('[data-category-source]').waitFor({state:'hidden'});await settle();assert.equal(await parent('r4-source'),'r4-a');await search(left(),'');await left().getByRole('button',{name:'展开全部',exact:true}).click()
- mark('native inner A→B and explicit staged B→A preserve the complete subtree')
- await move(row(left(),'r4-source'),row(left(),'r4-before'),'before')
- let children=(await read()).categories.filter(x=>x.parentId==='r4-b').sort((a,b)=>a.sort-b.sort).map(x=>x.id)
- assert.deepEqual(children.slice(0,3),['r4-source','r4-before','r4-after'])
- await move(row(left(),'r4-source'),row(left(),'r4-after'),'after')
- children=(await read()).categories.filter(x=>x.parentId==='r4-b').sort((a,b)=>a.sort-b.sort).map(x=>x.id);assert.deepEqual(children.slice(0,3),['r4-before','r4-after','r4-source'])
- await move(row(left(),'r4-source'),row(left(),'r4-before'),'before')
- children=(await read()).categories.filter(x=>x.parentId==='r4-b').sort((a,b)=>a.sort-b.sort).map(x=>x.id);assert.deepEqual(children.slice(0,3),['r4-source','r4-before','r4-after'])
+ const panels=()=>page.locator('[data-category-panel]'),left=()=>panels().first(),right=()=>panels().nth(1),row=(panel,id)=>panel.locator(`.cat-row[data-id="${id}"]`)
+ const search=async(panel,text)=>panel.getByPlaceholder('搜索并定位分类').fill(text),parent=async id=>(await read()).categories.find(x=>x.id===id)?.parentId
+ async function move(source,target,position='inner'){await source.scrollIntoViewIfNeeded();await target.scrollIntoViewIfNeeded();const rect=await target.boundingBox();await source.locator('[data-category-drag]').dragTo(target,{targetPosition:{x:90,y:position==='before'?3:position==='after'?rect.height-3:rect.height/2}});await settle();await page.waitForTimeout(200)}
+ async function begin(source,target,position='inner'){await source.scrollIntoViewIfNeeded();await target.scrollIntoViewIfNeeded();const a=await source.locator('[data-category-drag]').boundingBox(),b=await target.boundingBox();assert(a&&b,'visible native drag handle and target');await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(a.x+a.width/2+15,a.y+a.height/2,{steps:5});const y=b.y+(position==='before'?3:position==='after'?b.height-3:b.height/2);await page.mouse.move(b.x+90,y,{steps:15});await page.mouse.move(b.x+91,y)}
+ async function menu(panel,id,label){const trigger=row(panel,id).getByRole('button',{name:/更多操作/}),name=await trigger.getAttribute('aria-label');await trigger.click();const overlay=page.getByRole('menu',{name,exact:true});await overlay.getByRole('menuitem',{name:label,exact:true}).click();await overlay.waitFor({state:'hidden'})}
+ async function addSource(id){await button(row(left(),id),'加入待移动').click()}
+ await page.goto(base+'/categories',{waitUntil:'networkidle'});await settle();const initial=await read();assert.equal(await page.evaluate(async()=>(await import('/src/stores/catalog.ts')).useCatalogStore().rbacEnforced),strict)
+ assert.equal(await panels().count(),1);assert.equal(await page.locator('[data-category-drag]').count(),0);assert.equal(await page.locator('.cat-row[draggable=true]').count(),0)
+ await page.locator('[data-open-category-panel]').click();assert.equal(await panels().count(),2);assert.equal(await right().locator('.cat-row').count(),0);assert.match(await right().innerText(),/在左侧勾选分类并加入待移动区/)
+ await button(left(),'展开全部').click();const expandedLeft=await left().locator('.cat-row').count();await button(right(),'收起全部').click();assert.equal(await left().locator('.cat-row').count(),expandedLeft)
+ await search(left(),'移动子树');assert.equal(await row(left(),'r4-source').count(),1);assert.deepEqual((await read()).categories,initial.categories)
+ await page.getByText('编辑模式',{exact:true}).click();await addSource('r4-source');assert.match(await page.locator('[data-category-source]').innerText(),/待移动 1 项/);assert.match(await page.locator('[data-category-source]').innerText(),/包含 1 个子分类/)
+ assert.equal(await row(left(),'r4-source').count(),1);assert(await row(left(),'r4-source').getByText('待移动',{exact:true}).isVisible());assert.match(await row(right(),'r4-source').locator('.cat-name').getAttribute('title'),/整理来源.*移动子树/);assert.deepEqual(await right().locator('.cat-row').evaluateAll(es=>es.map(e=>e.dataset.id)),['r4-source','r4-leaf']);assert(await right().getByPlaceholder('搜索并定位分类').isDisabled())
+ assert.deepEqual((await read()).categories,initial.categories);const stagedWrites=await page.evaluate(()=>window.__writes);await search(left(),'来源同级');await button(page,'定位来源').click();assert.equal(await left().getByPlaceholder('搜索并定位分类').inputValue(),'来源同级');assert.equal(await row(right(),'r4-source').evaluate(el=>el===document.activeElement),true)
+ await button(page.locator('[data-category-move-confirm]'),'取消移动').click();assert.equal(await page.locator('[data-category-source]').count(),0);assert.equal(await right().locator('.cat-row').count(),0);assert.deepEqual((await read()).categories,initial.categories);assert.equal(await page.evaluate(()=>window.__writes),stagedWrites)
+ mark('view-only default, independent expansion/search, marked source forest, locate and cancel are presentation-only')
+ await search(left(),'');await button(left(),'展开全部').click();await move(row(left(),'r4-source'),row(left(),'r4-b'));assert.equal(await parent('r4-source'),'r4-b');assert.equal(await parent('r4-leaf'),'r4-source')
+ await search(left(),'移动子树');await addSource('r4-source');await search(left(),'整理来源');await row(left(),'r4-a').focus();await row(left(),'r4-a').press('Enter');await page.locator('[data-category-confirm-move]').click();await page.locator('[data-category-source]').waitFor({state:'hidden'});await settle();assert.equal(await parent('r4-source'),'r4-a');await search(left(),'');await button(left(),'展开全部').click()
+ mark('native inner A→B and explicit pending B→A keep original root and descendant IDs')
+ await move(row(left(),'r4-source'),row(left(),'r4-before'),'before');let children=(await read()).categories.filter(x=>x.parentId==='r4-b').sort((a,b)=>a.sort-b.sort).map(x=>x.id);assert.deepEqual(children.slice(0,3),['r4-source','r4-before','r4-after'])
+ await move(row(left(),'r4-source'),row(left(),'r4-after'),'after');children=(await read()).categories.filter(x=>x.parentId==='r4-b').sort((a,b)=>a.sort-b.sort).map(x=>x.id);assert.deepEqual(children.slice(0,3),['r4-before','r4-after','r4-source'])
+ await move(row(left(),'r4-source'),row(left(),'r4-before'),'before');children=(await read()).categories.filter(x=>x.parentId==='r4-b').sort((a,b)=>a.sort-b.sort).map(x=>x.id);assert.deepEqual(children.slice(0,3),['r4-source','r4-before','r4-after'])
  const noOpWrites=await page.evaluate(()=>window.__writes);await move(row(left(),'r4-source'),row(left(),'r4-before'),'before');assert.equal(await page.evaluate(()=>window.__writes),noOpWrites)
- mark('native before/after ordering retained; true no-op writes zero times')
- const beforeInvalid=(await read()).categories
+ mark('native before/after sibling order, stable subtree and true no-op zero writes')
+ const beforeInvalid=(await read()).categories,beforeInvalidDisk=await disk()
  await begin(row(left(),'r4-source'),row(left(),'r4-leaf'));await left().locator('.is-drop-ban').waitFor();assert.match(await page.locator('.drop-hint').innerText(),/子分类/);await page.mouse.up();await settle();assert.deepEqual((await read()).categories,beforeInvalid)
  await begin(row(left(),'r4-source'),row(left(),'r4-typed'));await left().locator('.is-drop-ban').waitFor();assert.match(await page.locator('.drop-hint').innerText(),/产品类型/);await page.mouse.up();await settle();assert.deepEqual((await read()).categories,beforeInvalid)
  await begin(row(left(),'r4-source'),row(left(),'r4-a'));await page.keyboard.press('Escape');await page.mouse.up();await settle();assert.deepEqual((await read()).categories,beforeInvalid)
- await begin(row(left(),'r4-source'),row(left(),'r4-a'));await page.evaluate(async()=>{(await import('/src/stores/catalog.ts')).useCatalogStore().editorGeneration++});await page.mouse.up();await settle();assert.deepEqual((await read()).categories,beforeInvalid)
- mark('descendant and typed-target visual rejection; Escape and external generation cancel with no writes')
- await begin(row(left(),'r4-source'),row(left(),'r4-a'));await page.getByText('查看模式',{exact:true}).evaluate(e=>e.click());await page.mouse.up();await settle();assert.deepEqual((await read()).categories,beforeInvalid);assert.equal(await page.locator('.cat-row[draggable=true]').count(),0)
- await page.getByText('编辑模式',{exact:true}).click()
- const survivor=await right().getAttribute('data-category-panel');await begin(row(left(),'r4-source'),row(left(),'r4-a'));await left().getByRole('button',{name:/关闭分类栏/}).evaluate(e=>e.click());await page.mouse.up();await settle();assert.equal(await panels().count(),1);assert.equal(await left().getAttribute('data-category-panel'),survivor);assert.deepEqual((await read()).categories,beforeInvalid)
- await left().getByRole('button',{name:'展开全部',exact:true}).click();await page.locator('[data-open-category-panel]').click()
- await row(left(),'r4-source').locator('.cat-name').dragTo(right().locator('header'));await settle();assert.deepEqual((await read()).categories,beforeInvalid)
- mark('view mode and closing the active drag panel cancel; dropping on a header never moves to root')
- await row(left(),'r4-before').focus();await row(left(),'r4-before').press('Enter');await begin(row(left(),'r4-source'),row(left(),'r4-before'))
- const scrollRect=await left().locator('.category-scroll').boundingBox(),scrollStart=await left().locator('.category-scroll').evaluate(el=>el.scrollTop)
- await page.mouse.move(scrollRect.x+100,scrollRect.y+scrollRect.height-12,{steps:10});await page.waitForFunction(({id,start})=>document.querySelector(`[data-category-panel="${id}"] .category-scroll`).scrollTop>start+20,{id:await left().getAttribute('data-category-panel'),start:scrollStart})
- await page.keyboard.press('Escape');await page.mouse.up();await settle();assert.deepEqual((await read()).categories,beforeInvalid)
- mark('native edge scroll reaches long-list targets in the target tree without committing on Escape')
- const leftId=await left().getAttribute('data-category-panel');await left().locator('.category-scroll').hover();await page.mouse.wheel(0,700);await page.waitForFunction(id=>document.querySelector(`[data-category-panel="${id}"] .category-scroll`).scrollTop>100,leftId)
- await page.waitForTimeout(750);const leftScroll=await left().locator('.category-scroll').evaluate(el=>el.scrollTop)
- await right().getByRole('button',{name:'关闭待移动分类',exact:true}).click();assert.equal(await panels().count(),1);assert.equal(await left().getAttribute('data-category-panel'),leftId);assert.equal(await left().locator('.category-scroll').evaluate(el=>el.scrollTop),leftScroll);assert.equal(await left().locator('.is-active').getAttribute('data-id'),'r4-before')
- await page.locator('[data-open-category-panel]').click();assert.equal(await right().locator('.cat-row').count(),0);assert.equal(await left().locator('.category-scroll').evaluate(el=>el.scrollTop),leftScroll)
- mark('target preview opening/closing preserves the real tree instance, keyboard selection and scroll')
- await search(left(),'移动子树');await row(left(),'r4-source').getByRole('button',{name:'移动',exact:true}).click();await search(left(),'整理来源');await row(left(),'r4-a').focus();await row(left(),'r4-a').press('Enter')
- assert.match(await page.locator('[data-category-move-confirm]').innerText(),/移动到：整理来源/)
- await page.evaluate(()=>window.__failSave=true);await page.locator('[data-category-confirm-move]').click();await page.locator('[data-category-move-error]').waitFor()
- assert.equal(await parent('r4-source'),'r4-b');assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('iyge-v2-mock-db')).data.categories.find(x=>x.id==='r4-source').parentId),'r4-b');assert.deepEqual((await read()).categories,beforeInvalid)
- await page.locator('[data-category-confirm-move]').click();await settle();assert.deepEqual((await read()).categories,beforeInvalid)
- await page.evaluate(()=>window.__failSave=false);const writesBefore=await page.evaluate(()=>window.__writes);await page.locator('[data-category-confirm-move]').click();await page.locator('[data-category-source]').waitFor({state:'hidden'});await settle();assert.equal(await parent('r4-source'),'r4-a');assert.equal(await page.evaluate(()=>window.__writes),writesBefore+1)
- const moved=(await read()).categories;await page.reload({waitUntil:'networkidle'});await settle();assert.deepEqual((await read()).categories,moved)
- mark('keyboard destination and explicit confirm; quota failure preserves original memory/disk; atomic retry once and refresh match')
- await page.getByText('编辑模式',{exact:true}).click();await page.locator('[data-open-category-panel]').click();await search(left(),'移动子树');await row(left(),'r4-source').locator('.cat-name').dblclick();assert.equal(await left().getByRole('textbox',{name:'分类新名称'}).count(),1);assert.equal(await right().getByRole('textbox',{name:'分类新名称'}).count(),0)
- await left().getByRole('textbox',{name:'分类新名称'}).fill('移动子树已改名');await left().getByRole('textbox',{name:'分类新名称'}).press('Enter');await settle();await left().getByRole('textbox',{name:'分类新名称'}).waitFor({state:'hidden'})
- await row(left(),'r4-source').getByRole('button',{name:'移动',exact:true}).click();assert.equal(await row(right(),'r4-source').locator('.cat-name').innerText(),'移动子树已改名');await page.locator('[data-category-move-confirm]').getByRole('button',{name:'取消移动',exact:true}).click()
- const structuralOnly=await read();for(const key of Object.keys(initial).filter(x=>x!=='categories'))assert.deepEqual(structuralOnly[key],initial[key],key)
- mark('scoped inline rename is reflected in the selected source preview; all non-category business data unchanged')
- async function menu(panel,id,label){await row(panel,id).getByRole('button',{name:/更多操作/}).click();await page.getByRole('menuitem',{name:label,exact:true}).click()}
+ await begin(row(left(),'r4-source'),row(left(),'r4-a'));await page.evaluate(async()=>{(await import('/src/stores/catalog.ts')).useCatalogStore().editorGeneration++});await page.mouse.up();await settle();assert.deepEqual((await read()).categories,beforeInvalid);assert.equal(await disk(),beforeInvalidDisk)
+ mark('descendant/typed-target native rejection, Escape and stale generation cancel with memory/disk unchanged')
+ await begin(row(left(),'r4-source'),row(left(),'r4-a'));await page.getByText('查看模式',{exact:true}).evaluate(el=>el.click());await page.mouse.up();await settle();assert.deepEqual((await read()).categories,beforeInvalid);assert.equal(await page.locator('[data-category-drag]').count(),0);await page.getByText('编辑模式',{exact:true}).click()
+ // The new workspace keeps its real left directory fixed; only the right preview can close.
+ assert.equal(await left().getByRole('button',{name:/关闭/}).count(),0);const survivor=await left().getAttribute('data-category-panel');await begin(row(left(),'r4-source'),row(left(),'r4-a'));await button(right(),'关闭待移动分类').evaluate(el=>el.click());await page.mouse.up();await settle();assert.equal(await panels().count(),1);assert.equal(await left().getAttribute('data-category-panel'),survivor);assert.deepEqual((await read()).categories,beforeInvalid)
+ await page.locator('[data-open-category-panel]').click();await row(left(),'r4-source').locator('[data-category-drag]').dragTo(right().locator('header'));await settle();assert.deepEqual((await read()).categories,beforeInvalid)
+ mark('view mode and preview closure cancel active drag; fixed left instance survives; header drop never means root move')
+ await row(left(),'r4-before').focus();await row(left(),'r4-before').press('Enter');await begin(row(left(),'r4-source'),row(left(),'r4-before'));const scrollRect=await left().locator('.category-scroll').boundingBox(),scrollStart=await left().locator('.category-scroll').evaluate(el=>el.scrollTop);await page.mouse.move(scrollRect.x+100,scrollRect.y+scrollRect.height-12,{steps:10});await page.waitForFunction(({id,start})=>document.querySelector(`[data-category-panel="${id}"] .category-scroll`).scrollTop>start+20,{id:await left().getAttribute('data-category-panel'),start:scrollStart});await page.keyboard.press('Escape');await page.mouse.up();await settle();assert.deepEqual((await read()).categories,beforeInvalid)
+ mark('native edge scroll reaches long-list targets and Escape commits nothing')
+ const leftId=await left().getAttribute('data-category-panel');await left().locator('.category-scroll').hover();await page.mouse.wheel(0,700);await page.waitForFunction(id=>document.querySelector(`[data-category-panel="${id}"] .category-scroll`).scrollTop>100,leftId);await page.waitForTimeout(750);const leftScroll=await left().locator('.category-scroll').evaluate(el=>el.scrollTop);await button(right(),'关闭待移动分类').click();assert.equal(await panels().count(),1);assert.equal(await left().getAttribute('data-category-panel'),leftId);assert.equal(await left().locator('.category-scroll').evaluate(el=>el.scrollTop),leftScroll);assert.equal(await left().locator('.is-active').getAttribute('data-id'),'r4-before');await page.locator('[data-open-category-panel]').click();assert.equal(await right().locator('.cat-row').count(),0);assert.equal(await left().locator('.category-scroll').evaluate(el=>el.scrollTop),leftScroll)
+ mark('preview open/close preserves target-tree instance, keyboard selection and independent scroll')
+ await search(left(),'移动子树');await addSource('r4-source');await search(left(),'整理来源');await row(left(),'r4-a').focus();await row(left(),'r4-a').press('Enter');assert.match(await page.locator('[data-category-move-confirm]').innerText(),/移动到：整理来源/);const failureDisk=await disk();await page.evaluate(()=>window.__failSave=true);await page.locator('[data-category-confirm-move]').click();await page.locator('[data-category-move-confirm] [data-failure-kind="persistence"]').waitFor();assert.equal(await parent('r4-source'),'r4-b');assert.deepEqual((await read()).categories,beforeInvalid);assert.equal(await disk(),failureDisk)
+ await page.locator('[data-category-confirm-move]').click();await settle();assert.deepEqual((await read()).categories,beforeInvalid);assert.equal(await disk(),failureDisk);await page.evaluate(()=>window.__failSave=false);const writesBefore=await page.evaluate(()=>window.__writes);await page.locator('[data-category-confirm-move]').click();await page.locator('[data-category-source]').waitFor({state:'hidden'});await settle();assert.equal(await parent('r4-source'),'r4-a');assert.equal(await page.evaluate(()=>window.__writes),writesBefore+1);const moved=(await read()).categories;await page.reload({waitUntil:'networkidle'});await settle();assert.deepEqual((await read()).categories,moved)
+ mark('keyboard destination, explicit confirm, real quota failure atomicity, one-write retry and refresh restoration')
+ await page.getByText('编辑模式',{exact:true}).click();await page.locator('[data-open-category-panel]').click();await search(left(),'移动子树');await row(left(),'r4-source').locator('.cat-name').dblclick();assert.equal(await left().getByRole('textbox',{name:'分类新名称'}).count(),1);assert.equal(await right().getByRole('textbox',{name:'分类新名称'}).count(),0);await left().getByRole('textbox',{name:'分类新名称'}).fill('移动子树已改名');await left().getByRole('textbox',{name:'分类新名称'}).press('Enter');await left().getByRole('textbox',{name:'分类新名称'}).waitFor({state:'hidden'});await settle();await search(left(),'移动子树已改名');await addSource('r4-source');assert.equal(await row(right(),'r4-source').locator('.cat-name').innerText(),'移动子树已改名');await button(page.locator('[data-category-move-confirm]'),'取消移动').click();const structuralOnly=await read();for(const key of Object.keys(initial).filter(key=>key!=='categories'))assert.deepEqual(structuralOnly[key],initial[key],key)
+ mark('inline rename is reflected by source ID; all non-category data and histories remain unchanged')
  await menu(left(),'r4-source','删除分类');assert.equal(await page.getByRole('dialog',{name:'删除分类',exact:true}).count(),0);assert.equal(await parent('r4-leaf'),'r4-source')
- await menu(left(),'r4-source','复制子树');await page.getByRole('dialog',{name:'复制分类',exact:true}).getByRole('button',{name:'复制',exact:true}).click();await settle();const copied=await read(),clone=copied.categories.find(x=>x.name==='移动子树已改名(复制)');assert(clone);assert.equal(copied.categories.filter(x=>x.parentId===clone.id).length,1);assert.deepEqual(copied.families,initial.families)
- await menu(left(),'r4-source','编辑与属性方案');const edit=page.getByRole('dialog',{name:'编辑分类',exact:true});assert(await edit.getByText('属性方案',{exact:true}).count());await edit.getByRole('button',{name:'取消',exact:true}).click();await menu(left(),'r4-source','查看详情');assert(await page.getByRole('button',{name:'跳转属性方案',exact:true}).isVisible())
- mark('copy subtree, child deletion protection and property-scheme/detail entries remain available')
- await page.getByRole('button',{name:'收起详情',exact:true}).click();await page.screenshot({path:resolve(output,'dual-light.png'),animations:'disabled'});await page.locator('.theme-switch').click();await page.screenshot({path:resolve(output,'dual-dark.png'),animations:'disabled'});await page.locator('.theme-switch').click();await page.setViewportSize({width:800,height:950})
- await search(left(),'移动子树已改名');await row(left(),'r4-source').getByRole('button',{name:'移动',exact:true}).click();await page.locator('[data-category-move-confirm]').scrollIntoViewIfNeeded();await page.screenshot({path:resolve(output,'narrow-target.png'),animations:'disabled'})
- await page.locator('[data-category-root-target]').focus();await page.keyboard.press('Enter');assert.equal(await parent('r4-source'),'r4-a');await page.locator('[data-category-confirm-move]').focus();await page.keyboard.press('Enter');await settle();assert.equal(await parent('r4-source'),null);await page.locator('[data-category-source]').waitFor({state:'hidden'});await page.screenshot({path:resolve(output,'dual-light-narrow.png'),animations:'disabled',fullPage:true})
- mark('light/dark themes, narrow stacking and keyboard explicit root movement')
- assert.deepEqual(diagnostics,[])
- writeFileSync(resolve(output,'result.json'),JSON.stringify({result:'PASS',browser:browser.version(),headless:true,checks,diagnostics},null,2))
-}catch(error){await page?.screenshot({path:resolve(output,'failure.png')}).catch(()=>{});writeFileSync(resolve(output,'result.json'),JSON.stringify({result:'FAIL',error:String(error),checks,diagnostics},null,2));throw error}finally{await browser?.close();await server.close()}
+ await search(left(),'子树末级');await menu(left(),'r4-leaf','删除分类');assert.equal(await page.getByRole('dialog',{name:'删除分类',exact:true}).count(),0);assert((await read()).categories.some(item=>item.id==='r4-leaf'));assert.equal((await read()).families.find(item=>item.id==='gaps-spu').categoryId,'r4-leaf')
+ await search(left(),'移动子树已改名');await menu(left(),'r4-source','复制子树');await button(page.getByRole('dialog',{name:'复制分类',exact:true}),'复制').click();await page.getByRole('dialog',{name:'复制分类',exact:true}).waitFor({state:'hidden'});await settle();const copied=await read(),clone=copied.categories.find(item=>item.name==='移动子树已改名(复制)');assert(clone);assert.equal(copied.categories.filter(item=>item.parentId===clone.id).length,1);assert(copied.mappings.some(item=>item.categoryId===clone.id&&item.templateId==='t-phone'));assert.deepEqual(copied.families,initial.families)
+ await menu(left(),'r4-source','编辑与属性方案');const edit=page.getByRole('dialog',{name:'编辑分类',exact:true});assert(await edit.getByText('属性方案',{exact:true}).count());await button(edit,'取消').click();await menu(left(),'r4-source','查看详情');assert(await button(page,'跳转属性方案').isVisible())
+ mark('child and referenced-product deletion guards, subtree+scheme copy, no copied products and original detail/scheme entries')
+ await button(page,'新增根分类').click();const create=page.getByRole('dialog',{name:'新增根分类',exact:true});await create.getByPlaceholder('分类名称').fill('旧工作台回归新增');await button(create,'保存').click();await create.waitFor({state:'hidden'});await settle();let created=(await read()).categories.find(item=>item.name==='旧工作台回归新增');assert(created&&created.parentId===null)
+ await search(left(),'旧工作台回归新增');await menu(left(),created.id,'编辑与属性方案');await page.getByRole('dialog',{name:'编辑分类',exact:true}).getByRole('textbox').first().fill('旧工作台回归已编辑');await button(page.getByRole('dialog',{name:'编辑分类',exact:true}),'保存').click();await page.getByRole('dialog',{name:'编辑分类',exact:true}).waitFor({state:'hidden'});await settle();assert.equal((await read()).categories.find(item=>item.id===created.id).name,'旧工作台回归已编辑')
+ await search(left(),'旧工作台回归已编辑');const beforeDelete=await disk();await menu(left(),created.id,'删除分类');await button(page.getByRole('dialog',{name:'删除分类',exact:true}),'取消').click();await settle();assert.equal(await disk(),beforeDelete);assert((await read()).categories.some(item=>item.id===created.id));await menu(left(),created.id,'删除分类');await button(page.getByRole('dialog',{name:'删除分类',exact:true}),'删除').click();await page.getByRole('dialog',{name:'删除分类',exact:true}).waitFor({state:'hidden'});await settle();assert(!(await read()).categories.some(item=>item.id===created.id))
+ mark('real create/edit/delete via original dialogs, stable ID on edit and explicit cancel/confirm delete behavior')
+ await page.locator('.theme-switch').click();assert(await page.evaluate(()=>document.documentElement.classList.contains('dark')));await page.locator('.theme-switch').click();await page.setViewportSize({width:800,height:950});await search(left(),'移动子树已改名');await addSource('r4-source');const a=await left().boundingBox(),b=await right().boundingBox();assert(b.y>=a.y+a.height-1,'narrow layout stacks source preview below target tree');await page.locator('[data-category-root-target]').focus();await page.keyboard.press('Enter');assert.equal(await parent('r4-source'),'r4-a');await page.locator('[data-category-confirm-move]').focus();await page.keyboard.press('Enter');await page.locator('[data-category-source]').waitFor({state:'hidden'});await settle();assert.equal(await parent('r4-source'),null)
+ mark('light/dark theme switching, narrow stacking and explicit keyboard root move')
+ assert.deepEqual(diagnostics,[]);console.log(`PASS category workspace ${mode}: ${checks.length} groups; Chrome ${browser.version()}; no artifacts`)
+}finally{await browser?.close();await server.close();removeTestRuntime(runtime)}
