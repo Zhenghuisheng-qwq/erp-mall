@@ -1,4 +1,20 @@
 import type { AppData, ProductSpecNode } from './types'
+import { businessDefinition } from './nodeBusiness'
+import { safeBusinessConfigs } from './nodeBusinessStructure'
+
+function allowedValueReferences(data: AppData, paramId: string, value?: string) {
+  const sources: string[] = []
+  const scan = (nodes: ProductSpecNode[], source: string) => {
+    for (const node of nodes) for (const config of safeBusinessConfigs(node.businessConfigs)) {
+      if (businessDefinition(data, config)?.kind !== 'allowed-values' || config.parameters.attributeId !== paramId) continue
+      if (value !== undefined && (!Array.isArray(config.parameters.values) || !config.parameters.values.includes(value))) continue
+      sources.push(`${source}模型 ${node.templateId} / 节点 ${node.valueId || node.id} (${node.id}) 的允许值配置 ${config.id}`)
+    }
+  }
+  scan(data.productSpecNodes, '草稿')
+  for (const version of data.specModelVersions) scan(version.nodesSnapshot, `历史版本 ${version.versionName || version.version} (${version.id}) / `)
+  return sources
+}
 
 function matchesNode(node: ProductSpecNode, paramId: string, value?: string) {
   if (node.attributeId !== paramId) return false
@@ -10,7 +26,7 @@ function matchesNode(node: ProductSpecNode, paramId: string, value?: string) {
 export function dictionaryRemovalBlock(data: AppData, paramId: string, value?: string) {
   const param = data.params.find((item) => item.id === paramId)
   if (!param) return '参数不存在'
-  const sources: string[] = []
+  const sources: string[] = allowedValueReferences(data, paramId, value)
   if (data.specModelVersions.some((version) => version.nodesSnapshot.some((node) => matchesNode(node, paramId, value)))) sources.push('商品模型的已发布版本')
   if (data.productSpecNodes.some((node) => matchesNode(node, paramId, value))) sources.push('正在编辑的商品模型')
   if ((data.planningRecords || []).some((record) => record.steps.some((step) => step.attributeId === paramId && (value === undefined || step.valueId === value)))) sources.push('规划编号')
@@ -95,6 +111,8 @@ export function valueRenameDecision(data: AppData, paramId: string, value: strin
   if (!text) return { ok: false, needsConfirm: false, message: '请填写属性值。' }
   if (text === value) return { ok: true, needsConfirm: false, message: '' }
   if (param.values.includes(text)) return { ok: false, needsConfirm: false, message: `「${param.name}」已有取值「${text}」。请让当前节点改引用它，不会改掉「${value}」。` }
+  const references = allowedValueReferences(data, paramId, value)
+  if (references.length) return { ok: false, needsConfirm: false, message: `不能修改全局取值「${value}」，正在被${references.join('；')}引用。请先处理配置引用。` }
   const draft = data.productSpecNodes.some((node) => node.attributeId === paramId && node.nodeType === 'VALUE' && node.valueId === value)
   const published = publishedUsesValue(data, paramId, value)
   const planning = (data.planningRecords || []).some((record) => record.steps.some((step) => step.attributeId === paramId && step.valueId === value))

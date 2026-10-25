@@ -3,6 +3,8 @@
     <div :inert="busy" data-business-panel>
       <p><strong>{{ node?.valueId || '公共配置目录' }}</strong> <span class="muted">{{ node?.id }} · {{ readOnly ? '发布投影 / 只读' : '模型草稿' }}</span></p>
       <el-alert v-if="error" :title="error" type="error" :closable="false" />
+      <el-alert v-if="structureProblems.length" :title="structureProblems.join('；')" type="error" :closable="false" />
+      <details v-if="structureProblems.length"><summary>结构损坏，已停止编辑；查看保留的原文</summary><pre>{{ JSON.stringify({businessDefinitions:store.data.businessDefinitions,businessConfigs:node?.businessConfigs},null,2) }}</pre></details>
       <el-select v-if="node" v-model="versionId" placeholder="当前草稿" aria-label="业务配置版本" @change="editing=false; error=''">
         <el-option label="当前草稿" value="" /><el-option v-for="v in versions" :key="v.id" :label="`${v.versionName}（只读快照）`" :value="v.id" />
       </el-select>
@@ -60,6 +62,7 @@ import { computed, ref, watch } from 'vue'
 import { useCatalogStore, uid } from '../../stores/catalog'
 import { businessDefinition, businessDefinitions, businessIssues, businessLabel, businessPath, configProblem, resolveNodeBusiness, type BusinessDefinition, type NodeBusinessConfig } from '../../domain/nodeBusiness'
 import { nearestNamingRule } from '../../domain/naming'
+import { businessRecordProblems, safeBusinessConfigs } from '../../domain/nodeBusinessStructure'
 import type { ProductSpecNode } from '../../domain/types'
 const props=defineProps<{open:boolean;nodes:ProductSpecNode[];nodeId:string;readonly:boolean;busy:boolean;save:(records:NodeBusinessConfig[],expected:string)=>Promise<{ok:boolean;message?:string}>}>()
 const emit=defineEmits<{close:[];naming:[];locate:[id:string];pending:[value:boolean]}>()
@@ -68,8 +71,9 @@ const form=ref({definitionId:'business:sales',scope:'subtree',enabled:true}),val
 const versionId=ref('')
 const versions=computed(()=>store.data.specModelVersions.filter(v=>v.templateId===props.nodes[0]?.templateId))
 const displayNodes=computed(()=>versions.value.find(v=>v.id===versionId.value)?.nodesSnapshot || props.nodes)
-const readOnly=computed(()=>props.readonly || Boolean(versionId.value))
-const node=computed(()=>displayNodes.value.find(n=>n.id===props.nodeId)), records=computed(()=>node.value?.businessConfigs||[]),definitions=computed(()=>businessDefinitions(store.data))
+const structureProblems=computed(()=>businessRecordProblems(store.data,displayNodes.value,businessDefinitions(store.data)))
+const readOnly=computed(()=>props.readonly || Boolean(versionId.value) || Boolean(structureProblems.value.length))
+const node=computed(()=>displayNodes.value.find(n=>n.id===props.nodeId)), records=computed(()=>safeBusinessConfigs(node.value?.businessConfigs)),definitions=computed(()=>businessDefinitions(store.data))
 const formKind=computed(()=>definitions.value.find(d=>d.id===form.value.definitionId)?.kind)
 const targetParams=computed(()=>store.data.params.filter(p=>props.nodes.some(n=>n.nodeType==='ATTRIBUTE'&&n.attributeId===p.id&&businessPath(props.nodes,n.id).some(a=>a.id===props.nodeId))))
 const targetValues=computed(()=>store.data.params.find(p=>p.id===attributeId.value)?.values||[])

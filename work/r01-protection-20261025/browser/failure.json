@@ -1,0 +1,7 @@
+{
+  "error": "TimeoutError: page.waitForFunction: Timeout 15000ms exceeded.",
+  "checks": [
+    "dictionary UI refuses configured color2; permits frozen-only color10; historical snapshot unchanged"
+  ],
+  "errors": []
+}

@@ -1,0 +1,67 @@
+{
+  "result": "PASS",
+  "environment": {
+    "node": "v22.18.0",
+    "fixedTime": "2026-10-23T04:00:00.000Z",
+    "dataVersion": 15
+  },
+  "checks": [
+    {
+      "name": "preview-cancel-purity",
+      "result": "PASS",
+      "detail": "real batch/copy previews allocate no identity and write no data"
+    },
+    {
+      "name": "actual-storage-failure-retry-idempotency",
+      "result": "PASS",
+      "detail": "next real setItem fails; memory/disk stay identical; retry commits once; duplicate commits zero times"
+    },
+    {
+      "name": "conflict-edit-and-target-validation",
+      "result": "PASS",
+      "detail": "opposite same-range claims do not overwrite; explicit edit preserves id/time; conditional-without-prerequisite and wrong SKU/MAT rejected"
+    },
+    {
+      "name": "explicit-mat-copy-independent-history",
+      "result": "PASS",
+      "detail": "copy preview selected MAT only, keeps source snapshot, later MAT changes do not alter sales declarations; deletion protection retains both identities"
+    },
+    {
+      "name": "binding-confirm-source-and-protection",
+      "result": "PASS",
+      "detail": "binding failure retains memory/disk; rebind requires acknowledgement/current source; model and SKU references protected"
+    },
+    {
+      "name": "independent-device-no-material-required",
+      "result": "PASS",
+      "detail": "can explicitly maintain a model and declaration without device MAT/SKU/planning; quota failure does not create model"
+    },
+    {
+      "name": "export-import-refresh-atomic",
+      "result": "PASS",
+      "detail": "new bindings/statements/source snapshots survive real serialization and reload; failed import preserves original bytes; repeat import does not add relations"
+    },
+    {
+      "name": "legacy-import-and-dangling-reference",
+      "result": "PASS",
+      "detail": "old MAT records retain exact id/range/note/time; repeated normalization stable; dangling declaration retained as issue; wrong object kind rejected before write"
+    },
+    {
+      "name": "maintenance-permission-at-store-boundary",
+      "result": "PASS",
+      "detail": "operator may query but all five maintenance commands reject without writes"
+    },
+    {
+      "name": "migration-storage-failure-retains-history",
+      "result": "PASS",
+      "detail": "readable V14 history remains in memory with explicit failure message; original disk is not cleared or seeded"
+    },
+    {
+      "name": "unreadable-existing-storage-never-seeds",
+      "result": "PASS",
+      "detail": "bad JSON, existing empty payload, missing base array and unsupported version throw a recoverable error; original disk bytes remain, zero writes"
+    }
+  ],
+  "attempts": 20,
+  "writes": 15
+}

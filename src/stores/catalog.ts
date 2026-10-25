@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { businessDefinitions, businessIssues, businessPath, configProblem, copyBusinessConfigs, freezeBusinessNodes, type BusinessDefinition, type NodeBusinessConfig } from '../domain/nodeBusiness'
+import { businessDefinitions, businessImportProblems, businessIssues, businessPath, configProblem, copyBusinessConfigs, freezeBusinessNodes, type BusinessDefinition, type NodeBusinessConfig } from '../domain/nodeBusiness'
+import { businessImportSignature } from '../domain/nodeBusinessStructure'
 import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { createCatalogPersistence } from './catalogPersistence'
 import {
@@ -68,6 +69,8 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   if (!data?.families || !data.skus || !data.categories || !data.templates || !data.mappings || !data.templateParams) return null
   const version = parsed.version ?? 1
   if (version < 1 || version > DATA_VERSION) return null
+  const businessProblems = businessImportProblems(data)
+  if (businessProblems.length) throw new Error(`节点业务配置结构校验失败：${businessProblems.join(' ')} 原始记录已保留。`)
   const benefitProblems = benefitPackageImportProblems(data)
   if (benefitProblems.length) throw new Error(`权益包数据校验失败：${benefitProblems.join(' ')} 原始记录已保留。`)
   const templateProblems = [...templateCompatibilityImportProblems(data), ...templateCompatibilityOriginProblems(data)]
@@ -678,6 +681,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     const parsed = JSON.parse(text) as StoredPayload
     if (!parsed.data) throw new Error('导入文件缺少商品数据，当前数据没有被替换。')
     if (!Array.isArray(parsed.data.skus) || !Array.isArray(parsed.data.families)) throw new Error('导入文件缺少有效的商品数组，当前数据没有被替换。')
+    const businessProblems = businessImportProblems(parsed.data)
+    if (businessProblems.length) throw new Error(`节点业务配置结构校验失败：${businessProblems.join(' ')} 当前数据没有被替换。`)
+    if (!isAdmin.value && businessImportSignature(parsed.data) !== businessImportSignature(data)) throw new Error('当前角色仅可查看节点业务配置，不能通过导入修改业务目录、草稿配置或历史配置（含冻结信息）。')
     if (!isAdmin.value && JSON.stringify([parsed.data.compatibilities || [], parsed.data.deviceModels, parsed.data.deviceBindings]) !== JSON.stringify([data.compatibilities, data.deviceModels, data.deviceBindings])) throw new Error('当前角色仅可查看适用关系，不能通过导入修改声明或设备绑定。')
     if (!isAdmin.value && JSON.stringify([parsed.data.benefitPackages || [], parsed.data.benefitDeliveries || []]) !== JSON.stringify([data.benefitPackages || [], data.benefitDeliveries || []])) throw new Error('当前角色仅可查看权益包，不能通过导入修改配置或交付清单。')
     if (!isAdmin.value && JSON.stringify([parsed.data.templateCompatibilityConfigs, parsed.data.templateCompatibilityOrigins, parsed.data.specModelVersions.map(item => item.templateCompatibilitySnapshot)]) !== JSON.stringify([data.templateCompatibilityConfigs, data.templateCompatibilityOrigins, data.specModelVersions.map(item => item.templateCompatibilitySnapshot)])) throw new Error('当前角色仅可查看模板兼容配置，不能通过导入修改配置、发布快照或来源保护记录。')

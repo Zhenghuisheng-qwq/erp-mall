@@ -1,4 +1,5 @@
 import type { AppData, ProductSpecNode } from './types'
+import { businessRecordProblems, configStructureProblem, definitionStructureProblem, safeBusinessConfigs } from './nodeBusinessStructure'
 
 export interface BusinessDefinition { id: string; kind: string; name: string; description: string; enabled: boolean }
 export interface NodeBusinessConfig {
@@ -18,10 +19,15 @@ export function defaultBusinessDefinitions(): BusinessDefinition[] {
     { id:'business:naming', kind:'naming', name:'命名规则', description:'进入原命名编辑器，沿用最近祖先继承与发布版本。', enabled:true },
   ]
 }
-export const businessDefinitions = (data: AppData) => data.businessDefinitions ?? defaultBusinessDefinitions()
+export const businessDefinitions = (data: AppData): BusinessDefinition[] => data.businessDefinitions === undefined ? defaultBusinessDefinitions() : Array.isArray(data.businessDefinitions) ? data.businessDefinitions.filter(d => !definitionStructureProblem(d)) : []
+export function businessImportProblems(data: AppData): string[] {
+  const definitions = businessDefinitions(data)
+  return [...businessRecordProblems(data, Array.isArray(data.productSpecNodes) ? data.productSpecNodes : [], definitions),
+    ...(Array.isArray(data.specModelVersions) ? data.specModelVersions : []).flatMap(v => businessRecordProblems({ ...data, businessDefinitions: undefined }, Array.isArray(v.nodesSnapshot) ? v.nodesSnapshot : [], definitions).map(p => `历史版本 ${v.id} (${v.versionName || v.version})：${p}`))]
+}
 const clone = <T>(value:T):T => JSON.parse(JSON.stringify(value))
 export function businessDefinition(data:AppData, config:NodeBusinessConfig) {
-  return config?.definitionSnapshot || businessDefinitions(data).find(d=>d.id===config?.definitionId)
+  return (config?.definitionSnapshot && !definitionStructureProblem(config.definitionSnapshot) ? config.definitionSnapshot : undefined) || businessDefinitions(data).find(d=>d.id===config?.definitionId)
 }
 export function businessPath(nodes:ProductSpecNode[], nodeId:string):ProductSpecNode[] {
   const byId=new Map(nodes.map(n=>[n.id,n])), result:ProductSpecNode[]=[], seen=new Set<string>()
@@ -31,7 +37,8 @@ export function businessPath(nodes:ProductSpecNode[], nodeId:string):ProductSpec
   return result
 }
 export function configProblem(data:AppData,nodes:ProductSpecNode[],node:ProductSpecNode,config:NodeBusinessConfig):string {
-  if(!config || typeof config!=='object')return '配置结构无效，原文保留，请修正或删除。'
+  const structure = configStructureProblem(config, businessDefinitions(data))
+  if(structure)return `配置结构无效：${structure} 原文保留。`
   const def=businessDefinition(data,config)
   if(!def || !(BUSINESS_KINDS as readonly string[]).includes(def.kind))return '不支持的配置定义，原文保留；请勿当作空配置发布。'
   if(node.nodeType!=='VALUE'||config.modelId!==node.templateId||config.nodeId!==node.id||!config.id)return '配置必须归属当前模型的具体值节点。'
@@ -53,7 +60,8 @@ export function configProblem(data:AppData,nodes:ProductSpecNode[],node:ProductS
 }
 export function resolveNodeBusiness(data:AppData,nodes:ProductSpecNode[],nodeId:string,kind:string,targetAttributeId?:string) {
   const path=businessPath(nodes,nodeId), hits:{node:ProductSpecNode;config:NodeBusinessConfig;definition:BusinessDefinition}[]=[], errors:string[]=[]
-  for(const node of path)for(const config of node.businessConfigs || []) {
+  errors.push(...businessRecordProblems(data, path, businessDefinitions(data)))
+  for(const node of path)for(const config of safeBusinessConfigs(node.businessConfigs)) {
     const def=businessDefinition(data,config)
     if(def?.kind!==kind||!config.enabled||!(node.id===nodeId||config.scope==='subtree'))continue
     if(kind==='allowed-values'&&(node.id===nodeId||config.parameters?.attributeId!==targetAttributeId))continue
@@ -77,11 +85,11 @@ export function allowedBusinessValues(data:AppData,nodes:ProductSpecNode[],attri
   return {values:allowed?(frozenValues || values).filter(v=>allowed.includes(v)):values,message:''}
 }
 export function businessIssues(data:AppData,nodes:ProductSpecNode[]):BusinessIssue[] {
-  if (!nodes.some(n=>n.businessConfigs?.length)) return []
-  const issues:BusinessIssue[]=[], ids=new Set<string>()
+  const issues:BusinessIssue[]=businessRecordProblems(data,nodes,businessDefinitions(data)).map(message=>({nodeId:'',code:'structure',message})), ids=new Set<string>()
+  if (!issues.length && !nodes.some(n=>n.businessConfigs?.length)) return []
   for(const node of nodes) {
     const defs=new Set<string>()
-    for(const config of node.businessConfigs || []) {
+    for(const config of safeBusinessConfigs(node.businessConfigs)) {
       const problem=configProblem(data,nodes,node,config)
       if(problem)issues.push({nodeId:node.id,configId:config?.id,code:'config',message:`${node.valueId || node.id} (${node.id})：${problem}`})
       if(ids.has(config?.id)||defs.has(config?.definitionId))issues.push({nodeId:node.id,configId:config?.id,code:'duplicate',message:`${node.valueId}：重复配置实例，请保留一条。`})
@@ -106,13 +114,12 @@ export function businessIssues(data:AppData,nodes:ProductSpecNode[]):BusinessIss
 }
 /** Structural edits may repair existing invalid drafts, but cannot introduce new violations. */
 export function businessStructureProblem(data:AppData,before:ProductSpecNode[],after:ProductSpecNode[]) {
-  if(!before.some(n=>n.businessConfigs?.length)&&!after.some(n=>n.businessConfigs?.length))return ''
   const key=(i:BusinessIssue)=>`${i.nodeId}:${i.code}:${i.message}`
   const previous=new Set(businessIssues(data,before).map(key))
   return businessIssues(data,after).find(i=>!previous.has(key(i)))?.message || ''
 }
 export function businessConfigSignature(nodes:ProductSpecNode[]) {
-  return JSON.stringify(nodes.map(n=>[n.id,(n.businessConfigs||[]).map(({definitionSnapshot,dictionarySnapshot,...c})=>c)]))
+  return JSON.stringify(nodes.map(n=>[n.id,Array.isArray(n.businessConfigs)?n.businessConfigs.map(c=>{if(!c)return c;const {definitionSnapshot,dictionarySnapshot,...rest}=c;return rest}):n.businessConfigs ?? []]))
 }
 export function freezeBusinessNodes(data:AppData,nodes:ProductSpecNode[]) {
   return clone(nodes).map(n=>({...n,...(n.businessConfigs?{businessConfigs:n.businessConfigs.map(c=>{
