@@ -1,0 +1,22 @@
+<template><section data-framework-manager><p>框架只保存产品类型与选配规则；使用时按本次主机查询真实在售销售 SKU。</p><el-button v-if="store.isAdmin" @click="edit()" data-new-framework>新建选配框架</el-button><article v-for="f in (store.data.benefitFrameworks||[]).filter(f=>!f.deletedAt)" :key="f.id" class="framework-row"><strong>{{ f.name }}</strong><span>修订 {{ f.revision }} · {{ f.status==='available'?'可用':'停用' }} · {{ f.groups.length }} 组选配</span><el-button @click="edit(f)">查看／修改</el-button><el-button v-if="store.isAdmin" @click="copy(f)">复制框架</el-button><el-button v-if="store.isAdmin" @click="remove(f)">删除</el-button></article><el-alert v-if="error" :title="error" type="error" :closable="false" />
+<el-dialog v-model="open" title="类型选配框架" width="min(780px,95vw)" :close-on-click-modal="false" :before-close="close" class="framework-dialog" data-framework-dialog><el-form label-position="top"><el-form-item label="框架名称"><el-input v-model="draft.name" aria-label="框架名称" :disabled="!store.isAdmin||busy" /></el-form-item><el-form-item label="状态"><el-select v-model="draft.status" aria-label="框架状态" :disabled="!store.isAdmin||busy"><el-option value="available" label="可用"/><el-option value="disabled" label="停用"/></el-select></el-form-item></el-form><BenefitRuleEditor v-model="draft.groups" :enabled="true" :candidates="[]" type-mode :disabled="!store.isAdmin||busy"/><el-alert v-if="error" :title="error" type="error" :closable="false"/><template #footer><el-button :disabled="busy" @click="close()">关闭</el-button><el-button v-if="store.isAdmin" :loading="busy" @click="save" data-save-framework>保存框架</el-button></template></el-dialog></section></template>
+<script setup lang="ts">
+import {ref,onBeforeUnmount} from 'vue'
+import {onBeforeRouteLeave} from 'vue-router'
+import {ElMessageBox} from 'element-plus'
+import {useCatalogStore} from '../../stores/catalog'
+import {cloneBenefit} from '../../domain/benefitPackages'
+import type {BenefitFramework} from '../../domain/benefitPackageTypes'
+import BenefitRuleEditor from './BenefitRuleEditor.vue'
+import {localBenefitRequest} from './benefitPackagePresentation'
+const store=useCatalogStore(),open=ref(false),busy=ref(false),error=ref(''),original=ref(''),request=ref('')
+const empty=():BenefitFramework=>({id:'',name:'',status:'available',revision:0,groups:[],createdAt:'',updatedAt:'',creationRequestId:'',creationIntent:'',history:[]}),draft=ref(empty())
+function edit(f?:BenefitFramework){draft.value=f?cloneBenefit(f):empty();original.value=JSON.stringify(draft.value);request.value=localBenefitRequest('framework');error.value='';open.value=true}
+function copy(f:BenefitFramework){edit();draft.value.name=f.name+' 副本';draft.value.groups=cloneBenefit(f.groups)}
+async function close(done?:()=>void){if(busy.value)return;if(JSON.stringify(draft.value)!==original.value){try{await ElMessageBox.confirm('框架输入尚未保存，确认放弃？','未保存框架',{confirmButtonText:'放弃修改',cancelButtonText:'继续编辑'})}catch{return}}open.value=false;done?.()}
+async function save(){busy.value=true;try{const r=await store.saveBenefitFramework({draft:draft.value,expectedRevision:draft.value.revision,requestId:request.value});if(r.ok){draft.value=cloneBenefit(store.data.benefitFrameworks!.find(f=>f.id===r.id)!);original.value=JSON.stringify(draft.value);open.value=false;error.value=''}else error.value=r.message||'未保存，输入保留。'}finally{busy.value=false}}
+async function remove(f:BenefitFramework){try{await ElMessageBox.confirm(`删除框架「${f.name}」？`,'删除框架')}catch{return}const r=await store.removeBenefitFramework(f.id,f.revision);error.value=r.ok?'':r.message||'未删除'}
+onBeforeRouteLeave(async()=>{if(!open.value)return true;await close();return !open.value})
+const unload=(e:BeforeUnloadEvent)=>{if(open.value&&JSON.stringify(draft.value)!==original.value){e.preventDefault();e.returnValue=''}};window.addEventListener('beforeunload',unload);onBeforeUnmount(()=>window.removeEventListener('beforeunload',unload))
+</script>
+<style>.framework-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 0;border-bottom:1px solid var(--border-default)}.framework-dialog .el-dialog__body{max-height:65vh;overflow:auto}</style>

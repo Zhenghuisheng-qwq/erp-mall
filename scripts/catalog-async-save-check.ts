@@ -54,6 +54,6 @@ assert.equal(JSON.stringify([store.data.families, store.data.skus, store.data.be
 const loaded = JSON.parse(disk.get(STORAGE_KEY)!).data.productListPages.sku as ProductListPageState
 assert.deepEqual(loaded, copy(store.data.productListPages!.sku))
 mark('view-settings-only-and-disk-live-equality')
-const output = resolve('work/compatibility-benefit-refinement/async-save')
+const output = resolve(process.env.CATALOG_ASYNC_OUTPUT || 'work/compatibility-benefit-refinement/async-save')
 mkdirSync(output, { recursive: true }); writeFileSync(resolve(output, 'state.json'), JSON.stringify({ result: 'PASS', checks }, null, 2))
 scope.stop(); store.$dispose()

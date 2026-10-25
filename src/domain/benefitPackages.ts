@@ -1,3 +1,5 @@
+import { resolveBenefitRange, frameworkSelectionIssues, frameworkImportProblems, frameworkSnapshotProblem, frameworkReference } from './benefitFrameworks'
+import { referencePriceProblem, referenceLine, benefitReferenceTotals } from './benefitPricing'
 import { isRealSku } from './catalogIdentity'
 import { compatibilityRecordRole } from './deviceResolution'
 import { queryDeviceAccessories, queryModelAccessories } from './accessoryCompatibilityQuery'
@@ -28,8 +30,8 @@ export function parseBenefitAmount(text: string): number | null {
   const value = text.trim()
   if (!value) return null
   if (!/^\d+(?:\.\d{1,2})?$/.test(value)) throw new Error('报价须为非负金额，最多两位小数。')
-  const [whole = '', fraction = ''] = value.split('.'), cents = Number(whole) * 100 + Number(fraction.padEnd(2, '0'))
-  if (!validBenefitCents(cents)) throw new Error('报价超出安全范围。')
+  const [whole = '', fraction = ''] = value.split('.'), exact=BigInt(whole)*100n+BigInt(fraction.padEnd(2,'0')), cents = Number(exact)
+  if (exact>BigInt(Number.MAX_SAFE_INTEGER)||!validBenefitCents(cents)) throw new Error('报价超出安全范围。')
   return cents
 }
 export function formatBenefitAmount(cents: number | null): string {
@@ -41,7 +43,7 @@ export function newBenefitPackageDraft(device: BenefitDeviceContext = null): Ben
   return { id: '', code: '', revision: 0, name: '', status: 'draft', favorite: false, device: cloneBenefit(device), includedPhoneSkuId: '', requireFastCharge: false, goods: [], services: [], rulesEnabled: false, groups: [], quote: { currency: 'CNY', amountCents: null, reviewedBasis: '' }, confirmations: [], issues: [], createdAt: '', updatedAt: '' }
 }
 export function benefitCompositionBasis(draft: BenefitPackageDraft): string {
-  return stable({ device: draft.device, includedPhoneSkuId: draft.includedPhoneSkuId, requireFastCharge: draft.requireFastCharge, goods: draft.goods.map(line => ({ id: line.id, skuId: line.skuId, quantity: line.quantity })), services: draft.services, rulesEnabled: draft.rulesEnabled, groups: draft.groups })
+  return stable({ device: draft.device, includedPhoneSkuId: draft.includedPhoneSkuId, requireFastCharge: draft.requireFastCharge, goods: draft.goods.map(line => ({ id: line.id, skuId: line.skuId, quantity: line.quantity, ...(line.referencePrice ? {referencePrice:line.referencePrice} : {}) })), ...(draft.framework ? {framework:draft.framework} : {}), services: draft.services, rulesEnabled: draft.rulesEnabled, groups: draft.groups })
 }
 export function reviewBenefitQuote(draft: BenefitPackageDraft): BenefitPackageDraft {
   const next = cloneBenefit(draft); next.quote.reviewedBasis = benefitCompositionBasis(next); return next
@@ -81,7 +83,11 @@ export function addBenefitSku(data: AppData, draft: BenefitPackageDraft, skuId: 
   if (!summary) throw new Error('请选择真实销售 SKU，物料、规划或商品主体不能加入实物清单。')
   const family = data.families.find(item => item.id === summary.familyId)
   if (summary.status !== 'on_sale' || !family || shelfOf(family) !== 'online') throw new Error('该商品当前未在售，不能新增到包内。')
-  const group = draft.rulesEnabled ? draft.groups.find(item => item.enabled && item.candidateSkuIds.includes(skuId)) : undefined
+  const range=resolveBenefitRange(data,draft), reason=range.reason(skuId)
+  if(range.problems.length || reason && draft.framework)throw Error(range.problems.join(' ')||reason)
+  const hits=range.membership(skuId)
+  if(hits.length>1)throw Error('商品同时命中多个选配组，不能默认取第一组。')
+  const group=hits[0]
   const amount = quantity ?? group?.defaultQuantity ?? 1
   if (!validBenefitQuantity(amount)) throw new Error('每包商品数量必须为安全范围内的正整数。')
   const next = cloneBenefit(draft), existing = next.goods.find(line => line.skuId === skuId)
@@ -89,6 +95,7 @@ export function addBenefitSku(data: AppData, draft: BenefitPackageDraft, skuId: 
     if (!validBenefitQuantity(existing.quantity) || !Number.isSafeInteger(existing.quantity + amount)) throw new Error('合并后的商品数量超出安全范围。')
     existing.quantity += amount
   } else next.goods.push({ id: `goods:${skuId}`, skuId, quantity: amount, snapshot: summary })
+  if(draft.framework){const issues=frameworkSelectionIssues(data,next).filter(i=>i.skuId===skuId||i.groupId===group?.id&&next.goods.filter(l=>range.membership(l.skuId).some(g=>g.id===group?.id)).length>(group?.maxKinds||Infinity));if(issues.length)throw Error(issues.map(i=>i.message).join(' '))}
   return touchComposition(next)
 }
 export function replaceBenefitSku(data: AppData, draft: BenefitPackageDraft, lineId: string, newSkuId: string): BenefitPackageDraft {
@@ -108,6 +115,7 @@ export function setBenefitDevice(data: AppData, draft: BenefitPackageDraft, devi
     const original = next.goods.find(line => line.skuId === previous)
     if (original) {
       next.goods = next.goods.filter(line => line.skuId !== previous)
+      next.includedPhoneSkuId=device.skuId
       const replaced = addBenefitSku(data, next, device.skuId, original.quantity)
       replaced.includedPhoneSkuId = device.skuId
       return touchComposition(replaced)
@@ -121,6 +129,7 @@ export function setBenefitIncludedPhone(data: AppData, draft: BenefitPackageDraf
   if (next.device?.kind !== 'sku' || compatibilityRecordRole(data, next.device.skuId) !== 'host') throw new Error('只有具体销售手机 SKU 才能加入实物清单。')
   const target = next.device.skuId
   // The explicit inclusion switch links an existing row; it does not increment it again.
+  next.includedPhoneSkuId=target
   const result = next.goods.some(line => line.skuId === target) ? next : addBenefitSku(data, next, target)
   result.includedPhoneSkuId = target
   return touchComposition(result)
@@ -167,7 +176,8 @@ export function validateBenefitPackage(data: AppData, draft: BenefitPackageDraft
     if (!['per-package', 'per-delivery'].includes(service.measurement)) add('service-measurement', '服务计量方式无效。', true)
   }
   if (draft.includedPhoneSkuId && (!draft.goods.some(line => line.skuId === draft.includedPhoneSkuId) || compatibilityRecordRole(data, draft.includedPhoneSkuId) !== 'host')) add('included-phone', '包内手机引用失效，需明确移除或替换。')
-  if (draft.rulesEnabled) {
+  if(!draft.framework&&draft.groups.some(g=>g.scope))add('unsupported-scope','旧白名单规则中的扩展范围尚不支持，请使用正式类型框架。')
+  if (draft.rulesEnabled && !draft.framework) {
     const owners = new Map<string, string>()
     for (const group of draft.groups.filter(item => item.enabled)) {
       const extra = { groupId: group.id }
@@ -189,6 +199,11 @@ export function validateBenefitPackage(data: AppData, draft: BenefitPackageDraft
       for (const line of selected) if (!group.adjustable ? line.quantity !== group.defaultQuantity : line.quantity < group.minQuantity || line.quantity > group.maxQuantity) add('group-selected-quantity', `选配组「${group.name}」中每种商品的数量不符合 ${group.adjustable ? `${group.minQuantity}～${group.maxQuantity}` : group.defaultQuantity} 件约定。`, false, { ...extra, skuId: line.skuId })
     }
   }
+  if(draft.framework&&frameworkSnapshotProblem(draft.framework))add('framework-structure',frameworkSnapshotProblem(draft.framework),true)
+  else issues.push(...frameworkSelectionIssues(data,draft))
+  for(const line of draft.goods)try{referenceLine(line.referencePrice,line.quantity)}catch(e){add('reference-price',String(e),true,{skuId:line.skuId})}
+  for(const line of draft.services)try{referenceLine(line.referencePrice,line.quantity)}catch(e){add('reference-price',String(e),true,{serviceId:line.id})}
+  try{benefitReferenceTotals(draft)}catch(e){add('reference-price',e instanceof Error?e.message:String(e),true)}
   const relevantIds = new Set(draft.goods.map(line => line.skuId))
   const basis = stable({ composition: benefitCompositionBasis(draft), device: query ? { status: query.device.status, host: query.device.host, planningId: query.device.planningId, attributes: query.device.attributes, sourceStamp: query.device.sourceStamp } : null, goods: goods.map(item => ({ summary: item.summary, available: item.available, compatibility: item.compatibility })), declarations: data.compatibilities.filter(link => relevantIds.has(link.targetId || link.accessorySkuId)) })
   const assess = (item: BenefitValidation['goods'][number], capability: 'basic' | 'fast-charge') => {
@@ -227,13 +242,18 @@ export function previewBenefitDelivery(data: AppData, saved: BenefitPackage, pac
   if (saved.status !== 'available') issues.push({ code: 'package-status', message: saved.status === 'disabled' ? '停用包不能生成新的交付清单。' : '请先将完整配置保存为可用权益包。', severity: 'error' })
   if (!validBenefitQuantity(packageCount)) issues.push({ code: 'package-count', message: '本次包数必须为安全范围内的正整数。', severity: 'error' })
   const product = (quantity: number, factor: number): number => { try { return multiplyBenefitQuantity(quantity, factor) } catch { issues.push({ code: 'delivery-quantity', message: '交付数量无效或乘法溢出。', severity: 'error' }); return 0 } }
-  const goods = validation.goods.map(item => ({ ...cloneBenefit(item.summary), lineId: item.line.id, perPackageQuantity: item.line.quantity, totalQuantity: product(item.line.quantity, packageCount), compatibility: cloneBenefit(item.compatibility) }))
+  const price=(p:Parameters<typeof referenceLine>[0],q:number)=>{try{return referenceLine(p,q)}catch(e){issues.push({code:'reference-price',message:String(e),severity:'error'});return null}}
+  const goods = validation.goods.map(item => ({ ...cloneBenefit(item.summary), lineId: item.line.id, ...(item.line.referencePrice?{referencePrice:cloneBenefit(item.line.referencePrice)}:{}),referenceLineCents:price(item.line.referencePrice,item.line.quantity),referenceTotalCents:price(item.line.referencePrice,product(item.line.quantity,packageCount)), perPackageQuantity: item.line.quantity, totalQuantity: product(item.line.quantity, packageCount), compatibility: cloneBenefit(item.compatibility) }))
   const hostSkuIds = goods.filter(item => compatibilityRecordRole(data, item.skuId) === 'host').map(item => item.skuId)
-  const services = saved.services.map(service => ({ ...cloneBenefit(service), perPackageQuantity: service.quantity, totalQuantity: service.measurement === 'per-delivery' ? service.quantity : product(service.quantity, packageCount) }))
+  const services = saved.services.map(service => ({ ...cloneBenefit(service),referenceLineCents:price(service.referencePrice,service.quantity),referenceTotalCents:price(service.referencePrice,service.measurement==='per-delivery'?service.quantity:product(service.quantity,packageCount)), perPackageQuantity: service.quantity, totalQuantity: service.measurement === 'per-delivery' ? service.quantity : product(service.quantity, packageCount) }))
   const totalCents = saved.quote.amountCents === null ? null : saved.quote.amountCents * packageCount
   if (totalCents !== null && !validBenefitCents(totalCents)) issues.push({ code: 'delivery-quote', message: '本次总报价无效或超出安全范围。', severity: 'error' })
+  let referenceTotals:ReturnType<typeof benefitReferenceTotals>|undefined
+  try{referenceTotals=benefitReferenceTotals(saved,packageCount)}catch(e){issues.push({code:'reference-price',message:String(e),severity:'error'})}
+  if(saved.framework&&validation.quoteNeedsReview)issues.push({code:'quote-review',message:'组成或参考价格已变，请明确复核整包报价。',severity:'error'})
+  else if(saved.goods.some(l=>l.referencePrice)||saved.services.some(l=>l.referencePrice)){if(validation.quoteNeedsReview)issues.push({code:'quote-review',message:'参考价格或成员已变，请明确复核整包报价。',severity:'error'})}
   const basis = stable({ validation: validation.basis, packageId: saved.id, sourceRevision: saved.revision, name: saved.name, packageCount, quote: saved.quote, confirmations: saved.confirmations })
-  return { packageId: saved.id, packageCode: saved.code, sourceRevision: saved.revision, packageName: saved.name, packageCount, device: cloneBenefit(saved.device), deviceLabel: validation.deviceLabel, includedPhoneSkuId: saved.includedPhoneSkuId, hostSkuIds, goods, services, quote: { currency: 'CNY', amountCents: saved.quote.amountCents, totalCents, needsReview: validation.quoteNeedsReview }, confirmations: saved.confirmations.filter(item => item.basis === validation.basis).map(cloneBenefit), issues, canConfirm: !issues.some(issue => issue.severity === 'error' || issue.severity === 'condition'), basis }
+  return { ...(saved.framework?{framework:cloneBenefit(saved.framework)}:{}),...(referenceTotals?{referenceTotals}:{}), packageId: saved.id, packageCode: saved.code, sourceRevision: saved.revision, packageName: saved.name, packageCount, device: cloneBenefit(saved.device), deviceLabel: validation.deviceLabel, includedPhoneSkuId: saved.includedPhoneSkuId, hostSkuIds, goods, services, quote: { currency: 'CNY', amountCents: saved.quote.amountCents, totalCents, needsReview: validation.quoteNeedsReview }, confirmations: saved.confirmations.filter(item => item.basis === validation.basis).map(cloneBenefit), issues, canConfirm: !issues.some(issue => issue.severity === 'error' || issue.severity === 'condition'), basis }
 }
 export function createBenefitDeliverySnapshot(preview: BenefitDeliveryPreview, identity: { id: string; code: string; requestId: string; generatedAt: string }): BenefitDeliverySnapshot {
   if (!preview.canConfirm || !identity.id || !identity.code || !identity.requestId || !Number.isFinite(Date.parse(identity.generatedAt))) throw new Error('交付清单尚未通过确认校验。')
@@ -268,6 +288,7 @@ export function benefitRuleStructureIssues(groups: unknown): BenefitIssue[] {
     if (groupId) ids.add(groupId)
     if (!string(group.name)) add(`${label}名称结构无效。`, groupId, 'name')
     for (const field of ['enabled', 'required', 'adjustable'] as const) if (typeof group[field] !== 'boolean') add(`${label}启用与选配设置结构无效。`, groupId, field)
+    if(group.scope!==undefined&&(!object(group.scope)||typeof group.scope.kind!=='string'||!strings(group.scope.productTypeIds)||typeof group.scope.compatibleOnly!=='boolean'))add(`${label}类型范围结构无效。`,groupId,'scope')
     if (!strings(group.candidateSkuIds)) add(`${label}候选 SKU 集合结构无效。`, groupId, 'candidateSkuIds')
     for (const [field, title] of Object.entries(numericFields)) {
       const value = group[field], valid = field === 'minKinds' ? typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 : validBenefitQuantity(value)
@@ -305,9 +326,22 @@ export function benefitPackageImportProblems(data: unknown): string[] {
     if (!object(value.quote) || value.quote.currency !== 'CNY' || typeof value.quote.needsReview !== 'boolean' || (value.quote.amountCents === null ? value.quote.totalCents !== null : !validBenefitCents(value.quote.amountCents) || !validBenefitCents(value.quote.totalCents) || value.quote.totalCents !== Number(value.quote.amountCents) * Number(value.packageCount))) problems.push('交付清单报价无效。')
     if (!Array.isArray(value.confirmations) || !value.confirmations.every(confirmationShape) || !Array.isArray(value.issues) || value.issues.some(issue => !object(issue) || !string(issue.code) || !string(issue.message) || issue.severity !== 'warning')) problems.push('交付清单条件或确认说明无效。')
   }
+  for(const record of [...(Array.isArray(data.benefitPackages)?data.benefitPackages:[]),...(Array.isArray(data.benefitDeliveries)?data.benefitDeliveries:[])])if(object(record)){
+    for(const key of ['goods','services'])if(Array.isArray(record[key]))for(const line of record[key])if(object(line)){const e=referencePriceProblem(line.referencePrice);if(e)problems.push(e)}
+  }
+  if(!problems.length)for(const d of (data.benefitDeliveries||[]) as BenefitDeliverySnapshot[]){
+    if(d.referenceTotals!==undefined){try{
+      const totals=benefitReferenceTotals({goods:d.goods.map(l=>({...l,id:l.lineId,snapshot:l,quantity:l.perPackageQuantity})),services:d.services,quote:{...d.quote,reviewedBasis:''}},d.packageCount)
+      if(stable(totals)!==stable(d.referenceTotals))problems.push('交付参考合计与冻结行金额不一致。')
+      for(const l of [...d.goods,...d.services])if(l.referenceLineCents!==referenceLine(l.referencePrice,l.perPackageQuantity)||l.referenceTotalCents!==referenceLine(l.referencePrice,l.totalQuantity))problems.push('交付参考行金额与冻结数量不一致。')
+    }catch(e){problems.push(`交付参考金额无效：${String(e)}`)}}
+    else if([...d.goods,...d.services].some(l=>l.referencePrice!==undefined||l.referenceLineCents!==undefined||l.referenceTotalCents!==undefined))problems.push('新参考价格明细缺少冻结合计。')
+  }
+  if(!problems.length)problems.push(...frameworkImportProblems(data as unknown as AppData))
   return [...new Set(problems)]
 }
 export function benefitPackageReferenceProblem(data: AppData, kind: 'sku' | 'model' | 'type' | 'plan', id: string): string | undefined {
+  if(kind==='type'){const block=frameworkReference(data,'type',id);if(block)return block}
   for (const item of data.benefitPackages || []) {
     const skuIds = new Set([...item.goods.map(line => line.skuId), ...item.groups.flatMap(group => group.candidateSkuIds), ...(item.device?.kind === 'sku' ? [item.device.skuId] : [])])
     const affected = kind === 'sku' ? skuIds.has(id) : item.device?.kind === 'model' && (kind === 'model' ? [id, `device:${id}`, `template:${id}`].includes(item.device.host.productModelId) : kind === 'type' ? item.device.host.productTypeId === id : item.device.host.planningId === id) || [...skuIds].some(skuId => {

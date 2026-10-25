@@ -1,3 +1,4 @@
+import { resolveBenefitRange, applyBenefitFramework } from '../../domain/benefitFrameworks'
 import { nextTick, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -26,6 +27,7 @@ export function useBenefitPackageEditor() {
   const serviceOpen = ref(false), editedService = ref<BenefitServiceLine>(), serviceDirty = ref(false)
   const serviceDialog = ref<InstanceType<typeof BenefitServiceDialog>>()
   const ruleEditor = ref<InstanceType<typeof BenefitRuleEditor>>()
+  const membersOpen=ref(true), frameworkId=ref('')
   const advancedOpen = ref<string[]>([]), narrowPane = ref('candidates')
   const leaveIntent = ref<'route' | 'service'>('route')
   let allowNextNavigation = false
@@ -44,8 +46,8 @@ export function useBenefitPackageEditor() {
   const commonPackages = computed(() => (store.data.benefitPackages || []).filter(item => item.favorite && item.status !== 'disabled'))
   const models = computed(() => listDeviceModels(store.data))
   const deviceSkus = computed(() => store.data.skus.filter(sku => isRealSku(store.data, sku) && compatibilityRecordRole(store.data, sku.id) === 'host').map(sku => benefitSkuSummary(store.data, sku.id)).filter(item => item !== undefined))
-  const allCandidates = computed(() => benefitSkuCandidates(store.data, draft.value.device))
-  const candidates = computed(() => benefitSkuCandidates(store.data, draft.value.device, { keyword: keyword.value, productTypeId: productTypeId.value, accessoriesOnly: candidateTab.value === 'recommended' }))
+  const allCandidates = computed(() => draft.value.framework?resolveBenefitRange(store.data,draft.value).candidates:benefitSkuCandidates(store.data, draft.value.device))
+  const candidates = computed(() => draft.value.framework?allCandidates.value.filter(s=>(!productTypeId.value||s.productTypeId===productTypeId.value)&&(!keyword.value||`${s.name} ${s.code} ${s.spec}`.toLowerCase().includes(keyword.value.toLowerCase()))):benefitSkuCandidates(store.data, draft.value.device, { keyword: keyword.value, productTypeId: productTypeId.value, accessoriesOnly: candidateTab.value === 'recommended' }))
   const types = computed(() => [...new Map(allCandidates.value.map(item => [item.productTypeId, { id: item.productTypeId, name: item.typeName }])).values()])
   const currentPhone = computed(() => draft.value.device?.kind === 'sku' ? benefitSkuSummary(store.data, draft.value.device.skuId) : undefined)
   const includedPhone = computed(() => draft.value.goods.find(line => line.skuId === draft.value.includedPhoneSkuId)?.snapshot)
@@ -97,6 +99,16 @@ export function useBenefitPackageEditor() {
     if (!store.isAdmin || saving.value || generating.value) return
     try { draft.value = operation(); error.value = '' }
     catch (problem) { error.value = problem instanceof Error ? problem.message : String(problem) }
+  }
+  async function useFramework(){
+    if(!store.isAdmin||busy.value)return
+    const f=store.data.benefitFrameworks?.find(f=>f.id===frameworkId.value)
+    if(frameworkId.value&&!f){error.value='框架已不存在。';return}
+    let next:BenefitPackageDraft
+    try{next=applyBenefitFramework(draft.value,f)}catch(e){error.value=String(e);return}
+    const issues=validateBenefitPackage(store.data,next).issues.filter(i=>i.code.startsWith('framework'))
+    try{await ElMessageBox.confirm(`${f?`使用「${f.name}」修订 ${f.revision}`:'解除框架'}。保留 ${draft.value.goods.length} 种商品、服务及人工价格；清除旧条件确认并复核报价。${issues.map(i=>i.message).join(' ')||'当前成员符合新范围。'}`,'确认框架变更',{confirmButtonText:'保留成员并应用',cancelButtonText:'取消'})}catch{return}
+    change(()=>next)
   }
   function addSku(skuId: string) { change(() => addBenefitSku(store.data, draft.value, skuId)) }
   function quantity(lineId: string, value: number) { if (store.isAdmin && !busy.value) draft.value.goods = draft.value.goods.map(line => line.id === lineId ? { ...line, quantity: value } : line) }
@@ -219,6 +231,8 @@ export function useBenefitPackageEditor() {
     initialize()
   }
   async function locateIssue(issue: BenefitIssue) {
+    membersOpen.value=true;await nextTick()
+    if(draft.value.framework&&issue.groupId){document.querySelector('[data-framework-binding]')?.scrollIntoView({block:'center'});return}
     if (issue.groupId || issue.code.startsWith('group-')) {
       advancedOpen.value = ['rules']; await nextTick(); await ruleEditor.value?.focusIssue(issue); return
     }
@@ -270,5 +284,5 @@ export function useBenefitPackageEditor() {
   const beforeUnload = (event: BeforeUnloadEvent) => { if (unsaved.value && store.isAdmin && !store.persistenceState.discardConfirmed) { event.preventDefault(); event.returnValue = '' } }
   onMounted(() => window.addEventListener('beforeunload', beforeUnload))
   onBeforeUnmount(() => { window.removeEventListener('beforeunload', beforeUnload); resolveLeave?.(false); resolveLeave = undefined })
-  return { busy, serviceDialog, serviceDirty, requestServiceClose, leaveIntent, ruleEditor, advancedOpen, narrowPane, unsaved, saveAndPreview, locateIssue, manageCompatibility, store, draft, missing, dirty, stale, error, saving, keyword, productTypeId, candidateTab, candidates, allCandidates, commonPackages, types, models, deviceSkus, deviceValue, currentPhone, includedPhone, currentIsIncluded, validation, quoteText, quoteError, serviceOpen, editedService, replaceOpen, replaceSkuId, deviceSwitchOpen, pendingDevice, conditionNotes, deliveryCount, deliveryPreview, deliveryConfirmed, generating, canGenerate, relatedDeliveries, leaveOpen, leaving, addSku, quantity, removeSku, chooseReplacement, replace, requestDevice, finishDeviceSwitch, includePhone, editService, saveService, removeService, updateQuote, reviewQuote, confirmCondition, isConditionConfirmed, save, makeDeliveryPreview, generate, back, useCommon, openDelivery, setStatus, reload, continueEditing, discardAndLeave, saveAndLeave }
+  return { membersOpen,frameworkId,useFramework,busy, serviceDialog, serviceDirty, requestServiceClose, leaveIntent, ruleEditor, advancedOpen, narrowPane, unsaved, saveAndPreview, locateIssue, manageCompatibility, store, draft, missing, dirty, stale, error, saving, keyword, productTypeId, candidateTab, candidates, allCandidates, commonPackages, types, models, deviceSkus, deviceValue, currentPhone, includedPhone, currentIsIncluded, validation, quoteText, quoteError, serviceOpen, editedService, replaceOpen, replaceSkuId, deviceSwitchOpen, pendingDevice, conditionNotes, deliveryCount, deliveryPreview, deliveryConfirmed, generating, canGenerate, relatedDeliveries, leaveOpen, leaving, addSku, quantity, removeSku, chooseReplacement, replace, requestDevice, finishDeviceSwitch, includePhone, editService, saveService, removeService, updateQuote, reviewQuote, confirmCondition, isConditionConfirmed, save, makeDeliveryPreview, generate, back, useCommon, openDelivery, setStatus, reload, continueEditing, discardAndLeave, saveAndLeave }
 }

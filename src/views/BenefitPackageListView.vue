@@ -3,8 +3,8 @@
     <PageHead title="权益包" desc="把真实商品和服务约定组合保存，按本次包数生成独立的交付清单。"><el-button v-if="store.isAdmin" type="primary" data-new-benefit-package @click="router.push('/benefit-packages/new')">新建权益包</el-button></PageHead>
     <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon class="page-error" />
     <section class="panel list-panel">
-      <el-tabs v-model="tab"><el-tab-pane label="权益包配置" name="packages" /><el-tab-pane :label="`交付清单 ${deliveries.length}`" name="deliveries" /></el-tabs>
-      <div class="list-tools"><el-input v-model="keyword" clearable :placeholder="tab === 'packages' ? '搜索包名称或编号' : '搜索清单、包名称或编号'" aria-label="搜索权益包" /><el-select v-if="tab === 'packages'" v-model="status" placeholder="全部状态" aria-label="权益包状态"><el-option label="全部状态" value="" /><el-option label="草稿" value="draft" /><el-option label="可用" value="available" /><el-option label="停用" value="disabled" /><el-option label="需处理" value="issues" /></el-select><el-checkbox v-if="tab === 'packages'" v-model="favoritesOnly">只看常用包</el-checkbox></div>
+      <el-tabs v-model="tab"><el-tab-pane label="选配框架" name="frameworks" /><el-tab-pane label="权益包配置" name="packages" /><el-tab-pane :label="`交付清单 ${deliveries.length}`" name="deliveries" /></el-tabs>
+      <BenefitFrameworkManager v-if="tab === 'frameworks'"/><div v-if="tab !== 'frameworks'" class="list-tools"><el-input v-model="keyword" clearable :placeholder="tab === 'packages' ? '搜索包名称或编号' : '搜索清单、包名称或编号'" aria-label="搜索权益包" /><el-select v-if="tab === 'packages'" v-model="status" placeholder="全部状态" aria-label="权益包状态"><el-option label="全部状态" value="" /><el-option label="草稿" value="draft" /><el-option label="可用" value="available" /><el-option label="停用" value="disabled" /><el-option label="需处理" value="issues" /></el-select><el-checkbox v-if="tab === 'packages'" v-model="favoritesOnly">只看常用包</el-checkbox></div>
       <template v-if="tab === 'packages'">
         <p class="list-count">{{ rows.length }} 个权益包 · 常用包优先展示</p>
         <el-empty v-if="!rows.length" :description="keyword || status || favoritesOnly ? '没有匹配的权益包，请调整搜索或状态。' : '还没有权益包。从设备或已有 SKU 开始，也可以自由添加商品和服务。'"><el-button v-if="store.isAdmin && !keyword && !status && !favoritesOnly" @click="router.push('/benefit-packages/new')">开始组包</el-button></el-empty>
@@ -14,11 +14,12 @@
           <div class="card-actions"><el-button @click="edit(row.item.id)">{{ store.isAdmin ? '打开权益包' : '查看权益包' }}</el-button><el-button v-if="store.isAdmin" @click="copy(row.item.id)" :data-copy-benefit-package="row.item.id">复制组包</el-button><el-button v-if="store.isAdmin" link :loading="pendingId === row.item.id" :disabled="Boolean(pendingId)" @click="favorite(row.item.id)">{{ row.item.favorite ? '取消常用' : '设为常用' }}</el-button><el-button v-if="store.isAdmin" link :disabled="Boolean(pendingId)" :type="row.item.status === 'disabled' ? 'primary' : 'danger'" @click="setStatus(row.item.id)">{{ row.item.status === 'disabled' ? '启用' : '停用' }}</el-button></div>
         </article>
       </template>
-      <template v-else><el-empty v-if="!deliveries.length" description="还没有匹配的交付清单。先保存权益包，再明确发起一次清单生成。" /><article v-for="item in deliveries" :key="item.id" class="package-card" :data-benefit-delivery="item.id"><div class="card-main"><h2>{{ item.packageName }}</h2><p class="muted">{{ item.code }} · 来源 {{ item.packageCode }} / 修订 {{ item.sourceRevision }}</p><p class="device-line">{{ item.packageCount }} 包 · {{ item.generatedAt }}</p></div><div class="card-price"><strong>{{ formatBenefitCents(item.quote.totalCents) }}</strong><span>本次总报价</span></div><el-button @click="router.push(`/benefit-packages/deliveries/${encodeURIComponent(item.id)}`)">查看清单</el-button></article></template>
+      <template v-else-if="tab === 'deliveries'"><el-empty v-if="!deliveries.length" description="还没有匹配的交付清单。先保存权益包，再明确发起一次清单生成。" /><article v-for="item in deliveries" :key="item.id" class="package-card" :data-benefit-delivery="item.id"><div class="card-main"><h2>{{ item.packageName }}</h2><p class="muted">{{ item.code }} · 来源 {{ item.packageCode }} / 修订 {{ item.sourceRevision }}</p><p class="device-line">{{ item.packageCount }} 包 · {{ item.generatedAt }}</p></div><div class="card-price"><strong>{{ formatBenefitCents(item.quote.totalCents) }}</strong><span>本次总报价</span></div><el-button @click="router.push(`/benefit-packages/deliveries/${encodeURIComponent(item.id)}`)">查看清单</el-button></article></template>
     </section>
   </div>
 </template>
 <script setup lang="ts">
+import BenefitFrameworkManager from '../components/benefit-package/BenefitFrameworkManager.vue'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'

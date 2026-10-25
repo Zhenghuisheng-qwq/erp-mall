@@ -13,12 +13,13 @@ export interface BenefitSkuSummary {
   typeName: string
   status: string
 }
-export interface BenefitGoodsLine { id: string; skuId: string; quantity: number; snapshot: BenefitSkuSummary }
+export interface BenefitGoodsLine { id: string; skuId: string; quantity: number; snapshot: BenefitSkuSummary; referencePrice?: BenefitReferencePrice }
 export interface BenefitServiceLine {
   id: string
   name: string
   quantity: number
   unit: string
+  referencePrice?: BenefitReferencePrice
   measurement: 'per-package' | 'per-delivery'
   validity: string
   description: string
@@ -27,6 +28,7 @@ export interface BenefitSelectionGroup {
   id: string
   name: string
   enabled: boolean
+  scope?: { kind: string; productTypeIds: string[]; compatibleOnly: boolean }
   candidateSkuIds: string[]
   required: boolean
   minKinds: number
@@ -68,6 +70,7 @@ export interface BenefitPackageDraft {
   id: string
   code: string
   revision: number
+  framework?: BenefitFrameworkSnapshot
   creationRequestId?: string
   name: string
   status: BenefitPackageStatus
@@ -110,9 +113,11 @@ export interface BenefitValidation {
   serviceCount: number
   quoteNeedsReview: boolean
 }
-export interface BenefitDeliveryGoods extends BenefitSkuSummary { lineId: string; perPackageQuantity: number; totalQuantity: number; compatibility: BenefitCompatibilitySummary }
-export interface BenefitDeliveryService extends BenefitServiceLine { perPackageQuantity: number; totalQuantity: number }
+export interface BenefitDeliveryGoods extends BenefitSkuSummary { lineId: string; perPackageQuantity: number; totalQuantity: number; compatibility: BenefitCompatibilitySummary; referencePrice?: BenefitReferencePrice; referenceLineCents?: number | null; referenceTotalCents?: number | null }
+export interface BenefitDeliveryService extends BenefitServiceLine { perPackageQuantity: number; totalQuantity: number; referenceLineCents?: number | null; referenceTotalCents?: number | null }
 export interface BenefitDeliveryPreview {
+  framework?: BenefitFrameworkSnapshot
+  referenceTotals?: BenefitReferenceTotals
   packageId: string
   packageCode: string
   sourceRevision: number
@@ -146,3 +151,8 @@ export interface BenefitCommandResult {
   delivery?: BenefitDeliverySnapshot
   validation?: BenefitValidation
 }
+
+export interface BenefitReferencePrice { amountCents: number | null; source: 'manual'; enteredAt: string; inputText?: string }
+export interface BenefitReferenceTotals { perPackageKnownCents: number; perDeliveryKnownCents: number; totalKnownCents: number; missingCount: number; complete: boolean; differenceCents: number | null }
+export interface BenefitFrameworkSnapshot { kind: string; frameworkId: string; revision: number; name: string; groups: BenefitSelectionGroup[] }
+export interface BenefitFramework { deletedAt?: string; id: string; name: string; status: 'available' | 'disabled'; revision: number; groups: BenefitSelectionGroup[]; createdAt: string; updatedAt: string; creationRequestId: string; creationIntent: string; history: BenefitFrameworkSnapshot[] }

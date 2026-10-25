@@ -1,0 +1,11 @@
+{
+  "browser": "156.0.8078.47",
+  "checks": [
+    "real UI saves zero-SKU type framework; quota failure retains input and atomic retry succeeds",
+    "framework filters other-goods tab and dynamically includes newly imported compatible sale SKU without editing rules",
+    "manual prices/free zero, member fold, narrow UI, multi-package once-only service, signed difference, complete print and real Excel download",
+    "framework revision and current package repricing leave saved delivery and its frozen rule/price facts unchanged",
+    "two real pages reject stale delivery preview without overwriting newer package or history"
+  ],
+  "errors": []
+}

@@ -1,3 +1,5 @@
+import { frameworkCommand, frameworkReference, frameworkSnapshot, frameworkSnapshotProblem, frameworkProblems, frameworkSignature } from '../domain/benefitFrameworks'
+import type { BenefitFramework } from '../domain/benefitPackageTypes'
 import { defineStore } from 'pinia'
 import { businessDefinitions, businessImportProblems, businessIssues, businessPath, configProblem, copyBusinessConfigs, freezeBusinessNodes, type BusinessDefinition, type NodeBusinessConfig } from '../domain/nodeBusiness'
 import { businessImportSignature } from '../domain/nodeBusinessStructure'
@@ -418,13 +420,14 @@ export const useCatalogStore = defineStore('catalog', () => {
   /** Persist a complete candidate before exposing either configuration or snapshot changes. */
   function commitBenefitState(next: AppData, result: BenefitCommandResult): BenefitCommandResult {
     if (!result.ok) return result
-    if (JSON.stringify([data.benefitPackages, data.benefitDeliveries]) === JSON.stringify([next.benefitPackages, next.benefitDeliveries])) return result
+    if (JSON.stringify([data.benefitPackages, data.benefitDeliveries, data.benefitFrameworks]) === JSON.stringify([next.benefitPackages, next.benefitDeliveries, next.benefitFrameworks])) return result
     try {
       persistence.write(next)
       if (next.benefitPackages !== undefined) data.benefitPackages = next.benefitPackages
       else delete data.benefitPackages
       if (next.benefitDeliveries !== undefined) data.benefitDeliveries = next.benefitDeliveries
       else delete data.benefitDeliveries
+      if(next.benefitFrameworks!==undefined)data.benefitFrameworks=next.benefitFrameworks;else delete data.benefitFrameworks
       explicitlyPersisted = JSON.stringify(data)
       migrationStorageError = ''
       return result
@@ -450,6 +453,21 @@ export const useCatalogStore = defineStore('catalog', () => {
     return { id: `${idPrefix}-${String(number).padStart(6, '0')}`, code: `${codePrefix}-${String(number).padStart(6, '0')}` }
   }
 
+  function saveBenefitFramework(input:{draft:BenefitFramework;expectedRevision:number;requestId:string}) {
+    const denied=benefitPermission();if(denied)return denied
+    const next=cloneCompatibility(data)
+    const result=frameworkCommand(next,input,()=>uid('benefit-framework'))
+    return commitBenefitState(next,result)
+  }
+  function removeBenefitFramework(id:string,revision:number){
+    const denied=benefitPermission();if(denied)return denied
+    const item=data.benefitFrameworks?.find(f=>f.id===id)
+    if(!item||item.deletedAt||item.revision!==revision)return {ok:false,message:'框架不存在或已更新。'}
+    const block=frameworkReference(data,'framework',id);if(block)return {ok:false,message:block}
+    const next=cloneCompatibility(data),removed=next.benefitFrameworks!.find(f=>f.id===id)!
+    removed.deletedAt=new Date().toISOString();removed.status='disabled';removed.updatedAt=removed.deletedAt
+    return commitBenefitState(next,{ok:true})
+  }
   function saveBenefitPackage(input: { draft: BenefitPackageDraft; status: 'draft' | 'available'; expectedRevision?: number; requestId: string }): BenefitCommandResult {
     const denied = benefitPermission()
     if (denied) return denied
@@ -463,6 +481,14 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (previous && (input.expectedRevision ?? input.draft.revision) !== previous.revision) return { ok: false, message: '权益包已被更新，请重新打开并核对最新配置；当前草稿保留。' }
     if (previous && !Number.isSafeInteger(previous.revision + 1)) return { ok: false, message: '权益包修订版本已超出安全范围，当前配置未改变。' }
     if (previous && !previous.creationRequestId && data.benefitPackages?.some(item => item.id !== previous.id && item.creationRequestId === input.requestId)) return { ok: false, message: '保存请求已属于另一权益包，请重新发起当前保存操作。' }
+    if(input.draft.framework){
+      const binding=input.draft.framework, problem=frameworkSnapshotProblem(binding)
+      if(problem)return {ok:false,message:problem}
+      if(frameworkSignature(previous?.framework)!==frameworkSignature(binding)){
+        const f=data.benefitFrameworks?.find(f=>f.id===binding.frameworkId)
+        if(!f||f.status!=='available'||frameworkSignature(frameworkSnapshot(f))!==frameworkSignature(binding))return {ok:false,message:'框架已变更或停用，请重新选择当前修订；原成员和报价保留。'}
+      }
+    }
     const draft = cloneBenefit(input.draft)
     draft.status = input.status
     const validation = validateBenefitPackage(data, draft)
@@ -512,7 +538,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (denied) return denied
     if (typeof input.requestId !== 'string' || !input.requestId.trim()) return { ok: false, message: '本次生成请求缺少标识，请重新预览。' }
     const receipt = data.benefitDeliveries?.find(item => item.requestId === input.requestId)
-    if (receipt) return receipt.packageId === input.packageId ? { ok: true, id: receipt.id, delivery: cloneCompatibility(receipt) } : { ok: false, message: '本次请求已属于另一权益包，请发起新的生成操作。' }
+    if (receipt) return receipt.packageId === input.packageId && (!(receipt.framework || receipt.goods.some(l=>l.referencePrice) || receipt.services.some(l=>l.referencePrice)) || receipt.packageCount === input.packageCount && receipt.sourceRevision === input.expectedRevision && receipt.basis === input.expectedBasis) ? { ok: true, id: receipt.id, delivery: cloneCompatibility(receipt) } : { ok: false, message: '本次请求已用于其他权益包或不同交付依据，请发起新的生成操作。' }
     const source = data.benefitPackages?.find(item => item.id === input.packageId)
     if (!source || source.revision !== input.expectedRevision) return { ok: false, message: '权益包已更新或不存在，请重新预览完整组成和报价。' }
     const preview = previewBenefitDelivery(data, source, input.packageCount)
@@ -642,6 +668,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     Object.assign(data, next)
     if (next.deviceModels === undefined) delete data.deviceModels
     if (next.deviceBindings === undefined) delete data.deviceBindings
+    if (next.benefitFrameworks === undefined) delete data.benefitFrameworks
     if (next.benefitPackages === undefined) delete data.benefitPackages
     if (next.benefitDeliveries === undefined) delete data.benefitDeliveries
     if (next.templateCompatibilityConfigs === undefined) delete data.templateCompatibilityConfigs
@@ -687,6 +714,8 @@ export const useCatalogStore = defineStore('catalog', () => {
       next.feedbacks = fresh.feedbacks
       next.profile = fresh.profile
     }
+    const frameworkResetProblems=(next.benefitFrameworks||[]).filter(f=>!f.deletedAt).flatMap(f=>f.history.flatMap(v=>frameworkProblems(next,v.groups)))
+    if(frameworkResetProblems.length)return {ok:false,message:`模块重置会破坏权益包框架：${frameworkResetProblems.join(' ')}`}
     const relationProblems = materialRelationImportProblems(next)
     if (relationProblems.length) return { ok: false as const, message: `本模块重置会破坏物料关联：${relationProblems.join(' ')}；请保留当前数据或恢复完整备份。` }
     persistence.write(next, true)
@@ -710,7 +739,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (relationProblems.length) throw new Error(`物料关联校验失败：${relationProblems.join(' ')} 当前数据没有被替换。`)
     if (!isAdmin.value && businessImportSignature(parsed.data) !== businessImportSignature(data)) throw new Error('当前角色仅可查看节点业务配置，不能通过导入修改业务目录、草稿配置或历史配置（含冻结信息）。')
     if (!isAdmin.value && JSON.stringify([parsed.data.compatibilities || [], parsed.data.deviceModels, parsed.data.deviceBindings]) !== JSON.stringify([data.compatibilities, data.deviceModels, data.deviceBindings])) throw new Error('当前角色仅可查看适用关系，不能通过导入修改声明或设备绑定。')
-    if (!isAdmin.value && JSON.stringify([parsed.data.benefitPackages || [], parsed.data.benefitDeliveries || []]) !== JSON.stringify([data.benefitPackages || [], data.benefitDeliveries || []])) throw new Error('当前角色仅可查看权益包，不能通过导入修改配置或交付清单。')
+    if (!isAdmin.value && JSON.stringify([parsed.data.benefitPackages || [], parsed.data.benefitDeliveries || [], parsed.data.benefitFrameworks || []]) !== JSON.stringify([data.benefitPackages || [], data.benefitDeliveries || [], data.benefitFrameworks || []])) throw new Error('当前角色仅可查看权益包，不能通过导入修改配置或交付清单。')
     if (!isAdmin.value && JSON.stringify([parsed.data.templateCompatibilityConfigs, parsed.data.templateCompatibilityOrigins, parsed.data.specModelVersions.map(item => item.templateCompatibilitySnapshot)]) !== JSON.stringify([data.templateCompatibilityConfigs, data.templateCompatibilityOrigins, data.specModelVersions.map(item => item.templateCompatibilitySnapshot)])) throw new Error('当前角色仅可查看模板兼容配置，不能通过导入修改配置、发布快照或来源保护记录。')
     const templateProblems = [...templateCompatibilityImportProblems(parsed.data), ...templateCompatibilityOriginProblems(parsed.data)]
     if (templateProblems.length) throw new Error(`模板兼容导入校验失败：${templateProblems.join(' ')} 当前数据没有被替换。`)
@@ -1276,6 +1305,8 @@ export const useCatalogStore = defineStore('catalog', () => {
         ? commitSkuPage(next)
         : { ok: false, message: 'SKU 页面设置已由上一个操作更新，本次未覆盖；当前工作配置已保留，请重新核对后保存。' })
     },
+    saveBenefitFramework: (...args: Parameters<typeof saveBenefitFramework>) => command(() => saveBenefitFramework(...args)),
+    removeBenefitFramework: (...args: Parameters<typeof removeBenefitFramework>) => command(() => removeBenefitFramework(...args)),
     saveBenefitPackage: (...args: Parameters<typeof saveBenefitPackage>) => command<BenefitCommandResult>(() => saveBenefitPackage(...args)),
     setBenefitPackageStatus: (...args: Parameters<typeof setBenefitPackageStatus>) => command<BenefitCommandResult>(() => setBenefitPackageStatus(...args)),
     setBenefitPackageFavorite: (...args: Parameters<typeof setBenefitPackageFavorite>) => command<BenefitCommandResult>(() => setBenefitPackageFavorite(...args)),

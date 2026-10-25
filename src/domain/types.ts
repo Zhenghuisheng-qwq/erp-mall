@@ -1,3 +1,4 @@
+import type { BenefitFramework } from './benefitPackageTypes'
 import type { SkuViewConfig, SkuWorkbenchState } from './skuWorkbenchTypes'
 import type { AccessoryTargetKind, CompatibilityCapability, CompatibilityConclusion, CompatibilityCondition, CompatibilityProvenance, CompatibilityVerification, DeviceBinding, DeviceModel } from './accessoryCompatibilityTypes'
 import type { BenefitDeliverySnapshot, BenefitPackage } from './benefitPackageTypes'
@@ -544,6 +545,7 @@ export interface AppData {
   deviceModels?: DeviceModel[]
   deviceBindings?: DeviceBinding[]
   /** Independent package configurations and immutable confirmed delivery snapshots. */
+  benefitFrameworks?: BenefitFramework[]
   benefitPackages?: BenefitPackage[]
   benefitDeliveries?: BenefitDeliverySnapshot[]
   /** 规划节点上的适用主机。旧数据没有时保持空数组，不回填历史物料。 */
