@@ -1,0 +1,13 @@
+{
+  "browser": "156.0.8078.47",
+  "checks": [
+    "dictionary UI refuses configured color2; permits frozen-only color10; historical snapshot unchanged",
+    "operator directory actual file import rejected; disk and exported live data unchanged",
+    "operator draft actual file import rejected; disk and exported live data unchanged",
+    "operator snapshot actual file import rejected; disk and exported live data unchanged",
+    "admin legal restore through same import UI preserves configs and frozen information",
+    "malformed config import visibly rejected without persistence change",
+    "damaged stored data enters recovery with original raw bytes retained"
+  ],
+  "errors": []
+}

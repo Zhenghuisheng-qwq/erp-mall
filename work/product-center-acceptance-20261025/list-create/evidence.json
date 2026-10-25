@@ -1,0 +1,10 @@
+{
+  "browser": "156.0.8078.47",
+  "checks": [
+    "real independent empty SPU then two separate SKU saves under same SPU; no invented PLN/version; reload keeps two",
+    "real COMMON value planning save and 3 SKU creation; concrete full PLN/version identity and planning reverse count",
+    "SPU real grouping, ascending/descending sorting and saved view refresh preserve business identity",
+    "SKU parent category includes children; grouping/sorting saved and restored; list settings never rewrite business data"
+  ],
+  "errors": []
+}

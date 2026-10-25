@@ -1,0 +1,9 @@
+{
+  "error": "TimeoutError: locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-benefit-error]') to be visible\u001b[22m\n",
+  "checks": [
+    "same directory independent node instances; current scope does not inherit; subtree does; no dictionary/branch/axis changes",
+    "real naming rule renders ordered attributes and exact spaces; ancestor source shown; V2 preserves V1",
+    "second model reverse attribute order is displayed and published with original dictionary IDs"
+  ],
+  "errors": []
+}

@@ -1,0 +1,78 @@
+{
+  "result": "PASS",
+  "browser": "156.0.8078.47",
+  "checkpoints": [
+    {
+      "name": "sku-entry-context-only-cancel-preserves-view-search-selection"
+    },
+    {
+      "name": "accessory-entry-add-merge-replace-invalid-quantity-services-zero-quote-save-quota-retry-refresh"
+    },
+    {
+      "name": "three-pack-preview-pure-generation-quota-retry-frozen-totals-refresh"
+    },
+    {
+      "name": "snapshot-print-style-export-real-xlsx-failure-retry-repeat-no-business-writes"
+    },
+    {
+      "name": "explicit-phone-add-remove-switch-preserves-goods-and-new-request-second-delivery"
+    },
+    {
+      "name": "favorite-copy-new-identity-deep-independent-source-history-and-quote-review"
+    },
+    {
+      "name": "optional-rule-kinds-versus-quantity-candidates-not-selection-cross-group-conflict-refresh"
+    },
+    {
+      "name": "actual-sku-editor-and-package-edits-do-not-rewrite-historical-snapshot"
+    },
+    {
+      "name": "basic-fast-charge-separate-local-condition-confirmation-invalidation-and-snapshot"
+    },
+    {
+      "name": "dialog-escape-focus-and-unsaved-keep-edit-save-draft-leave"
+    },
+    {
+      "name": "new-package-route-does-not-map-current-module-reset-to-system-data"
+    },
+    {
+      "name": "management-entry-free-goods-services-no-device-no-quote-delivery"
+    },
+    {
+      "name": "readonly-can-view-print-export-without-edit-actions"
+    },
+    {
+      "name": "cancel-restores-second-page-selection-horizontal-scroll-without-persistence"
+    },
+    {
+      "name": "visual-wide"
+    },
+    {
+      "name": "visual-dark"
+    },
+    {
+      "name": "visual-narrow"
+    },
+    {
+      "name": "visual-equivalent-125-percent"
+    }
+  ],
+  "diagnostics": [],
+  "screenshots": [
+    "editor-light.png",
+    "save-failure-keeps-draft.png",
+    "delivery-failure-keeps-preview.png",
+    "delivery-light.png",
+    "delivery-print-style.png",
+    "selection-rules.png",
+    "editor-wide.png",
+    "list-wide.png",
+    "editor-dark.png",
+    "list-dark.png",
+    "editor-narrow.png",
+    "list-narrow.png",
+    "editor-equivalent-125-percent.png",
+    "list-equivalent-125-percent.png"
+  ],
+  "printVerification": "window.print invocation recorded as return/cancel; actual print CSS emulated and inspected; native OS dialog not automated"
+}

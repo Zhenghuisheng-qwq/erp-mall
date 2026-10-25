@@ -1,0 +1,19 @@
+{
+  "checks": [
+    "early node create: real prefix only, no fake PLN/TMP; plan/combo unchanged; quota atomic and retry idempotent",
+    "two paths share one MAT; immutable archive and original source, semantic duplicate idempotency and deduplicated counts",
+    "same PLN creates another MAT; unified combination readers return two without false conflict",
+    "current remains node-only; subtree inherits to real descendants; sibling isolated until explicit link",
+    "export/restore/reload retain relations; MAT/model deletion blocked; original scope filing cannot unlink",
+    "unlink affects only explicit relation; original MAT and other paths survive; revoked request cannot resurrect",
+    "stale preview and operator commands/import refused; import role spoof does not authorize",
+    "malformed association containers/records rejected before memory or storage changes",
+    "new-version explicit preview/confirmation adds new relation; V1 snapshot and coverage unchanged",
+    "existing full-PLN MAT reused without changing original planningId/version/node IDs/code/family",
+    "model copy carries remapped policy configuration only, no active relation or published source copied",
+    "prefix naming reports missing capacity rather than fabricating a tail value",
+    "two queued concurrent submissions of the same request produce one archive and one original relation",
+    "tampered scope/proof/frozen policy/contribution rejected atomically; valid future relationship preserved and blocks affected execution"
+  ],
+  "passed": 14
+}

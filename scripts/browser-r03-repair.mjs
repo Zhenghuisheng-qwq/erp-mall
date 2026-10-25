@@ -3,12 +3,12 @@ import {mkdirSync,writeFileSync,readFileSync} from 'node:fs'
 import {resolve} from 'node:path'
 import {createServer} from 'vite'
 import {chromium} from 'playwright-core'
-const out=resolve('work/r03-repair-20261025/browser');mkdirSync(out,{recursive:true})
+const out=resolve(process.env.R03_REPAIR_BROWSER_OUTPUT||'work/r03-repair-20261025/browser');mkdirSync(out,{recursive:true})
 const server=await createServer({cacheDir:resolve(out,'cache'),server:{host:'127.0.0.1',port:0,hmr:false,watch:null,open:false}})
 let browser,page;const checks=[],errors=[];const mark=x=>{checks.push(x);console.log('PASS '+x)}
 try{
  await server.listen();const base=`http://127.0.0.1:${server.httpServer.address().port}`;browser=await chromium.launch({channel:'chrome',headless:true})
- const launch=async(name,path)=>{const payload=JSON.parse(readFileSync(`work/r03-repair-20261025/domain/${name}-backup.json`,'utf8'));const ctx=await browser.newContext({viewport:{width:1500,height:1000},locale:'zh-CN',reducedMotion:'reduce'});await ctx.addInitScript(payload=>{if(!localStorage.getItem('iyge-v2-mock-db'))localStorage.setItem('iyge-v2-mock-db',JSON.stringify(payload))},payload);page=await ctx.newPage();page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(String(e)));await page.goto(base+path,{waitUntil:'networkidle'});return {ctx,payload}}
+ const launch=async(name,path)=>{const payload=JSON.parse(readFileSync(`${process.env.R03_REPAIR_FIXTURE_DIR||'work/r03-repair-20261025/domain'}/${name}-backup.json`,'utf8'));const ctx=await browser.newContext({viewport:{width:1500,height:1000},locale:'zh-CN',reducedMotion:'reduce'});await ctx.addInitScript(payload=>{if(!localStorage.getItem('iyge-v2-mock-db'))localStorage.setItem('iyge-v2-mock-db',JSON.stringify(payload))},payload);page=await ctx.newPage();page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(String(e)));await page.goto(base+path,{waitUntil:'networkidle'});return {ctx,payload}}
  const raw=()=>page.evaluate(()=>localStorage.getItem('iyge-v2-mock-db'))
  let {ctx,payload}=await launch('valid','/products');const original=await raw();await page.getByRole('button',{name:'演示数据',exact:true}).hover();await page.getByText('重置当前模块',{exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:/确定|确认/}).click();await page.getByText(/商品模块重置被拒绝/).waitFor();assert.equal(await raw(),original);await page.screenshot({path:resolve(out,'reset-refused.png')});mark('real products reset UI refuses referenced framework package and preserves persisted bytes');await ctx.close()
  ;({ctx,payload}=await launch('valid','/benefit-packages/benefit-package-000001'))

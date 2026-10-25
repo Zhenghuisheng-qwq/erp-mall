@@ -1,0 +1,89 @@
+{
+  "result": "PASS",
+  "scope": "new functional and visual checks",
+  "sourceRoot": "D:\\单子\\商城erp\\mock\\iyge-v2-mock",
+  "browser": "156.0.8078.47",
+  "checks": [
+    {
+      "name": "spu-scoped-sku-save-preview-retry-explicit-generation-delivery-package-source-selection-focus-roundtrip",
+      "result": "PASS"
+    },
+    {
+      "name": "service-local-draft-escape-beforeunload-route-save-includes-service-invalid-remains-and-fast-navigation-resolves",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-invalid-rule-save-rejected-reveals-exact-field-with-input-retained-fix-save-refresh-safe",
+      "result": "PASS"
+    },
+    {
+      "name": "conditional-input-visible-confirmation-is-local-invalidates-and-maintenance-return-restores-unsaved-draft-search",
+      "result": "PASS"
+    },
+    {
+      "name": "held-real-web-lock-prevents-edits-service-removal-and-navigation-until-one-complete-save",
+      "result": "PASS"
+    },
+    {
+      "name": "model-only-maintenance-carries-explicit-host-key-without-inventing-device-sku-or-including-phone",
+      "result": "PASS"
+    },
+    {
+      "name": "external-and-unrecognized-return-addresses-have-explicit-local-fallback",
+      "result": "PASS"
+    },
+    {
+      "name": "visual-1366-light",
+      "result": "PASS"
+    },
+    {
+      "name": "visual-1366-dark",
+      "result": "PASS"
+    },
+    {
+      "name": "visual-1920-light",
+      "result": "PASS"
+    },
+    {
+      "name": "visual-1920-dark",
+      "result": "PASS"
+    },
+    {
+      "name": "visual-narrow-desktop",
+      "result": "PASS"
+    },
+    {
+      "name": "visual-375-light",
+      "result": "PASS"
+    },
+    {
+      "name": "visual-375-dark",
+      "result": "PASS"
+    },
+    {
+      "name": "visual-125-percent",
+      "result": "PASS"
+    }
+  ],
+  "diagnostics": [],
+  "screenshots": [
+    "editor-1366-light.png",
+    "service-1366-light.png",
+    "editor-1366-dark.png",
+    "service-1366-dark.png",
+    "editor-1920-light.png",
+    "service-1920-light.png",
+    "editor-1920-dark.png",
+    "service-1920-dark.png",
+    "editor-narrow-desktop.png",
+    "service-narrow-desktop.png",
+    "editor-375-light.png",
+    "contents-375-light.png",
+    "service-375-light.png",
+    "editor-375-dark.png",
+    "contents-375-dark.png",
+    "service-375-dark.png",
+    "editor-125-percent.png",
+    "service-125-percent.png"
+  ]
+}

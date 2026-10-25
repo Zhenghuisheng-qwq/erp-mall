@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createServer } from 'vite'
 import { chromium } from 'playwright-core'
-const out=resolve('work/r01-protection-20261025/browser');mkdirSync(out,{recursive:true})
+const out=resolve(process.env.R01_PROTECTION_BROWSER_OUTPUT||'work/r01-protection-20261025/browser');mkdirSync(out,{recursive:true})
 const server=await createServer({cacheDir:resolve(out,'cache'),server:{host:'127.0.0.1',port:0,open:false,hmr:false,watch:null}})
 const checks=[],errors=[];let browser,page
 try {

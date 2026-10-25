@@ -1,0 +1,2384 @@
+{
+  "version": 15,
+  "data": {
+    "mode": "daily",
+    "activeRole": "admin",
+    "categories": [
+      {
+        "id": "cat-device-test",
+        "name": "独立测试设备",
+        "parentId": null,
+        "enabled": true,
+        "sort": 1
+      },
+      {
+        "id": "cat-accessory-test",
+        "name": "独立测试配件",
+        "parentId": null,
+        "enabled": true,
+        "sort": 2
+      }
+    ],
+    "productTypes": [
+      {
+        "id": "type-device",
+        "name": "测试手机",
+        "catalogRole": "host",
+        "categoryId": "cat-device-test",
+        "status": "enabled",
+        "sort": 1,
+        "description": "独立测试，不是真实商品"
+      },
+      {
+        "id": "type-case",
+        "name": "测试保护壳",
+        "catalogRole": "accessory",
+        "categoryId": "cat-accessory-test",
+        "status": "enabled",
+        "sort": 2,
+        "description": "独立测试，不是真实商品"
+      },
+      {
+        "id": "type-film",
+        "name": "测试保护膜",
+        "catalogRole": "accessory",
+        "categoryId": "cat-accessory-test",
+        "status": "enabled",
+        "sort": 3,
+        "description": "独立测试，不是真实商品"
+      },
+      {
+        "id": "type-charger",
+        "name": "测试充电器",
+        "catalogRole": "accessory",
+        "categoryId": "cat-accessory-test",
+        "status": "enabled",
+        "sort": 4,
+        "description": "独立测试，不是真实商品"
+      },
+      {
+        "id": "type-cable",
+        "name": "测试线缆",
+        "catalogRole": "accessory",
+        "categoryId": "cat-accessory-test",
+        "status": "enabled",
+        "sort": 5,
+        "description": "独立测试，不是真实商品"
+      }
+    ],
+    "templates": [
+      {
+        "id": "template-device-test",
+        "name": "独立测试手机方案",
+        "parentId": null,
+        "enabled": true,
+        "structureOrder": [
+          "attr-device-model",
+          "attr-capacity",
+          "attr-color"
+        ]
+      },
+      {
+        "id": "template-accessory-test",
+        "name": "独立测试配件方案",
+        "parentId": null,
+        "enabled": true,
+        "structureOrder": [
+          "attr-color"
+        ]
+      }
+    ],
+    "params": [
+      {
+        "id": "attr-device-model",
+        "name": "测试设备型号",
+        "values": [
+          "Orion A",
+          "Orion B"
+        ],
+        "identityRole": "host-model",
+        "valueGroups": [],
+        "participateInStructure": true
+      },
+      {
+        "id": "attr-color",
+        "name": "颜色",
+        "values": [
+          "黑色",
+          "白色"
+        ],
+        "valueGroups": [],
+        "participateInStructure": true
+      },
+      {
+        "id": "attr-capacity",
+        "name": "容量",
+        "values": [
+          "128G",
+          "256G"
+        ],
+        "valueGroups": [],
+        "participateInStructure": true
+      },
+      {
+        "id": "attr-brand",
+        "name": "品牌",
+        "values": [
+          "DeviceLab",
+          "CaseWorks"
+        ],
+        "valueGroups": [],
+        "participateInStructure": true
+      },
+      {
+        "id": "attr-port",
+        "name": "接口",
+        "values": [
+          "USB-C",
+          "Lightning"
+        ],
+        "valueGroups": [],
+        "participateInStructure": true
+      }
+    ],
+    "templateParams": [
+      {
+        "templateId": "template-device-test",
+        "paramId": "attr-device-model",
+        "role": "variant",
+        "required": false
+      },
+      {
+        "templateId": "template-device-test",
+        "paramId": "attr-capacity",
+        "role": "variant",
+        "required": false
+      },
+      {
+        "templateId": "template-device-test",
+        "paramId": "attr-color",
+        "role": "variant",
+        "required": false
+      },
+      {
+        "templateId": "template-device-test",
+        "paramId": "attr-port",
+        "role": "variant",
+        "required": false
+      },
+      {
+        "templateId": "template-device-test",
+        "paramId": "attr-brand",
+        "role": "common",
+        "required": false
+      },
+      {
+        "templateId": "template-accessory-test",
+        "paramId": "attr-brand",
+        "role": "common",
+        "required": false
+      },
+      {
+        "templateId": "template-accessory-test",
+        "paramId": "attr-color",
+        "role": "variant",
+        "required": false
+      }
+    ],
+    "mappings": [
+      {
+        "templateId": "template-device-test",
+        "categoryId": "cat-device-test"
+      },
+      {
+        "templateId": "template-accessory-test",
+        "categoryId": "cat-accessory-test"
+      }
+    ],
+    "productSpecNodes": [],
+    "specCanvases": [],
+    "specModelVersions": [],
+    "productPlans": [],
+    "planningRecords": [],
+    "materialReceipts": [],
+    "compatibilities": [
+      {
+        "id": "decl-case-a",
+        "accessorySkuId": "case-sku",
+        "targetKind": "sku",
+        "targetId": "case-sku",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-a",
+          "identityKey": "device:model-a",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion A"
+            }
+          ]
+        },
+        "conclusion": "compatible",
+        "verification": "confirmed",
+        "capability": "basic",
+        "conditions": [],
+        "source": "独立测试人工确认依据",
+        "provenance": {
+          "kind": "manual",
+          "detail": "独立测试，不是真实核验资料"
+        },
+        "note": "",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "decl-case-b",
+        "accessorySkuId": "case-sku",
+        "targetKind": "sku",
+        "targetId": "case-sku",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-b",
+          "identityKey": "device:model-b",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion B"
+            }
+          ]
+        },
+        "conclusion": "compatible",
+        "verification": "confirmed",
+        "capability": "basic",
+        "conditions": [],
+        "source": "独立测试人工确认依据",
+        "provenance": {
+          "kind": "manual",
+          "detail": "独立测试，不是真实核验资料"
+        },
+        "note": "",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "decl-film-a",
+        "accessorySkuId": "film-sku",
+        "targetKind": "sku",
+        "targetId": "film-sku",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-a",
+          "identityKey": "device:model-a",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion A"
+            }
+          ]
+        },
+        "conclusion": "compatible",
+        "verification": "confirmed",
+        "capability": "basic",
+        "conditions": [],
+        "source": "独立测试人工确认依据",
+        "provenance": {
+          "kind": "manual",
+          "detail": "独立测试，不是真实核验资料"
+        },
+        "note": "",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "decl-charger-basic",
+        "accessorySkuId": "charger-sku",
+        "targetKind": "sku",
+        "targetId": "charger-sku",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-a",
+          "identityKey": "device:model-a",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion A"
+            }
+          ]
+        },
+        "conclusion": "compatible",
+        "verification": "confirmed",
+        "capability": "basic",
+        "conditions": [],
+        "source": "独立测试人工确认依据",
+        "provenance": {
+          "kind": "manual",
+          "detail": "独立测试，不是真实核验资料"
+        },
+        "note": "",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "decl-charger-fast",
+        "accessorySkuId": "charger-sku",
+        "targetKind": "sku",
+        "targetId": "charger-sku",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-a",
+          "identityKey": "device:model-a",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion A"
+            }
+          ]
+        },
+        "conclusion": "conditional",
+        "verification": "confirmed",
+        "capability": "fast-charge",
+        "conditions": [
+          {
+            "kind": "capability",
+            "text": "设备协议和功率仍需确认",
+            "protocol": "测试协议",
+            "powerWatts": 20
+          },
+          {
+            "kind": "equipment",
+            "text": "经确认支持该协议的测试线缆"
+          }
+        ],
+        "source": "独立测试人工确认依据",
+        "provenance": {
+          "kind": "manual",
+          "detail": "独立测试，不是真实核验资料"
+        },
+        "note": "",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "decl-cable-a",
+        "accessorySkuId": "cable-sku",
+        "targetKind": "sku",
+        "targetId": "cable-sku",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-a",
+          "identityKey": "device:model-a",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion A"
+            }
+          ]
+        },
+        "conclusion": "conditional",
+        "verification": "confirmed",
+        "capability": "basic",
+        "conditions": [
+          {
+            "kind": "equipment",
+            "text": "指定测试转换器"
+          }
+        ],
+        "source": "独立测试人工确认依据",
+        "provenance": {
+          "kind": "manual",
+          "detail": "独立测试，不是真实核验资料"
+        },
+        "note": "",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "decl-pending-a",
+        "accessorySkuId": "pending-sku",
+        "targetKind": "sku",
+        "targetId": "pending-sku",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-a",
+          "identityKey": "device:model-a",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion A"
+            }
+          ]
+        },
+        "conclusion": "compatible",
+        "verification": "pending",
+        "capability": "basic",
+        "conditions": [],
+        "source": "独立测试人工确认依据",
+        "provenance": {
+          "kind": "manual",
+          "detail": "独立测试，不是真实核验资料"
+        },
+        "note": "",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "decl-blocked-allow",
+        "accessorySkuId": "blocked-sku",
+        "targetKind": "sku",
+        "targetId": "blocked-sku",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-a",
+          "identityKey": "device:model-a",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion A"
+            }
+          ]
+        },
+        "conclusion": "compatible",
+        "verification": "confirmed",
+        "capability": "basic",
+        "conditions": [],
+        "source": "独立测试人工确认依据",
+        "provenance": {
+          "kind": "manual",
+          "detail": "独立测试，不是真实核验资料"
+        },
+        "note": "",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "decl-blocked-deny",
+        "accessorySkuId": "blocked-sku",
+        "targetKind": "sku",
+        "targetId": "blocked-sku",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-a",
+          "identityKey": "device:model-a",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion A"
+            }
+          ]
+        },
+        "conclusion": "incompatible",
+        "verification": "confirmed",
+        "capability": "basic",
+        "conditions": [],
+        "source": "独立测试明确排除依据",
+        "provenance": {
+          "kind": "manual",
+          "detail": "独立测试，不是真实核验资料"
+        },
+        "note": "",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "decl-off-sale-a",
+        "accessorySkuId": "off-sale-sku",
+        "targetKind": "sku",
+        "targetId": "off-sale-sku",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-a",
+          "identityKey": "device:model-a",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion A"
+            }
+          ]
+        },
+        "conclusion": "compatible",
+        "verification": "confirmed",
+        "capability": "basic",
+        "conditions": [],
+        "source": "独立测试人工确认依据",
+        "provenance": {
+          "kind": "manual",
+          "detail": "独立测试，不是真实核验资料"
+        },
+        "note": "",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "decl-mat-copy-a",
+        "accessorySkuId": "mat-copy",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-a",
+          "identityKey": "device:model-a",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion A"
+            }
+          ]
+        },
+        "note": "历史物料关系测试",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "decl-mat-copy-b",
+        "accessorySkuId": "mat-copy",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-b",
+          "identityKey": "device:model-b",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion B"
+            }
+          ]
+        },
+        "note": "同一物料多型号测试",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "decl-mat-only-a",
+        "accessorySkuId": "mat-only",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-a",
+          "identityKey": "device:model-a",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion A"
+            }
+          ]
+        },
+        "note": "仅MAT关系，不自动映射销售SKU",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      }
+    ],
+    "nodeCompatibilityRules": [],
+    "rules": [],
+    "families": [
+      {
+        "id": "family-device",
+        "name": "【独立测试】family-device",
+        "templateId": "template-device-test",
+        "productTypeId": "type-device",
+        "categoryId": "cat-device-test",
+        "oaProductId": "",
+        "commonAttrs": {
+          "品牌": "DeviceLab"
+        },
+        "productGroupIds": [],
+        "lifecycle": "ready",
+        "shelfStatus": "online",
+        "line": "v2",
+        "origin": "created",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "family-unbound",
+        "name": "【独立测试】family-unbound",
+        "templateId": "template-device-test",
+        "productTypeId": "type-device",
+        "categoryId": "cat-device-test",
+        "oaProductId": "",
+        "commonAttrs": {
+          "品牌": "DeviceLab"
+        },
+        "productGroupIds": [],
+        "lifecycle": "ready",
+        "shelfStatus": "online",
+        "line": "v2",
+        "origin": "created",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "family-case",
+        "name": "【独立测试】family-case",
+        "templateId": "template-accessory-test",
+        "productTypeId": "type-case",
+        "categoryId": "cat-accessory-test",
+        "oaProductId": "",
+        "commonAttrs": {
+          "品牌": "CaseWorks"
+        },
+        "productGroupIds": [],
+        "lifecycle": "ready",
+        "shelfStatus": "online",
+        "line": "v2",
+        "origin": "created",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "family-film",
+        "name": "【独立测试】family-film",
+        "templateId": "template-accessory-test",
+        "productTypeId": "type-film",
+        "categoryId": "cat-accessory-test",
+        "oaProductId": "",
+        "commonAttrs": {
+          "品牌": "CaseWorks"
+        },
+        "productGroupIds": [],
+        "lifecycle": "ready",
+        "shelfStatus": "online",
+        "line": "v2",
+        "origin": "created",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "family-charger",
+        "name": "【独立测试】family-charger",
+        "templateId": "template-accessory-test",
+        "productTypeId": "type-charger",
+        "categoryId": "cat-accessory-test",
+        "oaProductId": "",
+        "commonAttrs": {
+          "品牌": "CaseWorks"
+        },
+        "productGroupIds": [],
+        "lifecycle": "ready",
+        "shelfStatus": "online",
+        "line": "v2",
+        "origin": "created",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "family-cable",
+        "name": "【独立测试】family-cable",
+        "templateId": "template-accessory-test",
+        "productTypeId": "type-cable",
+        "categoryId": "cat-accessory-test",
+        "oaProductId": "",
+        "commonAttrs": {
+          "品牌": "CaseWorks"
+        },
+        "productGroupIds": [],
+        "lifecycle": "ready",
+        "shelfStatus": "online",
+        "line": "v2",
+        "origin": "created",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      }
+    ],
+    "skus": [
+      {
+        "id": "phone-a",
+        "familyId": "family-device",
+        "code": "PHONE-A",
+        "skuName": "【独立测试】phone-a",
+        "oaSkuId": "",
+        "recordKind": "sku",
+        "status": "on_sale",
+        "variantAttrs": {
+          "测试设备型号": "Orion A",
+          "颜色": "黑色",
+          "容量": "128G",
+          "接口": "USB-C"
+        },
+        "projectedAttrs": {},
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z",
+        "creationSource": {
+          "kind": "manual",
+          "templateId": "template-device-test",
+          "modelVersionId": "",
+          "createdAt": "2026-10-23T04:00:00.000Z"
+        }
+      },
+      {
+        "id": "phone-b",
+        "familyId": "family-device",
+        "code": "PHONE-B",
+        "skuName": "【独立测试】phone-b",
+        "oaSkuId": "",
+        "recordKind": "sku",
+        "status": "on_sale",
+        "variantAttrs": {
+          "测试设备型号": "Orion B",
+          "颜色": "白色",
+          "容量": "256G"
+        },
+        "projectedAttrs": {},
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z",
+        "creationSource": {
+          "kind": "manual",
+          "templateId": "template-device-test",
+          "modelVersionId": "",
+          "createdAt": "2026-10-23T04:00:00.000Z"
+        }
+      },
+      {
+        "id": "phone-unbound",
+        "familyId": "family-unbound",
+        "code": "PHONE-UNBOUND",
+        "skuName": "【独立测试】phone-unbound",
+        "oaSkuId": "",
+        "recordKind": "sku",
+        "status": "on_sale",
+        "variantAttrs": {
+          "颜色": "黑色"
+        },
+        "projectedAttrs": {},
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z",
+        "creationSource": {
+          "kind": "manual",
+          "templateId": "template-device-test",
+          "modelVersionId": "",
+          "createdAt": "2026-10-23T04:00:00.000Z"
+        }
+      },
+      {
+        "id": "case-sku",
+        "familyId": "family-case",
+        "code": "CASE-SKU",
+        "skuName": "【独立测试】case-sku",
+        "oaSkuId": "",
+        "recordKind": "sku",
+        "status": "on_sale",
+        "variantAttrs": {
+          "颜色": "白色"
+        },
+        "projectedAttrs": {},
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z",
+        "creationSource": {
+          "kind": "manual",
+          "templateId": "template-accessory-test",
+          "modelVersionId": "",
+          "createdAt": "2026-10-23T04:00:00.000Z"
+        }
+      },
+      {
+        "id": "film-sku",
+        "familyId": "family-film",
+        "code": "FILM-SKU",
+        "skuName": "【独立测试】film-sku",
+        "oaSkuId": "",
+        "recordKind": "sku",
+        "status": "on_sale",
+        "variantAttrs": {},
+        "projectedAttrs": {},
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z",
+        "creationSource": {
+          "kind": "manual",
+          "templateId": "template-accessory-test",
+          "modelVersionId": "",
+          "createdAt": "2026-10-23T04:00:00.000Z"
+        }
+      },
+      {
+        "id": "charger-sku",
+        "familyId": "family-charger",
+        "code": "CHARGER-SKU",
+        "skuName": "【独立测试】charger-sku",
+        "oaSkuId": "",
+        "recordKind": "sku",
+        "status": "on_sale",
+        "variantAttrs": {},
+        "projectedAttrs": {},
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z",
+        "creationSource": {
+          "kind": "manual",
+          "templateId": "template-accessory-test",
+          "modelVersionId": "",
+          "createdAt": "2026-10-23T04:00:00.000Z"
+        }
+      },
+      {
+        "id": "cable-sku",
+        "familyId": "family-cable",
+        "code": "CABLE-SKU",
+        "skuName": "【独立测试】cable-sku",
+        "oaSkuId": "",
+        "recordKind": "sku",
+        "status": "on_sale",
+        "variantAttrs": {},
+        "projectedAttrs": {},
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z",
+        "creationSource": {
+          "kind": "manual",
+          "templateId": "template-accessory-test",
+          "modelVersionId": "",
+          "createdAt": "2026-10-23T04:00:00.000Z"
+        }
+      },
+      {
+        "id": "copy-sku",
+        "familyId": "family-film",
+        "code": "COPY-SKU",
+        "skuName": "【独立测试】copy-sku",
+        "oaSkuId": "",
+        "recordKind": "sku",
+        "status": "on_sale",
+        "variantAttrs": {},
+        "projectedAttrs": {},
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z",
+        "creationSource": {
+          "kind": "manual",
+          "templateId": "template-accessory-test",
+          "modelVersionId": "",
+          "createdAt": "2026-10-23T04:00:00.000Z"
+        }
+      },
+      {
+        "id": "pending-sku",
+        "familyId": "family-film",
+        "code": "PENDING-SKU",
+        "skuName": "【独立测试】pending-sku",
+        "oaSkuId": "",
+        "recordKind": "sku",
+        "status": "on_sale",
+        "variantAttrs": {},
+        "projectedAttrs": {},
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z",
+        "creationSource": {
+          "kind": "manual",
+          "templateId": "template-accessory-test",
+          "modelVersionId": "",
+          "createdAt": "2026-10-23T04:00:00.000Z"
+        }
+      },
+      {
+        "id": "blocked-sku",
+        "familyId": "family-film",
+        "code": "BLOCKED-SKU",
+        "skuName": "【独立测试】blocked-sku",
+        "oaSkuId": "",
+        "recordKind": "sku",
+        "status": "on_sale",
+        "variantAttrs": {},
+        "projectedAttrs": {},
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z",
+        "creationSource": {
+          "kind": "manual",
+          "templateId": "template-accessory-test",
+          "modelVersionId": "",
+          "createdAt": "2026-10-23T04:00:00.000Z"
+        }
+      },
+      {
+        "id": "off-sale-sku",
+        "familyId": "family-case",
+        "code": "OFF-SALE-SKU",
+        "skuName": "【独立测试】off-sale-sku",
+        "oaSkuId": "",
+        "recordKind": "sku",
+        "status": "off_sale",
+        "variantAttrs": {},
+        "projectedAttrs": {},
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z",
+        "creationSource": {
+          "kind": "manual",
+          "templateId": "template-accessory-test",
+          "modelVersionId": "",
+          "createdAt": "2026-10-23T04:00:00.000Z"
+        }
+      },
+      {
+        "id": "mat-copy",
+        "familyId": "family-film",
+        "code": "MAT-COPY",
+        "skuName": "【独立测试】mat-copy",
+        "oaSkuId": "",
+        "recordKind": "material",
+        "status": "on_sale",
+        "variantAttrs": {},
+        "projectedAttrs": {},
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z",
+        "materialCode": "MAT-COPY",
+        "planningId": "PLN-MATERIAL"
+      },
+      {
+        "id": "mat-only",
+        "familyId": "family-film",
+        "code": "MAT-ONLY",
+        "skuName": "【独立测试】mat-only",
+        "oaSkuId": "",
+        "recordKind": "material",
+        "status": "on_sale",
+        "variantAttrs": {},
+        "projectedAttrs": {},
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z",
+        "materialCode": "MAT-ONLY",
+        "planningId": "PLN-MATERIAL"
+      }
+    ],
+    "brands": [
+      {
+        "id": "brand-apple",
+        "name": "Apple",
+        "logo": "",
+        "description": "预设品牌，历史商品仍读取公共属性里的品牌。",
+        "status": "enabled"
+      },
+      {
+        "id": "brand-huawei",
+        "name": "huawei",
+        "logo": "",
+        "description": "",
+        "status": "enabled"
+      }
+    ],
+    "productGroups": [
+      {
+        "id": "g-phone",
+        "name": "手机运营组",
+        "parentId": null
+      },
+      {
+        "id": "g-watch",
+        "name": "手表运营组",
+        "parentId": null
+      },
+      {
+        "id": "g-acc",
+        "name": "配件运营组",
+        "parentId": null
+      },
+      {
+        "id": "g-hot",
+        "name": "主推",
+        "parentId": "g-phone"
+      }
+    ],
+    "users": [
+      {
+        "id": "u-op",
+        "username": "operator",
+        "displayName": "运营同事",
+        "role": "operator",
+        "enabled": true
+      },
+      {
+        "id": "u-admin",
+        "username": "manager",
+        "displayName": "配置管理员",
+        "role": "admin",
+        "enabled": true
+      }
+    ],
+    "feedbacks": [
+      {
+        "id": "fb-1",
+        "title": "希望少跳几个页面",
+        "content": "录入两个颜色不要建成两款商品。",
+        "status": "doing",
+        "page": "商品编辑",
+        "createdAt": "2026-05-10T03:53:00.000Z"
+      }
+    ],
+    "profile": {
+      "displayName": "演示用户",
+      "username": "demo"
+    },
+    "columns": [
+      {
+        "key": "name",
+        "label": "商品",
+        "visible": true,
+        "fixed": true
+      },
+      {
+        "key": "category",
+        "label": "商品分类",
+        "visible": true
+      },
+      {
+        "key": "template",
+        "label": "属性方案",
+        "visible": false
+      },
+      {
+        "key": "brand",
+        "label": "品牌",
+        "visible": true
+      },
+      {
+        "key": "skuCount",
+        "label": "规格数",
+        "visible": true
+      },
+      {
+        "key": "sale",
+        "label": "在售",
+        "visible": true
+      },
+      {
+        "key": "oaProductId",
+        "label": "OA_ProductID",
+        "visible": true
+      },
+      {
+        "key": "origin",
+        "label": "数据来源",
+        "visible": true
+      },
+      {
+        "key": "updatedAt",
+        "label": "最近维护",
+        "visible": true
+      }
+    ],
+    "listViews": [
+      {
+        "id": "view-all",
+        "name": "全部商品",
+        "query": {
+          "keyword": "",
+          "categoryId": "",
+          "brand": "",
+          "status": "",
+          "templateId": "",
+          "productGroupId": "",
+          "attrFilters": {},
+          "createdFrom": "",
+          "createdTo": "",
+          "shelf": "",
+          "page": 1,
+          "pageSize": 10,
+          "sortProp": "updatedAt",
+          "sortOrder": "descending"
+        },
+        "columns": [
+          {
+            "key": "name",
+            "label": "商品",
+            "visible": true,
+            "fixed": true
+          },
+          {
+            "key": "category",
+            "label": "商品分类",
+            "visible": true
+          },
+          {
+            "key": "template",
+            "label": "属性方案",
+            "visible": false
+          },
+          {
+            "key": "brand",
+            "label": "品牌",
+            "visible": true
+          },
+          {
+            "key": "skuCount",
+            "label": "规格数",
+            "visible": true
+          },
+          {
+            "key": "sale",
+            "label": "在售",
+            "visible": true
+          },
+          {
+            "key": "oaProductId",
+            "label": "OA_ProductID",
+            "visible": true
+          },
+          {
+            "key": "origin",
+            "label": "数据来源",
+            "visible": true
+          },
+          {
+            "key": "updatedAt",
+            "label": "最近维护",
+            "visible": true
+          }
+        ]
+      }
+    ],
+    "activeViewId": "view-all",
+    "listQuery": {
+      "keyword": "",
+      "categoryId": "",
+      "brand": "",
+      "status": "",
+      "templateId": "",
+      "productGroupId": "",
+      "attrFilters": {},
+      "createdFrom": "",
+      "createdTo": "",
+      "shelf": "",
+      "page": 1,
+      "pageSize": 10,
+      "sortProp": "updatedAt",
+      "sortOrder": "descending"
+    },
+    "productListMode": "spu",
+    "productListViews": [
+      {
+        "id": "view-default",
+        "name": "默认视图",
+        "mode": "spu",
+        "spuColumns": [
+          {
+            "key": "shelf",
+            "visible": true,
+            "order": 0
+          },
+          {
+            "key": "name",
+            "visible": true,
+            "order": 1
+          },
+          {
+            "key": "category",
+            "visible": true,
+            "order": 2
+          },
+          {
+            "key": "template",
+            "visible": false,
+            "order": 3
+          },
+          {
+            "key": "brand",
+            "visible": true,
+            "order": 4
+          },
+          {
+            "key": "skuCount",
+            "visible": true,
+            "order": 5
+          },
+          {
+            "key": "sale",
+            "visible": true,
+            "order": 6
+          },
+          {
+            "key": "oaProductId",
+            "visible": true,
+            "order": 7
+          },
+          {
+            "key": "origin",
+            "visible": true,
+            "order": 8
+          },
+          {
+            "key": "updatedAt",
+            "visible": true,
+            "order": 9
+          },
+          {
+            "key": "productType",
+            "visible": true,
+            "order": 10
+          },
+          {
+            "key": "model",
+            "visible": true,
+            "order": 11
+          }
+        ],
+        "skuColumns": [
+          {
+            "key": "code",
+            "visible": true,
+            "order": 0
+          },
+          {
+            "key": "name",
+            "visible": true,
+            "order": 1
+          },
+          {
+            "key": "spec",
+            "visible": true,
+            "order": 2
+          },
+          {
+            "key": "family",
+            "visible": true,
+            "order": 3
+          },
+          {
+            "key": "category",
+            "visible": true,
+            "order": 4
+          },
+          {
+            "key": "typeName",
+            "visible": true,
+            "order": 5
+          },
+          {
+            "key": "status",
+            "visible": true,
+            "order": 6
+          },
+          {
+            "key": "updatedAt",
+            "visible": true,
+            "order": 7
+          }
+        ],
+        "spuQuery": {
+          "keyword": "",
+          "filters": [],
+          "exposed": [
+            "category",
+            "brand",
+            "shelf"
+          ],
+          "grouping": null,
+          "sorting": null,
+          "sortMode": "default"
+        },
+        "skuQuery": {
+          "keyword": "",
+          "filters": [],
+          "exposed": [
+            "category",
+            "brand",
+            "status"
+          ],
+          "grouping": null,
+          "sorting": null,
+          "sortMode": "default"
+        },
+        "manualOrder": {
+          "spuIds": [],
+          "skuIds": []
+        },
+        "categoryFilterLayout": "popover",
+        "createdAt": "2026-05-10T03:53:00.000Z",
+        "updatedAt": "2026-05-10T03:53:00.000Z"
+      }
+    ],
+    "activeProductListViewId": "view-default",
+    "deviceModels": [
+      {
+        "id": "model-a",
+        "name": "【独立测试】Orion A",
+        "productTypeId": "type-device",
+        "attributes": {
+          "attr-port": "USB-C"
+        },
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "id": "model-b",
+        "name": "【独立测试】Orion B",
+        "productTypeId": "type-device",
+        "attributes": {},
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      }
+    ],
+    "deviceBindings": [
+      {
+        "skuId": "phone-a",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-a",
+          "identityKey": "device:model-a",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion A"
+            }
+          ]
+        },
+        "sourceStamp": "{\"familyId\":\"family-device\",\"typeId\":\"type-device\",\"templateId\":\"template-device-test\",\"productModelId\":\"\",\"familyVersion\":\"\",\"skuVersion\":\"\",\"source\":{\"kind\":\"manual\",\"templateId\":\"template-device-test\",\"modelVersionId\":\"\",\"productPlanId\":\"\"},\"identity\":[[\"attr-device-model\",\"Orion A\"]]}",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      },
+      {
+        "skuId": "phone-b",
+        "host": {
+          "scope": "model",
+          "productTypeId": "type-device",
+          "productModelId": "device:model-b",
+          "identityKey": "device:model-b",
+          "steps": [
+            {
+              "attributeId": "device-model",
+              "attributeName": "设备型号",
+              "valueId": "【独立测试】Orion B"
+            }
+          ]
+        },
+        "sourceStamp": "{\"familyId\":\"family-device\",\"typeId\":\"type-device\",\"templateId\":\"template-device-test\",\"productModelId\":\"\",\"familyVersion\":\"\",\"skuVersion\":\"\",\"source\":{\"kind\":\"manual\",\"templateId\":\"template-device-test\",\"modelVersionId\":\"\",\"productPlanId\":\"\"},\"identity\":[[\"attr-device-model\",\"Orion B\"]]}",
+        "createdAt": "2026-10-23T04:00:00.000Z",
+        "updatedAt": "2026-10-23T04:00:00.000Z"
+      }
+    ],
+    "productListPages": {
+      "spu": {
+        "views": [
+          {
+            "id": "view-default",
+            "name": "默认视图",
+            "mode": "spu",
+            "spuColumns": [
+              {
+                "key": "shelf",
+                "visible": true,
+                "order": 0
+              },
+              {
+                "key": "name",
+                "visible": true,
+                "order": 1
+              },
+              {
+                "key": "category",
+                "visible": true,
+                "order": 2
+              },
+              {
+                "key": "template",
+                "visible": false,
+                "order": 3
+              },
+              {
+                "key": "brand",
+                "visible": true,
+                "order": 4
+              },
+              {
+                "key": "skuCount",
+                "visible": true,
+                "order": 5
+              },
+              {
+                "key": "sale",
+                "visible": true,
+                "order": 6
+              },
+              {
+                "key": "oaProductId",
+                "visible": true,
+                "order": 7
+              },
+              {
+                "key": "origin",
+                "visible": true,
+                "order": 8
+              },
+              {
+                "key": "updatedAt",
+                "visible": true,
+                "order": 9
+              },
+              {
+                "key": "productType",
+                "visible": true,
+                "order": 10
+              },
+              {
+                "key": "model",
+                "visible": true,
+                "order": 11
+              }
+            ],
+            "skuColumns": [
+              {
+                "key": "code",
+                "visible": true,
+                "order": 0
+              },
+              {
+                "key": "name",
+                "visible": true,
+                "order": 1
+              },
+              {
+                "key": "spec",
+                "visible": true,
+                "order": 2
+              },
+              {
+                "key": "family",
+                "visible": true,
+                "order": 3
+              },
+              {
+                "key": "category",
+                "visible": true,
+                "order": 4
+              },
+              {
+                "key": "typeName",
+                "visible": true,
+                "order": 5
+              },
+              {
+                "key": "status",
+                "visible": true,
+                "order": 6
+              },
+              {
+                "key": "updatedAt",
+                "visible": true,
+                "order": 7
+              }
+            ],
+            "spuQuery": {
+              "keyword": "",
+              "filters": [],
+              "exposed": [
+                "category",
+                "brand",
+                "shelf"
+              ],
+              "grouping": null,
+              "sorting": null,
+              "sortMode": "default"
+            },
+            "skuQuery": {
+              "keyword": "",
+              "filters": [],
+              "exposed": [
+                "category",
+                "brand",
+                "status"
+              ],
+              "grouping": null,
+              "sorting": null,
+              "sortMode": "default"
+            },
+            "manualOrder": {
+              "spuIds": [],
+              "skuIds": []
+            },
+            "categoryFilterLayout": "popover",
+            "createdAt": "2026-05-10T03:53:00.000Z",
+            "updatedAt": "2026-05-10T03:53:00.000Z"
+          }
+        ],
+        "activeId": "view-default",
+        "query": {
+          "keyword": "",
+          "categoryId": "",
+          "brand": "",
+          "status": "",
+          "templateId": "",
+          "productGroupId": "",
+          "attrFilters": {},
+          "createdFrom": "",
+          "createdTo": "",
+          "shelf": "",
+          "page": 1,
+          "pageSize": 10,
+          "sortProp": "updatedAt",
+          "sortOrder": "descending"
+        },
+        "presets": [
+          {
+            "id": "view-all",
+            "name": "全部商品",
+            "query": {
+              "keyword": "",
+              "categoryId": "",
+              "brand": "",
+              "status": "",
+              "templateId": "",
+              "productGroupId": "",
+              "attrFilters": {},
+              "createdFrom": "",
+              "createdTo": "",
+              "shelf": "",
+              "page": 1,
+              "pageSize": 10,
+              "sortProp": "updatedAt",
+              "sortOrder": "descending"
+            },
+            "columns": [
+              {
+                "key": "name",
+                "label": "商品",
+                "visible": true,
+                "fixed": true
+              },
+              {
+                "key": "category",
+                "label": "商品分类",
+                "visible": true
+              },
+              {
+                "key": "template",
+                "label": "属性方案",
+                "visible": false
+              },
+              {
+                "key": "brand",
+                "label": "品牌",
+                "visible": true
+              },
+              {
+                "key": "skuCount",
+                "label": "规格数",
+                "visible": true
+              },
+              {
+                "key": "sale",
+                "label": "在售",
+                "visible": true
+              },
+              {
+                "key": "oaProductId",
+                "label": "OA_ProductID",
+                "visible": true
+              },
+              {
+                "key": "origin",
+                "label": "数据来源",
+                "visible": true
+              },
+              {
+                "key": "updatedAt",
+                "label": "最近维护",
+                "visible": true
+              }
+            ]
+          }
+        ],
+        "activePresetId": "view-all"
+      },
+      "sku": {
+        "views": [
+          {
+            "id": "sku-system-all",
+            "name": "全部 SKU",
+            "mode": "sku",
+            "spuColumns": [
+              {
+                "key": "shelf",
+                "visible": true,
+                "order": 0
+              },
+              {
+                "key": "name",
+                "visible": true,
+                "order": 1
+              },
+              {
+                "key": "category",
+                "visible": true,
+                "order": 2
+              },
+              {
+                "key": "template",
+                "visible": false,
+                "order": 3
+              },
+              {
+                "key": "brand",
+                "visible": true,
+                "order": 4
+              },
+              {
+                "key": "skuCount",
+                "visible": true,
+                "order": 5
+              },
+              {
+                "key": "sale",
+                "visible": true,
+                "order": 6
+              },
+              {
+                "key": "oaProductId",
+                "visible": true,
+                "order": 7
+              },
+              {
+                "key": "origin",
+                "visible": true,
+                "order": 8
+              },
+              {
+                "key": "updatedAt",
+                "visible": true,
+                "order": 9
+              },
+              {
+                "key": "productType",
+                "visible": true,
+                "order": 10
+              },
+              {
+                "key": "model",
+                "visible": true,
+                "order": 11
+              }
+            ],
+            "skuColumns": [
+              {
+                "key": "code",
+                "visible": true,
+                "order": 0
+              },
+              {
+                "key": "name",
+                "visible": true,
+                "order": 1
+              },
+              {
+                "key": "spec",
+                "visible": true,
+                "order": 2
+              },
+              {
+                "key": "family",
+                "visible": true,
+                "order": 3
+              },
+              {
+                "key": "category",
+                "visible": true,
+                "order": 4
+              },
+              {
+                "key": "typeName",
+                "visible": true,
+                "order": 5
+              },
+              {
+                "key": "status",
+                "visible": true,
+                "order": 6
+              },
+              {
+                "key": "updatedAt",
+                "visible": true,
+                "order": 7
+              }
+            ],
+            "spuQuery": {
+              "keyword": "",
+              "filters": [],
+              "exposed": [
+                "category",
+                "brand",
+                "shelf"
+              ],
+              "grouping": null,
+              "sorting": null,
+              "sortMode": "default"
+            },
+            "skuQuery": {
+              "keyword": "",
+              "filters": [],
+              "exposed": [
+                "category",
+                "brand",
+                "status"
+              ],
+              "grouping": null,
+              "sorting": null,
+              "sortMode": "default"
+            },
+            "manualOrder": {
+              "spuIds": [],
+              "skuIds": []
+            },
+            "categoryFilterLayout": "popover",
+            "skuWorkbench": {
+              "version": 1,
+              "conditions": {
+                "kind": "group",
+                "id": "root",
+                "logic": "all",
+                "children": []
+              },
+              "columns": [
+                {
+                  "key": "code",
+                  "visible": true
+                },
+                {
+                  "key": "name",
+                  "visible": true
+                },
+                {
+                  "key": "spec",
+                  "visible": true
+                },
+                {
+                  "key": "familyId",
+                  "visible": true
+                },
+                {
+                  "key": "category",
+                  "visible": true
+                },
+                {
+                  "key": "status",
+                  "visible": true
+                },
+                {
+                  "key": "updatedAt",
+                  "visible": true
+                }
+              ],
+              "sorts": [],
+              "groups": [],
+              "density": "comfortable",
+              "manualOrder": [],
+              "sortMode": "default",
+              "categoryLayout": "popover",
+              "attributeNames": {
+                "attr-device-model": [
+                  "测试设备型号"
+                ],
+                "attr-color": [
+                  "颜色"
+                ],
+                "attr-capacity": [
+                  "容量"
+                ],
+                "attr-brand": [
+                  "品牌"
+                ],
+                "attr-port": [
+                  "接口"
+                ]
+              },
+              "quickFilters": []
+            },
+            "createdAt": "2026-10-25T08:52:51.996Z",
+            "updatedAt": "2026-10-25T08:52:51.996Z"
+          },
+          {
+            "id": "view-default",
+            "name": "默认视图",
+            "mode": "sku",
+            "spuColumns": [
+              {
+                "key": "shelf",
+                "visible": true,
+                "order": 0
+              },
+              {
+                "key": "name",
+                "visible": true,
+                "order": 1
+              },
+              {
+                "key": "category",
+                "visible": true,
+                "order": 2
+              },
+              {
+                "key": "template",
+                "visible": false,
+                "order": 3
+              },
+              {
+                "key": "brand",
+                "visible": true,
+                "order": 4
+              },
+              {
+                "key": "skuCount",
+                "visible": true,
+                "order": 5
+              },
+              {
+                "key": "sale",
+                "visible": true,
+                "order": 6
+              },
+              {
+                "key": "oaProductId",
+                "visible": true,
+                "order": 7
+              },
+              {
+                "key": "origin",
+                "visible": true,
+                "order": 8
+              },
+              {
+                "key": "updatedAt",
+                "visible": true,
+                "order": 9
+              },
+              {
+                "key": "productType",
+                "visible": true,
+                "order": 10
+              },
+              {
+                "key": "model",
+                "visible": true,
+                "order": 11
+              }
+            ],
+            "skuColumns": [
+              {
+                "key": "code",
+                "visible": true,
+                "order": 0
+              },
+              {
+                "key": "name",
+                "visible": true,
+                "order": 1
+              },
+              {
+                "key": "spec",
+                "visible": true,
+                "order": 2
+              },
+              {
+                "key": "family",
+                "visible": true,
+                "order": 3
+              },
+              {
+                "key": "category",
+                "visible": true,
+                "order": 4
+              },
+              {
+                "key": "typeName",
+                "visible": true,
+                "order": 5
+              },
+              {
+                "key": "status",
+                "visible": true,
+                "order": 6
+              },
+              {
+                "key": "updatedAt",
+                "visible": true,
+                "order": 7
+              }
+            ],
+            "spuQuery": {
+              "keyword": "",
+              "filters": [],
+              "exposed": [
+                "category",
+                "brand",
+                "shelf"
+              ],
+              "grouping": null,
+              "sorting": null,
+              "sortMode": "default"
+            },
+            "skuQuery": {
+              "keyword": "",
+              "filters": [],
+              "exposed": [
+                "category",
+                "brand",
+                "status"
+              ],
+              "grouping": null,
+              "sorting": null,
+              "sortMode": "default"
+            },
+            "manualOrder": {
+              "spuIds": [],
+              "skuIds": []
+            },
+            "categoryFilterLayout": "popover",
+            "createdAt": "2026-05-10T03:53:00.000Z",
+            "updatedAt": "2026-05-10T03:53:00.000Z",
+            "skuWorkbench": {
+              "version": 1,
+              "conditions": {
+                "kind": "group",
+                "id": "root",
+                "logic": "all",
+                "children": []
+              },
+              "columns": [
+                {
+                  "key": "code",
+                  "visible": true
+                },
+                {
+                  "key": "name",
+                  "visible": true
+                },
+                {
+                  "key": "spec",
+                  "visible": true
+                },
+                {
+                  "key": "familyId",
+                  "visible": true
+                },
+                {
+                  "key": "category",
+                  "visible": true
+                },
+                {
+                  "key": "typeName",
+                  "visible": true
+                },
+                {
+                  "key": "status",
+                  "visible": true
+                },
+                {
+                  "key": "updatedAt",
+                  "visible": true
+                }
+              ],
+              "sorts": [],
+              "groups": [],
+              "density": "comfortable",
+              "manualOrder": [],
+              "sortMode": "default",
+              "categoryLayout": "popover",
+              "legacy": {
+                "keyword": "",
+                "filters": [],
+                "exposed": [
+                  "category",
+                  "brand",
+                  "status"
+                ],
+                "grouping": null,
+                "sorting": null,
+                "sortMode": "default"
+              },
+              "attributeNames": {
+                "attr-device-model": [
+                  "测试设备型号"
+                ],
+                "attr-color": [
+                  "颜色"
+                ],
+                "attr-capacity": [
+                  "容量"
+                ],
+                "attr-brand": [
+                  "品牌"
+                ],
+                "attr-port": [
+                  "接口"
+                ]
+              },
+              "quickFilters": []
+            }
+          }
+        ],
+        "activeId": "view-default",
+        "query": {
+          "keyword": "",
+          "categoryId": "",
+          "brand": "",
+          "status": "",
+          "templateId": "",
+          "productGroupId": "",
+          "attrFilters": {},
+          "createdFrom": "",
+          "createdTo": "",
+          "shelf": "",
+          "page": 1,
+          "pageSize": 10,
+          "sortProp": "updatedAt",
+          "sortOrder": "descending"
+        },
+        "presets": [
+          {
+            "id": "view-all",
+            "name": "全部商品",
+            "query": {
+              "keyword": "",
+              "categoryId": "",
+              "brand": "",
+              "status": "",
+              "templateId": "",
+              "productGroupId": "",
+              "attrFilters": {},
+              "createdFrom": "",
+              "createdTo": "",
+              "shelf": "",
+              "page": 1,
+              "pageSize": 10,
+              "sortProp": "updatedAt",
+              "sortOrder": "descending"
+            },
+            "columns": [
+              {
+                "key": "name",
+                "label": "商品",
+                "visible": true,
+                "fixed": true
+              },
+              {
+                "key": "category",
+                "label": "商品分类",
+                "visible": true
+              },
+              {
+                "key": "template",
+                "label": "属性方案",
+                "visible": false
+              },
+              {
+                "key": "brand",
+                "label": "品牌",
+                "visible": true
+              },
+              {
+                "key": "skuCount",
+                "label": "规格数",
+                "visible": true
+              },
+              {
+                "key": "sale",
+                "label": "在售",
+                "visible": true
+              },
+              {
+                "key": "oaProductId",
+                "label": "OA_ProductID",
+                "visible": true
+              },
+              {
+                "key": "origin",
+                "label": "数据来源",
+                "visible": true
+              },
+              {
+                "key": "updatedAt",
+                "label": "最近维护",
+                "visible": true
+              }
+            ]
+          }
+        ],
+        "activePresetId": "view-all",
+        "skuWorkbench": {
+          "version": 1,
+          "activeId": "view-default",
+          "defaultId": "sku-system-all",
+          "favorites": [],
+          "order": [
+            "sku-system-all",
+            "view-default"
+          ],
+          "working": {},
+          "migratedPresetIds": []
+        }
+      }
+    },
+    "benefitFrameworks": [
+      {
+        "id": "benefit-framework-mvnlb1re-2",
+        "name": "膜壳框架",
+        "status": "available",
+        "revision": 1,
+        "groups": [
+          {
+            "id": "膜组",
+            "name": "膜组",
+            "enabled": true,
+            "candidateSkuIds": [],
+            "scope": {
+              "kind": "product-types",
+              "productTypeIds": [
+                "type-film"
+              ],
+              "compatibleOnly": false
+            },
+            "required": true,
+            "minKinds": 1,
+            "maxKinds": 20,
+            "defaultQuantity": 2,
+            "adjustable": false,
+            "minQuantity": 1,
+            "maxQuantity": 10
+          }
+        ],
+        "createdAt": "2026-10-25T08:52:52.010Z",
+        "updatedAt": "2026-10-25T08:52:52.010Z",
+        "creationRequestId": "framework",
+        "creationIntent": "[\"膜壳框架\",\"available\",[{\"adjustable\":false,\"candidateSkuIds\":[],\"defaultQuantity\":2,\"enabled\":true,\"id\":\"膜组\",\"maxKinds\":20,\"maxQuantity\":10,\"minKinds\":1,\"minQuantity\":1,\"name\":\"膜组\",\"required\":true,\"scope\":{\"compatibleOnly\":false,\"kind\":\"product-types\",\"productTypeIds\":[\"type-film\"]}}]]",
+        "history": [
+          {
+            "kind": "type-v1",
+            "frameworkId": "benefit-framework-mvnlb1re-2",
+            "revision": 1,
+            "name": "膜壳框架",
+            "groups": [
+              {
+                "id": "膜组",
+                "name": "膜组",
+                "enabled": true,
+                "candidateSkuIds": [],
+                "scope": {
+                  "kind": "product-types",
+                  "productTypeIds": [
+                    "type-film"
+                  ],
+                  "compatibleOnly": false
+                },
+                "required": true,
+                "minKinds": 1,
+                "maxKinds": 20,
+                "defaultQuantity": 2,
+                "adjustable": false,
+                "minQuantity": 1,
+                "maxQuantity": 10
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "benefitPackages": [
+      {
+        "id": "benefit-package-000001",
+        "code": "BPK-000001",
+        "revision": 1,
+        "name": "补修框架包",
+        "status": "available",
+        "favorite": false,
+        "device": {
+          "kind": "sku",
+          "skuId": "phone-a"
+        },
+        "includedPhoneSkuId": "",
+        "requireFastCharge": false,
+        "goods": [
+          {
+            "id": "goods:film-sku",
+            "skuId": "film-sku",
+            "quantity": 2,
+            "snapshot": {
+              "skuId": "film-sku",
+              "code": "FILM-SKU",
+              "name": "【独立测试】film-sku",
+              "familyId": "family-film",
+              "familyName": "【独立测试】family-film",
+              "spec": "品牌 CaseWorks",
+              "productTypeId": "type-film",
+              "typeName": "测试保护膜",
+              "status": "on_sale"
+            },
+            "referencePrice": {
+              "amountCents": 123,
+              "source": "manual",
+              "enteredAt": "2026-10-25T00:00:00Z"
+            }
+          }
+        ],
+        "services": [],
+        "rulesEnabled": false,
+        "groups": [],
+        "quote": {
+          "currency": "CNY",
+          "amountCents": 500,
+          "reviewedBasis": "{\"device\":{\"kind\":\"sku\",\"skuId\":\"phone-a\"},\"framework\":{\"frameworkId\":\"benefit-framework-mvnlb1re-2\",\"groups\":[{\"adjustable\":false,\"candidateSkuIds\":[],\"defaultQuantity\":2,\"enabled\":true,\"id\":\"膜组\",\"maxKinds\":20,\"maxQuantity\":10,\"minKinds\":1,\"minQuantity\":1,\"name\":\"膜组\",\"required\":true,\"scope\":{\"compatibleOnly\":false,\"kind\":\"product-types\",\"productTypeIds\":[\"type-film\"]}}],\"kind\":\"type-v1\",\"name\":\"膜壳框架\",\"revision\":1},\"goods\":[{\"id\":\"goods:film-sku\",\"quantity\":2,\"referencePrice\":{\"amountCents\":123,\"enteredAt\":\"2026-10-25T00:00:00Z\",\"source\":\"manual\"},\"skuId\":\"film-sku\"}],\"groups\":[],\"includedPhoneSkuId\":\"\",\"requireFastCharge\":false,\"rulesEnabled\":false,\"services\":[]}"
+        },
+        "confirmations": [],
+        "issues": [],
+        "createdAt": "2026-10-25T08:52:52.025Z",
+        "updatedAt": "2026-10-25T08:52:52.025Z",
+        "framework": {
+          "kind": "type-v1",
+          "frameworkId": "benefit-framework-mvnlb1re-2",
+          "revision": 1,
+          "name": "膜壳框架",
+          "groups": [
+            {
+              "id": "膜组",
+              "name": "膜组",
+              "enabled": true,
+              "candidateSkuIds": [],
+              "scope": {
+                "kind": "product-types",
+                "productTypeIds": [
+                  "type-film"
+                ],
+                "compatibleOnly": false
+              },
+              "required": true,
+              "minKinds": 1,
+              "maxKinds": 20,
+              "defaultQuantity": 2,
+              "adjustable": false,
+              "minQuantity": 1,
+              "maxQuantity": 10
+            }
+          ]
+        },
+        "creationRequestId": "package"
+      }
+    ],
+    "benefitDeliveries": [
+      {
+        "framework": {
+          "kind": "type-v1",
+          "frameworkId": "benefit-framework-mvnlb1re-2",
+          "revision": 1,
+          "name": "膜壳框架",
+          "groups": [
+            {
+              "id": "膜组",
+              "name": "膜组",
+              "enabled": true,
+              "candidateSkuIds": [],
+              "scope": {
+                "kind": "product-types",
+                "productTypeIds": [
+                  "type-film"
+                ],
+                "compatibleOnly": false
+              },
+              "required": true,
+              "minKinds": 1,
+              "maxKinds": 20,
+              "defaultQuantity": 2,
+              "adjustable": false,
+              "minQuantity": 1,
+              "maxQuantity": 10
+            }
+          ]
+        },
+        "referenceTotals": {
+          "perPackageKnownCents": 246,
+          "perDeliveryKnownCents": 0,
+          "totalKnownCents": 492,
+          "missingCount": 0,
+          "complete": true,
+          "differenceCents": -508
+        },
+        "packageId": "benefit-package-000001",
+        "packageCode": "BPK-000001",
+        "sourceRevision": 1,
+        "packageName": "补修框架包",
+        "packageCount": 2,
+        "device": {
+          "kind": "sku",
+          "skuId": "phone-a"
+        },
+        "deviceLabel": "【独立测试】phone-a · 【独立测试】Orion A",
+        "includedPhoneSkuId": "",
+        "hostSkuIds": [],
+        "goods": [
+          {
+            "skuId": "film-sku",
+            "code": "FILM-SKU",
+            "name": "【独立测试】film-sku",
+            "familyId": "family-film",
+            "familyName": "【独立测试】family-film",
+            "spec": "品牌 CaseWorks",
+            "productTypeId": "type-film",
+            "typeName": "测试保护膜",
+            "status": "on_sale",
+            "lineId": "goods:film-sku",
+            "referencePrice": {
+              "amountCents": 123,
+              "source": "manual",
+              "enteredAt": "2026-10-25T00:00:00Z"
+            },
+            "referenceLineCents": 246,
+            "referenceTotalCents": 492,
+            "perPackageQuantity": 2,
+            "totalQuantity": 4,
+            "compatibility": {
+              "skuId": "film-sku",
+              "basicStatus": "compatible",
+              "fastChargeStatus": "pending",
+              "reasons": [
+                "适用于当前设备型号；型号级声明不限定容量和颜色",
+                "来自销售 SKU 声明",
+                "独立测试人工确认依据"
+              ],
+              "capabilities": [
+                {
+                  "capability": "basic",
+                  "status": "compatible",
+                  "conditions": [],
+                  "declarationIds": [
+                    "decl-film-a"
+                  ],
+                  "sources": [
+                    "独立测试人工确认依据"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "services": [],
+        "quote": {
+          "currency": "CNY",
+          "amountCents": 500,
+          "totalCents": 1000,
+          "needsReview": false
+        },
+        "confirmations": [],
+        "issues": [],
+        "canConfirm": true,
+        "basis": "{\"confirmations\":[],\"name\":\"补修框架包\",\"packageCount\":2,\"packageId\":\"benefit-package-000001\",\"quote\":{\"amountCents\":500,\"currency\":\"CNY\",\"reviewedBasis\":\"{\\\"device\\\":{\\\"kind\\\":\\\"sku\\\",\\\"skuId\\\":\\\"phone-a\\\"},\\\"framework\\\":{\\\"frameworkId\\\":\\\"benefit-framework-mvnlb1re-2\\\",\\\"groups\\\":[{\\\"adjustable\\\":false,\\\"candidateSkuIds\\\":[],\\\"defaultQuantity\\\":2,\\\"enabled\\\":true,\\\"id\\\":\\\"膜组\\\",\\\"maxKinds\\\":20,\\\"maxQuantity\\\":10,\\\"minKinds\\\":1,\\\"minQuantity\\\":1,\\\"name\\\":\\\"膜组\\\",\\\"required\\\":true,\\\"scope\\\":{\\\"compatibleOnly\\\":false,\\\"kind\\\":\\\"product-types\\\",\\\"productTypeIds\\\":[\\\"type-film\\\"]}}],\\\"kind\\\":\\\"type-v1\\\",\\\"name\\\":\\\"膜壳框架\\\",\\\"revision\\\":1},\\\"goods\\\":[{\\\"id\\\":\\\"goods:film-sku\\\",\\\"quantity\\\":2,\\\"referencePrice\\\":{\\\"amountCents\\\":123,\\\"enteredAt\\\":\\\"2026-10-25T00:00:00Z\\\",\\\"source\\\":\\\"manual\\\"},\\\"skuId\\\":\\\"film-sku\\\"}],\\\"groups\\\":[],\\\"includedPhoneSkuId\\\":\\\"\\\",\\\"requireFastCharge\\\":false,\\\"rulesEnabled\\\":false,\\\"services\\\":[]}\"},\"sourceRevision\":1,\"validation\":\"{\\\"composition\\\":\\\"{\\\\\\\"device\\\\\\\":{\\\\\\\"kind\\\\\\\":\\\\\\\"sku\\\\\\\",\\\\\\\"skuId\\\\\\\":\\\\\\\"phone-a\\\\\\\"},\\\\\\\"framework\\\\\\\":{\\\\\\\"frameworkId\\\\\\\":\\\\\\\"benefit-framework-mvnlb1re-2\\\\\\\",\\\\\\\"groups\\\\\\\":[{\\\\\\\"adjustable\\\\\\\":false,\\\\\\\"candidateSkuIds\\\\\\\":[],\\\\\\\"defaultQuantity\\\\\\\":2,\\\\\\\"enabled\\\\\\\":true,\\\\\\\"id\\\\\\\":\\\\\\\"膜组\\\\\\\",\\\\\\\"maxKinds\\\\\\\":20,\\\\\\\"maxQuantity\\\\\\\":10,\\\\\\\"minKinds\\\\\\\":1,\\\\\\\"minQuantity\\\\\\\":1,\\\\\\\"name\\\\\\\":\\\\\\\"膜组\\\\\\\",\\\\\\\"required\\\\\\\":true,\\\\\\\"scope\\\\\\\":{\\\\\\\"compatibleOnly\\\\\\\":false,\\\\\\\"kind\\\\\\\":\\\\\\\"product-types\\\\\\\",\\\\\\\"productTypeIds\\\\\\\":[\\\\\\\"type-film\\\\\\\"]}}],\\\\\\\"kind\\\\\\\":\\\\\\\"type-v1\\\\\\\",\\\\\\\"name\\\\\\\":\\\\\\\"膜壳框架\\\\\\\",\\\\\\\"revision\\\\\\\":1},\\\\\\\"goods\\\\\\\":[{\\\\\\\"id\\\\\\\":\\\\\\\"goods:film-sku\\\\\\\",\\\\\\\"quantity\\\\\\\":2,\\\\\\\"referencePrice\\\\\\\":{\\\\\\\"amountCents\\\\\\\":123,\\\\\\\"enteredAt\\\\\\\":\\\\\\\"2026-10-25T00:00:00Z\\\\\\\",\\\\\\\"source\\\\\\\":\\\\\\\"manual\\\\\\\"},\\\\\\\"skuId\\\\\\\":\\\\\\\"film-sku\\\\\\\"}],\\\\\\\"groups\\\\\\\":[],\\\\\\\"includedPhoneSkuId\\\\\\\":\\\\\\\"\\\\\\\",\\\\\\\"requireFastCharge\\\\\\\":false,\\\\\\\"rulesEnabled\\\\\\\":false,\\\\\\\"services\\\\\\\":[]}\\\",\\\"declarations\\\":[{\\\"accessorySkuId\\\":\\\"film-sku\\\",\\\"capability\\\":\\\"basic\\\",\\\"conclusion\\\":\\\"compatible\\\",\\\"conditions\\\":[],\\\"createdAt\\\":\\\"2026-10-23T04:00:00.000Z\\\",\\\"host\\\":{\\\"identityKey\\\":\\\"device:model-a\\\",\\\"productModelId\\\":\\\"device:model-a\\\",\\\"productTypeId\\\":\\\"type-device\\\",\\\"scope\\\":\\\"model\\\",\\\"steps\\\":[{\\\"attributeId\\\":\\\"device-model\\\",\\\"attributeName\\\":\\\"设备型号\\\",\\\"valueId\\\":\\\"【独立测试】Orion A\\\"}]},\\\"id\\\":\\\"decl-film-a\\\",\\\"note\\\":\\\"\\\",\\\"provenance\\\":{\\\"detail\\\":\\\"独立测试，不是真实核验资料\\\",\\\"kind\\\":\\\"manual\\\"},\\\"source\\\":\\\"独立测试人工确认依据\\\",\\\"targetId\\\":\\\"film-sku\\\",\\\"targetKind\\\":\\\"sku\\\",\\\"updatedAt\\\":\\\"2026-10-23T04:00:00.000Z\\\",\\\"verification\\\":\\\"confirmed\\\"}],\\\"device\\\":{\\\"attributes\\\":{\\\"attr-brand\\\":\\\"DeviceLab\\\",\\\"attr-capacity\\\":\\\"128G\\\",\\\"attr-color\\\":\\\"黑色\\\",\\\"attr-device-model\\\":\\\"Orion A\\\",\\\"attr-port\\\":\\\"USB-C\\\"},\\\"host\\\":{\\\"identityKey\\\":\\\"device:model-a\\\",\\\"planningId\\\":undefined,\\\"productModelId\\\":\\\"device:model-a\\\",\\\"productTypeId\\\":\\\"type-device\\\",\\\"scope\\\":\\\"model\\\",\\\"steps\\\":[{\\\"attributeId\\\":\\\"device-model\\\",\\\"attributeName\\\":\\\"设备型号\\\",\\\"valueId\\\":\\\"【独立测试】Orion A\\\"}]},\\\"planningId\\\":undefined,\\\"sourceStamp\\\":\\\"{\\\\\\\"familyId\\\\\\\":\\\\\\\"family-device\\\\\\\",\\\\\\\"typeId\\\\\\\":\\\\\\\"type-device\\\\\\\",\\\\\\\"templateId\\\\\\\":\\\\\\\"template-device-test\\\\\\\",\\\\\\\"productModelId\\\\\\\":\\\\\\\"\\\\\\\",\\\\\\\"familyVersion\\\\\\\":\\\\\\\"\\\\\\\",\\\\\\\"skuVersion\\\\\\\":\\\\\\\"\\\\\\\",\\\\\\\"source\\\\\\\":{\\\\\\\"kind\\\\\\\":\\\\\\\"manual\\\\\\\",\\\\\\\"templateId\\\\\\\":\\\\\\\"template-device-test\\\\\\\",\\\\\\\"modelVersionId\\\\\\\":\\\\\\\"\\\\\\\",\\\\\\\"productPlanId\\\\\\\":\\\\\\\"\\\\\\\"},\\\\\\\"identity\\\\\\\":[[\\\\\\\"attr-device-model\\\\\\\",\\\\\\\"Orion A\\\\\\\"]]}\\\",\\\"status\\\":\\\"resolved\\\"},\\\"goods\\\":[{\\\"available\\\":true,\\\"compatibility\\\":{\\\"basicStatus\\\":\\\"compatible\\\",\\\"capabilities\\\":[{\\\"capability\\\":\\\"basic\\\",\\\"conditions\\\":[],\\\"declarationIds\\\":[\\\"decl-film-a\\\"],\\\"sources\\\":[\\\"独立测试人工确认依据\\\"],\\\"status\\\":\\\"compatible\\\"}],\\\"fastChargeStatus\\\":\\\"pending\\\",\\\"reasons\\\":[\\\"适用于当前设备型号；型号级声明不限定容量和颜色\\\",\\\"来自销售 SKU 声明\\\",\\\"独立测试人工确认依据\\\"],\\\"skuId\\\":\\\"film-sku\\\"},\\\"summary\\\":{\\\"code\\\":\\\"FILM-SKU\\\",\\\"familyId\\\":\\\"family-film\\\",\\\"familyName\\\":\\\"【独立测试】family-film\\\",\\\"name\\\":\\\"【独立测试】film-sku\\\",\\\"productTypeId\\\":\\\"type-film\\\",\\\"skuId\\\":\\\"film-sku\\\",\\\"spec\\\":\\\"品牌 CaseWorks\\\",\\\"status\\\":\\\"on_sale\\\",\\\"typeName\\\":\\\"测试保护膜\\\"}}]}\"}",
+        "id": "benefit-delivery-000001",
+        "code": "BDL-000001",
+        "requestId": "delivery",
+        "generatedAt": "2026-10-25T08:52:52.034Z",
+        "snapshotVersion": 1
+      }
+    ]
+  }
+}

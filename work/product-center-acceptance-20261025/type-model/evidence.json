@@ -1,0 +1,8 @@
+{
+  "browser": "156.0.8078.47",
+  "checks": [
+    "real product type created under selected category without creating/moving category",
+    "real model create and editor entry retain explicit type identity and prior published history"
+  ],
+  "errors": []
+}

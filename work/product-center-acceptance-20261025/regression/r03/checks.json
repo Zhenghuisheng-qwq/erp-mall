@@ -1,0 +1,14 @@
+{
+  "passed": 9,
+  "checks": [
+    "zero-member frameworks and empty candidate types save; maxKinds independent of current inventory; atomic quota retry/idempotency; no catalogue generation",
+    "same model different capacity/color hosts reuse framework; newly compatible sale SKU appears dynamically; MAT/off-sale/pending/excluded/no-sales-claim/outside types rejected",
+    "default quantities, explicit included host exemption, overlap rejection and direct Store outside-member validation share one range",
+    "null versus free zero; safe cents multiplication/sums; per-delivery services charged once; signed reference difference; replacement clears price and retains quote for review",
+    "frozen framework/price/compatibility delivery; quota retry once; stale revision/preview rejected; framework update/disable and package repricing never rewrite history; referenced framework/type protected",
+    "backup restores framework/price/history; malformed containers/prices/totals/forged rules rejected; operator direct commands and role-spoof import atomic",
+    "free packages, legacy SKU whitelist and common-package copy retained; conditional confirmation remains scoped and never upgrades pending",
+    "detach preserves selections/prices; unknown legal range retained but blocked; outside-member JSON rejected; changed host invalidates confirmation; old snapshots stay unpriced; request intent cannot change count",
+    "module reset protects all framework revisions; queued concurrent framework edits accept one revision only; operator price/history imports rejected; deleted creation receipts cannot resurrect framework"
+  ]
+}

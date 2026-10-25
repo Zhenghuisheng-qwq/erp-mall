@@ -1,0 +1,67 @@
+{
+  "result": "FAIL",
+  "error": "TimeoutError: locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.rail-wrap[data-mode=single]') to be visible\u001b[22m\n",
+  "checks": [
+    {
+      "name": "spu-scoped-sku-save-preview-retry-explicit-generation-delivery-package-source-selection-focus-roundtrip",
+      "result": "PASS"
+    },
+    {
+      "name": "service-local-draft-escape-beforeunload-route-save-includes-service-invalid-remains-and-fast-navigation-resolves",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-invalid-rule-save-rejected-reveals-exact-field-with-input-retained-fix-save-refresh-safe",
+      "result": "PASS"
+    },
+    {
+      "name": "conditional-input-visible-confirmation-is-local-invalidates-and-maintenance-return-restores-unsaved-draft-search",
+      "result": "PASS"
+    },
+    {
+      "name": "held-real-web-lock-prevents-edits-service-removal-and-navigation-until-one-complete-save",
+      "result": "PASS"
+    },
+    {
+      "name": "model-only-maintenance-carries-explicit-host-key-without-inventing-device-sku-or-including-phone",
+      "result": "PASS"
+    },
+    {
+      "name": "external-and-unrecognized-return-addresses-have-explicit-local-fallback",
+      "result": "PASS"
+    },
+    {
+      "name": "visual-1366-light",
+      "result": "PASS"
+    },
+    {
+      "name": "visual-1366-dark",
+      "result": "PASS"
+    },
+    {
+      "name": "visual-1920-light",
+      "result": "PASS"
+    },
+    {
+      "name": "visual-1920-dark",
+      "result": "PASS"
+    },
+    {
+      "name": "visual-narrow-desktop",
+      "result": "PASS"
+    }
+  ],
+  "diagnostics": [],
+  "screenshots": [
+    "editor-1366-light.png",
+    "service-1366-light.png",
+    "editor-1366-dark.png",
+    "service-1366-dark.png",
+    "editor-1920-light.png",
+    "service-1920-light.png",
+    "editor-1920-dark.png",
+    "service-1920-dark.png",
+    "editor-narrow-desktop.png",
+    "service-narrow-desktop.png"
+  ]
+}

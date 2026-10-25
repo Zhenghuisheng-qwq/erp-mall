@@ -1,0 +1,246 @@
+{
+  "checks": [
+    {
+      "name": "disabled-rules:maxKinds:zero:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:maxKinds:empty-input:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:maxKinds:non-number:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:maxKinds:infinity:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:maxKinds:fraction:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:maxKinds:negative:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:maxKinds:overflow:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:defaultQuantity:zero:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:defaultQuantity:empty-input:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:defaultQuantity:non-number:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:defaultQuantity:infinity:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:defaultQuantity:fraction:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:defaultQuantity:negative:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:defaultQuantity:overflow:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:minQuantity:zero:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:minQuantity:empty-input:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:minQuantity:non-number:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:minQuantity:infinity:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:minQuantity:fraction:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:minQuantity:negative:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:minQuantity:overflow:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:maxQuantity:zero:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:maxQuantity:empty-input:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:maxQuantity:non-number:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:maxQuantity:infinity:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:maxQuantity:fraction:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:maxQuantity:negative:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-rules:maxQuantity:overflow:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:maxKinds:zero:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:maxKinds:empty-input:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:maxKinds:non-number:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:maxKinds:infinity:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:maxKinds:fraction:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:maxKinds:negative:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:maxKinds:overflow:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:defaultQuantity:zero:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:defaultQuantity:empty-input:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:defaultQuantity:non-number:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:defaultQuantity:infinity:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:defaultQuantity:fraction:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:defaultQuantity:negative:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:defaultQuantity:overflow:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:minQuantity:zero:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:minQuantity:empty-input:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:minQuantity:non-number:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:minQuantity:infinity:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:minQuantity:fraction:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:minQuantity:negative:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:minQuantity:overflow:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:maxQuantity:zero:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:maxQuantity:empty-input:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:maxQuantity:non-number:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:maxQuantity:infinity:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:maxQuantity:fraction:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:maxQuantity:negative:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-group:maxQuantity:overflow:reject-before-serialization",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-incomplete-business-content-roundtrip",
+      "result": "PASS"
+    },
+    {
+      "name": "negative-minKinds-still-invalid-when-disabled",
+      "result": "PASS"
+    },
+    {
+      "name": "actual-save-rejects-invalid-disabled-rules-in-both-statuses-with-no-write",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled-business-incomplete-actual-save-export-import-startup-roundtrip-and-malformed-bytes-retained",
+      "result": "PASS"
+    }
+  ],
+  "passed": 60,
+  "failed": 0
+}

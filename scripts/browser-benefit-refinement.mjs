@@ -213,7 +213,7 @@ try {
       const navPreference = await page.evaluate(() => JSON.parse(localStorage.getItem('iyge-nav-layout')))
       assert.equal(navPreference.collapsed, false, 'temporary compact does not overwrite user preference')
       await page.locator('[data-nav-fold]').click(); await page.locator('#nav-flyout').waitFor(); await page.keyboard.press('Escape'); await page.locator('#nav-flyout').waitFor({ state: 'hidden' })
-      await page.setViewportSize({ width: 1366, height: 768 }); await page.locator('.rail-wrap[data-mode=single]').waitFor(); assert.equal(await page.locator('.rail-wrap').getAttribute('data-mode'), 'single')
+      await page.setViewportSize({ width: 1366, height: 768 }); await page.locator(`.rail-wrap[data-mode="${navPreference.layout}"]`).waitFor(); assert.equal(await page.locator('.rail-wrap').getAttribute('data-mode'), navPreference.layout)
       await page.setViewportSize({ width: scenario.width, height: scenario.height }); await page.locator('.rail-wrap[data-mode=icons]').waitFor(); await flush()
       assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem('iyge-nav-layout')))).collapsed, false)
     }

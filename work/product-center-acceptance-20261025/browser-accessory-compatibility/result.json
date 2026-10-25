@@ -1,0 +1,84 @@
+{
+  "result": "PASS",
+  "browser": "156.0.8078.47",
+  "checkpoints": [
+    {
+      "name": "view-detail-reverse-scope-conditions-pure-selection-and-focus"
+    },
+    {
+      "name": "new-declaration-preview-quota-draft-retry-refresh-immediate-results"
+    },
+    {
+      "name": "explicit-material-copy-cancel-confirm-source-snapshot-independent-refresh"
+    },
+    {
+      "name": "unconfigured-device-explicit-binding-refresh"
+    },
+    {
+      "name": "explicit-binding-removal-quota-retry-keeps-declarations"
+    },
+    {
+      "name": "multi-model-spu-explicit-choice"
+    },
+    {
+      "name": "unified-maintenance-entry"
+    },
+    {
+      "name": "readonly-role-view-without-maintenance"
+    },
+    {
+      "name": "drawer-close-preserves-saved-view-search-page-selection-and-scroll"
+    },
+    {
+      "name": "material-only-no-inferred-sale-sku-and-maintenance-guidance"
+    },
+    {
+      "name": "bulk-add-duplicate-preview-pending-exclusion-cancellation"
+    },
+    {
+      "name": "legacy-mat-entry-note-quota-retained-retry-refresh"
+    },
+    {
+      "name": "incomplete-storage-no-seed-download-validate-quota-retry-recovery"
+    },
+    {
+      "name": "dark-desktop",
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "deviceScaleFactor": 1
+    },
+    {
+      "name": "narrow",
+      "viewport": {
+        "width": 780,
+        "height": 900
+      },
+      "deviceScaleFactor": 1
+    },
+    {
+      "name": "equivalent-125-percent",
+      "viewport": {
+        "width": 1093,
+        "height": 614
+      },
+      "deviceScaleFactor": 1.25
+    }
+  ],
+  "screenshots": [
+    "device-sales-light.png",
+    "accessory-reverse.png",
+    "declaration-storage-failure.png",
+    "material-copy-preview.png",
+    "material-only-guidance.png",
+    "incomplete-storage-safe-recovery.png",
+    "dark-desktop.png",
+    "dark-desktop-editor.png",
+    "narrow.png",
+    "narrow-editor.png",
+    "equivalent-125-percent.png",
+    "equivalent-125-percent-editor.png"
+  ],
+  "diagnostics": []
+}

@@ -171,7 +171,8 @@ export function useBenefitPackageEditor() {
     if (serviceDirty.value) { error.value = '服务弹窗还有未确认输入，请先加入服务清单或明确放弃，再保存权益包。'; return false }
     if (saving.value || !store.isAdmin) return false
     if (quoteError.value) { error.value = quoteError.value; return false }
-    if (!dirty.value && draft.value.id && draft.value.status === status && !store.persistenceState.external) return true
+    // Live references may become invalid without changing the saved package itself.
+    if (!dirty.value && draft.value.id && draft.value.status === status && !store.persistenceState.external && (status === 'draft' ? validation.value.canSaveDraft : validation.value.canSaveAvailable)) return true
     saving.value = true
     saveRequest.value ||= localBenefitRequest('save-package')
     let result: BenefitCommandResult
