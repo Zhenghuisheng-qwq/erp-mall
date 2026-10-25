@@ -20,13 +20,6 @@ export const guideTroubleshootingArticles: GuideArticle[] = [
     "related": [
       "manual-feedback"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/guide/failure.ts",
-      "docs/business-guide/content-source-audit.md#troubleshooting"
-    ],
     "sections": [
       {
         "id": "symptom",
@@ -72,13 +65,6 @@ export const guideTroubleshootingArticles: GuideArticle[] = [
     ],
     "related": [
       "manual-feedback"
-    ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/guide/failure.ts",
-      "docs/business-guide/content-source-audit.md#troubleshooting"
     ],
     "sections": [
       {
@@ -126,13 +112,6 @@ export const guideTroubleshootingArticles: GuideArticle[] = [
     "related": [
       "manual-feedback"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/guide/failure.ts",
-      "docs/business-guide/content-source-audit.md#troubleshooting"
-    ],
     "sections": [
       {
         "id": "symptom",
@@ -178,13 +157,6 @@ export const guideTroubleshootingArticles: GuideArticle[] = [
     ],
     "related": [
       "manual-feedback"
-    ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/guide/failure.ts",
-      "docs/business-guide/content-source-audit.md#troubleshooting"
     ],
     "sections": [
       {
@@ -232,13 +204,6 @@ export const guideTroubleshootingArticles: GuideArticle[] = [
     "related": [
       "manual-feedback"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/guide/failure.ts",
-      "docs/business-guide/content-source-audit.md#troubleshooting"
-    ],
     "sections": [
       {
         "id": "symptom",
@@ -285,13 +250,6 @@ export const guideTroubleshootingArticles: GuideArticle[] = [
     "related": [
       "manual-feedback"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/guide/failure.ts",
-      "docs/business-guide/content-source-audit.md#troubleshooting"
-    ],
     "sections": [
       {
         "id": "symptom",
@@ -335,13 +293,6 @@ export const guideTroubleshootingArticles: GuideArticle[] = [
     "ruleIds": [],
     "related": [
       "manual-feedback"
-    ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/guide/failure.ts",
-      "docs/business-guide/content-source-audit.md#troubleshooting"
     ],
     "sections": [
       {

@@ -8,6 +8,7 @@
   <el-empty v-else description="未找到这份页面说明"><el-button @click="$emit('home')">查看说明目录</el-button></el-empty>
 </template>
 <script setup lang="ts">
+import './guide.css'
 import {computed} from 'vue'
 import ArticleRenderer from './ArticleRenderer.vue'
 import {useGuideStore} from '../../stores/guide'

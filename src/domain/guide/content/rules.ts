@@ -21,21 +21,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-categories"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/categoryTree.ts",
-      "docs/business-guide/content-source-audit.md#rule-category-typed-target"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "保持类型与末级分类的约束，来源绑定类型不等于来源不能移动"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -88,13 +74,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -117,21 +96,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-categories"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/categoryTree.ts",
-      "docs/business-guide/content-source-audit.md#rule-category-cycle"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "避免目录闭环导致树遍历和归属失真"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -184,13 +149,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -214,21 +172,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-categories"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/categoryMovement.ts",
-      "docs/business-guide/content-source-audit.md#rule-category-stale"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "不让旧上下文写入错误层级"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -281,13 +225,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -322,21 +259,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-models",
       "manual-specs"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/dictionaryGuard.ts",
-      "docs/business-guide/content-source-audit.md#rule-model-dictionary"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "冻结版本与草稿使用同一身份语义，不按文字跨属性合并"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -389,13 +312,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -426,21 +342,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-models",
       "manual-specs"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/logic.ts",
-      "docs/business-guide/content-source-audit.md#rule-model-structure"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "确保真实路径枚举而非猜测全局组合"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -493,13 +395,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -544,21 +439,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-specs",
       "manual-plans"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/stores/catalog.ts",
-      "docs/business-guide/content-source-audit.md#rule-model-history"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "保留可追溯的创建依据"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -611,15 +492,9 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
-    ]
+    ],
+    "status": "historical"
   },
   {
     "id": "rule-node-config",
@@ -643,21 +518,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-specs"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/nodeBusiness.ts",
-      "docs/business-guide/content-source-audit.md#rule-node-config"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "配置不得偷偷生成规格分支或波及兄弟路径"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -710,13 +571,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -755,21 +609,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-specs",
       "manual-sku-create"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/material.ts",
-      "docs/business-guide/content-source-audit.md#rule-material-source"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "保证 MAT 的档案来源可核验"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -822,13 +662,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -852,21 +685,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-material-create"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/material.ts",
-      "docs/business-guide/content-source-audit.md#rule-material-planning"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "PLN 表示完整来源，不等于 MAT 或销售 SKU"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -919,13 +738,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -958,21 +770,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-material-edit",
       "manual-import"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/catalogIdentity.ts",
-      "docs/business-guide/content-source-audit.md#rule-material-identity"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "避免同名/旧字段造成跨对象误改"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -1025,13 +823,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -1056,21 +847,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-material-edit"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/materialRelationCommands.ts",
-      "docs/business-guide/content-source-audit.md#rule-material-request"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "重复成功也必须被记住，不能覆写 A 或批改历史"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -1123,13 +900,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -1152,21 +922,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-spu-create"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/spuSku.ts",
-      "docs/business-guide/content-source-audit.md#rule-spu-input"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "主体可以独立建立，但不能留下伪造引用"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -1219,13 +975,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -1251,21 +1000,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-spu-create",
       "manual-spu-edit"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/spuSku.ts",
-      "docs/business-guide/content-source-audit.md#rule-spu-identity"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "不重生成子记录或抹去历史关系"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -1318,13 +1053,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -1349,21 +1077,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-spus"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/spuSku.ts",
-      "docs/business-guide/content-source-audit.md#rule-spu-reference"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "防止删除主体隐式破坏下游"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -1416,13 +1130,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -1451,21 +1158,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-sku-edit",
       "manual-check"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/spuSku.ts",
-      "docs/business-guide/content-source-audit.md#rule-sku-input"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "让保存值可追踪到真实录入依据"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -1518,13 +1211,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -1559,21 +1245,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-skus",
       "manual-sku-create"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/spuSku.ts",
-      "docs/business-guide/content-source-audit.md#rule-sku-identity"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "不从展示摘要重推 SKU 编号或身份"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -1626,15 +1298,9 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
-    ]
+    ],
+    "status": "historical"
   },
   {
     "id": "rule-view-isolation",
@@ -1666,21 +1332,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-skus",
       "manual-columns-spu"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/components/product-list/useSkuWorkbench.ts",
-      "docs/business-guide/content-source-audit.md#rule-view-isolation"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "保留用户选择和业务对象，自动适配不是手工列宽"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -1733,13 +1385,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -1767,21 +1412,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-skus",
       "manual-columns-sku"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/skuWorkbenchQuery.ts",
-      "docs/business-guide/content-source-audit.md#rule-view-conditions"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "查询结果与排序必须可解释"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -1834,13 +1465,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -1867,21 +1491,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-compatibility",
       "manual-benefit-create"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/deviceResolution.ts",
-      "docs/business-guide/content-source-audit.md#rule-compatibility-binding"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "避免名称猜测扩大适用范围"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -1934,13 +1544,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -1964,21 +1567,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-compatibility"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/accessoryCompatibilityCommands.ts",
-      "docs/business-guide/content-source-audit.md#rule-compatibility-basis"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "双向查询和维护共享同一事实依据"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -2031,13 +1620,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -2062,21 +1644,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-compatibility"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/materialRelationCommands.ts",
-      "docs/business-guide/content-source-audit.md#rule-compatibility-manual-protection"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "内容签名变化不等于来源身份变更"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -2129,13 +1697,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -2164,21 +1725,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-benefits",
       "manual-benefit-create"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/benefitFrameworks.ts",
-      "docs/business-guide/content-source-audit.md#rule-framework-members"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "容器损坏与可修复缺引用必须区分"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -2231,13 +1778,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -2264,21 +1804,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-benefit-create",
       "manual-benefit-edit"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/benefitPackages.ts",
-      "docs/business-guide/content-source-audit.md#rule-benefit-validation"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "草稿可待完善，但可用/交付不能绕过阻断"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -2331,13 +1857,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -2365,21 +1884,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-benefit-create",
       "manual-benefit-edit"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/benefitPricing.ts",
-      "docs/business-guide/content-source-audit.md#rule-benefit-quote"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "报价不是自动由参考价推导出的唯一售价"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -2432,13 +1937,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -2464,21 +1962,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-benefit-edit",
       "manual-benefit-delivery"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/benefitPackages.ts",
-      "docs/business-guide/content-source-audit.md#rule-benefit-preview"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "防止生成与当前承诺不一致的清单"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -2531,13 +2015,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -2560,21 +2037,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-benefit-delivery"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/benefitPackageExport.ts",
-      "docs/business-guide/content-source-audit.md#rule-delivery-snapshot"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "交付清单是本机约定，不虚构订单支付库存"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -2627,13 +2090,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -2658,21 +2114,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-import"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/stores/catalog.ts",
-      "docs/business-guide/content-source-audit.md#rule-json-import"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "导入不能成为绕过 Store 校验的第二写入口"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -2725,13 +2167,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -2764,8 +2199,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "page-permissions",
       "page-users",
       "page-account",
-      "page-feedback",
-      "page-guide-manage"
+      "page-feedback"
     ],
     "actionIds": [
       "action-category-create",
@@ -2818,7 +2252,6 @@ export const guideRuleArticles: GuideArticle[] = [
       "action-feedback-save",
       "action-feedback-export",
       "action-feedback-import",
-      "action-guide-draft",
       "action-business-save"
     ],
     "ruleIds": [],
@@ -2827,21 +2260,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-product-types",
       "manual-params"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/stores/catalogPersistence.ts",
-      "docs/business-guide/content-source-audit.md#rule-persistence"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "不同事务保存状态必须如实区分"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -2894,13 +2313,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -2937,21 +2349,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-benefit-edit",
       "manual-import"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/stores/catalog.ts",
-      "docs/business-guide/content-source-audit.md#rule-conflict"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "防止多窗口与异步操作丢更新"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -3004,13 +2402,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -3033,8 +2424,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "page-account",
       "page-feedback",
       "page-forbidden",
-      "page-guide",
-      "page-guide-manage"
+      "page-guide"
     ],
     "actionIds": [
       "action-model-publish",
@@ -3062,8 +2452,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "action-feedback-export",
       "action-feedback-import",
       "action-access-explain",
-      "action-guide-search",
-      "action-guide-draft"
+      "action-guide-search"
     ],
     "ruleIds": [],
     "related": [
@@ -3071,21 +2460,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-import",
       "manual-menus"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/rbac.ts",
-      "docs/business-guide/content-source-audit.md#rule-permission"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "前端 Mock 授权不等于真实后端鉴权"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -3138,13 +2513,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -3181,21 +2549,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-spus",
       "manual-compatibility"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/catalogIdentity.ts",
-      "docs/business-guide/content-source-audit.md#rule-identity-separation"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "避免无分支的伪线性流程和历史误改"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -3248,15 +2602,9 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
-    ]
+    ],
+    "status": "historical"
   },
   {
     "id": "rule-catalog-names",
@@ -3277,21 +2625,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-brands"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/BrandView.vue",
-      "docs/business-guide/content-source-audit.md#rule-catalog-names"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "目录候选和已保存业务事实分离"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -3344,13 +2678,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -3374,21 +2701,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-rules"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/RuleView.vue",
-      "docs/business-guide/content-source-audit.md#rule-constraint-definition"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "不由说明猜测未确认覆盖/继承规则"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -3441,13 +2754,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -3471,21 +2777,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-menus"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/menuConfig.ts",
-      "docs/business-guide/content-source-audit.md#rule-menu-structure"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "展示与路由/动作授权分层"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -3538,13 +2830,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -3579,21 +2864,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-permissions",
       "manual-users"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/rbac.ts",
-      "docs/business-guide/content-source-audit.md#rule-role-protection"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "保留可恢复管理员并避免权限暗中扩张"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -3646,13 +2917,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -3677,21 +2941,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-feedback"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/feedbackFiles.ts",
-      "docs/business-guide/content-source-audit.md#rule-feedback-local"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "反馈不是远程同步或业务备份"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -3744,13 +2994,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -3758,516 +3001,57 @@ export const guideRuleArticles: GuideArticle[] = [
     "id": "rule-guide-isolation",
     "title": "指南与业务存储及草稿隔离",
     "kind": "rule",
-    "summary": "阅读知识不应执行或清空业务操作",
+    "summary": "查看说明不会保存业务数据、清空草稿或替代业务确认。",
     "aliases": [
       "指南与业务存储及草稿隔离",
       "guide-isolation"
     ],
     "pageIds": [
       "page-guide",
-      "page-guide-article",
-      "page-guide-learn",
-      "page-guide-manage"
+      "page-guide-article"
     ],
     "actionIds": [
       "action-guide-search",
-      "action-guide-read",
-      "action-guide-learn",
-      "action-guide-progress",
-      "action-guide-draft"
+      "action-guide-read"
     ],
     "ruleIds": [],
     "related": [
       "manual-guide",
-      "manual-guide-article",
-      "manual-guide-learn"
-    ],
-    "revision": 1,
-    "status": "review",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/guide/types.ts",
-      "docs/business-guide/content-source-audit.md#rule-guide-isolation"
+      "manual-guide-article"
     ],
     "sections": [
       {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "阅读知识不应执行或清空业务操作"
-        ]
-      },
-      {
         "id": "conditions",
-        "title": "真实允许与禁止条件",
+        "title": "使用边界",
         "table": {
           "headers": [
-            "允许条件",
-            "禁止条件"
+            "可以",
+            "不能"
           ],
           "rows": [
             [
-              "抽屉状态独立，个人进度明确 owner，内容独立 namespace/schema",
-              "改业务 URL 导致重挂、写业务 AppData 或切身份覆盖他人进度"
+              "在帮助抽屉内查看功能、规则和关联说明",
+              "因打开说明而修改业务数据、切换身份或重置输入"
+            ],
+            [
+              "主动打开有权限的业务页面，并遵循未保存离开确认",
+              "把阅读说明当成已经执行保存、发布或交付"
             ]
           ]
         }
       },
       {
         "id": "examples",
-        "title": "正确与失败示例",
-        "table": {
-          "headers": [
-            "正确示例",
-            "失败示例"
-          ],
-          "rows": [
-            [
-              "在未保存 SKU 中读规则后原输入保留",
-              "把 guide query 附到业务 fullPath 强制重建编辑器"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "impact",
-        "title": "影响范围",
+        "title": "示例",
         "paragraphs": [
-          "适用于业务指南首页、指南文章、新人学习路线、指南内容维护；不追溯重写已有快照或凭说明新增限制。"
+          "在未保存 SKU 页面打开规则说明再关闭，原有输入仍应保留。"
         ]
       },
       {
         "id": "next",
-        "title": "当前下一步",
+        "title": "继续操作",
         "paragraphs": [
-          "关闭指南返回触发按钮；保存失败只影响指南记录"
-        ]
-      },
-      {
-        "id": "mode",
-        "title": "适用权限模式",
-        "paragraphs": [
-          "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
-        ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。新增指南规则待本轮集成测试核验。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "rule-guide-publication",
-    "title": "说明发布不修改内置业务条件",
-    "kind": "rule",
-    "summary": "可编辑文案与不可编辑执行规则严格分层",
-    "aliases": [
-      "说明发布不修改内置业务条件",
-      "guide-publication"
-    ],
-    "pageIds": [
-      "page-guide-manage"
-    ],
-    "actionIds": [
-      "action-guide-maintain",
-      "action-guide-draft",
-      "action-guide-publish",
-      "action-guide-import"
-    ],
-    "ruleIds": [],
-    "related": [
-      "manual-guide-manage"
-    ],
-    "revision": 1,
-    "status": "review",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/guide/validation.ts",
-      "docs/business-guide/content-source-audit.md#rule-guide-publication"
-    ],
-    "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "可编辑文案与不可编辑执行规则严格分层"
-        ]
-      },
-      {
-        "id": "conditions",
-        "title": "真实允许与禁止条件",
-        "table": {
-          "headers": [
-            "允许条件",
-            "禁止条件"
-          ],
-          "rows": [
-            [
-              "只维护解释/步骤/示例，内置 ID/路由/执行条件保持",
-              "说明导入改绑定/权限、危险内容、重复身份或坏引用"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "examples",
-        "title": "正确与失败示例",
-        "table": {
-          "headers": [
-            "正确示例",
-            "失败示例"
-          ],
-          "rows": [
-            [
-              "发布新解释后普通读者读到新修订",
-              "把禁止条件改成允许来绕过真实校验"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "impact",
-        "title": "影响范围",
-        "paragraphs": [
-          "适用于指南内容维护；不追溯重写已有快照或凭说明新增限制。"
-        ]
-      },
-      {
-        "id": "next",
-        "title": "当前下一步",
-        "paragraphs": [
-          "修正说明并重新核验，冲突先核对最新内容"
-        ]
-      },
-      {
-        "id": "mode",
-        "title": "适用权限模式",
-        "paragraphs": [
-          "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
-        ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。新增指南规则待本轮集成测试核验。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "rule-guide-storage",
-    "title": "指南独立存储必须合法原子",
-    "kind": "rule",
-    "summary": "知识维护不能破坏业务或半覆盖发布版",
-    "aliases": [
-      "指南独立存储必须合法原子",
-      "guide-storage"
-    ],
-    "pageIds": [
-      "page-guide",
-      "page-guide-article",
-      "page-guide-learn",
-      "page-guide-manage"
-    ],
-    "actionIds": [
-      "action-guide-search",
-      "action-guide-read",
-      "action-guide-learn",
-      "action-guide-progress",
-      "action-guide-maintain",
-      "action-guide-draft",
-      "action-guide-publish",
-      "action-guide-import"
-    ],
-    "ruleIds": [],
-    "related": [
-      "manual-guide",
-      "manual-guide-article",
-      "manual-guide-learn"
-    ],
-    "revision": 1,
-    "status": "review",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/guide/validation.ts",
-      "docs/business-guide/content-source-audit.md#rule-guide-storage"
-    ],
-    "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "知识维护不能破坏业务或半覆盖发布版"
-        ]
-      },
-      {
-        "id": "conditions",
-        "title": "真实允许与禁止条件",
-        "table": {
-          "headers": [
-            "允许条件",
-            "禁止条件"
-          ],
-          "rows": [
-            [
-              "独立 schema 校验通过，同载荷原子提交正文修订与上一版",
-              "坏 JSON/schema 或配额失败后覆盖原发布数据"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "examples",
-        "title": "正确与失败示例",
-        "table": {
-          "headers": [
-            "正确示例",
-            "失败示例"
-          ],
-          "rows": [
-            [
-              "导入合法指南备份先预览再提交",
-              "为了指南空间清空商品 LocalStorage"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "impact",
-        "title": "影响范围",
-        "paragraphs": [
-          "适用于业务指南首页、指南文章、新人学习路线、指南内容维护；不追溯重写已有快照或凭说明新增限制。"
-        ]
-      },
-      {
-        "id": "next",
-        "title": "当前下一步",
-        "paragraphs": [
-          "保留原文/草稿与旧版，处理空间或恢复合法备份"
-        ]
-      },
-      {
-        "id": "mode",
-        "title": "适用权限模式",
-        "paragraphs": [
-          "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
-        ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。新增指南规则待本轮集成测试核验。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "rule-guide-conflict",
-    "title": "指南修订冲突不可静默覆盖",
-    "kind": "rule",
-    "summary": "先写盘后切内存并保持可追溯修订",
-    "aliases": [
-      "指南修订冲突不可静默覆盖",
-      "guide-conflict"
-    ],
-    "pageIds": [
-      "page-guide-manage"
-    ],
-    "actionIds": [
-      "action-guide-maintain",
-      "action-guide-draft",
-      "action-guide-publish",
-      "action-guide-import"
-    ],
-    "ruleIds": [],
-    "related": [
-      "manual-guide-manage"
-    ],
-    "revision": 1,
-    "status": "review",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/guide/types.ts",
-      "docs/business-guide/content-source-audit.md#rule-guide-conflict"
-    ],
-    "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "先写盘后切内存并保持可追溯修订"
-        ]
-      },
-      {
-        "id": "conditions",
-        "title": "真实允许与禁止条件",
-        "table": {
-          "headers": [
-            "允许条件",
-            "禁止条件"
-          ],
-          "rows": [
-            [
-              "锁内修订一致且提交操作者仍有维护权限",
-              "旧窗口或排队旧身份覆盖新发布版"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "examples",
-        "title": "正确与失败示例",
-        "table": {
-          "headers": [
-            "正确示例",
-            "失败示例"
-          ],
-          "rows": [
-            [
-              "读取最新说明核对后明确再发布",
-              "两窗口旧草稿最后写入自动盖掉新版"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "impact",
-        "title": "影响范围",
-        "paragraphs": [
-          "适用于指南内容维护；不追溯重写已有快照或凭说明新增限制。"
-        ]
-      },
-      {
-        "id": "next",
-        "title": "当前下一步",
-        "paragraphs": [
-          "保留草稿并读取新修订，人工核对后重提"
-        ]
-      },
-      {
-        "id": "mode",
-        "title": "适用权限模式",
-        "paragraphs": [
-          "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
-        ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。新增指南规则待本轮集成测试核验。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "rule-guide-permission",
-    "title": "阅读与说明维护能力独立",
-    "kind": "rule",
-    "summary": "说明系统不成为授权扩张入口",
-    "aliases": [
-      "阅读与说明维护能力独立",
-      "guide-permission"
-    ],
-    "pageIds": [
-      "page-guide",
-      "page-guide-article",
-      "page-guide-learn",
-      "page-guide-manage"
-    ],
-    "actionIds": [
-      "action-guide-search",
-      "action-guide-read",
-      "action-guide-learn",
-      "action-guide-maintain",
-      "action-guide-draft",
-      "action-guide-publish",
-      "action-guide-import"
-    ],
-    "ruleIds": [],
-    "related": [
-      "manual-guide",
-      "manual-guide-article",
-      "manual-guide-learn"
-    ],
-    "revision": 1,
-    "status": "review",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/rbac.ts",
-      "docs/business-guide/content-source-audit.md#rule-guide-permission"
-    ],
-    "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "说明系统不成为授权扩张入口"
-        ]
-      },
-      {
-        "id": "conditions",
-        "title": "真实允许与禁止条件",
-        "table": {
-          "headers": [
-            "允许条件",
-            "禁止条件"
-          ],
-          "rows": [
-            [
-              "指南阅读和更新分别授权，提交时重查有效身份",
-              "只读者发布说明，维护指南顺带得到商品/用户写权限"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "examples",
-        "title": "正确与失败示例",
-        "table": {
-          "headers": [
-            "正确示例",
-            "失败示例"
-          ],
-          "rows": [
-            [
-              "培训人员可读指南但不能改业务对象",
-              "排队时角色已撤权仍发布成功"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "impact",
-        "title": "影响范围",
-        "paragraphs": [
-          "适用于业务指南首页、指南文章、新人学习路线、指南内容维护；不追溯重写已有快照或凭说明新增限制。"
-        ]
-      },
-      {
-        "id": "next",
-        "title": "当前下一步",
-        "paragraphs": [
-          "核对当前模式和明确维护能力，保留草稿"
-        ]
-      },
-      {
-        "id": "mode",
-        "title": "适用权限模式",
-        "paragraphs": [
-          "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
-        ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。新增指南规则待本轮集成测试核验。"
+          "关闭帮助抽屉返回原编辑位置；实际业务操作按原页面按钮和确认执行。"
         ]
       }
     ]
@@ -4293,21 +3077,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-product-types"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/stores/catalog.ts",
-      "docs/business-guide/content-source-audit.md#rule-type-category"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "分类范围查询不等于允许在所有目录层级绑定类型"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -4360,13 +3130,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -4391,21 +3154,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-product-types"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/stores/catalog.ts",
-      "docs/business-guide/content-source-audit.md#rule-type-reference"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "避免上游分类类型变化破坏既有来源"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -4458,13 +3207,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -4493,21 +3235,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-templates",
       "manual-mappings"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/TemplateView.vue",
-      "docs/business-guide/content-source-audit.md#rule-template-bindings"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "公共/规格角色和顺序属于方案依据"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -4560,15 +3288,9 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
-    ]
+    ],
+    "status": "historical"
   },
   {
     "id": "rule-dictionary-reference",
@@ -4596,21 +3318,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "manual-params",
       "manual-templates"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/dictionaryGuard.ts",
-      "docs/business-guide/content-source-audit.md#rule-dictionary-reference"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "全量冻结候选不等于实际允许值引用，保护须精确"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -4663,13 +3371,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -4692,21 +3393,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-categories"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/categoryTree.ts",
-      "docs/business-guide/content-source-audit.md#rule-category-input"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "改名维护记录本身，不由文字暗合并分类"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -4759,13 +3446,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
-        ]
       }
     ]
   },
@@ -4788,21 +3468,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "related": [
       "manual-categories"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/stores/catalog.ts",
-      "docs/business-guide/content-source-audit.md#rule-category-reference"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "规则目的",
-        "paragraphs": [
-          "分类删除不级联删除商品或类型"
-        ]
-      },
       {
         "id": "conditions",
         "title": "真实允许与禁止条件",
@@ -4854,13 +3520,6 @@ export const guideRuleArticles: GuideArticle[] = [
         "title": "适用权限模式",
         "paragraphs": [
           "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
-        ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；核验依据在维护元数据。已对照当前真实校验源码静态核对，不把示例当作全部业务条件。"
         ]
       }
     ]

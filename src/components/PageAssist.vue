@@ -1,5 +1,5 @@
 <template>
-  <el-button size="small" :disabled="!store.can('system:guide:read')" @click="openPageGuide">本页指南</el-button>
+  <el-button size="small" :disabled="!store.can('system:guide:read')" @click="openPageGuide">页面功能</el-button>
   <el-button size="small" :disabled="!store.can('system:feedback:create')" :title="store.can('system:feedback:create') ? '' : '需要反馈新增权限'" @click="openFeedback()">反馈问题</el-button>
   <PageGuideDrawer />
   <el-dialog v-model="formOpen" class="feedback-dialog" title="反馈问题" width="480px" align-center append-to-body :close-on-click-modal="false">

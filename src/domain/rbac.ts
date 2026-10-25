@@ -33,7 +33,7 @@ export const OPERATOR_ROLE_ID = 'role:operator'
 export const RECOVERY_PERMISSIONS = ['system:menu:read', 'system:menu:update', 'system:role:read', 'system:role:grant', 'system:user:read', 'system:user:bind', 'system:permission:read', 'system:permission:update']
 
 const resources: { module: string; resource: string; label: string; route: string; actions: string[] }[] = [
-  { module: '系统管理', resource: 'guide', label: '业务指南', route: '/guide', actions: ['update'] },
+  { module: '系统管理', resource: 'guide', label: '系统功能说明', route: '/guide', actions: ['update'] },
   { module: '商品中心', resource: 'workbench', label: '商品工作台', route: '/', actions: [] },
   { module: '商品中心', resource: 'spu', label: 'SPU', route: '/spus', actions: ['create','update','delete','publish'] },
   { module: '商品中心', resource: 'sku', label: '销售 SKU', route: '/skus', actions: ['create','update','delete'] },
@@ -75,7 +75,7 @@ export function permissionRegistry(): RbacPermission[] {
     return actions.map(action => ({ code:`${prefix}:${item.resource}:${action}`, name:`${actionLabels[action] || action}${item.label}`, module:item.module, resource:item.resource, action,
       kind: action === 'read' ? 'page' as const : 'operation' as const,
       ...(item.route ? { route:item.route } : {}), enabled:true, builtIn:true as const,
-      description: action === 'read' ? `访问${item.label}的已登记页面；隐藏菜单不撤销此权限。` : `${actionLabels[action] || action}${item.label}。不会隐式授予依赖权限；保存前须单独选择查看权限。`,
+      description: item.resource==='guide'&&action==='update' ? '旧指南维护权限编码兼容保留；系统功能说明现为只读，无内容写入入口。' : action === 'read' ? `访问${item.label}的已登记页面；隐藏菜单不撤销此权限。` : `${actionLabels[action] || action}${item.label}。不会隐式授予依赖权限；保存前须单独选择查看权限。`,
       ...(action !== 'read' && item.route ? { dependsOn:[`${prefix}:${readResource}:read`] } : {}),
     }))
   })

@@ -62,7 +62,7 @@ export function defaultMenuNodes(): MenuNode[] {
     page('/menus', '菜单管理', 'system', 4, ADMIN),
     page('/roles', '角色管理', 'system', 5, ADMIN),
     page('/permissions', '权限管理', 'system', 6, ADMIN),
-    page('/guide', '业务指南', 'product', 2, BOTH),
+    page('/guide', '系统功能说明', 'product', 2, BOTH),
   ]
 }
 

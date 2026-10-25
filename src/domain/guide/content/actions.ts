@@ -5,7 +5,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-workbench-search",
     "title": "从工作台查商品",
     "kind": "action",
-    "summary": "完成从工作台查商品，按真实入口处理成功与拒绝结果。",
+    "summary": "从工作台查商品：展示已有主体结果，不创建商品",
     "aliases": [
       "从工作台查商品",
       "workbench-search"
@@ -18,33 +18,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-home"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/WorkbenchView.vue",
-      "docs/business-guide/content-source-audit.md#action-workbench-search"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "从工作台查商品：展示已有主体结果，不创建商品"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "可读取工作台；严格模式下目标页面还需独立查看权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品工作台中的“从工作台查商品”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -75,13 +54,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "无结果清词并核对分类"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -89,7 +61,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-workbench-issues",
     "title": "从工作台定位问题",
     "kind": "action",
-    "summary": "完成从工作台定位问题，按真实入口处理成功与拒绝结果。",
+    "summary": "从工作台定位问题：进入真实问题列表",
     "aliases": [
       "从工作台定位问题",
       "workbench-issues"
@@ -102,33 +74,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-home"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/WorkbenchView.vue",
-      "docs/business-guide/content-source-audit.md#action-workbench-issues"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "从工作台定位问题：进入真实问题列表"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "可读取工作台；严格模式下目标页面还需独立查看权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品工作台中的“从工作台定位问题”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -159,13 +110,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "问题对象失效时回商品列表查询"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -173,7 +117,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-category-create",
     "title": "新建分类",
     "kind": "action",
-    "summary": "完成新建分类，按真实入口处理成功与拒绝结果。",
+    "summary": "新建分类：分类加入指定层级并持久化",
     "aliases": [
       "新建分类",
       "category-create"
@@ -189,33 +133,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-categories"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/CategoryView.vue",
-      "docs/business-guide/content-source-audit.md#action-category-create"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "新建分类：分类加入指定层级并持久化"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "查看/编辑模式分离；新增、编辑、删除分别检查分类操作权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品分类中心中的“新建分类”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -247,13 +170,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "名称为空修正；目标绑定类型改选上级"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -261,7 +177,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-category-rename",
     "title": "改分类名",
     "kind": "action",
-    "summary": "完成改分类名，按真实入口处理成功与拒绝结果。",
+    "summary": "改分类名：同一分类 ID 显示新名称",
     "aliases": [
       "改分类名",
       "category-rename"
@@ -277,33 +193,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-categories"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/CategoryView.vue",
-      "docs/business-guide/content-source-audit.md#action-category-rename"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "改分类名：同一分类 ID 显示新名称"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "查看/编辑模式分离；新增、编辑、删除分别检查分类操作权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品分类中心中的“改分类名”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -335,13 +230,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "空名称或来源失效先修正；取消不改名，写盘失败按原提示处理"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -349,7 +237,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-category-move",
     "title": "移动分类子树",
     "kind": "action",
-    "summary": "完成移动分类子树，按真实入口处理成功与拒绝结果。",
+    "summary": "移动分类子树：整个真实子树移动并保存",
     "aliases": [
       "移动分类子树",
       "category-move"
@@ -367,33 +255,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-categories"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/CategoryView.vue",
-      "docs/business-guide/content-source-audit.md#action-category-move"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "移动分类子树：整个真实子树移动并保存"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "查看/编辑模式分离；新增、编辑、删除分别检查分类操作权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品分类中心中的“移动分类子树”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -428,13 +295,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "目标类型/循环/失效拒绝；保留待移动内容另选目标"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -442,7 +302,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-category-copy",
     "title": "复制分类树",
     "kind": "action",
-    "summary": "完成复制分类树，按真实入口处理成功与拒绝结果。",
+    "summary": "复制分类树：产生独立分类，不复制商品",
     "aliases": [
       "复制分类树",
       "category-copy"
@@ -458,33 +318,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-categories"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/CategoryView.vue",
-      "docs/business-guide/content-source-audit.md#action-category-copy"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "复制分类树：产生独立分类，不复制商品"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "查看/编辑模式分离；新增、编辑、删除分别检查分类操作权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品分类中心中的“复制分类树”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -516,13 +355,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "不可用来源先刷新定位；失败不当作完成"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -530,7 +362,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-category-delete",
     "title": "删除分类",
     "kind": "action",
-    "summary": "完成删除分类，按真实入口处理成功与拒绝结果。",
+    "summary": "删除分类：仅合法空分类被删除",
     "aliases": [
       "删除分类",
       "category-delete"
@@ -546,33 +378,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-categories"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/CategoryView.vue",
-      "docs/business-guide/content-source-audit.md#action-category-delete"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "删除分类：仅合法空分类被删除"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "查看/编辑模式分离；新增、编辑、删除分别检查分类操作权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品分类中心中的“删除分类”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -604,13 +415,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "有子分类、商品或产品类型先处理真实下游；合法删除会清对应方案绑定，不级联删商品"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -618,7 +422,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-type-save",
     "title": "保存产品类型",
     "kind": "action",
-    "summary": "完成保存产品类型，按真实入口处理成功与拒绝结果。",
+    "summary": "保存产品类型：类型显式关联目标分类",
     "aliases": [
       "保存产品类型",
       "type-save"
@@ -635,33 +439,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-product-types"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ProductTypeView.vue",
-      "docs/business-guide/content-source-audit.md#action-type-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存产品类型：类型显式关联目标分类"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "先选择分类范围；维护需产品类型创建/编辑/删除权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "产品类型中的“保存产品类型”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -694,13 +477,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "末级或引用限制失败先核对分类与模型"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -708,7 +484,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-type-models",
     "title": "查看类型模型",
     "kind": "action",
-    "summary": "完成查看类型模型，按真实入口处理成功与拒绝结果。",
+    "summary": "查看类型模型：定位该类型的既有模型",
     "aliases": [
       "查看类型模型",
       "type-models"
@@ -725,33 +501,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-product-types"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ProductTypeView.vue",
-      "docs/business-guide/content-source-audit.md#action-type-models"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "查看类型模型：定位该类型的既有模型"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "先选择分类范围；维护需产品类型创建/编辑/删除权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "产品类型中的“查看类型模型”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -784,13 +539,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "无关联模型可从模型页按权限创建"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -798,7 +546,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-type-delete",
     "title": "删除产品类型",
     "kind": "action",
-    "summary": "完成删除产品类型，按真实入口处理成功与拒绝结果。",
+    "summary": "删除产品类型：仅未受引用的类型移除",
     "aliases": [
       "删除产品类型",
       "type-delete"
@@ -815,33 +563,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-product-types"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ProductTypeView.vue",
-      "docs/business-guide/content-source-audit.md#action-type-delete"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "删除产品类型：仅未受引用的类型移除"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "先选择分类范围；维护需产品类型创建/编辑/删除权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "产品类型中的“删除产品类型”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -874,13 +601,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "有引用先维护关联，不自动清历史"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -888,7 +608,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-dictionary-save",
     "title": "保存全局属性与取值",
     "kind": "action",
-    "summary": "完成保存全局属性与取值，按真实入口处理成功与拒绝结果。",
+    "summary": "保存全局属性与取值：全局候选更新",
     "aliases": [
       "保存全局属性与取值",
       "dictionary-save"
@@ -905,33 +625,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-params"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ParamView.vue",
-      "docs/business-guide/content-source-audit.md#action-dictionary-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存全局属性与取值：全局候选更新"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "维护需词典权限；先辨别全局改名与节点引用选择的区别。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "属性词典中的“保存全局属性与取值”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -964,13 +663,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "重名多义先按 ID 选择，不按文字强行合并"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -978,7 +670,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-dictionary-value-remove",
     "title": "删除或改名词典取值",
     "kind": "action",
-    "summary": "完成删除或改名词典取值，按真实入口处理成功与拒绝结果。",
+    "summary": "删除或改名词典取值：未引用值可维护，引用值受保护",
     "aliases": [
       "删除或改名词典取值",
       "dictionary-value-remove"
@@ -995,33 +687,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-params"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ParamView.vue",
-      "docs/business-guide/content-source-audit.md#action-dictionary-value-remove"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "删除或改名词典取值：未引用值可维护，引用值受保护"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "维护需词典权限；先辨别全局改名与节点引用选择的区别。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "属性词典中的“删除或改名词典取值”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -1054,13 +725,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "草稿/历史/允许值配置引用时停止并定位原节点"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -1068,7 +732,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-template-create",
     "title": "新建属性方案",
     "kind": "action",
-    "summary": "完成新建属性方案，按真实入口处理成功与拒绝结果。",
+    "summary": "新建属性方案：正式方案落盘，取消无半成品",
     "aliases": [
       "新建属性方案",
       "template-create"
@@ -1085,33 +749,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-templates"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/TemplateView.vue",
-      "docs/business-guide/content-source-audit.md#action-template-create"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "新建属性方案：正式方案落盘，取消无半成品"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "先有正式属性词典；新建、编辑、复制、删除按实际资源权限检查。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "属性方案中的“新建属性方案”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -1145,13 +788,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "必填、权限或存储失败保留当前草稿"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -1159,7 +795,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-template-save",
     "title": "配置方案绑定",
     "kind": "action",
-    "summary": "完成配置方案绑定，按真实入口处理成功与拒绝结果。",
+    "summary": "配置方案绑定：相同方案绑定更新",
     "aliases": [
       "配置方案绑定",
       "template-save"
@@ -1176,33 +812,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-templates"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/TemplateView.vue",
-      "docs/business-guide/content-source-audit.md#action-template-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "配置方案绑定：相同方案绑定更新"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "先有正式属性词典；新建、编辑、复制、删除按实际资源权限检查。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "属性方案中的“配置方案绑定”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -1236,13 +851,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "被引用影响需确认，非法绑定先修复"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -1250,7 +858,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-template-copy",
     "title": "复制属性方案",
     "kind": "action",
-    "summary": "完成复制属性方案，按真实入口处理成功与拒绝结果。",
+    "summary": "复制属性方案：新方案有独立身份，原方案不变",
     "aliases": [
       "复制属性方案",
       "template-copy"
@@ -1267,33 +875,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-templates"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/TemplateView.vue",
-      "docs/business-guide/content-source-audit.md#action-template-copy"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "复制属性方案：新方案有独立身份，原方案不变"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "先有正式属性词典；新建、编辑、复制、删除按实际资源权限检查。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "属性方案中的“复制属性方案”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -1327,13 +914,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "取消不留孤立副本；模型源走模型复制保护"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -1341,7 +921,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-template-delete",
     "title": "删除属性方案",
     "kind": "action",
-    "summary": "完成删除属性方案，按真实入口处理成功与拒绝结果。",
+    "summary": "删除属性方案：未引用方案移除",
     "aliases": [
       "删除属性方案",
       "template-delete"
@@ -1358,33 +938,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-templates"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/TemplateView.vue",
-      "docs/business-guide/content-source-audit.md#action-template-delete"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "删除属性方案：未引用方案移除"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "先有正式属性词典；新建、编辑、复制、删除按实际资源权限检查。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "属性方案中的“删除属性方案”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -1417,13 +976,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "有分类/商品引用先核对关联"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -1431,7 +983,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-model-create",
     "title": "新建模型",
     "kind": "action",
-    "summary": "完成新建模型，按真实入口处理成功与拒绝结果。",
+    "summary": "新建模型：产生空白模型草稿",
     "aliases": [
       "新建模型",
       "model-create"
@@ -1449,33 +1001,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-models"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ModelListView.vue",
-      "docs/business-guide/content-source-audit.md#action-model-create"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "新建模型：产生空白模型草稿"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "创建模型需要可用分类/类型；编辑与发布是不同能力。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品模型列表中的“新建模型”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -1509,13 +1040,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "分类类型不一致重新选择"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -1523,7 +1047,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-model-copy",
     "title": "复制模型",
     "kind": "action",
-    "summary": "完成复制模型，按真实入口处理成功与拒绝结果。",
+    "summary": "复制模型：复制结构和配置，不复制商品及历史版本",
     "aliases": [
       "复制模型",
       "model-copy"
@@ -1541,33 +1065,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-models"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ModelListView.vue",
-      "docs/business-guide/content-source-audit.md#action-model-copy"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "复制模型：复制结构和配置，不复制商品及历史版本"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "创建模型需要可用分类/类型；编辑与发布是不同能力。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品模型列表中的“复制模型”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -1601,13 +1104,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "权限或源模型失效时保留原模型并重选"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -1615,7 +1111,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-model-publish",
     "title": "发布模型版本",
     "kind": "action",
-    "summary": "完成发布模型版本，按真实入口处理成功与拒绝结果。",
+    "summary": "发布模型版本：生成新的不可变发布快照",
     "aliases": [
       "发布模型版本",
       "model-publish"
@@ -1636,34 +1132,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-models"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ModelListView.vue",
-      "src/views/SpecConfigView.vue",
-      "docs/business-guide/content-source-audit.md#action-model-publish"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "发布模型版本：生成新的不可变发布快照"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "创建模型需要可用分类/类型；编辑与发布是不同能力。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品模型列表中的“发布模型版本”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -1700,13 +1174,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "词典缺失/结构混挂/未知配置修复后重发"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -1714,7 +1181,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-model-offline",
     "title": "下线模型",
     "kind": "action",
-    "summary": "完成下线模型，按真实入口处理成功与拒绝结果。",
+    "summary": "下线模型：后续新建不再使用下线模型，历史依旧读原版",
     "aliases": [
       "下线模型",
       "model-offline"
@@ -1732,33 +1199,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-models"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ModelListView.vue",
-      "docs/business-guide/content-source-audit.md#action-model-offline"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "下线模型：后续新建不再使用下线模型，历史依旧读原版"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "创建模型需要可用分类/类型；编辑与发布是不同能力。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品模型列表中的“下线模型”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -1792,13 +1238,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "没有更新权限不能改变状态"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -1806,7 +1245,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-model-edit",
     "title": "编辑模型节点",
     "kind": "action",
-    "summary": "完成编辑模型节点，按真实入口处理成功与拒绝结果。",
+    "summary": "编辑模型节点：草稿树更新，发布版不自动改变",
     "aliases": [
       "编辑模型节点",
       "model-edit"
@@ -1825,33 +1264,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-specs"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/SpecConfigView.vue",
-      "docs/business-guide/content-source-audit.md#action-model-edit"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "编辑模型节点：草稿树更新，发布版不自动改变"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "选择模型；查看模式只读，进入编辑后才能改结构；保存和发布授权分离。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品模型设计中的“编辑模型节点”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -1887,13 +1305,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "混挂子级或无词典引用定位具体节点"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -1901,7 +1312,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-node-business-save",
     "title": "保存值节点业务配置",
     "kind": "action",
-    "summary": "完成保存值节点业务配置，按真实入口处理成功与拒绝结果。",
+    "summary": "保存值节点业务配置：配置附着于该值，不增加规格分支",
     "aliases": [
       "保存值节点业务配置",
       "node-business-save"
@@ -1920,33 +1331,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-specs"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/SpecConfigView.vue",
-      "docs/business-guide/content-source-audit.md#action-node-business-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存值节点业务配置：配置附着于该值，不增加规格分支"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "选择模型；查看模式只读，进入编辑后才能改结构；保存和发布授权分离。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品模型设计中的“保存值节点业务配置”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -1982,13 +1372,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "未知类型保留原文并禁止受影响发布"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -1996,7 +1379,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-node-naming-save",
     "title": "设置节点命名",
     "kind": "action",
-    "summary": "完成设置节点命名，按真实入口处理成功与拒绝结果。",
+    "summary": "设置节点命名：按最近适用祖先规则得到建议名称",
     "aliases": [
       "设置节点命名",
       "node-naming-save"
@@ -2015,33 +1398,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-specs"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/SpecConfigView.vue",
-      "docs/business-guide/content-source-audit.md#action-node-naming-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "设置节点命名：按最近适用祖先规则得到建议名称"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "选择模型；查看模式只读，进入编辑后才能改结构；保存和发布授权分离。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品模型设计中的“设置节点命名”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -2077,13 +1439,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "冲突看来源，不自动改写旧物料名"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -2091,7 +1446,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-planning-save",
     "title": "保存规划范围",
     "kind": "action",
-    "summary": "完成保存规划范围，按真实入口处理成功与拒绝结果。",
+    "summary": "保存规划范围：保留所选范围与具体版本",
     "aliases": [
       "保存规划范围",
       "planning-save"
@@ -2107,33 +1462,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-plans"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ProductPlanView.vue",
-      "docs/business-guide/content-source-audit.md#action-planning-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存规划范围：保留所选范围与具体版本"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "需有已发布模型；规划维护和创建 SKU 分别检查权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品规划（保留入口）中的“保存规划范围”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -2166,21 +1500,15 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "来源失效重新读取发布依据"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
-    ]
+    ],
+    "status": "historical"
   },
   {
     "id": "action-planning-create-sku",
     "title": "从规划追加 SKU",
     "kind": "action",
-    "summary": "完成从规划追加 SKU，按真实入口处理成功与拒绝结果。",
+    "summary": "从规划追加 SKU：每条新增 SKU 留存规划/版本来源",
     "aliases": [
       "从规划追加 SKU",
       "planning-create-sku"
@@ -2196,33 +1524,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-plans"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ProductPlanView.vue",
-      "docs/business-guide/content-source-audit.md#action-planning-create-sku"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "从规划追加 SKU：每条新增 SKU 留存规划/版本来源"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "需有已发布模型；规划维护和创建 SKU 分别检查权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品规划（保留入口）中的“从规划追加 SKU”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -2255,21 +1562,15 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "已有身份跳过；不兼容主体重新选择"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
-    ]
+    ],
+    "status": "historical"
   },
   {
     "id": "action-planning-delete",
     "title": "删除保存规划",
     "kind": "action",
-    "summary": "完成删除保存规划，按真实入口处理成功与拒绝结果。",
+    "summary": "删除保存规划：允许删除的规划移除",
     "aliases": [
       "删除保存规划",
       "planning-delete"
@@ -2285,33 +1586,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-plans"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ProductPlanView.vue",
-      "docs/business-guide/content-source-audit.md#action-planning-delete"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "删除保存规划：允许删除的规划移除"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "需有已发布模型；规划维护和创建 SKU 分别检查权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品规划（保留入口）中的“删除保存规划”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -2343,21 +1623,15 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "引用限制保留原记录，先查看下游"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
-    ]
+    ],
+    "status": "historical"
   },
   {
     "id": "action-tree-query",
     "title": "在结构视图定位商品",
     "kind": "action",
-    "summary": "完成在结构视图定位商品，按真实入口处理成功与拒绝结果。",
+    "summary": "在结构视图定位商品：进入真实详情，结构本身只读",
     "aliases": [
       "在结构视图定位商品",
       "tree-query"
@@ -2372,33 +1646,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-tree"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/TreePage.vue",
-      "docs/business-guide/content-source-audit.md#action-tree-query"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "在结构视图定位商品：进入真实详情，结构本身只读"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "有结构视图读取权限；维护对象须进入相应业务页面并重新检查权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品结构视图中的“在结构视图定位商品”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -2429,21 +1682,15 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "空树先核对已保存数据和范围"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
-    ]
+    ],
+    "status": "historical"
   },
   {
     "id": "action-spu-query",
     "title": "查询 SPU",
     "kind": "action",
-    "summary": "完成查询 SPU，按真实入口处理成功与拒绝结果。",
+    "summary": "查询 SPU：结果按主体统计，SKU/MAT 分别展示",
     "aliases": [
       "查询 SPU",
       "spu-query"
@@ -2460,33 +1707,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-spus"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ProductListView.vue",
-      "docs/business-guide/content-source-audit.md#action-spu-query"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "查询 SPU：结果按主体统计，SKU/MAT 分别展示"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "查看 SPU；新增、编辑、上下架、删除分别按当前模式检查权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "SPU 管理中的“查询 SPU”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -2520,13 +1746,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "无结果先清条件；保留临时范围"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -2534,7 +1753,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-spu-view",
     "title": "配置 SPU 视图",
     "kind": "action",
-    "summary": "完成配置 SPU 视图，按真实入口处理成功与拒绝结果。",
+    "summary": "配置 SPU 视图：配置按现有本机约定恢复",
     "aliases": [
       "配置 SPU 视图",
       "spu-view"
@@ -2552,33 +1771,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-spus"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ProductListView.vue",
-      "docs/business-guide/content-source-audit.md#action-spu-view"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "配置 SPU 视图：配置按现有本机约定恢复"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "查看 SPU；新增、编辑、上下架、删除分别按当前模式检查权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "SPU 管理中的“配置 SPU 视图”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -2612,13 +1810,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "不擅自清旧视图；恢复默认列是明确操作"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -2626,7 +1817,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-spu-delete",
     "title": "删除 SPU",
     "kind": "action",
-    "summary": "完成删除 SPU，按真实入口处理成功与拒绝结果。",
+    "summary": "删除 SPU：只有允许的空主体可删除",
     "aliases": [
       "删除 SPU",
       "spu-delete"
@@ -2643,33 +1834,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-spus"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ProductListView.vue",
-      "docs/business-guide/content-source-audit.md#action-spu-delete"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "删除 SPU：只有允许的空主体可删除"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "查看 SPU；新增、编辑、上下架、删除分别按当前模式检查权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "SPU 管理中的“删除 SPU”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -2702,13 +1872,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "已发布先下架；有 SKU/MAT 或引用先处理"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -2716,7 +1879,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-spu-save",
     "title": "保存 SPU 主体",
     "kind": "action",
-    "summary": "完成保存 SPU 主体，按真实入口处理成功与拒绝结果。",
+    "summary": "保存 SPU 主体：先写主体，再明确进入 SKU 创建",
     "aliases": [
       "保存 SPU 主体",
       "spu-save"
@@ -2735,33 +1898,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-spu-create"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/SpuEditView.vue",
-      "docs/business-guide/content-source-audit.md#action-spu-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存 SPU 主体：先写主体，再明确进入 SKU 创建"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "具有 SPU 创建权限；选择合法分类及对应类型/方案/模型依据。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "新建 SPU中的“保存 SPU 主体”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -2796,13 +1938,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "必填/身份锁定/权限失败修正原输入；写盘失败重试"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -2810,7 +1945,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-spu-history",
     "title": "查看主体历史依据",
     "kind": "action",
-    "summary": "完成查看主体历史依据，按真实入口处理成功与拒绝结果。",
+    "summary": "查看主体历史依据：读取绑定的具体发布节点快照",
     "aliases": [
       "查看主体历史依据",
       "spu-history"
@@ -2827,33 +1962,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-spu-edit"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/SpuEditView.vue",
-      "docs/business-guide/content-source-audit.md#action-spu-history"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "查看主体历史依据：读取绑定的具体发布节点快照"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "路由 id 为 SPU；已有子记录时身份字段受既有锁定规则约束。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "SPU 详情中的“查看主体历史依据”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -2886,13 +2000,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "无绑定版如实显示未绑定，不补造来源"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -2900,7 +2007,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-sku-query",
     "title": "查询销售 SKU",
     "kind": "action",
-    "summary": "完成查询销售 SKU，按真实入口处理成功与拒绝结果。",
+    "summary": "查询销售 SKU：只查询真实销售记录",
     "aliases": [
       "查询销售 SKU",
       "sku-query"
@@ -2918,33 +2025,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-skus"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/SkuWorkbenchView.vue",
-      "docs/business-guide/content-source-audit.md#action-sku-query"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "查询销售 SKU：只查询真实销售记录"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "具备 SKU 查看；操作按新增/编辑/删除授权；视图配置独立于业务对象。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "SKU 管理中的“查询销售 SKU”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -2979,13 +2065,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "失效配置暂停查询，修复字段而非扩大范围"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -2993,7 +2072,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-view-save",
     "title": "保存 SKU 列表视图",
     "kind": "action",
-    "summary": "完成保存 SKU 列表视图，按真实入口处理成功与拒绝结果。",
+    "summary": "保存 SKU 列表视图：正式配置与本机工作配置按原约定保存",
     "aliases": [
       "保存 SKU 列表视图",
       "view-save"
@@ -3011,33 +2090,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-skus"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/SkuWorkbenchView.vue",
-      "docs/business-guide/content-source-audit.md#action-view-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存 SKU 列表视图：正式配置与本机工作配置按原约定保存"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "具备 SKU 查看；操作按新增/编辑/删除授权；视图配置独立于业务对象。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "SKU 管理中的“保存 SKU 列表视图”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -3071,13 +2129,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "存储失败保留工作配置，修正后重试"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -3085,7 +2136,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-view-restore",
     "title": "恢复 SKU 正式视图",
     "kind": "action",
-    "summary": "完成恢复 SKU 正式视图，按真实入口处理成功与拒绝结果。",
+    "summary": "恢复 SKU 正式视图：恢复当前正式配置，临时搜索仍按原流程保留",
     "aliases": [
       "恢复 SKU 正式视图",
       "view-restore"
@@ -3104,33 +2155,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-skus"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/SkuWorkbenchView.vue",
-      "docs/business-guide/content-source-audit.md#action-view-restore"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "恢复 SKU 正式视图：恢复当前正式配置，临时搜索仍按原流程保留"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "具备 SKU 查看；操作按新增/编辑/删除授权；视图配置独立于业务对象。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "SKU 管理中的“恢复 SKU 正式视图”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -3164,13 +2194,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "不把恢复视图当重置商品数据"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -3178,7 +2201,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-sku-manual-order",
     "title": "跨页手工排序",
     "kind": "action",
-    "summary": "完成跨页手工排序，按真实入口处理成功与拒绝结果。",
+    "summary": "跨页手工排序：只改变手工展示顺序",
     "aliases": [
       "跨页手工排序",
       "sku-manual-order"
@@ -3196,33 +2219,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-skus"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/SkuWorkbenchView.vue",
-      "docs/business-guide/content-source-audit.md#action-sku-manual-order"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "跨页手工排序：只改变手工展示顺序"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "具备 SKU 查看；操作按新增/编辑/删除授权；视图配置独立于业务对象。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "SKU 管理中的“跨页手工排序”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -3257,13 +2259,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "对象失效或排序冲突先修正范围，不删除业务记录"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -3271,7 +2266,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-sku-preview",
     "title": "预览新增 SKU",
     "kind": "action",
-    "summary": "完成预览新增 SKU，按真实入口处理成功与拒绝结果。",
+    "summary": "预览新增 SKU：预览不写业务数据",
     "aliases": [
       "预览新增 SKU",
       "sku-preview"
@@ -3287,33 +2282,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-sku-create"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/SkuCreateView.vue",
-      "docs/business-guide/content-source-audit.md#action-sku-preview"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "预览新增 SKU：预览不写业务数据"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "SPU 配置完整且来源兼容；按实际当前授权显示确认能力。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "新增 SKU中的“预览新增 SKU”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -3346,13 +2320,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "来源不一致补 SPU；变化后重新预览"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -3360,7 +2327,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-sku-save",
     "title": "保存销售 SKU",
     "kind": "action",
-    "summary": "完成保存销售 SKU，按真实入口处理成功与拒绝结果。",
+    "summary": "保存销售 SKU：创建或更新真实 SKU，保留主体和来源",
     "aliases": [
       "保存销售 SKU",
       "sku-save"
@@ -3379,34 +2346,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-sku-create"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/SkuCreateView.vue",
-      "src/views/SkuEditView.vue",
-      "docs/business-guide/content-source-audit.md#action-sku-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存销售 SKU：创建或更新真实 SKU，保留主体和来源"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "SPU 配置完整且来源兼容；按实际当前授权显示确认能力。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "新增 SKU中的“保存销售 SKU”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -3440,13 +2385,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "重复/非法身份拒绝，保留输入并重新核对"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -3454,7 +2392,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-material-create",
     "title": "正式物料建档",
     "kind": "action",
-    "summary": "完成正式物料建档，按真实入口处理成功与拒绝结果。",
+    "summary": "正式物料建档：生成 MAT 并保存原始 PLN/版本依据",
     "aliases": [
       "正式物料建档",
       "material-create"
@@ -3472,33 +2410,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-material-create"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/MaterialCreateView.vue",
-      "docs/business-guide/content-source-audit.md#action-material-create"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "正式物料建档：生成 MAT 并保存原始 PLN/版本依据"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "正式建档需一致且有效的发布依据；临时建档显式选择类型，不冒充正式规划。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "物料建档中的“正式物料建档”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -3533,13 +2450,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "来源或规划失效重新选择，不覆盖旧档"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -3547,7 +2457,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-material-temporary",
     "title": "创建临时物料",
     "kind": "action",
-    "summary": "完成创建临时物料，按真实入口处理成功与拒绝结果。",
+    "summary": "创建临时物料：创建无伪造正式 PLN 的临时 MAT",
     "aliases": [
       "创建临时物料",
       "material-temporary"
@@ -3565,33 +2475,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-material-create"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/MaterialCreateView.vue",
-      "docs/business-guide/content-source-audit.md#action-material-temporary"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "创建临时物料：创建无伪造正式 PLN 的临时 MAT"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "正式建档需一致且有效的发布依据；临时建档显式选择类型，不冒充正式规划。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "物料建档中的“创建临时物料”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -3626,13 +2515,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "类型/输入不合法修正，不补造发布路径"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -3640,7 +2522,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-material-edit",
     "title": "维护物料档案",
     "kind": "action",
-    "summary": "完成维护物料档案，按真实入口处理成功与拒绝结果。",
+    "summary": "维护物料档案：原编号/原来源保持，允许资料更新",
     "aliases": [
       "维护物料档案",
       "material-edit"
@@ -3658,33 +2540,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-material-edit"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ProductEditView.vue",
-      "docs/business-guide/content-source-audit.md#action-material-edit"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "维护物料档案：原编号/原来源保持，允许资料更新"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "主体须属于物料线；指定物料必须确属此主体并经身份判定。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "物料档案中的“维护物料档案”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -3719,13 +2580,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "指定记录不属主体或是 SKU 时重选正确对象"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -3733,7 +2587,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-material-relation",
     "title": "节点范围建档或关联现有 MAT",
     "kind": "action",
-    "summary": "完成节点范围建档或关联现有 MAT，按真实入口处理成功与拒绝结果。",
+    "summary": "节点范围建档或关联现有 MAT：一个 MAT 可关联多真实路径，不扩建第二身份",
     "aliases": [
       "节点范围建档或关联现有 MAT",
       "material-relation"
@@ -3752,34 +2606,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-specs"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/SpecConfigView.vue",
-      "src/views/ProductEditView.vue",
-      "docs/business-guide/content-source-audit.md#action-material-relation"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "节点范围建档或关联现有 MAT：一个 MAT 可关联多真实路径，不扩建第二身份"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "选择模型；查看模式只读，进入编辑后才能改结构；保存和发布授权分离。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品模型设计中的“节点范围建档或关联现有 MAT”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -3814,13 +2646,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "人工保护/依据变更重新核对；版本范围确认不恢复取消声明"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -3828,7 +2653,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-material-unlink",
     "title": "解除新增物料关联",
     "kind": "action",
-    "summary": "完成解除新增物料关联，按真实入口处理成功与拒绝结果。",
+    "summary": "解除新增物料关联：新增关系撤销，原始建档与历史回执保留",
     "aliases": [
       "解除新增物料关联",
       "material-unlink"
@@ -3846,33 +2671,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-material-edit"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ProductEditView.vue",
-      "docs/business-guide/content-source-audit.md#action-material-unlink"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "解除新增物料关联：新增关系撤销，原始建档与历史回执保留"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "主体须属于物料线；指定物料必须确属此主体并经身份判定。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "物料档案中的“解除新增物料关联”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -3907,13 +2711,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "原始建档事实不作为普通新增关系删除"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -3921,7 +2718,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-compatibility-bind",
     "title": "绑定明确设备型号",
     "kind": "action",
-    "summary": "完成绑定明确设备型号，按真实入口处理成功与拒绝结果。",
+    "summary": "绑定明确设备型号：后续声明查询有明确设备上下文",
     "aliases": [
       "绑定明确设备型号",
       "compatibility-bind"
@@ -3937,33 +2734,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-compatibility"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/CompatibilityView.vue",
-      "docs/business-guide/content-source-audit.md#action-compatibility-bind"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "绑定明确设备型号：后续声明查询有明确设备上下文"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "识别当前维护对象与方向；设备绑定和声明维护均按相应权限检查。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "适用关系中的“绑定明确设备型号”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -3995,13 +2771,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "非法或歧义绑定改选正式型号，不按文字自动合并"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -4009,7 +2778,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-compatibility-declare",
     "title": "维护适用声明",
     "kind": "action",
-    "summary": "完成维护适用声明，按真实入口处理成功与拒绝结果。",
+    "summary": "维护适用声明：正式结论带来源；在售状态另行显示",
     "aliases": [
       "维护适用声明",
       "compatibility-declare"
@@ -4025,33 +2794,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-compatibility"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/CompatibilityView.vue",
-      "docs/business-guide/content-source-audit.md#action-compatibility-declare"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "维护适用声明：正式结论带来源；在售状态另行显示"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "识别当前维护对象与方向；设备绑定和声明维护均按相应权限检查。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "适用关系中的“维护适用声明”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -4084,13 +2832,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "冲突/缺依据处理真实声明，不把 MAT 当 SKU"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -4098,7 +2839,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-compatibility-sync",
     "title": "同步模板适用更新",
     "kind": "action",
-    "summary": "完成同步模板适用更新，按真实入口处理成功与拒绝结果。",
+    "summary": "同步模板适用更新：管理来源按规则同步，人工决定保持",
     "aliases": [
       "同步模板适用更新",
       "compatibility-sync"
@@ -4115,33 +2856,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-compatibility"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/CompatibilityView.vue",
-      "docs/business-guide/content-source-audit.md#action-compatibility-sync"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "同步模板适用更新：管理来源按规则同步，人工决定保持"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "识别当前维护对象与方向；设备绑定和声明维护均按相应权限检查。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "适用关系中的“同步模板适用更新”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -4175,13 +2895,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "新依据使旧预览失效；人工保护需保留，不能自动恢复"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -4189,7 +2902,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-compatibility-cancel",
     "title": "人工取消适用声明",
     "kind": "action",
-    "summary": "完成人工取消适用声明，按真实入口处理成功与拒绝结果。",
+    "summary": "人工取消适用声明：贡献记录标记人工取消，历史来源保留",
     "aliases": [
       "人工取消适用声明",
       "compatibility-cancel"
@@ -4205,33 +2918,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-compatibility"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/CompatibilityView.vue",
-      "docs/business-guide/content-source-audit.md#action-compatibility-cancel"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "人工取消适用声明：贡献记录标记人工取消，历史来源保留"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "识别当前维护对象与方向；设备绑定和声明维护均按相应权限检查。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "适用关系中的“人工取消适用声明”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -4263,13 +2955,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "后续只改备注/依据/核验状态不解除人工保护"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -4277,7 +2962,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-framework-save",
     "title": "保存独立选配框架",
     "kind": "action",
-    "summary": "完成保存独立选配框架，按真实入口处理成功与拒绝结果。",
+    "summary": "保存独立选配框架：不选具体 SKU 也可保存合法类型框架",
     "aliases": [
       "保存独立选配框架",
       "framework-save"
@@ -4293,33 +2978,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-benefits"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/BenefitPackageListView.vue",
-      "docs/business-guide/content-source-audit.md#action-framework-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存独立选配框架：不选具体 SKU 也可保存合法类型框架"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "框架维护与包维护有独立权限；只读者可查询获准内容。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "权益包与框架中的“保存独立选配框架”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -4352,13 +3016,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "组范围或件数不完整先修正；旧包冻结修订不自动升级"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -4366,7 +3023,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-benefit-copy",
     "title": "复制常用权益包",
     "kind": "action",
-    "summary": "完成复制常用权益包，按真实入口处理成功与拒绝结果。",
+    "summary": "复制常用权益包：新包独立，历史清单不复制成新交付",
     "aliases": [
       "复制常用权益包",
       "benefit-copy"
@@ -4382,33 +3039,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-benefits"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/BenefitPackageListView.vue",
-      "docs/business-guide/content-source-audit.md#action-benefit-copy"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "复制常用权益包：新包独立，历史清单不复制成新交付"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "框架维护与包维护有独立权限；只读者可查询获准内容。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "权益包与框架中的“复制常用权益包”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -4441,13 +3077,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "失效成员或条件重新核对，不沿用不符当前依据的确认"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -4455,7 +3084,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-benefit-query",
     "title": "查找权益包与历史",
     "kind": "action",
-    "summary": "完成查找权益包与历史，按真实入口处理成功与拒绝结果。",
+    "summary": "查找权益包与历史：可区分配置与历史清单",
     "aliases": [
       "查找权益包与历史",
       "benefit-query"
@@ -4471,33 +3100,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-benefits"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/BenefitPackageListView.vue",
-      "docs/business-guide/content-source-audit.md#action-benefit-query"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "查找权益包与历史：可区分配置与历史清单"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "框架维护与包维护有独立权限；只读者可查询获准内容。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "权益包与框架中的“查找权益包与历史”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -4529,13 +3137,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "缺包回列表；不按同名混合记录"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -4543,7 +3144,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-benefit-select",
     "title": "选配商品和服务",
     "kind": "action",
-    "summary": "完成选配商品和服务，按真实入口处理成功与拒绝结果。",
+    "summary": "选配商品和服务：包内成员是明确销售商品和服务",
     "aliases": [
       "选配商品和服务",
       "benefit-select"
@@ -4561,33 +3162,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-benefit-create"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/BenefitPackageEditView.vue",
-      "docs/business-guide/content-source-audit.md#action-benefit-select"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "选配商品和服务：包内成员是明确销售商品和服务"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "可无设备自由组包；有设备则遵循正式兼容结论；保存可用配置需消除阻断问题。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "新建权益包中的“选配商品和服务”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -4622,13 +3202,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "框架组外/待确认/不适用不能冒充正常推荐"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -4636,7 +3209,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-benefit-save",
     "title": "保存权益包",
     "kind": "action",
-    "summary": "完成保存权益包，按真实入口处理成功与拒绝结果。",
+    "summary": "保存权益包：草稿保留待完善，可用配置需通过当前校验",
     "aliases": [
       "保存权益包",
       "benefit-save"
@@ -4655,33 +3228,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-benefit-create"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/BenefitPackageEditView.vue",
-      "docs/business-guide/content-source-audit.md#action-benefit-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存权益包：草稿保留待完善，可用配置需通过当前校验"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "可无设备自由组包；有设备则遵循正式兼容结论；保存可用配置需消除阻断问题。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "新建权益包中的“保存权益包”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -4716,13 +3268,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "引用失效可进入修正，但不能保存为可用或生成新清单"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -4730,7 +3275,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-benefit-quote",
     "title": "填写并复核报价",
     "kind": "action",
-    "summary": "完成填写并复核报价，按真实入口处理成功与拒绝结果。",
+    "summary": "填写并复核报价：0 元和未报价不同，可有负差额",
     "aliases": [
       "填写并复核报价",
       "benefit-quote"
@@ -4746,33 +3291,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-benefit-create"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/BenefitPackageEditView.vue",
-      "docs/business-guide/content-source-audit.md#action-benefit-quote"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "填写并复核报价：0 元和未报价不同，可有负差额"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "可无设备自由组包；有设备则遵循正式兼容结论；保存可用配置需消除阻断问题。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "新建权益包中的“填写并复核报价”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -4804,13 +3328,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "内容/价格改变使复核失效，不靠旧确认交付"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -4818,7 +3335,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-benefit-deliver",
     "title": "预览并确认本机清单",
     "kind": "action",
-    "summary": "完成预览并确认本机清单，按真实入口处理成功与拒绝结果。",
+    "summary": "预览并确认本机清单：冻结商品/服务/价格/适配快照，不做支付库存",
     "aliases": [
       "预览并确认本机清单",
       "benefit-deliver"
@@ -4837,33 +3354,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-benefit-edit"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/BenefitPackageEditView.vue",
-      "docs/business-guide/content-source-audit.md#action-benefit-deliver"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "预览并确认本机清单：冻结商品/服务/价格/适配快照，不做支付库存"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "保存最新配置后，包为可用且当前预览通过才能确认生成。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "权益包详情中的“预览并确认本机清单”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -4899,13 +3395,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "旧修订或预览失效重新保存/预览，不重试旧候选"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -4913,7 +3402,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-delivery-export",
     "title": "打印或导出历史清单",
     "kind": "action",
-    "summary": "完成打印或导出历史清单，按真实入口处理成功与拒绝结果。",
+    "summary": "打印或导出历史清单：文件使用生成时内容",
     "aliases": [
       "打印或导出历史清单",
       "delivery-export"
@@ -4929,33 +3418,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-benefit-delivery"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/BenefitDeliveryView.vue",
-      "docs/business-guide/content-source-audit.md#action-delivery-export"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "打印或导出历史清单：文件使用生成时内容"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "清单存在；导出需交付清单导出权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "交付清单中的“打印或导出历史清单”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -4987,13 +3455,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "导出失败可重试导出，不重新生成业务清单"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -5001,7 +3462,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-brand-save",
     "title": "保存品牌目录",
     "kind": "action",
-    "summary": "完成保存品牌目录，按真实入口处理成功与拒绝结果。",
+    "summary": "保存品牌目录：后续候选目录更新，旧商品文字不重写",
     "aliases": [
       "保存品牌目录",
       "brand-save"
@@ -5017,33 +3478,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-brands"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/BrandView.vue",
-      "docs/business-guide/content-source-audit.md#action-brand-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存品牌目录：后续候选目录更新，旧商品文字不重写"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "新增/编辑需品牌权限；名称必填。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "品牌中心中的“保存品牌目录”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -5075,13 +3515,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "名称必填；失败保留当前编辑"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -5089,7 +3522,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-group-create",
     "title": "建立运营分组",
     "kind": "action",
-    "summary": "完成建立运营分组，按真实入口处理成功与拒绝结果。",
+    "summary": "建立运营分组：得到活动分组，不改分类",
     "aliases": [
       "建立运营分组",
       "group-create"
@@ -5105,33 +3538,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-groups"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/GroupView.vue",
-      "docs/business-guide/content-source-audit.md#action-group-create"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "建立运营分组：得到活动分组，不改分类"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "新增、编辑、删除分别按分组权限；选中目标分组。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "运营分组中的“建立运营分组”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -5163,13 +3575,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "维护失败看持久化提示，不重复生成无意义组"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -5177,7 +3582,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-group-link",
     "title": "保存分组商品关联",
     "kind": "action",
-    "summary": "完成保存分组商品关联，按真实入口处理成功与拒绝结果。",
+    "summary": "保存分组商品关联：只更新该分组的商品集合",
     "aliases": [
       "保存分组商品关联",
       "group-link"
@@ -5193,33 +3598,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-groups"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/GroupView.vue",
-      "docs/business-guide/content-source-audit.md#action-group-link"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存分组商品关联：只更新该分组的商品集合"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "新增、编辑、删除分别按分组权限；选中目标分组。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "运营分组中的“保存分组商品关联”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -5251,13 +3635,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "无分组先选中；解除关联不删商品"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -5265,7 +3642,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-constraint-save",
     "title": "保存规格允许值规则",
     "kind": "action",
-    "summary": "完成保存规格允许值规则，按真实入口处理成功与拒绝结果。",
+    "summary": "保存规格允许值规则：现行规则参与原约束求值",
     "aliases": [
       "保存规格允许值规则",
       "constraint-save"
@@ -5281,33 +3658,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-rules"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/RuleView.vue",
-      "docs/business-guide/content-source-audit.md#action-constraint-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存规格允许值规则：现行规则参与原约束求值"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "规则维护权限；条件与目标必须引用实际词典属性和值。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "规格约束中的“保存规格允许值规则”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -5340,13 +3696,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "旧规则原文仅参考，不强行转成新规则"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -5354,7 +3703,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-constraint-test",
     "title": "测试规则覆盖",
     "kind": "action",
-    "summary": "完成测试规则覆盖，按真实入口处理成功与拒绝结果。",
+    "summary": "测试规则覆盖：只读求值，不保存商品",
     "aliases": [
       "测试规则覆盖",
       "constraint-test"
@@ -5370,33 +3719,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-rules"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/RuleView.vue",
-      "docs/business-guide/content-source-audit.md#action-constraint-test"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "测试规则覆盖：只读求值，不保存商品"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "规则维护权限；条件与目标必须引用实际词典属性和值。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "规格约束中的“测试规则覆盖”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -5428,13 +3756,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "无覆盖不擅自推断新业务规则"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -5442,7 +3763,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-mapping-save",
     "title": "修改分类方案绑定",
     "kind": "action",
-    "summary": "完成修改分类方案绑定，按真实入口处理成功与拒绝结果。",
+    "summary": "修改分类方案绑定：共享 mappings 更新",
     "aliases": [
       "修改分类方案绑定",
       "mapping-save"
@@ -5457,33 +3778,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-mappings"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/MappingView.vue",
-      "docs/business-guide/content-source-audit.md#action-mapping-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "修改分类方案绑定：共享 mappings 更新"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "方案须有结构属性；需模板编辑权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "属性方案绑定（历史入口）中的“修改分类方案绑定”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -5514,21 +3814,15 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "无结构方案先补属性，清空不删除方案"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
-    ]
+    ],
+    "status": "historical"
   },
   {
     "id": "action-overview-query",
     "title": "查看商品矩阵",
     "kind": "action",
-    "summary": "完成查看商品矩阵，按真实入口处理成功与拒绝结果。",
+    "summary": "查看商品矩阵：只读已有销售记录",
     "aliases": [
       "查看商品矩阵",
       "overview-query"
@@ -5543,33 +3837,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-overview"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/OverviewView.vue",
-      "docs/business-guide/content-source-audit.md#action-overview-query"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "查看商品矩阵：只读已有销售记录"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "具备总览读取权限；需要修改时进入维护页面。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品总览中的“查看商品矩阵”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -5600,13 +3873,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "矩阵空位不是创建授权"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -5614,7 +3880,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-check-locate",
     "title": "定位质量问题",
     "kind": "action",
-    "summary": "完成定位质量问题，按真实入口处理成功与拒绝结果。",
+    "summary": "定位质量问题：问题页不自动修正业务",
     "aliases": [
       "定位质量问题",
       "check-locate"
@@ -5630,33 +3896,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-check"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/CheckView.vue",
-      "docs/business-guide/content-source-audit.md#action-check-locate"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "定位质量问题：问题页不自动修正业务"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "具备质量检查读取权限，修改目标另需编辑权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品质量检查中的“定位质量问题”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -5689,13 +3934,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "删除对象不再定位时回列表核对"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -5703,7 +3941,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-json-import",
     "title": "恢复 JSON 备份",
     "kind": "action",
-    "summary": "完成恢复 JSON 备份，按真实入口处理成功与拒绝结果。",
+    "summary": "恢复 JSON 备份：合法业务配置和冻结信息完整保留",
     "aliases": [
       "恢复 JSON 备份",
       "json-import"
@@ -5722,33 +3960,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-import"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ProductIoView.vue",
-      "docs/business-guide/content-source-audit.md#action-json-import"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "恢复 JSON 备份：合法业务配置和冻结信息完整保留"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "先导出备份；导入权限依导入前当前操作者，不取导入文件中的角色。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品导入导出中的“恢复 JSON 备份”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -5784,13 +4001,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "结构/权限/身份失败拒绝；损坏原文走恢复，不加载种子覆盖"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -5798,7 +4008,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-table-import",
     "title": "确认表格导入",
     "kind": "action",
-    "summary": "完成确认表格导入，按真实入口处理成功与拒绝结果。",
+    "summary": "确认表格导入：仅确认合法候选写入",
     "aliases": [
       "确认表格导入",
       "table-import"
@@ -5817,33 +4027,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-import"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ProductIoView.vue",
-      "docs/business-guide/content-source-audit.md#action-table-import"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "确认表格导入：仅确认合法候选写入"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "先导出备份；导入权限依导入前当前操作者，不取导入文件中的角色。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品导入导出中的“确认表格导入”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -5879,13 +4068,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "依据变化重新预览；存储失败按保存状态重试"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -5893,7 +4075,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-backup-export",
     "title": "导出业务备份",
     "kind": "action",
-    "summary": "完成导出业务备份，按真实入口处理成功与拒绝结果。",
+    "summary": "导出业务备份：只读导出，不改业务",
     "aliases": [
       "导出业务备份",
       "backup-export"
@@ -5912,33 +4094,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-import"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ProductIoView.vue",
-      "docs/business-guide/content-source-audit.md#action-backup-export"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "导出业务备份：只读导出，不改业务"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "先导出备份；导入权限依导入前当前操作者，不取导入文件中的角色。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品导入导出中的“导出业务备份”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -5973,13 +4134,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "下载失败重试导出，不清本机数据"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -5987,7 +4141,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-menu-save",
     "title": "保存菜单结构",
     "kind": "action",
-    "summary": "完成保存菜单结构，按真实入口处理成功与拒绝结果。",
+    "summary": "保存菜单结构：真实导航更新，权限执行绑定不被文案改写",
     "aliases": [
       "保存菜单结构",
       "menu-save"
@@ -6004,33 +4158,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-menus"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/MenuConfigView.vue",
-      "docs/business-guide/content-source-audit.md#action-menu-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存菜单结构：真实导航更新，权限执行绑定不被文案改写"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "菜单更新权限；只能放置正式登记路由，保留现有个人导航偏好。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "菜单配置中的“保存菜单结构”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -6064,13 +4197,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "非空容器/非法路由/缺权限先修正"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -6078,7 +4204,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-menu-restore",
     "title": "恢复默认菜单结构",
     "kind": "action",
-    "summary": "完成恢复默认菜单结构，按真实入口处理成功与拒绝结果。",
+    "summary": "恢复默认菜单结构：只恢复菜单，不重置授权和业务",
     "aliases": [
       "恢复默认菜单结构",
       "menu-restore"
@@ -6095,33 +4221,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-menus"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/MenuConfigView.vue",
-      "docs/business-guide/content-source-audit.md#action-menu-restore"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "恢复默认菜单结构：只恢复菜单，不重置授权和业务"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "菜单更新权限；只能放置正式登记路由，保留现有个人导航偏好。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "菜单配置中的“恢复默认菜单结构”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -6154,13 +4259,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "写盘失败保留原菜单并处理本机保存提示"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -6168,7 +4266,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-role-save",
     "title": "保存角色资料",
     "kind": "action",
-    "summary": "完成保存角色资料，按真实入口处理成功与拒绝结果。",
+    "summary": "保存角色资料：得到明确角色，不自动增加业务授权",
     "aliases": [
       "保存角色资料",
       "role-save"
@@ -6186,33 +4284,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-roles"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/RoleView.vue",
-      "docs/business-guide/content-source-audit.md#action-role-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存角色资料：得到明确角色，不自动增加业务授权"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "角色资料维护与授权能力独立；严格模式下依赖权限须明确选择。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "角色管理中的“保存角色资料”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -6247,13 +4324,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "重码/受保护身份按提示修正"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -6261,7 +4331,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-rbac-authorize",
     "title": "显式保存角色授权",
     "kind": "action",
-    "summary": "完成显式保存角色授权，按真实入口处理成功与拒绝结果。",
+    "summary": "显式保存角色授权：只保存明确勾选能力，并集按启用角色计算",
     "aliases": [
       "显式保存角色授权",
       "rbac-authorize"
@@ -6278,33 +4348,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-roles"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/RoleView.vue",
-      "docs/business-guide/content-source-audit.md#action-rbac-authorize"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "显式保存角色授权：只保存明确勾选能力，并集按启用角色计算"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "角色资料维护与授权能力独立；严格模式下依赖权限须明确选择。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "角色管理中的“显式保存角色授权”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -6338,13 +4387,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "缺依赖不自动补权，逐项核对再保存"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -6352,7 +4394,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-role-delete",
     "title": "删除普通角色",
     "kind": "action",
-    "summary": "完成删除普通角色，按真实入口处理成功与拒绝结果。",
+    "summary": "删除普通角色：未引用普通角色可删除",
     "aliases": [
       "删除普通角色",
       "role-delete"
@@ -6370,33 +4412,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-roles"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/RoleView.vue",
-      "docs/business-guide/content-source-audit.md#action-role-delete"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "删除普通角色：未引用普通角色可删除"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "角色资料维护与授权能力独立；严格模式下依赖权限须明确选择。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "角色管理中的“删除普通角色”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -6431,13 +4452,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "超级管理员/恢复角色受保护，不能绕过"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -6445,7 +4459,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-rbac-recover",
     "title": "恢复内置管理授权",
     "kind": "action",
-    "summary": "完成恢复内置管理授权，按真实入口处理成功与拒绝结果。",
+    "summary": "恢复内置管理授权：保留可恢复的管理路径",
     "aliases": [
       "恢复内置管理授权",
       "rbac-recover"
@@ -6463,33 +4477,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-roles"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/RoleView.vue",
-      "docs/business-guide/content-source-audit.md#action-rbac-recover"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "恢复内置管理授权：保留可恢复的管理路径"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "角色资料维护与授权能力独立；严格模式下依赖权限须明确选择。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "角色管理中的“恢复内置管理授权”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -6523,13 +4516,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "恢复不是给全部自定义角色扩业务权限"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -6537,7 +4523,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-permission-save",
     "title": "维护权限说明和状态",
     "kind": "action",
-    "summary": "完成维护权限说明和状态，按真实入口处理成功与拒绝结果。",
+    "summary": "维护权限说明和状态：说明变化不改变资源动作身份",
     "aliases": [
       "维护权限说明和状态",
       "permission-save"
@@ -6554,33 +4540,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-permissions"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/PermissionView.vue",
-      "docs/business-guide/content-source-audit.md#action-permission-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "维护权限说明和状态：说明变化不改变资源动作身份"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "权限更新能力；不能在文案编辑中更换权限码或实际执行绑定。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "权限目录中的“维护权限说明和状态”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -6614,13 +4579,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "引用/恢复路径保护时先看关联，不造新绑定"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -6628,7 +4586,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-permission-reference",
     "title": "查看权限引用",
     "kind": "action",
-    "summary": "完成查看权限引用，按真实入口处理成功与拒绝结果。",
+    "summary": "查看权限引用：只读定位影响范围",
     "aliases": [
       "查看权限引用",
       "permission-reference"
@@ -6645,33 +4603,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-permissions"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/PermissionView.vue",
-      "docs/business-guide/content-source-audit.md#action-permission-reference"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "查看权限引用：只读定位影响范围"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "权限更新能力；不能在文案编辑中更换权限码或实际执行绑定。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "权限目录中的“查看权限引用”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -6704,13 +4641,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "无引用不等于任意停用恢复能力"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -6718,7 +4648,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-user-save",
     "title": "保存本机用户",
     "kind": "action",
-    "summary": "完成保存本机用户，按真实入口处理成功与拒绝结果。",
+    "summary": "保存本机用户：本机用户资料更新",
     "aliases": [
       "保存本机用户",
       "user-save"
@@ -6735,33 +4665,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-users"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/UserView.vue",
-      "docs/business-guide/content-source-audit.md#action-user-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存本机用户：本机用户资料更新"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "用户维护和绑定角色能力独立；不引入真实后端登录系统。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "用户管理中的“保存本机用户”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -6794,13 +4703,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "重复账号/保护用户按提示修正"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -6808,7 +4710,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-user-bind",
     "title": "绑定用户角色",
     "kind": "action",
-    "summary": "完成绑定用户角色，按真实入口处理成功与拒绝结果。",
+    "summary": "绑定用户角色：严格模式有效能力按角色并集计算",
     "aliases": [
       "绑定用户角色",
       "user-bind"
@@ -6825,33 +4727,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-users"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/UserView.vue",
-      "docs/business-guide/content-source-audit.md#action-user-bind"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "绑定用户角色：严格模式有效能力按角色并集计算"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "用户维护和绑定角色能力独立；不引入真实后端登录系统。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "用户管理中的“绑定用户角色”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -6884,13 +4765,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "无绑定权限不能代操作；不隐式授权未来能力"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -6898,7 +4772,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-user-preview",
     "title": "模拟并退出身份",
     "kind": "action",
-    "summary": "完成模拟并退出身份，按真实入口处理成功与拒绝结果。",
+    "summary": "模拟并退出身份：预览用于验证当前本机授权",
     "aliases": [
       "模拟并退出身份",
       "user-preview"
@@ -6915,33 +4789,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-users"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/UserView.vue",
-      "docs/business-guide/content-source-audit.md#action-user-preview"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "模拟并退出身份：预览用于验证当前本机授权"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "用户维护和绑定角色能力独立；不引入真实后端登录系统。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "用户管理中的“模拟并退出身份”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -6975,13 +4828,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "默认统一管理员不因预览文案变成真实登录"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -6989,7 +4835,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-account-save",
     "title": "保存账号资料",
     "kind": "action",
-    "summary": "完成保存账号资料，按真实入口处理成功与拒绝结果。",
+    "summary": "保存账号资料：只更新本机演示资料",
     "aliases": [
       "保存账号资料",
       "account-save"
@@ -7005,33 +4851,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-account"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/AccountView.vue",
-      "docs/business-guide/content-source-audit.md#action-account-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存账号资料：只更新本机演示资料"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "具备账号更新权限；仅修改可见的当前资料。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "账号设置中的“保存账号资料”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -7063,13 +4888,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "无权限或写盘失败保留输入"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -7077,7 +4895,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-account-password",
     "title": "演示密码校验",
     "kind": "action",
-    "summary": "完成演示密码校验，按真实入口处理成功与拒绝结果。",
+    "summary": "演示密码校验：只做校验，不保存密码",
     "aliases": [
       "演示密码校验",
       "account-password"
@@ -7093,33 +4911,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-account"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/AccountView.vue",
-      "docs/business-guide/content-source-audit.md#action-account-password"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "演示密码校验：只做校验，不保存密码"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "具备账号更新权限；仅修改可见的当前资料。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "账号设置中的“演示密码校验”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -7151,13 +4948,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "不一致修正，不宣称外部账号已改密"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -7165,7 +4955,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-feedback-save",
     "title": "保存问题反馈",
     "kind": "action",
-    "summary": "完成保存问题反馈，按真实入口处理成功与拒绝结果。",
+    "summary": "保存问题反馈：反馈有明确页面/功能关联",
     "aliases": [
       "保存问题反馈",
       "feedback-save"
@@ -7182,33 +4972,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-feedback"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/FeedbackView.vue",
-      "docs/business-guide/content-source-audit.md#action-feedback-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存问题反馈：反馈有明确页面/功能关联"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "反馈读取、更新、删除、导入导出按独立权限检查。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "反馈管理中的“保存问题反馈”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -7242,13 +5011,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "附件或保存失败保留输入，避免泄露全量业务库"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -7256,7 +5018,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-feedback-export",
     "title": "导出本机反馈包",
     "kind": "action",
-    "summary": "完成导出本机反馈包，按真实入口处理成功与拒绝结果。",
+    "summary": "导出本机反馈包：本机文件，不自动上传",
     "aliases": [
       "导出本机反馈包",
       "feedback-export"
@@ -7273,33 +5035,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-feedback"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/FeedbackView.vue",
-      "docs/business-guide/content-source-audit.md#action-feedback-export"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "导出本机反馈包：本机文件，不自动上传"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "反馈读取、更新、删除、导入导出按独立权限检查。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "反馈管理中的“导出本机反馈包”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -7332,13 +5073,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "导出失败保留记录重试；已导出记录按原限制处理"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -7346,7 +5080,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-feedback-import",
     "title": "导入反馈包",
     "kind": "action",
-    "summary": "完成导入反馈包，按真实入口处理成功与拒绝结果。",
+    "summary": "导入反馈包：恢复反馈及附件，不导入商品",
     "aliases": [
       "导入反馈包",
       "feedback-import"
@@ -7363,33 +5097,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-feedback"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/FeedbackView.vue",
-      "docs/business-guide/content-source-audit.md#action-feedback-import"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "导入反馈包：恢复反馈及附件，不导入商品"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "反馈读取、更新、删除、导入导出按独立权限检查。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "反馈管理中的“导入反馈包”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -7422,13 +5135,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "坏包保留原记录，不因说明导入授予权限"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -7436,7 +5142,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-access-explain",
     "title": "理解不可访问入口",
     "kind": "action",
-    "summary": "完成理解不可访问入口，按真实入口处理成功与拒绝结果。",
+    "summary": "理解不可访问入口：不泄露无权对象",
     "aliases": [
       "理解不可访问入口",
       "access-explain"
@@ -7451,33 +5157,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-forbidden"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/ForbiddenView.vue",
-      "docs/business-guide/content-source-audit.md#action-access-explain"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "理解不可访问入口：不泄露无权对象"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "可直接读取一般无权限说明；严格模式按当前身份检查目标路径。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "无访问权限中的“理解不可访问入口”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -7508,13 +5193,6 @@ export const guideActionArticles: GuideArticle[] = [
         "paragraphs": [
           "未知或无权路由不无限重试"
         ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
       }
     ]
   },
@@ -7522,7 +5200,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-guide-search",
     "title": "搜索业务知识",
     "kind": "action",
-    "summary": "完成搜索业务知识，按真实入口处理成功与拒绝结果。",
+    "summary": "按页面名称、操作或问题关键词找到对应页面说明。",
     "aliases": [
       "搜索业务知识",
       "guide-search"
@@ -7533,79 +5211,32 @@ export const guideActionArticles: GuideArticle[] = [
     "actionIds": [],
     "ruleIds": [
       "rule-guide-isolation",
-      "rule-permission",
-      "rule-guide-storage",
-      "rule-guide-permission"
+      "rule-permission"
     ],
     "related": [
       "manual-guide"
     ],
-    "revision": 1,
-    "status": "review",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/guide/GuideHomeView.vue",
-      "docs/business-guide/content-source-audit.md#action-guide-search"
-    ],
     "sections": [
       {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "搜索业务知识：仅索引说明，不搜索个人业务库"
-        ]
-      },
-      {
-        "id": "prerequisites",
-        "title": "前提与权限",
-        "paragraphs": [
-          "有指南阅读能力即可阅读；维护需独立能力。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "业务指南首页中的“搜索业务知识”相关按钮；具体步骤如下。"
-        ]
-      },
-      {
         "id": "steps",
-        "title": "逐步操作",
+        "title": "搜索说明",
         "steps": [
-          "输入页面/术语/操作或失败现象",
-          "按类型打开结果"
+          "输入页面名称或具体操作关键词。",
+          "打开匹配页面，按功能说明、使用规则和关联页面继续查阅。"
         ]
       },
       {
         "id": "results",
-        "title": "可观察结果",
+        "title": "结果",
         "paragraphs": [
-          "仅索引说明，不搜索个人业务库"
-        ]
-      },
-      {
-        "id": "rules",
-        "title": "可能命中的规则",
-        "paragraphs": [
-          "指南与业务存储及草稿隔离",
-          "默认模式与严格授权分开",
-          "指南独立存储必须合法原子",
-          "阅读与说明维护能力独立"
+          "只显示匹配的说明，不查询、创建或修改业务对象。"
         ]
       },
       {
         "id": "failures",
-        "title": "失败与恢复",
+        "title": "没有匹配结果",
         "paragraphs": [
-          "无结果给建议和反馈，不编造回答"
-        ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
+          "清除关键词后按目录选择，或改用更具体的页面和操作名称。"
         ]
       }
     ]
@@ -7614,7 +5245,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-guide-read",
     "title": "阅读页面与规则",
     "kind": "action",
-    "summary": "完成阅读页面与规则，按真实入口处理成功与拒绝结果。",
+    "summary": "在帮助抽屉或说明页面阅读当前功能及对应限制。",
     "aliases": [
       "阅读页面与规则",
       "guide-read"
@@ -7624,638 +5255,26 @@ export const guideActionArticles: GuideArticle[] = [
     ],
     "actionIds": [],
     "ruleIds": [
-      "rule-guide-isolation",
-      "rule-guide-storage",
-      "rule-guide-permission"
+      "rule-guide-isolation"
     ],
     "related": [
       "manual-guide-article"
     ],
-    "revision": 1,
-    "status": "review",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/guide/GuideArticleView.vue",
-      "docs/business-guide/content-source-audit.md#action-guide-read"
-    ],
     "sections": [
       {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "阅读页面与规则：不改变原业务 URL 与草稿"
-        ]
-      },
-      {
-        "id": "prerequisites",
-        "title": "前提与权限",
-        "paragraphs": [
-          "文章存在且可阅读；业务练习入口另检查目标权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "指南文章中的“阅读页面与规则”相关按钮；具体步骤如下。"
-        ]
-      },
-      {
         "id": "steps",
-        "title": "逐步操作",
+        "title": "查看说明",
         "steps": [
-          "从本页指南打开章节",
-          "查前提/步骤/失败和相关条目",
-          "关闭返回触发按钮"
+          "选择页面，阅读功能与关键操作。",
+          "展开需要的规则，核对允许条件、禁止条件和下一步。",
+          "按关联原因查看配套说明；关闭帮助抽屉后继续原页面编辑。"
         ]
       },
       {
         "id": "results",
-        "title": "可观察结果",
+        "title": "结果",
         "paragraphs": [
-          "不改变原业务 URL 与草稿"
-        ]
-      },
-      {
-        "id": "rules",
-        "title": "可能命中的规则",
-        "paragraphs": [
-          "指南与业务存储及草稿隔离",
-          "指南独立存储必须合法原子",
-          "阅读与说明维护能力独立"
-        ]
-      },
-      {
-        "id": "failures",
-        "title": "失败与恢复",
-        "paragraphs": [
-          "未知文章回目录；待确认内容不当实际限制"
-        ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "action-guide-learn",
-    "title": "按路线学习和练习",
-    "kind": "action",
-    "summary": "完成按路线学习和练习，按真实入口处理成功与拒绝结果。",
-    "aliases": [
-      "按路线学习和练习",
-      "guide-learn"
-    ],
-    "pageIds": [
-      "page-guide-learn"
-    ],
-    "actionIds": [],
-    "ruleIds": [
-      "rule-guide-isolation",
-      "rule-guide-storage",
-      "rule-guide-permission"
-    ],
-    "related": [
-      "manual-guide-learn"
-    ],
-    "revision": 1,
-    "status": "review",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/guide/GuideLearnView.vue",
-      "docs/business-guide/content-source-audit.md#action-guide-learn"
-    ],
-    "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "按路线学习和练习：已读与已练习各自记录"
-        ]
-      },
-      {
-        "id": "prerequisites",
-        "title": "前提与权限",
-        "paragraphs": [
-          "可阅读指南；有权业务页才允许练习跳转。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "新人学习路线中的“按路线学习和练习”相关按钮；具体步骤如下。"
-        ]
-      },
-      {
-        "id": "steps",
-        "title": "逐步操作",
-        "steps": [
-          "选择目标路线",
-          "阅读并主动去有权页面",
-          "按核对点手动完成"
-        ]
-      },
-      {
-        "id": "results",
-        "title": "可观察结果",
-        "paragraphs": [
-          "已读与已练习各自记录"
-        ]
-      },
-      {
-        "id": "rules",
-        "title": "可能命中的规则",
-        "paragraphs": [
-          "指南与业务存储及草稿隔离",
-          "指南独立存储必须合法原子",
-          "阅读与说明维护能力独立"
-        ]
-      },
-      {
-        "id": "failures",
-        "title": "失败与恢复",
-        "paragraphs": [
-          "打开文章不自动完成练习，不自动造样例"
-        ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "action-guide-progress",
-    "title": "保存个人收藏与进度",
-    "kind": "action",
-    "summary": "完成保存个人收藏与进度，按真实入口处理成功与拒绝结果。",
-    "aliases": [
-      "保存个人收藏与进度",
-      "guide-progress"
-    ],
-    "pageIds": [
-      "page-guide",
-      "page-guide-article",
-      "page-guide-learn"
-    ],
-    "actionIds": [],
-    "ruleIds": [
-      "rule-guide-isolation",
-      "rule-guide-storage"
-    ],
-    "related": [
-      "manual-guide"
-    ],
-    "revision": 1,
-    "status": "review",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/guide/GuideHomeView.vue",
-      "src/views/guide/GuideArticleView.vue",
-      "src/views/guide/GuideLearnView.vue",
-      "docs/business-guide/content-source-audit.md#action-guide-progress"
-    ],
-    "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存个人收藏与进度：仅写当前明确 owner 的独立个人键"
-        ]
-      },
-      {
-        "id": "prerequisites",
-        "title": "前提与权限",
-        "paragraphs": [
-          "有指南阅读能力即可阅读；维护需独立能力。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "业务指南首页中的“保存个人收藏与进度”相关按钮；具体步骤如下。"
-        ]
-      },
-      {
-        "id": "steps",
-        "title": "逐步操作",
-        "steps": [
-          "明确收藏/已读/已练习",
-          "核对保存反馈"
-        ]
-      },
-      {
-        "id": "results",
-        "title": "可观察结果",
-        "paragraphs": [
-          "仅写当前明确 owner 的独立个人键"
-        ]
-      },
-      {
-        "id": "rules",
-        "title": "可能命中的规则",
-        "paragraphs": [
-          "指南与业务存储及草稿隔离",
-          "指南独立存储必须合法原子"
-        ]
-      },
-      {
-        "id": "failures",
-        "title": "失败与恢复",
-        "paragraphs": [
-          "失败不假报成功，身份变化不写到别人名下"
-        ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "action-guide-maintain",
-    "title": "维护指南说明",
-    "kind": "action",
-    "summary": "完成维护指南说明，按真实入口处理成功与拒绝结果。",
-    "aliases": [
-      "维护指南说明",
-      "guide-maintain"
-    ],
-    "pageIds": [
-      "page-guide-manage"
-    ],
-    "actionIds": [],
-    "ruleIds": [
-      "rule-guide-permission",
-      "rule-guide-publication",
-      "rule-guide-storage",
-      "rule-guide-conflict"
-    ],
-    "related": [
-      "manual-guide-manage"
-    ],
-    "revision": 1,
-    "status": "review",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/guide/GuideManageView.vue",
-      "docs/business-guide/content-source-audit.md#action-guide-maintain"
-    ],
-    "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "维护指南说明：指南独立修订，不改业务规则"
-        ]
-      },
-      {
-        "id": "prerequisites",
-        "title": "前提与权限",
-        "paragraphs": [
-          "需指南维护能力，提交时重新检查身份与授权。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "指南内容维护中的“维护指南说明”相关按钮；具体步骤如下。"
-        ]
-      },
-      {
-        "id": "steps",
-        "title": "逐步操作",
-        "steps": [
-          "选择文章编辑草稿",
-          "预览并核对实现",
-          "发布或显式恢复说明"
-        ]
-      },
-      {
-        "id": "results",
-        "title": "可观察结果",
-        "paragraphs": [
-          "指南独立修订，不改业务规则"
-        ]
-      },
-      {
-        "id": "rules",
-        "title": "可能命中的规则",
-        "paragraphs": [
-          "阅读与说明维护能力独立",
-          "说明发布不修改内置业务条件",
-          "指南独立存储必须合法原子",
-          "指南修订冲突不可静默覆盖"
-        ]
-      },
-      {
-        "id": "failures",
-        "title": "失败与恢复",
-        "paragraphs": [
-          "权限/冲突/配额失败保留草稿与旧发布版"
-        ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "action-guide-draft",
-    "title": "保存说明草稿",
-    "kind": "action",
-    "summary": "完成保存说明草稿，按真实入口处理成功与拒绝结果。",
-    "aliases": [
-      "保存说明草稿",
-      "guide-draft"
-    ],
-    "pageIds": [
-      "page-guide-manage"
-    ],
-    "actionIds": [],
-    "ruleIds": [
-      "rule-guide-isolation",
-      "rule-guide-publication",
-      "rule-permission",
-      "rule-persistence",
-      "rule-guide-storage",
-      "rule-guide-permission",
-      "rule-guide-conflict"
-    ],
-    "related": [
-      "manual-guide-manage"
-    ],
-    "revision": 1,
-    "status": "review",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/guide/GuideManageView.vue",
-      "docs/business-guide/content-source-audit.md#action-guide-draft"
-    ],
-    "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "保存说明草稿：普通读者仍见原发布版"
-        ]
-      },
-      {
-        "id": "prerequisites",
-        "title": "前提与权限",
-        "paragraphs": [
-          "需指南维护能力，提交时重新检查身份与授权。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "指南内容维护中的“保存说明草稿”相关按钮；具体步骤如下。"
-        ]
-      },
-      {
-        "id": "steps",
-        "title": "逐步操作",
-        "steps": [
-          "编辑解释步骤与示例",
-          "保存草稿并预览"
-        ]
-      },
-      {
-        "id": "results",
-        "title": "可观察结果",
-        "paragraphs": [
-          "普通读者仍见原发布版"
-        ]
-      },
-      {
-        "id": "rules",
-        "title": "可能命中的规则",
-        "paragraphs": [
-          "指南与业务存储及草稿隔离",
-          "说明发布不修改内置业务条件",
-          "默认模式与严格授权分开",
-          "真实写盘状态与失败恢复",
-          "指南独立存储必须合法原子",
-          "阅读与说明维护能力独立",
-          "指南修订冲突不可静默覆盖"
-        ]
-      },
-      {
-        "id": "failures",
-        "title": "失败与恢复",
-        "paragraphs": [
-          "损坏/危险内容拒绝，当前输入保留"
-        ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "action-guide-publish",
-    "title": "发布核验说明",
-    "kind": "action",
-    "summary": "完成发布核验说明，按真实入口处理成功与拒绝结果。",
-    "aliases": [
-      "发布核验说明",
-      "guide-publish"
-    ],
-    "pageIds": [
-      "page-guide-manage"
-    ],
-    "actionIds": [],
-    "ruleIds": [
-      "rule-guide-permission",
-      "rule-guide-publication",
-      "rule-guide-storage",
-      "rule-guide-conflict"
-    ],
-    "related": [
-      "manual-guide-manage"
-    ],
-    "revision": 1,
-    "status": "review",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/guide/GuideManageView.vue",
-      "docs/business-guide/content-source-audit.md#action-guide-publish"
-    ],
-    "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "发布核验说明：同载荷提交正文、修订和上一版"
-        ]
-      },
-      {
-        "id": "prerequisites",
-        "title": "前提与权限",
-        "paragraphs": [
-          "需指南维护能力，提交时重新检查身份与授权。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "指南内容维护中的“发布核验说明”相关按钮；具体步骤如下。"
-        ]
-      },
-      {
-        "id": "steps",
-        "title": "逐步操作",
-        "steps": [
-          "核对状态、适用实现和依据",
-          "明确发布"
-        ]
-      },
-      {
-        "id": "results",
-        "title": "可观察结果",
-        "paragraphs": [
-          "同载荷提交正文、修订和上一版"
-        ]
-      },
-      {
-        "id": "rules",
-        "title": "可能命中的规则",
-        "paragraphs": [
-          "阅读与说明维护能力独立",
-          "说明发布不修改内置业务条件",
-          "指南独立存储必须合法原子",
-          "指南修订冲突不可静默覆盖"
-        ]
-      },
-      {
-        "id": "failures",
-        "title": "失败与恢复",
-        "paragraphs": [
-          "版本冲突读取最新核对，不能静默覆盖"
-        ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "action-guide-import",
-    "title": "导入指南内容备份",
-    "kind": "action",
-    "summary": "完成导入指南内容备份，按真实入口处理成功与拒绝结果。",
-    "aliases": [
-      "导入指南内容备份",
-      "guide-import"
-    ],
-    "pageIds": [
-      "page-guide-manage"
-    ],
-    "actionIds": [],
-    "ruleIds": [
-      "rule-guide-permission",
-      "rule-guide-publication",
-      "rule-guide-storage",
-      "rule-guide-conflict"
-    ],
-    "related": [
-      "manual-guide-manage"
-    ],
-    "revision": 1,
-    "status": "review",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/guide/GuideManageView.vue",
-      "docs/business-guide/content-source-audit.md#action-guide-import"
-    ],
-    "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "导入指南内容备份：只改指南说明，不带商品或授权"
-        ]
-      },
-      {
-        "id": "prerequisites",
-        "title": "前提与权限",
-        "paragraphs": [
-          "需指南维护能力，提交时重新检查身份与授权。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "指南内容维护中的“导入指南内容备份”相关按钮；具体步骤如下。"
-        ]
-      },
-      {
-        "id": "steps",
-        "title": "逐步操作",
-        "steps": [
-          "选择仅含指南的文件",
-          "校验预览 ID/引用/内容",
-          "明确确认导入"
-        ]
-      },
-      {
-        "id": "results",
-        "title": "可观察结果",
-        "paragraphs": [
-          "只改指南说明，不带商品或授权"
-        ]
-      },
-      {
-        "id": "rules",
-        "title": "可能命中的规则",
-        "paragraphs": [
-          "阅读与说明维护能力独立",
-          "说明发布不修改内置业务条件",
-          "指南独立存储必须合法原子",
-          "指南修订冲突不可静默覆盖"
-        ]
-      },
-      {
-        "id": "failures",
-        "title": "失败与恢复",
-        "paragraphs": [
-          "坏 schema/重复 ID/危险内容拒绝且保留原文"
-        ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
+          "说明展示过程不修改业务数据和当前输入。"
         ]
       }
     ]
@@ -8264,7 +5283,7 @@ export const guideActionArticles: GuideArticle[] = [
     "id": "action-business-save",
     "title": "处理本机保存结果",
     "kind": "action",
-    "summary": "完成处理本机保存结果，按真实入口处理成功与拒绝结果。",
+    "summary": "处理本机保存结果：只有真实持久化成功才称已保存",
     "aliases": [
       "处理本机保存结果",
       "business-save"
@@ -8289,8 +5308,7 @@ export const guideActionArticles: GuideArticle[] = [
       "page-permissions",
       "page-users",
       "page-account",
-      "page-feedback",
-      "page-guide-manage"
+      "page-feedback"
     ],
     "actionIds": [],
     "ruleIds": [
@@ -8300,52 +5318,12 @@ export const guideActionArticles: GuideArticle[] = [
     "related": [
       "manual-categories"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/views/CategoryView.vue",
-      "src/views/ProductTypeView.vue",
-      "src/views/ParamView.vue",
-      "src/views/TemplateView.vue",
-      "src/views/SpuEditView.vue",
-      "src/views/SkuWorkbenchView.vue",
-      "src/views/SkuEditView.vue",
-      "src/views/MaterialCreateView.vue",
-      "src/views/BenefitPackageEditView.vue",
-      "src/views/BrandView.vue",
-      "src/views/GroupView.vue",
-      "src/views/RuleView.vue",
-      "src/views/ProductIoView.vue",
-      "src/views/MenuConfigView.vue",
-      "src/views/RoleView.vue",
-      "src/views/PermissionView.vue",
-      "src/views/UserView.vue",
-      "src/views/AccountView.vue",
-      "src/views/FeedbackView.vue",
-      "src/views/guide/GuideManageView.vue",
-      "docs/business-guide/content-source-audit.md#action-business-save"
-    ],
     "sections": [
-      {
-        "id": "purpose",
-        "title": "动作目的",
-        "paragraphs": [
-          "处理本机保存结果：只有真实持久化成功才称已保存"
-        ]
-      },
       {
         "id": "prerequisites",
         "title": "前提与权限",
         "paragraphs": [
           "查看/编辑模式分离；新增、编辑、删除分别检查分类操作权限。"
-        ]
-      },
-      {
-        "id": "entry",
-        "title": "入口",
-        "paragraphs": [
-          "商品分类中心中的“处理本机保存结果”相关按钮；具体步骤如下。"
         ]
       },
       {
@@ -8376,13 +5354,6 @@ export const guideActionArticles: GuideArticle[] = [
         "title": "失败与恢复",
         "paragraphs": [
           "内存未落盘、原数据未变和结果未确认分别处理"
-        ]
-      },
-      {
-        "id": "verification",
-        "title": "适用实现与核验",
-        "paragraphs": [
-          "说明修订 1；以当前页面真实按钮与提交入口核对。保存、发布、预览、确认分别以该动作真实结果为准。"
         ]
       }
     ]

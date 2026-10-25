@@ -33,14 +33,6 @@ export const guideConceptArticles: GuideArticle[] = [
       "manual-skus",
       "manual-material-create"
     ],
-    "revision": 1,
-    "status": "verified",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "src/domain/types.ts",
-      "src/domain/catalogIdentity.ts",
-      "docs/business-guide/content-source-audit.md#concepts"
-    ],
     "sections": [
       {
         "id": "objects",
@@ -135,12 +127,7 @@ export const guideConceptArticles: GuideArticle[] = [
       "manual-specs",
       "manual-material-create"
     ],
-    "revision": 1,
     "status": "business-pending",
-    "implementation": "商品中心 V3 当前工作区（2026-10-25）；内容修订 1",
-    "evidence": [
-      "D:/浏览器下载内容/ERP_Business_Guide_Execution_Plan_V1.txt"
-    ],
     "sections": [
       {
         "id": "pending",

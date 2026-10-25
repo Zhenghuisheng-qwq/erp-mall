@@ -3,7 +3,7 @@
     <div class="guide-failure-title"><strong>{{kindText[failure.kind]}}</strong><span>{{stateText[failure.savedState]}}</span></div><p>{{failure.message}}</p>
     <dl v-if="Object.keys(failure.context||{}).length"><template v-for="(value,key) in failure.context" :key="key"><dt>{{contextLabel[key]||key}}</dt><dd>{{value}}</dd></template></dl>
     <p v-if="failure.fields?.length">请检查：{{failure.fields.join('、')}}</p>
-    <div class="guide-failure-actions"><el-button v-if="showRule" size="small" @click="explain">{{failure.ruleId?'查看规则':'查看本页指南'}}</el-button><el-button v-for="action in availableRecovery" :key="action" size="small" :disabled="action==='feedback'&&!catalog.can('system:feedback:create')" @click="recover(action)">{{recoveryText[action]||action}}</el-button></div>
+    <div class="guide-failure-actions"><el-button v-if="showRule" size="small" @click="explain">{{failure.ruleId?'查看规则':'查看页面功能'}}</el-button><el-button v-for="action in availableRecovery" :key="action" size="small" :disabled="action==='feedback'&&!catalog.can('system:feedback:create')" @click="recover(action)">{{recoveryText[action]||action}}</el-button></div>
   </section>
 </template>
 <script setup lang="ts">

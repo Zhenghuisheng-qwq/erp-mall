@@ -12,9 +12,6 @@ export const guidePages: GuidePage[] = [
       "action-workbench-search",
       "action-workbench-issues"
     ],
-    "source": [
-      "src/views/WorkbenchView.vue"
-    ],
     "formal": true
   },
   {
@@ -32,9 +29,6 @@ export const guidePages: GuidePage[] = [
       "action-category-delete",
       "action-business-save"
     ],
-    "source": [
-      "src/views/CategoryView.vue"
-    ],
     "formal": true
   },
   {
@@ -50,9 +44,6 @@ export const guidePages: GuidePage[] = [
       "action-type-delete",
       "action-business-save"
     ],
-    "source": [
-      "src/views/ProductTypeView.vue"
-    ],
     "formal": true
   },
   {
@@ -66,9 +57,6 @@ export const guidePages: GuidePage[] = [
       "action-dictionary-save",
       "action-dictionary-value-remove",
       "action-business-save"
-    ],
-    "source": [
-      "src/views/ParamView.vue"
     ],
     "formal": true
   },
@@ -86,9 +74,6 @@ export const guidePages: GuidePage[] = [
       "action-template-delete",
       "action-business-save"
     ],
-    "source": [
-      "src/views/TemplateView.vue"
-    ],
     "formal": true
   },
   {
@@ -103,9 +88,6 @@ export const guidePages: GuidePage[] = [
       "action-model-copy",
       "action-model-publish",
       "action-model-offline"
-    ],
-    "source": [
-      "src/views/ModelListView.vue"
     ],
     "formal": true
   },
@@ -123,9 +105,6 @@ export const guidePages: GuidePage[] = [
       "action-node-naming-save",
       "action-material-relation"
     ],
-    "source": [
-      "src/views/SpecConfigView.vue"
-    ],
     "formal": true
   },
   {
@@ -140,9 +119,6 @@ export const guidePages: GuidePage[] = [
       "action-planning-create-sku",
       "action-planning-delete"
     ],
-    "source": [
-      "src/views/ProductPlanView.vue"
-    ],
     "formal": true,
     "historical": true
   },
@@ -155,9 +131,6 @@ export const guidePages: GuidePage[] = [
     "articleId": "manual-tree",
     "actionIds": [
       "action-tree-query"
-    ],
-    "source": [
-      "src/views/TreePage.vue"
     ],
     "formal": true,
     "historical": true
@@ -174,9 +147,6 @@ export const guidePages: GuidePage[] = [
       "action-spu-view",
       "action-spu-delete"
     ],
-    "source": [
-      "src/views/ProductListView.vue"
-    ],
     "formal": true
   },
   {
@@ -189,9 +159,6 @@ export const guidePages: GuidePage[] = [
     "actionIds": [
       "action-spu-save",
       "action-business-save"
-    ],
-    "source": [
-      "src/views/SpuEditView.vue"
     ],
     "formal": true
   },
@@ -206,9 +173,6 @@ export const guidePages: GuidePage[] = [
       "action-spu-save",
       "action-spu-history",
       "action-business-save"
-    ],
-    "source": [
-      "src/views/SpuEditView.vue"
     ],
     "formal": true
   },
@@ -226,9 +190,6 @@ export const guidePages: GuidePage[] = [
       "action-sku-manual-order",
       "action-business-save"
     ],
-    "source": [
-      "src/views/SkuWorkbenchView.vue"
-    ],
     "formal": true
   },
   {
@@ -242,9 +203,6 @@ export const guidePages: GuidePage[] = [
       "action-sku-preview",
       "action-sku-save"
     ],
-    "source": [
-      "src/views/SkuCreateView.vue"
-    ],
     "formal": true
   },
   {
@@ -257,9 +215,6 @@ export const guidePages: GuidePage[] = [
     "actionIds": [
       "action-sku-save",
       "action-business-save"
-    ],
-    "source": [
-      "src/views/SkuEditView.vue"
     ],
     "formal": true
   },
@@ -275,9 +230,6 @@ export const guidePages: GuidePage[] = [
       "action-material-temporary",
       "action-business-save"
     ],
-    "source": [
-      "src/views/MaterialCreateView.vue"
-    ],
     "formal": true
   },
   {
@@ -291,9 +243,6 @@ export const guidePages: GuidePage[] = [
       "action-material-edit",
       "action-material-relation",
       "action-material-unlink"
-    ],
-    "source": [
-      "src/views/ProductEditView.vue"
     ],
     "formal": true
   },
@@ -310,9 +259,6 @@ export const guidePages: GuidePage[] = [
       "action-compatibility-sync",
       "action-compatibility-cancel"
     ],
-    "source": [
-      "src/views/CompatibilityView.vue"
-    ],
     "formal": true
   },
   {
@@ -327,9 +273,6 @@ export const guidePages: GuidePage[] = [
       "action-benefit-copy",
       "action-benefit-query"
     ],
-    "source": [
-      "src/views/BenefitPackageListView.vue"
-    ],
     "formal": true
   },
   {
@@ -343,9 +286,6 @@ export const guidePages: GuidePage[] = [
       "action-benefit-save",
       "action-benefit-select",
       "action-benefit-quote"
-    ],
-    "source": [
-      "src/views/BenefitPackageEditView.vue"
     ],
     "formal": true
   },
@@ -362,9 +302,6 @@ export const guidePages: GuidePage[] = [
       "action-benefit-quote",
       "action-business-save"
     ],
-    "source": [
-      "src/views/BenefitPackageEditView.vue"
-    ],
     "formal": true
   },
   {
@@ -376,9 +313,6 @@ export const guidePages: GuidePage[] = [
     "articleId": "manual-benefit-delivery",
     "actionIds": [
       "action-delivery-export"
-    ],
-    "source": [
-      "src/views/BenefitDeliveryView.vue"
     ],
     "formal": true
   },
@@ -392,9 +326,6 @@ export const guidePages: GuidePage[] = [
     "actionIds": [
       "action-brand-save",
       "action-business-save"
-    ],
-    "source": [
-      "src/views/BrandView.vue"
     ],
     "formal": true
   },
@@ -410,9 +341,6 @@ export const guidePages: GuidePage[] = [
       "action-group-create",
       "action-business-save"
     ],
-    "source": [
-      "src/views/GroupView.vue"
-    ],
     "formal": true
   },
   {
@@ -427,9 +355,6 @@ export const guidePages: GuidePage[] = [
       "action-constraint-test",
       "action-business-save"
     ],
-    "source": [
-      "src/views/RuleView.vue"
-    ],
     "formal": true
   },
   {
@@ -441,9 +366,6 @@ export const guidePages: GuidePage[] = [
     "articleId": "manual-mappings",
     "actionIds": [
       "action-mapping-save"
-    ],
-    "source": [
-      "src/views/MappingView.vue"
     ],
     "formal": true,
     "historical": true
@@ -458,9 +380,6 @@ export const guidePages: GuidePage[] = [
     "actionIds": [
       "action-overview-query"
     ],
-    "source": [
-      "src/views/OverviewView.vue"
-    ],
     "formal": true
   },
   {
@@ -472,9 +391,6 @@ export const guidePages: GuidePage[] = [
     "articleId": "manual-check",
     "actionIds": [
       "action-check-locate"
-    ],
-    "source": [
-      "src/views/CheckView.vue"
     ],
     "formal": true
   },
@@ -491,9 +407,6 @@ export const guidePages: GuidePage[] = [
       "action-backup-export",
       "action-business-save"
     ],
-    "source": [
-      "src/views/ProductIoView.vue"
-    ],
     "formal": true
   },
   {
@@ -505,9 +418,6 @@ export const guidePages: GuidePage[] = [
     "articleId": "manual-columns-spu",
     "actionIds": [
       "action-spu-view"
-    ],
-    "source": [
-      "src/views/ProductListView.vue"
     ],
     "formal": true
   },
@@ -522,9 +432,6 @@ export const guidePages: GuidePage[] = [
       "action-view-save",
       "action-view-restore"
     ],
-    "source": [
-      "src/views/SkuWorkbenchView.vue"
-    ],
     "formal": true
   },
   {
@@ -538,9 +445,6 @@ export const guidePages: GuidePage[] = [
       "action-menu-save",
       "action-menu-restore",
       "action-business-save"
-    ],
-    "source": [
-      "src/views/MenuConfigView.vue"
     ],
     "formal": true
   },
@@ -558,9 +462,6 @@ export const guidePages: GuidePage[] = [
       "action-rbac-recover",
       "action-business-save"
     ],
-    "source": [
-      "src/views/RoleView.vue"
-    ],
     "formal": true
   },
   {
@@ -574,9 +475,6 @@ export const guidePages: GuidePage[] = [
       "action-permission-save",
       "action-permission-reference",
       "action-business-save"
-    ],
-    "source": [
-      "src/views/PermissionView.vue"
     ],
     "formal": true
   },
@@ -593,9 +491,6 @@ export const guidePages: GuidePage[] = [
       "action-user-preview",
       "action-business-save"
     ],
-    "source": [
-      "src/views/UserView.vue"
-    ],
     "formal": true
   },
   {
@@ -609,9 +504,6 @@ export const guidePages: GuidePage[] = [
       "action-account-save",
       "action-account-password",
       "action-business-save"
-    ],
-    "source": [
-      "src/views/AccountView.vue"
     ],
     "formal": true
   },
@@ -628,9 +520,6 @@ export const guidePages: GuidePage[] = [
       "action-feedback-import",
       "action-business-save"
     ],
-    "source": [
-      "src/views/FeedbackView.vue"
-    ],
     "formal": true
   },
   {
@@ -643,9 +532,6 @@ export const guidePages: GuidePage[] = [
     "actionIds": [
       "action-access-explain"
     ],
-    "source": [
-      "src/views/ForbiddenView.vue"
-    ],
     "formal": false
   },
   {
@@ -656,11 +542,7 @@ export const guidePages: GuidePage[] = [
     ],
     "articleId": "manual-guide",
     "actionIds": [
-      "action-guide-search",
-      "action-guide-progress"
-    ],
-    "source": [
-      "src/views/guide/GuideHomeView.vue"
+      "action-guide-search"
     ],
     "formal": true
   },
@@ -672,46 +554,7 @@ export const guidePages: GuidePage[] = [
     ],
     "articleId": "manual-guide-article",
     "actionIds": [
-      "action-guide-read",
-      "action-guide-progress"
-    ],
-    "source": [
-      "src/views/guide/GuideArticleView.vue"
-    ],
-    "formal": true
-  },
-  {
-    "id": "page-guide-learn",
-    "title": "新人学习路线",
-    "patterns": [
-      "/guide/learn/:flowId"
-    ],
-    "articleId": "manual-guide-learn",
-    "actionIds": [
-      "action-guide-learn",
-      "action-guide-progress"
-    ],
-    "source": [
-      "src/views/guide/GuideLearnView.vue"
-    ],
-    "formal": true
-  },
-  {
-    "id": "page-guide-manage",
-    "title": "指南内容维护",
-    "patterns": [
-      "/guide/manage"
-    ],
-    "articleId": "manual-guide-manage",
-    "actionIds": [
-      "action-guide-draft",
-      "action-guide-publish",
-      "action-guide-import",
-      "action-guide-maintain",
-      "action-business-save"
-    ],
-    "source": [
-      "src/views/guide/GuideManageView.vue"
+      "action-guide-read"
     ],
     "formal": true
   }
