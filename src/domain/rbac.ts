@@ -85,7 +85,7 @@ export function permissionRegistry(): RbacPermission[] {
 export function routePermissions(path: string, query: Record<string,unknown> = {}): string[] | null {
   const clean = path.split('?')[0] || '/'
   // Retired maintenance routes redirect to the read-only module; keep stored permission codes compatible.
-  if(clean==='/guide/manage')return ['system:guide:read']
+  if(clean==='/guide/manage'||clean==='/guide/learn')return ['system:guide:read']
   if(clean==='/guide'||/^\/guide\/(articles|learn)\/[^/]+$/.test(clean))return ['system:guide:read']
   if (clean === '/forbidden') return []
   if (clean === '/columns' || (['/products','/spus','/skus'].includes(clean) && query.panel === 'columns')) return ['product:view:read', clean === '/skus' ? 'product:sku:read' : 'product:spu:read']

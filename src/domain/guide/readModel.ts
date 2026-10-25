@@ -104,8 +104,7 @@ function pageRelations(pageId:string):GuideRelatedPage[]{
   }
   return result
 }
-function distinctSections(sections:GuideSection[]):GuideSection[]{
-  const seen=new Set<string>()
+function distinctSections(sections:GuideSection[],seen:Set<string>):GuideSection[]{
   return sections.flatMap(section=>{
     const paragraphs=section.paragraphs?.filter(value=>{if(seen.has(value))return false;seen.add(value);return true})
     const steps=section.steps?.filter(value=>{if(seen.has(value))return false;seen.add(value);return true})
@@ -119,11 +118,17 @@ export function pageManual(pageId:string):GuidePageManual|undefined{
   const actions=page.actionIds.map(id=>guideArticles.find(item=>item.id===id&&item.kind==='action')).filter((item):item is GuideArticle=>!!item)
   const ruleIds=new Set([...article.ruleIds,...actions.flatMap(action=>action.ruleIds)])
   const rules=guideArticles.filter(item=>item.kind==='rule'&&(ruleIds.has(item.id)||item.pageIds.includes(pageId)))
+  // One exact-text set for this manual only. Keep article summaries and all condition
+  // tables intact; remove repeated paragraphs/steps without rewriting unique content.
+  const seen=new Set<string>()
+  const features=distinctSections(article.sections.filter(section=>!['prerequisites','rules','failures','verification','actions'].includes(section.id)),seen)
+  const displayedActions=actions.map(action=>({...action,sections:distinctSections(action.sections.filter(section=>!['prerequisites','rules','failures'].includes(section.id)),seen)}))
   const restrictions=distinctSections([
     ...article.sections.filter(section=>['prerequisites','rules','failures'].includes(section.id)),
     ...actions.flatMap(action=>action.sections.filter(section=>['prerequisites','rules','failures'].includes(section.id)).map(section=>({...section,id:`${action.id}-${section.id}`,title:`${action.title}：${section.title}`}))),
-  ])
-  return {page,article,features:distinctSections(article.sections.filter(section=>!['prerequisites','rules','failures','verification','actions'].includes(section.id))),actions:actions.map(action=>({...action,sections:action.sections.filter(section=>!['prerequisites','rules','failures'].includes(section.id))})),restrictions,rules,relatedPages:pageRelations(pageId)}
+  ],seen)
+  const displayedRules=rules.map(rule=>({...rule,sections:distinctSections(rule.sections,seen)}))
+  return {page,article,features,actions:displayedActions,restrictions,rules:displayedRules,relatedPages:pageRelations(pageId)}
 }
 
 export function guideDirectory(nodes:readonly MenuNode[]):GuideDirectoryCenter[]{

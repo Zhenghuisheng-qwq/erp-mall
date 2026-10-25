@@ -16,7 +16,7 @@ const router = createRouter({
         { path: 'guide', name: 'guide', component: () => import('../views/guide/GuideHomeView.vue'), meta: { title: '系统功能说明' } },
         { path: 'guide/manage', name: 'guide-manage', redirect: '/guide' },
         { path: 'guide/articles/:articleId', name: 'guide-article', component: () => import('../views/guide/GuideArticleView.vue'), meta: { title: '系统功能说明' } },
-        { path: 'guide/learn/:flowId', name: 'guide-learn', redirect: '/guide' },
+        { path: 'guide/learn/:flowId?', name: 'guide-learn', redirect: '/guide' },
         { path: '', name: 'home', component: () => import('../views/WorkbenchView.vue'), meta: { title: '商品工作台', group: '商品工作台', mode: 'daily' } },
         { path: 'products', redirect: to => ({ path: '/spus', query: to.query }) },
         { path: 'spus', name: 'spus', component: () => import('../views/ProductListView.vue'), props: { mode: 'spu' }, meta: { title: 'SPU 管理' } },
