@@ -18,31 +18,6 @@
         <CategoryFilterTree v-else :categories="store.data.categories" :selected-ids="selectedCategoryIds" @toggle="toggleCategory" @clear="clearCategory" />
       </aside>
       <div class="list-main">
-      <div class="filters">
-        <el-select v-if="mode === 'sku'" :model-value="scopeId" filterable clearable placeholder="筛选所属 SPU" style="width: 220px" data-list-spu @change="(id: string) => router.push({ path: '/skus', query: id ? { spu: id } : {} })"><el-option v-for="item in store.data.families" :key="item.id" :value="item.id" :label="`${item.name} · ${item.oaProductId || item.id}`" /></el-select>
-        <el-input :model-value="activeQuery.keyword" placeholder="名称、分类、属性、SKU、OA 编号" clearable style="width: 260px" data-filter="keyword" @update:model-value="onKeyword" />
-        <span v-if="showSidebar" class="category-chip" data-category-chip :title="categoryButtonText">{{ categoryButtonText }}</span>
-        <el-popover v-else v-model:visible="categoryOpen" :hide-after="0" trigger="click" placement="bottom-start" :width="300" popper-class="product-category-pop">
-          <template #reference><el-button data-category-trigger :title="categoryButtonText">{{ categoryButtonText }}</el-button></template>
-          <template v-if="!categoryQuick.simple"><p>分类使用高级条件，请在更多筛选中管理。</p><el-button @click="categoryOpen = false; filterOpen = true">管理分类条件</el-button><el-button @click="clearCategory">清除分类</el-button></template>
-          <CategoryFilterTree v-else closable :categories="store.data.categories" :selected-ids="selectedCategoryIds" @toggle="toggleCategory" @clear="clearCategory" @close="categoryOpen = false" />
-        </el-popover>
-        <el-button v-if="categoryLayout === 'sidebar' && categorySideClosed && !narrowScreen" link @click="categorySideClosed = false; categoryOpen = false">展开分类栏</el-button>
-        <template v-for="field in exposedFields" :key="field.field">
-          <el-button v-if="!quickState(field).simple" :data-advanced-field="field.field" @click="filterOpen = true">{{ field.label }}：高级条件</el-button>
-          <el-input v-else-if="field.kind === 'text'" :model-value="quickText(field)" clearable :placeholder="field.label" style="width: 180px" :data-exposed="field.field" @update:model-value="(value: string) => setQuickText(field, value)" />
-          <el-date-picker v-else-if="field.kind === 'date'" :model-value="dateRange(field.field)" type="daterange" value-format="YYYY-MM-DD" start-placeholder="创建开始" end-placeholder="创建结束" style="width: 240px" :data-exposed="field.field" @update:model-value="(value: [string, string] | null) => setDate(value)" />
-          <el-select v-else :model-value="chosen(field.field)" multiple collapse-tags clearable :placeholder="field.label" style="width: 160px" :data-exposed="field.field" @change="(value: string[]) => setExposedValue(field.field, value)">
-            <el-option v-for="item in fieldOptions(field.field)" :key="item" :label="item" :value="item" />
-          </el-select>
-        </template>
-        <el-button data-filter-count @click="filterOpen = true">更多筛选<span v-if="filterCount"> {{ filterCount }}</span></el-button>
-      </div>
-      <div v-if="summaries.length" class="active-filters" data-active-filters aria-label="已生效筛选">
-        <span class="muted">已筛选（条件同时满足）：</span>
-        <el-tag v-for="item in summaries" :key="item.id" closable :data-filter-summary="item.id" @close="removeSummary(item.id)">{{ item.label }}</el-tag>
-        <el-button link type="primary" @click="clearFilters">清空筛选</el-button>
-      </div>
       <div class="list-switch" :data-mode="listMode" :data-view-id="activeView.id">
         <el-tooltip :content="activeView.name" placement="bottom">
           <el-dropdown trigger="click" @command="switchDisplayView">
@@ -69,9 +44,35 @@
           @group-change="setViewGrouping(listData, $event)" @sort-change="setViewSorting(listData, $event)"
           @sort-mode="onSortMode" @manage="manageView"
         />
+        <div class="view-save-actions"><span class="muted">配置自动保存</span><el-button @click="confirmCopy">另存视图</el-button><el-button @click="resetColumns">恢复默认列</el-button></div>
         <span v-if="groupStatusLabel" class="tool-state" data-group-state>分组：{{ groupStatusLabel }}</span>
         <span v-if="sortStatusLabel" class="tool-state" data-sort-state>排序：{{ sortStatusLabel }}</span>
         <span class="muted" data-result-count>{{ listMode === 'spu' ? `商品 ${presentation.total} 款` : `SKU ${presentation.total} 条` }}</span>
+      </div>
+      <div class="filters">
+        <el-select v-if="mode === 'sku'" :model-value="scopeId" filterable clearable placeholder="筛选所属 SPU" style="width: 220px" data-list-spu @change="(id: string) => router.push({ path: '/skus', query: id ? { spu: id } : {} })"><el-option v-for="item in store.data.families" :key="item.id" :value="item.id" :label="`${item.name} · ${item.oaProductId || item.id}`" /></el-select>
+        <el-input :model-value="activeQuery.keyword" placeholder="名称、分类、属性、SKU、OA 编号" clearable style="width: 260px" data-filter="keyword" @update:model-value="onKeyword" />
+        <span v-if="showSidebar" class="category-chip" data-category-chip :title="categoryButtonText">{{ categoryButtonText }}</span>
+        <el-popover v-else v-model:visible="categoryOpen" :hide-after="0" trigger="click" placement="bottom-start" :width="300" popper-class="product-category-pop">
+          <template #reference><el-button data-category-trigger :title="categoryButtonText">{{ categoryButtonText }}</el-button></template>
+          <template v-if="!categoryQuick.simple"><p>分类使用高级条件，请在更多筛选中管理。</p><el-button @click="categoryOpen = false; filterOpen = true">管理分类条件</el-button><el-button @click="clearCategory">清除分类</el-button></template>
+          <CategoryFilterTree v-else closable :categories="store.data.categories" :selected-ids="selectedCategoryIds" @toggle="toggleCategory" @clear="clearCategory" @close="categoryOpen = false" />
+        </el-popover>
+        <el-button v-if="categoryLayout === 'sidebar' && categorySideClosed && !narrowScreen" link @click="categorySideClosed = false; categoryOpen = false">展开分类栏</el-button>
+        <template v-for="field in exposedFields.slice(0, 3)" :key="field.field">
+          <el-button v-if="!quickState(field).simple" :data-advanced-field="field.field" @click="filterOpen = true">{{ field.label }}：高级条件</el-button>
+          <el-input v-else-if="field.kind === 'text'" :model-value="quickText(field)" clearable :placeholder="field.label" style="width: 180px" :data-exposed="field.field" @update:model-value="(value: string) => setQuickText(field, value)" />
+          <el-date-picker v-else-if="field.kind === 'date'" :model-value="dateRange(field.field)" type="daterange" value-format="YYYY-MM-DD" start-placeholder="创建开始" end-placeholder="创建结束" style="width: 240px" :data-exposed="field.field" @update:model-value="(value: [string, string] | null) => setDate(value)" />
+          <el-select v-else :model-value="chosen(field.field)" multiple collapse-tags clearable :placeholder="field.label" style="width: 160px" :data-exposed="field.field" @change="(value: string[]) => setExposedValue(field.field, value)">
+            <el-option v-for="item in fieldOptions(field.field)" :key="item" :label="item" :value="item" />
+          </el-select>
+        </template>
+        <el-button data-filter-count @click="filterOpen = true">更多筛选<span v-if="filterCount"> {{ filterCount }}</span></el-button>
+      </div>
+      <div v-if="summaries.length" class="active-filters" data-active-filters aria-label="已生效筛选">
+        <span class="muted">已筛选（条件同时满足）：</span>
+        <el-tag v-for="item in summaries" :key="item.id" closable :data-filter-summary="item.id" @close="removeSummary(item.id)">{{ item.label }}</el-tag>
+        <el-button link type="primary" @click="clearFilters">清空筛选</el-button>
       </div>
       <div v-if="listMode === 'spu' && familyIds.length" class="row-actions batch-actions" style="margin-bottom: 10px">
         <span data-selected-count>已选 {{ familyIds.length }} 条</span>
@@ -146,7 +147,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column v-for="col in tableColumns" :key="col.key" :prop="col.key" :label="col.label" min-width="120">
+        <el-table-column v-for="col in tableColumns" :key="col.key" :prop="col.key" :label="col.label" :width="col.width ?? fixedListWidth(col.key)" :min-width="col.width === undefined ? contentListWidth(col.key) : undefined" :fixed="col.frozen || false" :align="['skuCount','sale'].includes(col.key) ? 'right' : 'left'">
           <template #default="{ row }">
             <template v-if="col.key === 'name'">
               <button class="linkish" :data-family-id="row.id" @click="router.push(`/spus/${row.id}`)">{{ row.name }}</button>
@@ -166,17 +167,19 @@
             <template v-else-if="col.key === 'oaProductId'">{{ row.oaProductId || '-' }}</template>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="390" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button v-if="compatibilityFamilyRole(store.data, row.id) === 'host' && realCount(row.id)" link type="primary" :data-spu-compatibility="row.id" @click.stop="openCompatibilityFamily(row.id)">适用配件</el-button>
-            <el-button v-else-if="row.line === 'v3'" link type="primary" @click="router.push(compatTarget(row))">{{ compatTitle(row) }}</el-button>
-            <el-button link type="primary" @click="router.push(`/spus/${row.id}`)">编辑 SPU</el-button>
+            <el-button link type="primary" @click="router.push(`/spus/${row.id}`)">编辑</el-button>
             <el-button link @click="router.push({ path: '/skus/new', query: { spu: row.id } })">新增 SKU</el-button>
-            <el-button v-if="row.line === 'v3'" link @click="router.push(`/materials/${row.id}`)">管理物料</el-button>
-            <el-button link @click="copyFamily(row.id)">复制 SPU</el-button>
-            <el-button link type="danger" @click="removeFamily(row.id, row.name)">删除</el-button>
-            <el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'before')">插到前面</el-button>
-            <el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'after')">插到后面</el-button>
+            <el-dropdown trigger="click"><el-button link :data-spu-more="row.id" :aria-label="`更多 SPU 操作 ${row.name}`">更多</el-button><template #dropdown><el-dropdown-menu>
+            <el-dropdown-item v-if="compatibilityFamilyRole(store.data, row.id) === 'host' && realCount(row.id)" :data-spu-compatibility="row.id" @click.stop="openCompatibilityFamily(row.id)">适用配件</el-dropdown-item>
+            <el-dropdown-item v-else-if="row.line === 'v3'" @click="router.push(compatTarget(row))">{{ compatTitle(row) }}</el-dropdown-item>
+            <el-dropdown-item v-if="row.line === 'v3'" @click="router.push(`/materials/${row.id}`)">管理物料</el-dropdown-item>
+            <el-dropdown-item @click="copyFamily(row.id)">复制 SPU</el-dropdown-item>
+            <el-dropdown-item @click="removeFamily(row.id, row.name)">删除</el-dropdown-item>
+            <el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'before')">插到前面</el-dropdown-item>
+            <el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'after')">插到后面</el-dropdown-item>
+            </el-dropdown-menu></template></el-dropdown>
           </template>
         </el-table-column>
       </el-table>
@@ -276,9 +279,10 @@ import { presentTableGroups } from '../components/product-list/tablePresentation
 import { familyBrandText, familyBrandValues, isRealSku, linkedModelName, materialArchivesOf, productTypeName, realSkusOf, savedSkuCode, savedSkuName, savedSkuSpec, skuCountText } from '../domain/productList'
 import { catalogRole, compatibilitySkuBlock, roleOfType } from '../domain/compatibility'
 import { categoryPath, shelfOf, shelfText, templateById } from '../domain/logic'
-import { familyMaterialDigest } from '../domain/material'
+import { materialPlanningIds } from '../domain/materialRelations'
+import { fixedListWidth, contentListWidth } from '../components/product-list/columnPresentation'
 import { emptyModeQuery, groupFields, knownFilterFields, presentProductList, resolveCategoryFilter, sortFields, sortModeOf } from '../domain/productListQuery'
-import { DEFAULT_PRODUCT_LIST_VIEW_ID, activeProductListView, copyProductListView, createProductListView, currentModeQuery, deleteProductListView, insertViewManual, moveViewManual, orderedColumns, renameProductListView, reorderProductListColumn, resetProductListColumns, selectProductListView, setProductListColumnVisible, applyPresetToActiveView, setViewCategoryLayout, setViewExposed, setViewFieldValues, setViewGrouping, setViewKeyword, setViewSortMode, setViewSorting, visibleColumns } from '../domain/productListViews'
+import { DEFAULT_PRODUCT_LIST_VIEW_ID, activeProductListView, copyProductListView, createProductListView, currentModeQuery, deleteProductListView, insertViewManual, moveViewManual, orderedColumns, renameProductListView, reorderProductListColumn, resetProductListColumns, selectProductListView, setProductListColumnVisible, applyPresetToActiveView, setViewCategoryLayout, setViewExposed, setViewFieldValues, setViewGrouping, setViewKeyword, setViewSortMode, setViewSorting } from '../domain/productListViews'
 import type { ListView, ProductFamily, ProductListMode, ProductListPageState, ProductListFilterOperator, ProductListViewFilter, Sku } from '../domain/types'
 import { productListPageData } from '../domain/productListPages'
 import { spuRemovalBlock } from '../domain/spuSku'
@@ -344,7 +348,7 @@ const brands = computed(() => Array.from(new Set(store.data.families.flatMap((it
 const displayViews = computed(() => listData.value.productListViews || [])
 const activeView = computed(() => activeProductListView(listData.value))
 const listMode = computed(() => mode)
-const tableColumns = computed(() => visibleColumns(activeView.value, listMode.value))
+const tableColumns = computed(() => orderedColumns(activeView.value, listMode.value).filter(column => column.visible))
 const modeColumns = computed(() => orderedColumns(activeView.value, listMode.value))
 const activeQuery = computed(() => currentModeQuery(activeView.value))
 const presentation = computed(() => presentProductList(scopeId.value ? { ...store.data, families: store.data.families.filter(item => item.id === scopeId.value) } : store.data, activeView.value, query.value.page, query.value.pageSize))
@@ -352,7 +356,7 @@ const shownGroups = computed(() => presentTableGroups(store.data, presentation.v
 const activeTotal = computed(() => presentation.value.total)
 const summaries = computed(() => filterSummaries(activeQuery.value, filterFields.value, value => categoryPath(store.data, value) || value))
 const filterCount = computed(() => summaries.value.length)
-const filterFields = computed(() => knownFilterFields(store.data, listMode.value))
+const filterFields = computed(() => knownFilterFields(store.data, listMode.value).map(field => ({ ...field, label: field.field === 'brand' ? '商品品牌汇总' : field.field.startsWith('attr:') ? `规格属性 · ${field.label}` : field.label })))
 const exposedFields = computed(() => activeQuery.value.exposed.flatMap((field) => {
   const found = filterFields.value.find((item) => item.field === field)
   return found && found.field !== 'category' ? [found] : []
@@ -410,7 +414,8 @@ function saleCount(familyId: string) {
   return realSkus(familyId).filter((item) => item.status === 'on_sale').length
 }
 function materialSummary(familyId: string) {
-  return familyMaterialDigest(materialArchivesOf(store.data, familyId), store.data)
+  const rows = materialArchivesOf(store.data, familyId)
+  return `物料 ${new Set(rows.map(row => row.id)).size} · 关联规划 ${new Set(rows.flatMap(row => materialPlanningIds(store.data, row.id))).size}`
 }
 function planSource(row: { productPlanId?: string }) {
   if (!row.productPlanId) return ''
@@ -750,6 +755,10 @@ watch(
 </script>
 
 <style scoped>
+.spu-table :deep(.el-table__row > .el-table__cell){height:64px;box-sizing:border-box}
+
+.list-main{overflow:hidden}.view-save-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.view-save-actions .el-button{margin:0}.list-switch{padding-bottom:12px;border-bottom:1px solid var(--el-border-color-lighter);margin-bottom:12px}.filters{gap:8px}.spu-table :deep(th){color:var(--el-text-color-secondary);font-weight:600}.spu-table .linkish{text-align:left;font-weight:600;overflow-wrap:anywhere}.spu-table .sku-hint{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;color:var(--el-text-color-secondary)}.spu-table :deep(.el-dropdown){margin-left:12px;vertical-align:middle}
+
 .panel.is-category-side { display: flex; align-items: flex-start; gap: 12px; }
 .category-side { width: 240px; flex: none; max-height: 70vh; overflow: auto; }
 .list-main { flex: 1; min-width: 0; }

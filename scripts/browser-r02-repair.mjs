@@ -36,7 +36,7 @@ try{
   const created=await read(),mat=created.skus.find(s=>s.skuName==='R02浏览器共用物料');assert(mat);assert(!mat.planningId);assert.equal(created.planningRecords.length,planCount)
   assert.equal(await page.locator('[data-node-materials]').count(),0);await page.getByText('显示关联物料',{exact:true}).click();await page.locator(`[data-node-materials="${f.anchor}"]`).waitFor();await page.screenshot({path:resolve(out,'node-summary-desktop.png')})
   await noOverlap();await page.locator(`.vue-flow__node[data-id="${f.anchor}"] .fold`).click();await page.waitForTimeout(180);await noOverlap();await page.locator(`.vue-flow__node[data-id="${f.anchor}"] .fold`).click();await page.waitForTimeout(180);await noOverlap()
-  const assertDigest=async count=>{const list=await context.newPage();await list.goto(`${base}/products`,{waitUntil:'networkidle'});await list.getByText(`已建物料 1 条 · ${mat.materialCode} · 已关联规划 ${count} 条`,{exact:true}).waitFor();await list.screenshot({path:resolve(out,`digest-${count}.png`)});await list.close()};await assertDigest(3)
+  const assertDigest=async count=>{const list=await context.newPage();await list.goto(`${base}/products`,{waitUntil:'networkidle'});await list.getByText(`物料 1 · 关联规划 ${count}`,{exact:true}).waitFor();await list.screenshot({path:resolve(out,`digest-${count}.png`)});await list.close()};await assertDigest(3)
   mark('node range creates one real MAT with prefix only; quota failure preserves input/data and retry succeeds')
   // Use the existing complete-planning list and its actual new association action.
   await page.getByRole('button',{name:/管理合法组合/}).click()

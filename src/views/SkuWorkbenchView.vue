@@ -13,9 +13,6 @@
     </div>
     <div class="panel workbench-panel" :inert="workbench.pending.value">
       <div class="view-bar list-switch" :inert="workbench.pending.value" data-mode="sku" :data-view-id="activeId" aria-label="常用视图">
-        <div class="view-tabs">
-          <el-button v-for="view in pinnedViews" :key="view.id" :type="activeId === view.id ? 'primary' : 'default'" :plain="activeId === view.id" :data-view-tab="view.id" @click="selectView(view.id)">{{ view.name }}<span v-if="state.defaultId === view.id" class="default-mark">默认</span></el-button>
-        </div>
         <el-popover v-model:visible="viewsOpen" trigger="click" placement="bottom-start" :width="310">
           <template #reference><el-button data-more-views><span class="view-current">{{ currentView.name }}</span> ▾</el-button></template>
           <el-input v-model="viewSearch" placeholder="搜索视图" clearable aria-label="搜索视图" />
@@ -24,20 +21,6 @@
         </el-popover>
         <span v-if="dirty" class="dirty-mark" data-unsaved>未保存</span>
         <span v-else class="muted">{{ activeId === SYSTEM_SKU_VIEW_ID ? '系统视图' : '已保存到本机' }}</span>
-        <div class="view-actions"><el-button :disabled="!dirty && activeId !== SYSTEM_SKU_VIEW_ID" @click="saveCurrent">保存视图</el-button><el-button @click="openName('另存为')">另存为</el-button><el-button :disabled="!dirty" @click="restoreView">恢复已保存配置</el-button></div>
-      </div>
-      <el-alert v-if="error" :title="error" type="error" show-icon :closable="false" data-save-error />
-      <div class="workbench-body" :class="{ 'has-sidebar': showSidebar }" :data-category-layout="categoryLayout">
-        <aside v-if="showSidebar" class="category-side" data-category-side>
-          <div class="side-title"><strong>商品分类</strong><el-button link @click="categorySideClosed = true">收起分类栏</el-button></div>
-          <small v-if="simpleCategory">{{ categorySelection.rule && categorySelection.rule.operator !== 'descendants' ? '当前精确匹配；重新选择包含下级分类' : '包含下级分类' }}</small>
-          <CategoryFilterTree v-if="simpleCategory" :categories="store.data.categories" :selected-ids="categoryIds" @toggle="toggleCategory" @clear="clearCategory" />
-          <template v-else><p class="muted">分类属于历史或组合条件。</p><el-button @click="openFilters">管理分类条件</el-button></template>
-        </aside>
-        <div class="table-area">
-          <div class="workbench-tools">
-            <el-input v-model="search" placeholder="名称、分类、属性、SKU、OA 编号" clearable data-filter="keyword" aria-label="在当前视图中搜索" />
-            <el-button data-filter-count @click="openFilters">筛选<span v-if="conditionCount"> {{ conditionCount }}</span></el-button>
             <el-button data-fields-button @click="openDisplay('fields')">字段 {{ visibleColumns.length }}</el-button>
             <el-button data-sort-button @click="openDisplay('sort')">排序<span v-if="config.sorts.length"> {{ config.sorts.length }}</span></el-button>
             <el-popover v-model:visible="moreOpen" trigger="click" placement="bottom-end" :width="230">
@@ -55,6 +38,20 @@
                 <el-button @click="router.push('/import')">导入导出</el-button>
               </div>
             </el-popover>
+        <div class="view-actions"><el-button :disabled="!dirty && activeId !== SYSTEM_SKU_VIEW_ID" @click="saveCurrent">保存视图</el-button><el-button @click="openName('另存为')">另存为</el-button><el-button :disabled="!dirty" @click="restoreView">恢复已保存配置</el-button></div>
+      </div>
+      <el-alert v-if="error" :title="error" type="error" show-icon :closable="false" data-save-error />
+      <div class="workbench-body" :class="{ 'has-sidebar': showSidebar }" :data-category-layout="categoryLayout">
+        <aside v-if="showSidebar" class="category-side" data-category-side>
+          <div class="side-title"><strong>商品分类</strong><el-button link @click="categorySideClosed = true">收起分类栏</el-button></div>
+          <small v-if="simpleCategory">{{ categorySelection.rule && categorySelection.rule.operator !== 'descendants' ? '当前精确匹配；重新选择包含下级分类' : '包含下级分类' }}</small>
+          <CategoryFilterTree v-if="simpleCategory" :categories="store.data.categories" :selected-ids="categoryIds" @toggle="toggleCategory" @clear="clearCategory" />
+          <template v-else><p class="muted">分类属于历史或组合条件。</p><el-button @click="openFilters">管理分类条件</el-button></template>
+        </aside>
+        <div class="table-area">
+          <div class="workbench-tools">
+            <el-input v-model="search" placeholder="名称、分类、属性、SKU、OA 编号" clearable data-filter="keyword" aria-label="在当前视图中搜索" />
+            <el-button data-filter-count @click="openFilters">筛选<span v-if="conditionCount"> {{ conditionCount }}</span></el-button>
             <el-popover v-if="!showSidebar && !quickCategory" v-model:visible="categoryOpen" trigger="click" :width="300" placement="bottom-start" popper-class="product-category-pop" :hide-after="0">
               <template #reference><el-button data-category-trigger>商品分类{{ categoryIds.length ? ` ${categoryIds.length}` : '' }}</el-button></template>
               <small v-if="simpleCategory">{{ categorySelection.rule && categorySelection.rule.operator !== 'descendants' ? '当前精确匹配；重新选择包含下级分类' : '包含下级分类' }}</small>
@@ -70,7 +67,7 @@
             <el-button v-if="summary.length > 180" link @click="expandedSummary = !expandedSummary">{{ expandedSummary ? '折叠' : '完整条件' }}</el-button>
             <span v-if="search" class="muted">当前搜索：{{ search }}（不保存到视图）</span>
             <el-button link type="primary" @click="clearFilters">清空筛选</el-button>
-            <div v-if="expandedSummary || conditionCount <= 3" class="summary-tags">
+            <div class="summary-tags">
               <el-tag v-for="node in config.conditions.children" :key="node.id" closable :title="nodeSummary(node.id)" @click="openFilters" @close="removeSummary(node.id)">{{ nodeSummary(node.id) }}</el-tag>
               <el-tag v-if="config.legacy && (config.legacy.keyword || config.legacy.filters.length)" closable @click="openFilters" @close="removeSummary('$legacy')">历史条件（原语义）</el-tag>
             </div>
@@ -89,16 +86,16 @@
             <el-table v-show="!isCollapsed(group.keys)" class="sku-table" :class="config.density" :data="displayRows(group)" row-key="id" @header-dragend="onColumnWidth">
               <el-table-column width="46"><template #header><el-checkbox :model-value="allPageSelected" :indeterminate="somePageSelected && !allPageSelected" aria-label="全选本页" @change="togglePage" /></template><template #default="{ row }"><el-checkbox :model-value="selectedIds.includes(row.id)" :aria-label="`选择 SKU ${row.code}`" @change="(value: boolean | string | number) => toggleSelected(row.id, Boolean(value))" /></template></el-table-column>
               <el-table-column v-if="manualOn" width="48"><template #default="{ row }"><span draggable="true" class="drag-handle" :data-drag-id="row.id" @dragstart="onRowDrag(row.id)" @dragover.prevent @drop="onRowDrop(row.id)">☰</span><el-checkbox :data-pick-id="row.id" :model-value="pickedIds.includes(row.id)" :aria-label="`暂存排序 ${row.code}`" @change="(value: boolean | string | number) => togglePick(row.id, Boolean(value))" /></template></el-table-column>
-              <el-table-column v-for="column in visibleColumns" :key="column.key" :column-key="column.key" :prop="column.key" :label="fieldLabel(column.key)" :width="column.width || 160" :fixed="frozenAllowed ? column.frozen || false : false" resizable>
+              <el-table-column v-for="column in visibleColumns" :key="column.key" :column-key="column.key" :prop="column.key" :label="fieldLabel(column.key)" :width="column.width ?? fixedListWidth(column.key)" :min-width="column.width === undefined ? contentListWidth(column.key) : undefined" :fixed="frozenAllowed ? column.frozen || false : false" :align="fieldById.get(column.key)?.type === 'number' ? 'right' : 'left'" resizable>
                 <template #default="{ row }">
                   <span v-if="column.key === 'code'" :data-sku-id="row.id">{{ row.code }}</span>
-                  <span v-else-if="column.key === 'spec'" :data-sku-spec="row.id">{{ row.spec }}</span>
-                  <button v-else-if="column.key === 'family' || column.key === 'familyId'" class="linkish" @click="router.push(`/spus/${row.familyId}`)">{{ row.familyName }}</button>
+                  <SkuSummary v-else-if="column.key === 'spec'" :sku-id="row.id" :text="row.spec" :data-sku-spec="row.id" /><SkuSummary v-else-if="column.key === 'name'" :sku-id="row.id" :text="row.name" name />
+                  <button v-else-if="column.key === 'family' || column.key === 'familyId'" class="linkish text-summary" @click="router.push(`/spus/${row.familyId}`)">{{ row.familyName }}</button>
                   <el-select v-else-if="column.key === 'status'" :model-value="row.status" size="small" aria-label="SKU 状态" @change="(status: Sku['status']) => store.patchSku(row.id, { status })"><el-option label="草稿" value="draft" /><el-option label="在售" value="on_sale" /><el-option label="停售" value="off_sale" /></el-select>
                   <span v-else>{{ displayCell(row.id, column.key, row) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="340"><template #default="{ row }"><el-button v-if="compatibilityRoles.get(row.id) !== 'other'" link type="primary" :data-open-compatibility="row.id" @click.stop="openCompatibility(row.id)">{{ compatibilityRoles.get(row.id) === 'host' ? '适用配件' : '适用主机' }}</el-button><el-dropdown v-if="store.isAdmin && compatibilityRoles.get(row.id) === 'host'" trigger="click"><el-button link :data-benefit-more="row.id" :aria-label="`更多 SKU 操作 ${row.code}`">更多</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item :data-compose-benefit="row.id" @click="openBenefitPackage(row.id)">组权益包</el-dropdown-item></el-dropdown-menu></template></el-dropdown><el-button link type="primary" @click="router.push({ path: `/skus/${row.id}`, query: scopeId ? { spu: scopeId } : {} })">编辑 SKU</el-button><el-button link @click="router.push(`/spus/${row.familyId}`)">查看 SPU</el-button><el-button link type="danger" @click="removeOne(row.id)">删除</el-button><el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'before')">插到前面</el-button><el-button v-if="manualOn && stageIds.length" link @click="askInsert(row.id, row.name, 'after')">插到后面</el-button></template></el-table-column>
+              <el-table-column label="操作" width="120"><template #default="{ row }"><div class="row-primary-actions"><el-button link type="primary" @click="router.push({ path: `/skus/${row.id}`, query: scopeId ? { spu: scopeId } : {} })">编辑</el-button><el-dropdown trigger="click"><el-button link :data-row-more="row.id" :data-benefit-more="row.id" :aria-label="`更多 SKU 操作 ${row.code}`">更多</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item v-if="compatibilityRoles.get(row.id) !== 'other'" :data-open-compatibility="row.id" @click="openCompatibility(row.id)">{{ compatibilityRoles.get(row.id) === 'host' ? '适用配件' : '适用主机' }}</el-dropdown-item><el-dropdown-item v-if="store.isAdmin && compatibilityRoles.get(row.id) === 'host'" :data-compose-benefit="row.id" @click="openBenefitPackage(row.id)">组权益包</el-dropdown-item><el-dropdown-item @click="router.push(`/spus/${row.familyId}`)">查看 SPU</el-dropdown-item><el-dropdown-item @click="removeOne(row.id)">删除</el-dropdown-item><el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'before')">插到前面</el-dropdown-item><el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'after')">插到后面</el-dropdown-item></el-dropdown-menu></template></el-dropdown></div></template></el-table-column>
               <template #empty><div class="empty-state" data-empty="sku"><strong>{{ emptyTitle }}</strong><p class="muted">{{ emptyDetail }}</p><el-button v-if="!scopeId" @click="router.push('/skus/new')">新增 SKU</el-button></div></template>
             </el-table>
           </template>
@@ -125,6 +122,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableColumnCtx } from 'element-plus'
+import SkuSummary from '../components/product-list/SkuSummary.vue'
+import { fixedListWidth, contentListWidth } from '../components/product-list/columnPresentation'
 import PageHead from '../components/PageHead.vue'
 import CategoryFilterTree from '../components/CategoryFilterTree.vue'
 import SkuFilterDialog from '../components/product-list/sku/SkuFilterDialog.vue'
@@ -173,11 +172,10 @@ const visibleColumns = computed(() => config.value.columns.filter(column => colu
 const summary = computed(() => describeSkuConditions(store.data, config.value))
 const conditionCount = computed(() => config.value.conditions.children.length + (config.value.legacy?.filters.length || 0) + (config.value.legacy?.keyword ? 1 : 0))
 const hasFilters = computed(() => conditionCount.value > 0)
-const pinnedViews = computed(() => [views.value.find(view => view.id === SYSTEM_SKU_VIEW_ID), ...state.value.order.filter(id => state.value.favorites.includes(id) && id !== SYSTEM_SKU_VIEW_ID).map(id => views.value.find(view => view.id === id))].filter(view => !!view).slice(0, 5))
 const searchedViews = computed(() => views.value.filter(view => view.name.toLocaleLowerCase().includes(viewSearch.value.trim().toLocaleLowerCase())))
 const layoutView = computed(() => ({ id: activeId.value, categoryFilterLayout: config.value.categoryLayout }))
 const { categoryOpen, categorySideClosed, narrowScreen, categoryLayout, showSidebar: layoutSidebar } = useProductListCategoryLayout(layoutView, layout => applyConfig({ ...config.value, categoryLayout: layout }))
-const frozenAllowed = computed(() => !narrowScreen.value && visibleColumns.value.filter(column => column.frozen).reduce((total, column) => total + (column.width || 160), 0) <= 320)
+const frozenAllowed = computed(() => !narrowScreen.value && visibleColumns.value.filter(column => column.frozen).reduce((total, column) => total + (column.width ?? fixedListWidth(column.key) ?? contentListWidth(column.key)), 0) <= 320)
 const categorySelection = computed(() => skuCategorySelection(config.value))
 const simpleCategory = computed(() => categorySelection.value.supported)
 // The fixed category widget and an exposed simple root category rule edit the same condition.
@@ -292,6 +290,10 @@ onBeforeUnmount(() => { benefitReturnActive = false; if (benefitReturnFrame !== 
 </script>
 
 <style scoped>
+.sku-table.comfortable :deep(.el-table__row .el-table__cell){height:80px;box-sizing:border-box}.sku-table.compact :deep(.el-table__row .el-table__cell){height:70px;box-sizing:border-box}
+
+.sku-workbench,.workbench-panel{min-width:0;max-width:100%}.table-area{overflow:hidden}.row-primary-actions{display:flex;gap:12px;align-items:center;white-space:nowrap}.text-summary{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-align:left}.sku-table :deep(.cell){overflow-wrap:anywhere}.sku-table :deep(th){color:var(--el-text-color-secondary);font-weight:600}
+
 .staged-row{display:flex;align-items:center;gap:12px;margin:12px 0}.staged-row>div{flex:1;min-width:0}.staged-row strong,.staged-row span,.staged-row em{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.staged-row span{font-size:12px;color:var(--el-text-color-secondary)}.staged-row em{color:var(--el-color-warning);font-size:12px}
 
 .workbench-panel { padding: 0; overflow: hidden; }
