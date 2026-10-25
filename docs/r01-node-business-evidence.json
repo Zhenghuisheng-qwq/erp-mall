@@ -1,0 +1,216 @@
+{
+  "result": "READY",
+  "scope": "R01 only",
+  "workspace": "D:\\单子\\商城erp\\mock\\iyge-v2-mock",
+  "branch": "20261022",
+  "startHead": "5a7a020e3b3f6bddbdbb2ada68ec88baa7f29d7a",
+  "endHead": "5a7a020e3b3f6bddbdbb2ada68ec88baa7f29d7a",
+  "initialStatus": "clean",
+  "finalStatus": " M README.md\n M package.json\n M src/components/model-editor/cloneModel.ts\n M src/domain/logic.ts\n M src/domain/outlineEdit.ts\n M src/domain/planning.ts\n M src/domain/types.ts\n M src/stores/catalog.ts\n M src/views/SpecConfigView.vue\n?? docs/r01-node-business-configuration.md\n?? scripts/browser-r01.mjs\n?? scripts/r01-browser-regression.mjs\n?? scripts/r01-business-check.ts\n?? scripts/r01-fixture.ts\n?? scripts/r01-plan-baseline.mjs\n?? scripts/r01-plan-check.ts\n?? scripts/r01-regression.mjs\n?? src/components/model-editor/NodeBusinessDialog.vue\n?? src/domain/nodeBusiness.ts\n?? work/\n",
+  "baselineArchiveSha256": "aea7b3cba5a32d71687cf335ae56e4c81861f72f634e0674802c7ba5842e504d",
+  "domain": [
+    {
+      "check": "r01-plan",
+      "exitCode": 0
+    },
+    {
+      "check": "r01-business",
+      "exitCode": 0
+    },
+    {
+      "check": "spu-sku",
+      "exitCode": 0
+    },
+    {
+      "check": "material",
+      "exitCode": 0
+    },
+    {
+      "check": "material-archive",
+      "exitCode": 0
+    },
+    {
+      "check": "naming",
+      "exitCode": 0
+    },
+    {
+      "check": "template-compatibility-domain",
+      "exitCode": 0
+    },
+    {
+      "check": "template-compatibility-state",
+      "exitCode": 0
+    },
+    {
+      "check": "sku-workbench-query",
+      "exitCode": 0
+    },
+    {
+      "check": "editor-safety",
+      "exitCode": 0
+    },
+    {
+      "check": "functional-gaps-round3",
+      "exitCode": 0
+    },
+    {
+      "check": "functional-gaps-round5",
+      "exitCode": 0
+    },
+    {
+      "check": "draft-combo",
+      "exitCode": 0
+    },
+    {
+      "check": "planning",
+      "exitCode": 0
+    }
+  ],
+  "browserRegression": [
+    {
+      "check": "spu-sku",
+      "exitCode": 0
+    },
+    {
+      "check": "editor-safety",
+      "exitCode": 0
+    },
+    {
+      "check": "template-compatibility",
+      "exitCode": 0
+    },
+    {
+      "check": "template-compatibility-import",
+      "exitCode": 0
+    }
+  ],
+  "r01Browser": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "从 Apple 值节点配置销售定位、共用物料策略和 5 色限制，显示来源",
+        "passed": true
+      },
+      {
+        "name": "真实新增值选择：Apple 无第 6 色，其他品牌可选第 10 色",
+        "passed": true
+      },
+      {
+        "name": "大纲/幕布真实重绑采用相同 5 色限制，原节点身份保留",
+        "passed": true
+      },
+      {
+        "name": "保存刷新、发布 V1、修改草稿、只读查看 V1 原配置",
+        "passed": true
+      },
+      {
+        "name": "冲突草稿保存、发布拒绝、定位节点、删除冲突并成功发布 V2",
+        "passed": true
+      },
+      {
+        "name": "980px 窄窗口可滚动、按钮可达；配额失败保留输入并重试成功",
+        "passed": true
+      },
+      {
+        "name": "真实 Ctrl+Z 撤销业务配置修改，沿用当前模型编辑历史",
+        "passed": true
+      },
+      {
+        "name": "两个真实 Page：旧页保存拒绝，表单输入保留且不覆盖新配置",
+        "passed": true
+      },
+      {
+        "name": "公共目录真实维护/停用及引用删除保护，旧发布 V1 保持不变",
+        "passed": true
+      }
+    ],
+    "errors": []
+  },
+  "originalCommonBug": {
+    "baseline": "5a7a020",
+    "reproduced": true,
+    "expectedSourcePrefix": [
+      "compat-pack-0",
+      "compat-style-0"
+    ],
+    "actual": {
+      "productName": "包装 1 款式 1",
+      "commonAttrs": {
+        "包装": "包装 1"
+      },
+      "modelVersionId": "compat-version-1",
+      "skus": [
+        {
+          "name": "款式 1 色彩 1",
+          "variantAttrs": {
+            "款式": "款式 1",
+            "颜色": "色彩 1"
+          },
+          "sourceNodeIds": [
+            "compat-style-0",
+            "compat-color-0-0"
+          ]
+        },
+        {
+          "name": "款式 1 色彩 2",
+          "variantAttrs": {
+            "款式": "款式 1",
+            "颜色": "色彩 2"
+          },
+          "sourceNodeIds": [
+            "compat-style-0",
+            "compat-color-0-1"
+          ]
+        }
+      ]
+    }
+  },
+  "protectedCode": {
+    "src/components/ProductModelSelector.vue": {
+      "sha256": "d35a5e40f080e21ef9da70af0c816fb06a99b45a589330411ad30465b1daf8e6",
+      "gitBlobVsCheckoutBytesEqual": false,
+      "textUnchangedIgnoringCRLF": true
+    },
+    "src/domain/material.ts": {
+      "sha256": "193df12995f1420f664a5d0d803fb5f9e7f8d2ae9c8c3536e82173e57bc5f50a",
+      "gitBlobVsCheckoutBytesEqual": false,
+      "textUnchangedIgnoringCRLF": true
+    },
+    "src/domain/naming.ts": {
+      "sha256": "92265873b9b95aa010bd5fd16e5a6bc848f6e89a32fb9b7456563e92eaefa579",
+      "gitBlobVsCheckoutBytesEqual": false,
+      "textUnchangedIgnoringCRLF": true
+    },
+    "src/stores/catalogPersistence.ts": {
+      "sha256": "4ea296dc260846b45b8f252910db6be818498a3feb20db463e980926223ae878",
+      "gitBlobVsCheckoutBytesEqual": true,
+      "textUnchangedIgnoringCRLF": true
+    },
+    "src/domain/templateCompatibilitySync.ts": {
+      "sha256": "a0e58393bf376346c2a97eebbe9ca11d3ba7ae0279d4033be5624c9831f5269a",
+      "gitBlobVsCheckoutBytesEqual": false,
+      "textUnchangedIgnoringCRLF": true
+    },
+    "generateSkuFromModel": {
+      "unchanged": true
+    },
+    "modelFormRows": {
+      "unchanged": true
+    },
+    "chooseModelNode": {
+      "unchanged": true
+    },
+    "note": "HEAD archive uses Git blob newlines; checkout may use CRLF. Raw inequality is recorded, not claimed as a byte-identical filesystem baseline."
+  },
+  "productionBuild": {
+    "exitCode": 0,
+    "log": "work/r01-20261025/build-accepted.txt",
+    "output": "work/r01-20261025/dist-accepted",
+    "typecheckIncluded": true
+  },
+  "limits": [
+    "Material sharing is configuration and resolution only; no shared MAT filing",
+    "No final conflict precedence, intersection or overriding semantics",
+    "No commit, push, merge or deploy"
+  ]
+}

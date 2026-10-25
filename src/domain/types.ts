@@ -94,6 +94,8 @@ export type SpecModelStatus = 'draft' | 'published' | 'offline'
 
 /** 一个属性方案只有一棵规格树。属性下面可以挂属性或属性值，属性值下面只能再挂属性。 */
 export interface ProductSpecNode {
+  /** R01 optional extension; attached metadata, never a specification axis. */
+  businessConfigs?: import('./nodeBusiness').NodeBusinessConfig[]
   id: string
   templateId: string
   parentId: string | null
@@ -512,6 +514,7 @@ export interface Profile {
 }
 
 export interface AppData {
+  businessDefinitions?: import('./nodeBusiness').BusinessDefinition[]
   /** Optional V15 extension. No historical SKU/MAT or declaration is backfilled on load. */
   templateCompatibilityConfigs?: TemplateCompatibilityConfig[]
   templateCompatibilityOrigins?: TemplateCompatibilityOrigin[]

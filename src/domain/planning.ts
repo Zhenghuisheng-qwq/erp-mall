@@ -1,4 +1,5 @@
 import type { AppData, ParamRole, PlanningRecord, PlanningRoleSource, PlanningStep, ProductSpecNode } from './types'
+import { businessIssues, businessPath } from './nodeBusiness'
 
 export interface FilteredPathStep {
   name: string
@@ -116,7 +117,8 @@ export function legalPlanningCombinations(data: AppData, productModelId: string,
   const stepByValue = new Map<string, { step: PlanningStep; hasAttribute: boolean }>()
   const seen = new Set<string>()
   const rows: LegalCombination[] = []
-  raw.filter((path) => path.length).forEach((path) => {
+  const blocked = tree.some(n => n.businessConfigs?.length) ? new Set(businessIssues(data, tree).map(issue => issue.nodeId)) : undefined
+  raw.filter((path) => path.length && (!blocked || !path.some(step => businessPath(tree, step.nodeId).some(n => blocked.has(n.id))))).forEach((path) => {
     const steps = path.map((item) => {
       let cached = stepByValue.get(item.nodeId)
       if (!cached) {

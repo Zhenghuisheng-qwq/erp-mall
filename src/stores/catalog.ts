@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { businessDefinitions, businessIssues, businessPath, configProblem, copyBusinessConfigs, freezeBusinessNodes, type BusinessDefinition, type NodeBusinessConfig } from '../domain/nodeBusiness'
 import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { createCatalogPersistence } from './catalogPersistence'
 import {
@@ -291,6 +292,16 @@ export const useCatalogStore = defineStore('catalog', () => {
   function commitCreated<T extends { ok: boolean; message?: string }>(next: AppData, result: T, ids: string[], now: string) {
     if (!isAdmin.value) return { ok: false as const, message: '当前角色仅可查看商品与物料，请由管理员创建。', choices: undefined, reason: undefined }
     if (!result.ok) return result
+    for (const id of ids) {
+      const sku = next.skus.find(s => s.id === id), family = next.families.find(f => f.id === sku?.familyId)
+      const version = next.specModelVersions.find(v => v.id === (sku?.modelVersionId || family?.modelVersionId))
+      if (!sku || !version?.nodesSnapshot.some(n => n.businessConfigs?.length)) continue
+      const attrs = { ...family?.commonAttrs, ...sku.variantAttrs }
+      const selected = sku.sourceNodeIds?.length ? sku.sourceNodeIds : version.nodesSnapshot.filter(n => n.nodeType === 'VALUE' && attrs[next.params.find(p => p.id === n.attributeId)?.name || ''] === n.valueId).map(n => n.id)
+      const path = new Set(selected.flatMap(nodeId => businessPath(version.nodesSnapshot, nodeId).map(n => n.id)))
+      const issue = businessIssues(next, version.nodesSnapshot).find(i => path.has(i.nodeId))
+      if (issue) return { ok: false as const, message: `当前规格的业务配置需要修正，未创建商品：${issue.message}`, choices: undefined, reason: undefined }
+    }
     const inherited = materializeTemplateCompatibility(next, ids, () => uid('compat'), now)
     if (!inherited.ok) return { ok: false as const, message: inherited.message || '兼容声明生成失败，未创建商品或物料。', choices: undefined, reason: undefined }
     return commitCandidate(next, result, creationKeys)
@@ -332,6 +343,42 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (canvas) data.specCanvases = next.specCanvases
     explicitlyPersisted = JSON.stringify(data)
     return { ok: true, message: '已保存模型草稿。' }
+  }
+  function saveNodeBusiness(modelId: string, nodeId: string, configs: NodeBusinessConfig[], expected: string) {
+    if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看业务配置。' }
+    const node = data.productSpecNodes.find(n => n.id === nodeId && n.templateId === modelId && n.nodeType === 'VALUE')
+    if (!node || JSON.stringify(node) !== expected) return { ok: false, message: '节点或配置已变化，请重新打开核对；输入保留。' }
+    const records = cloneCompatibility(configs)
+    const seen = new Set<string>(), instanceIds = new Set<string>()
+    for (const record of records) {
+      delete record.definitionSnapshot
+      delete record.dictionarySnapshot
+      const old = node.businessConfigs?.find(c => c.id === record.id)
+      if (old && old.definitionId !== record.definitionId) return { ok: false, message: '实例不能更换配置定义，请删除后重新添加。' }
+      const definition = businessDefinitions(data).find(d => d.id === record.definitionId)
+      if (!old && !definition?.enabled) return { ok: false, message: '目录项已停用或不存在，不能新增实例。' }
+      const problem = configProblem(data, data.productSpecNodes.filter(n => n.templateId === modelId), node, record)
+      if (problem && (!old || JSON.stringify(old) !== JSON.stringify(record))) return { ok: false, message: problem }
+      if (seen.has(record.definitionId) || instanceIds.has(record.id) || data.productSpecNodes.some(n => n.id !== nodeId && n.businessConfigs?.some(c => c.id === record.id))) return { ok: false, message: '同一节点不能重复配置同一目录项，实例身份也不能重复。' }
+      seen.add(record.definitionId)
+      instanceIds.add(record.id)
+    }
+    const next = cloneCompatibility(data)
+    next.productSpecNodes.find(n => n.id === nodeId)!.businessConfigs = records
+    const canvas = next.specCanvases.find(c => c.templateId === modelId)
+    if (canvas) { canvas.status = 'draft'; canvas.updatedAt = new Date().toISOString() }
+    return commitCandidate(next, { ok: true, message: '已保存节点业务配置；冲突仍需修正后发布。' }, ['productSpecNodes', 'specCanvases'])
+  }
+  function saveBusinessDefinition(input: BusinessDefinition, remove = false) {
+    if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看公共配置目录。' }
+    const definitions = businessDefinitions(data), old = definitions.find(d => d.id === input.id)
+    if (!old || old.kind !== input.kind || !input.name.trim() || typeof input.enabled !== 'boolean') return { ok: false, message: '定义身份和功能类型不能更换，请填写名称及可用状态。' }
+    const allNodes = [...data.productSpecNodes, ...data.specModelVersions.flatMap(v => v.nodesSnapshot)]
+    if (remove && allNodes.some(n => n.businessConfigs?.some(c => c.definitionId === old.id) || old.kind === 'naming' && n.namingRule?.length)) return { ok: false, message: '定义被草稿或历史发布版本引用，不能删除；可以停用以禁止新增实例。' }
+    const next = cloneCompatibility(data)
+    next.businessDefinitions = definitions.filter(d => d.id !== input.id).map(d => ({ ...d }))
+    if (!remove) next.businessDefinitions.push({ ...old, name: input.name.trim(), description: input.description.trim(), enabled: input.enabled })
+    return commitCandidate(next, { ok: true, message: '公共配置目录已保存，已引用实例和旧版本保持原义。' }, ['businessDefinitions'])
   }
   function materialImportBasis() {
     return JSON.stringify([data.families, data.skus, data.planningRecords, data.materialReceipts, data.compatibilities, data.templateCompatibilityOrigins, data.specModelVersions, data.templateCompatibilityConfigs, data.categories, data.productTypes, data.params, data.templates, data.specCanvases, data.productSpecNodes, data.nodeCompatibilityRules])
@@ -854,6 +901,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (!isAdmin.value) return { ok: false, message: '当前角色仅可查看模型，请由管理员复制。' }
     const next = cloneCompatibility(data), source = next.templates.find(item => item.id === id), canvas = next.specCanvases.find(item => item.templateId === id)
     if (!source || !canvas?.productTypeId) return { ok: false, message: '模型或产品类型已不存在。' }
+    const businessProblem = businessIssues(next, next.productSpecNodes.filter(n => n.templateId === id))[0]
+    if (businessProblem) return { ok: false, message: `请先修正源模型业务配置：${businessProblem.message}` }
     const name = options.name?.trim() || `${canvas.name || source.name} 副本`, productTypeId = options.productTypeId || canvas.productTypeId
     if (!next.productTypes.some(item => item.id === productTypeId)) return { ok: false, message: '目标产品类型已不存在。' }
     if (options.name && next.specCanvases.some(item => item.productTypeId === productTypeId && item.name?.trim() === name)) return { ok: false, message: '这个产品类型下已有同名模型。' }
@@ -861,7 +910,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     const nodeMap = new Map(next.productSpecNodes.filter(item => item.templateId === id).map(item => [item.id, uid('sn')]))
     next.templates.push({ ...source, id: templateId, name, parentId: null, structureOrder: [...source.structureOrder] })
     next.templateParams.push(...next.templateParams.filter(item => item.templateId === id).map(item => ({ ...item, templateId })))
-    next.productSpecNodes.push(...next.productSpecNodes.filter(item => item.templateId === id).map(item => ({ ...cloneCompatibility(item), id: nodeMap.get(item.id)!, templateId, parentId: item.parentId ? nodeMap.get(item.parentId) || null : null })))
+    next.productSpecNodes.push(...next.productSpecNodes.filter(item => item.templateId === id).map(item => ({ ...cloneCompatibility(item), id: nodeMap.get(item.id)!, templateId, parentId: item.parentId ? nodeMap.get(item.parentId) || null : null, ...(item.businessConfigs ? { businessConfigs: copyBusinessConfigs(item, templateId, nodeMap.get(item.id)!, uid) } : {}) })))
     next.specCanvases.push({ templateId, productTypeId, name, zoom: 1, panX: 0, panY: 0, status: 'draft', version: 1, versionName: 'V1', direction: options.direction || 'ltr', updatedAt: now })
     const legacyIds = new Map<string, string>()
     next.nodeCompatibilityRules.push(...next.nodeCompatibilityRules.filter(item => item.templateId === id && !item.modelVersionId).map(item => {
@@ -1095,7 +1144,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       version,
       versionName,
       status: 'published',
-      nodesSnapshot: nodes.map((item) => ({ ...item, namingRule: item.namingRule?.map((part) => ({ ...part })) })),
+      nodesSnapshot: freezeBusinessNodes(next, nodes),
       createdTime: now,
       publishTime: now,
       templateCompatibilitySnapshot: snapshot,
@@ -1177,6 +1226,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     previewTemplateCompatibilitySync: (input: { modelId: string; targetVersionId: string; targetIds?: string[] }) => previewTemplateCompatibilitySync(data, input),
     applyTemplateCompatibilitySync: (...args: Parameters<typeof applyTemplateSync>) => command(() => applyTemplateSync(...args)),
     saveModelDraft: (...args: Parameters<typeof saveModelDraft>) => command(() => saveModelDraft(...args)),
+    saveNodeBusiness: (...args: Parameters<typeof saveNodeBusiness>) => command(() => saveNodeBusiness(...args)),
+    saveBusinessDefinition: (...args: Parameters<typeof saveBusinessDefinition>) => command(() => saveBusinessDefinition(...args)),
     materialImportBasis,
     commitMaterialImport: (...args: Parameters<typeof commitMaterialImport>) => command(() => commitMaterialImport(...args)),
     copyProductModel: (...args: Parameters<typeof copyProductModel>) => command(() => copyProductModel(...args)),

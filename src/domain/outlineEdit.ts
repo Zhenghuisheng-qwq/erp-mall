@@ -1,4 +1,5 @@
 import type { AppData, ProductSpecNode } from './types'
+import { allowedBusinessValues, businessStructureProblem } from './nodeBusiness'
 
 export interface OutlineChoice {
   value: string
@@ -20,7 +21,7 @@ export function outlineChoices(data: AppData, nodeId: string): OutlineChoice[] {
       .filter((item) => item.parentId === node.parentId && item.id !== node.id && item.nodeType === 'VALUE')
       .map((item) => item.valueId),
   )
-  return param.values.filter((item) => item === node.valueId || !used.has(item)).map((item) => ({ value: item, label: item }))
+  return allowedBusinessValues(data, data.productSpecNodes, parent!.id).values.filter((item) => !used.has(item)).map((item) => ({ value: item, label: item }))
 }
 
 /**
@@ -30,8 +31,15 @@ export function outlineChoices(data: AppData, nodeId: string): OutlineChoice[] {
 export function rebindSpecNode(data: AppData, nodeId: string, binding: { attributeId?: string; valueId?: string }): { ok: boolean; message: string; changed: boolean } {
   const node = data.productSpecNodes.find((item) => item.id === nodeId)
   if (!node) return { ok: false, message: '节点不存在', changed: false }
-  if (node.nodeType === 'ATTRIBUTE') return rebindAttribute(data, node, binding.attributeId || '')
-  return rebindValue(data, node, binding.valueId || '')
+  const before = data.productSpecNodes.filter(n => n.templateId === node.templateId)
+  const trial = { ...data, productSpecNodes: before.map(n => ({ ...n })) }
+  const target = trial.productSpecNodes.find(n => n.id === nodeId)!
+  const result = node.nodeType === 'ATTRIBUTE' ? rebindAttribute(trial, target, binding.attributeId || '') : rebindValue(trial, target, binding.valueId || '')
+  if (!result.ok || !result.changed) return result
+  const problem = businessStructureProblem(data, before, trial.productSpecNodes)
+  if (problem) return { ok: false, message: problem, changed: false }
+  for (const updated of trial.productSpecNodes) Object.assign(before.find(n => n.id === updated.id)!, updated)
+  return result
 }
 
 function rebindAttribute(data: AppData, node: ProductSpecNode, attributeId: string): { ok: boolean; message: string; changed: boolean } {

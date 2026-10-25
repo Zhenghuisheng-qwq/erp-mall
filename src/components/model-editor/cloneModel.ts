@@ -1,4 +1,5 @@
 import type { CatalogTemplate, ProductSpecNode, SpecCanvasConfig, TemplateParam } from '../../domain/types'
+import { copyBusinessConfigs } from '../../domain/nodeBusiness'
 
 /** 复制节点树、父子关系和属性/值引用。不包含发布记录、商品和 SKU。 */
 export function cloneProductModel(input: {
@@ -31,6 +32,7 @@ export function cloneProductModel(input: {
     id: map.get(item.id) || input.nextId('sn'),
     templateId,
     parentId: item.parentId ? map.get(item.parentId) || null : null,
+    ...(item.businessConfigs ? { businessConfigs: copyBusinessConfigs(item, templateId, map.get(item.id)!, input.nextId) } : {}),
   }))
   const canvas: SpecCanvasConfig = {
     templateId,

@@ -1,4 +1,5 @@
 import { expandFilteredPaths } from './planning'
+import { businessIssues } from './nodeBusiness'
 import type {
   AppData,
   ConstraintResult,
@@ -323,7 +324,7 @@ export function specCombinations(data: AppData, templateId: string): SpecCombina
 
 export function sameSpecSnapshot(left: ProductSpecNode[], right: ProductSpecNode[]) {
   const namingKey = (node: ProductSpecNode) => (node.namingRule || []).map((part) => [part.kind, part.key || '', part.text || ''].join(':')).join(',')
-  const keyOf = (node: ProductSpecNode) => [node.id, node.parentId || '', node.nodeType, node.attributeId, node.valueId, node.role || '', node.sort, namingKey(node)].join('|')
+  const keyOf = (node: ProductSpecNode) => [node.id, node.parentId || '', node.nodeType, node.attributeId, node.valueId, node.role || '', node.sort, namingKey(node), JSON.stringify((node.businessConfigs || []).map(({ definitionSnapshot, dictionarySnapshot, ...config }) => config))].join('|')
   const a = left.map(keyOf).sort()
   const b = right.map(keyOf).sort()
   return a.length === b.length && a.every((item, index) => item === b[index])
@@ -339,7 +340,7 @@ export const SPEC_VALUE_TO_VALUE = '属性值不能直接关联属性值，请�
 
 /** 发布前检查编辑树。属性可以接属性或属性值，属性值只能再接属性。 */
 export function specPublishProblems(data: AppData, nodes: ProductSpecNode[]) {
-  const problems: string[] = []
+  const problems: string[] = businessIssues(data, nodes).map(issue => issue.message)
   if (!nodes.some((item) => item.nodeType === 'ATTRIBUTE')) problems.push('还没有属性节点，不能发布。')
   const ids = new Set(nodes.map((item) => item.id))
   const reachable = new Set<string>()
@@ -511,6 +512,7 @@ export function planSkuLines(data: AppData, plan: ProductPlan) {
   const anchor = chosen[chosen.length - 1]
   const onPath = new Set(ancestorValueIds(nodes, anchor.id))
   const commonValues: string[] = []
+  const selectedSourceIds: string[] = []
   const fixed: { name: string; value: string; nodeId: string }[] = []
   const commonAttrs: Record<string, string> = {}
   chosen.forEach((valueNode) => {
@@ -519,6 +521,7 @@ export function planSkuLines(data: AppData, plan: ProductPlan) {
     const attributeId = parent?.attributeId || valueNode.attributeId
     const name = paramById(data, attributeId)?.name
     if (!name || !valueNode.valueId) return
+    selectedSourceIds.push(valueNode.id)
     if (specAttributeRole(data, plan.productModelId, attributeId, nodes) === 'common') {
       commonAttrs[name] = valueNode.valueId
       commonValues.push(valueNode.valueId)
@@ -536,7 +539,7 @@ export function planSkuLines(data: AppData, plan: ProductPlan) {
     return {
       name: steps.map((step) => step.value).filter(Boolean).join(' ') || commonValues.join(' '),
       variantAttrs,
-      sourceNodeIds: steps.map((step) => step.nodeId),
+      sourceNodeIds: [...new Set([...selectedSourceIds, ...tail.map((step) => step.nodeId)])],
     }
   })
   return {

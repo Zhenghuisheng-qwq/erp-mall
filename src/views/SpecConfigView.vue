@@ -159,6 +159,11 @@
           <h2>{{ leafId ? '选择一个商品模型' : '从左侧选择分类' }}</h2>
           <p>{{ leafId ? '在中间选一个产品类型，再打开商品模型。' : '先选分类，再选产品类型和商品模型。' }}</p>
         </div>
+        <div v-if="templateId" class="node-ops business-summary" data-business-summary>
+          <el-button v-if="current?.nodeType === 'VALUE'" size="small" data-open-business @click="businessNodeId = selected; businessOpen = true">业务配置</el-button>
+          <span>{{ current?.nodeType === 'VALUE' ? businessSummary : '选中值节点后查看业务配置与生效来源' }}</span>
+        </div>
+        <div v-if="templateId && businessProblems.length" class="node-ops"><el-button size="small" type="warning" @click="locateBusiness(businessProblems[0]!.nodeId)">业务配置问题 {{ businessProblems.length }} · 定位</el-button></div>
         <section v-if="templateId" class="insight">
           <div class="insight-summary">
             <div class="summary-stats">
@@ -403,6 +408,7 @@
         </p>
       </section>
     </el-drawer>
+    <NodeBusinessDialog :open="businessOpen" :nodes="nodes" :node-id="businessNodeId" :readonly="!canEditStructure" :busy="businessBusy" :save="saveBusiness" @close="businessOpen = false" @pending="businessBusy = $event" @naming="businessOpen = false; selected = businessNodeId; namingOpen = true" @locate="locateBusiness" />
     <NamingRuleDialog :open="namingOpen" :readonly="!canEditStructure" :node-id="selected" :template-id="templateId" @close="namingOpen = false" @saved="markWorkingDraft" />
     <NodeAddPanel v-model="attributeOpen" :title="attributeTitle" :anchor="addAnchor" @closed="resetAttrComposer">
       <el-select v-if="attributeBindId" ref="attrBindSelect" v-model="attributePick" filterable placement="top-start" popper-class="dict-select-popper" placeholder="搜索已有属性" style="width: 100%" :filter-method="rememberAttrQuery" @visible-change="dictDropOpen = $event">
@@ -502,7 +508,7 @@ import { Handle, Position, useVueFlow, VueFlow } from '@vue-flow/core'
 import { MiniMap } from '@vue-flow/minimap'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import NodeAddPanel from '../components/model-editor/NodeAddPanel.vue'
 import ModelOutline from '../components/ModelOutline.vue'
 import CategoryCatalog from '../components/model-editor/CategoryCatalog.vue'
@@ -524,6 +530,8 @@ import { outlineChoices, rebindSpecNode } from '../domain/outlineEdit'
 import { legalComboMaterialStatus } from '../domain/comboMaterialStatus'
 import { previewDraftCombinations, publishImpactText } from '../domain/draftComboPreview'
 import NamingRuleDialog from '../components/NamingRuleDialog.vue'
+import NodeBusinessDialog from '../components/model-editor/NodeBusinessDialog.vue'
+import { allowedBusinessValues, businessIssues, businessStructureProblem, businessLabel, resolveNodeBusiness, type NodeBusinessConfig } from '../domain/nodeBusiness'
 import TemporaryMaterialDialog from '../components/TemporaryMaterialDialog.vue'
 import V3MaterialActions from '../components/V3MaterialActions.vue'
 import type { ProductGrade, ProductSpecNode } from '../domain/types'
@@ -760,6 +768,30 @@ const copying = ref(false), modelSaving = ref(false)
 const templateCompatibilityOpen = ref(false)
 const compatibilityNodeId = ref('')
 const namingOpen = ref(false)
+const businessOpen = ref(false), businessBusy = ref(false), businessNodeId = ref('')
+onBeforeRouteLeave(() => !businessBusy.value)
+onBeforeRouteUpdate(() => !businessBusy.value)
+const businessProblems = computed(() => businessIssues(store.data, nodes.value))
+const businessSummary = computed(() => ['sales-position', 'material-policy'].map(kind => {
+  const result = resolveNodeBusiness(store.data, nodes.value, selected.value, kind)
+  return result.message ? `${kind === 'sales-position' ? '销售定位' : '物料策略'}冲突或失效（查看业务配置）` : (result.parameters ? businessLabel(result.parameters.value) : '')
+}).filter(Boolean).join(' · ') || `${current.value?.businessConfigs?.length || 0} 项自有配置`)
+function locateBusiness(id: string) { selected.value = id; revealNode(id); businessNodeId.value = id; businessOpen.value = true }
+async function saveBusiness(records: NodeBusinessConfig[], expected: string) {
+  if (!canEditStructure.value || businessBusy.value) return { ok: false, message: '当前视图不可编辑或正在保存。' }
+  finishUndo()
+  const context = editContext(), before = captureEditor(store.data, context.modelId)
+  businessBusy.value = true
+  try {
+    const result = await store.saveNodeBusiness(context.modelId, businessNodeId.value, records, expected)
+    if (result.ok && sameContext(context)) {
+      const entry = editorEntry(context.modelId, context.session, before, captureEditor(store.data, context.modelId))
+      if (entry) { undoStack.value.push(entry); if (undoStack.value.length > 40) undoStack.value.shift() }
+      markWorkingDraft()
+    }
+    return result
+  } finally { businessBusy.value = false }
+}
 const copyPick = ref(false)
 const copySourceId = ref('')
 const copyTargetTypeId = ref('')
@@ -991,7 +1023,7 @@ const globalRenameAllowed = computed(() => {
 })
 const valueChoices = computed(() => {
   const parent = nodes.value.find((item) => item.id === valueParentId.value && item.nodeType === 'ATTRIBUTE')
-  const defined = store.data.params.find((item) => item.id === parent?.attributeId)?.values || []
+  const defined = parent ? allowedBusinessValues(store.data, nodes.value, parent.id).values : []
   const used = new Set(nodes.value.filter((item) => item.parentId === valueParentId.value && item.nodeType === 'VALUE').map((item) => item.valueId))
   return defined.filter((item) => !used.has(item))
 })
@@ -1001,7 +1033,7 @@ const valueParentName = computed(() => {
 })
 const parentParamValues = computed(() => {
   const parent = nodes.value.find((item) => item.id === valueParentId.value && item.nodeType === 'ATTRIBUTE')
-  return store.data.params.find((item) => item.id === parent?.attributeId)?.values || []
+  return parent ? allowedBusinessValues(store.data, nodes.value, parent.id).values : []
 })
 const exactValue = computed(() => parentParamValues.value.includes(valueQuery.value.trim()))
 const filteredValueChoices = computed(() => {
@@ -1105,6 +1137,7 @@ function invalidateEditorDialogs() {
   valueOpen.value = false
   nodeDraftOpen.value = false
   namingOpen.value = false
+  businessOpen.value = false
 }
 watch(templateId, () => {
   if (!templateId.value) return
@@ -1308,7 +1341,7 @@ function nodeTitle(node: ProductSpecNode) {
   return attributeHint(node).bound ? store.data.params.find((item) => item.id === node.attributeId)?.name || '未绑定属性' : '未绑定属性'
 }
 function valueOptions(node: ProductSpecNode): FlowOption[] {
-  const values = store.data.params.find((item) => item.id === node.attributeId)?.values || []
+  const values = node.parentId ? allowedBusinessValues(store.data, nodes.value, node.parentId).values : []
   const used = new Set(nodes.value.filter((item) => item.parentId === node.parentId && item.id !== node.id && item.nodeType === 'VALUE').map((item) => item.valueId))
   return [...values.filter((item) => item === node.valueId || !used.has(item)).map((item) => ({ value: item, label: item })), { value: '__create__', label: '新增属性值…' }]
 }
@@ -1648,6 +1681,10 @@ function orderSiblings(parentId: string | null, orderedIds: string[]) {
 }
 function finishUndo() {
   const pending = pendingUndo
+  if (pending && pending.modelId === templateId.value && pending.session === editSession) {
+    const problem = businessStructureProblem(store.data, pending.before.nodes, nodes.value)
+    if (problem) { cancelUndo(); ElMessage.warning(problem); return }
+  }
   pendingUndo = undefined
   if (!pending || pending.modelId !== templateId.value || pending.session !== editSession) return
   const entry = editorEntry(pending.modelId, pending.session, pending.before, captureEditor(store.data, pending.modelId))
@@ -1768,7 +1805,7 @@ async function renameOutline(payload: { id: string; name: string }) {
     if (!linkAttribute(node, created.id)) return
     return
   }
-  const allowed = store.data.params.find((item) => item.id === node.attributeId)?.values || []
+  const allowed = node.parentId ? allowedBusinessValues(store.data, nodes.value, node.parentId).values : []
   if (!allowed.includes(text)) {
     ElMessage.warning('请从该属性的属性值里选择')
     return
@@ -2157,6 +2194,15 @@ function hitNode(x: number, y: number, selfId: string) {
   return target?.id || ''
 }
 function reparent(node: ProductSpecNode, targetId: string) {
+  const candidate = { ...node }
+  const message = reparentUnchecked(candidate, targetId)
+  if (message) return message
+  const problem = businessStructureProblem(store.data, nodes.value, nodes.value.map(n => n.id === node.id ? candidate : n))
+  if (problem) return problem
+  Object.assign(node, candidate)
+  return ''
+}
+function reparentUnchecked(node: ProductSpecNode, targetId: string) {
   if (!canEditStructure.value) return '当前视图只读'
   if (targetId === node.id) return '不能拖到自己下面'
   if (descendantIds(node.id).includes(targetId)) return '不能拖到自己的子节点下面'
@@ -2323,12 +2369,13 @@ function enterEdit() {
   router.replace({ path: '/specs', query: next })
 }
 async function saveModel() {
-  if (modelSaving.value || publishing.value || copying.value) return
+  if (modelSaving.value || publishing.value || copying.value || businessBusy.value) return
   const problems = illegalStructure()
   if (problems.length) {
     ElMessage.warning(problems[0])
     return
   }
+  finishUndo()
   markWorkingDraft()
   ensureCanvas()
   const context = editContext()
@@ -2344,6 +2391,7 @@ async function saveModel() {
 const publishing = ref(false)
 async function publish() {
   if (publishing.value || modelSaving.value || copying.value) return
+  finishUndo()
   publishing.value = true
   try {
     const result = (await store.publishSpecModel(templateId.value))
@@ -2554,6 +2602,9 @@ function createDictionaryValueForNode(event?: Event) {
     ElMessage.warning('请先为上一级选择属性')
     return
   }
+  const proposed = (newDictValue.value || valueQuery.value).trim()
+  const restriction = resolveNodeBusiness(store.data, nodes.value, parent.id, 'allowed-values', parent.attributeId)
+  if (restriction.message || (restriction.parameters && !(restriction.parameters.values as string[]).includes(proposed))) { ElMessage.warning(restriction.message || '新值超出当前路径允许范围，请先维护上级业务配置。'); return }
   pushUndo()
   dictBusy.value = true
   const result = createDictionaryValue(store.data, parent.attributeId, newDictValue.value || valueQuery.value)
@@ -2628,7 +2679,8 @@ function addValues() {
   if (!validDialog('value', valueParentId.value)) return
   if (!canEditStructure.value) return
   const parent = nodes.value.find((item) => item.id === valueParentId.value && item.nodeType === 'ATTRIBUTE')
-  const allowed = new Set(store.data.params.find((item) => item.id === parent?.attributeId)?.values || [])
+  const allowed = new Set(parent ? allowedBusinessValues(store.data, nodes.value, parent.id).values : [])
+  if (valuePicks.value.some(value => !allowed.has(value))) { ElMessage.warning('所选值超出当前路径允许范围，请修正选择或上级配置。'); return }
   const fresh = [...new Set(valuePicks.value.filter((item) => allowed.has(item)))]
     .filter((item) => !nodes.value.some((row) => row.parentId === parent?.id && row.nodeType === 'VALUE' && row.valueId === item))
   if (!parent?.attributeId || !fresh.length) {
@@ -2695,7 +2747,7 @@ function openCopyPicker() {
 async function confirmCopy(event?: Event) {
   if (event instanceof KeyboardEvent && event.isComposing) return
   event?.preventDefault()
-  if (copying.value || modelSaving.value || publishing.value) return
+  if (copying.value || modelSaving.value || publishing.value || businessBusy.value) return
   const context = editContext()
   const name = copyName.value.trim()
   const sourceId = copySourceId.value
@@ -2833,8 +2885,8 @@ function visibleOverlay(selector: string) {
   })
 }
 function shortcutBlocked() {
-  if (modelSaving.value || copying.value || publishing.value) return true
-  if (attributeOpen.value || valueOpen.value || copyOpen.value || nodeDraftOpen.value || editingId.value || namingOpen.value || temporaryOpen.value || templateCompatibilityOpen.value || comboManageOpen.value) return true
+  if (modelSaving.value || copying.value || publishing.value || businessBusy.value) return true
+  if (attributeOpen.value || valueOpen.value || copyOpen.value || nodeDraftOpen.value || editingId.value || namingOpen.value || businessOpen.value || temporaryOpen.value || templateCompatibilityOpen.value || comboManageOpen.value) return true
   if (document.querySelector('.v3-material-dialog')) return true
   return visibleOverlay('.el-overlay-dialog, .el-message-box')
 }
@@ -2920,6 +2972,13 @@ onBeforeUnmount(() => {
 <style scoped>
 .work-main.with-materials { overflow-y: auto; }
 .work-main.with-materials .board { flex: 1 0 240px; }
+.node-ops.business-summary { flex-wrap: nowrap; flex-shrink: 0; }
+.business-summary span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 1100px), (max-height: 800px) {
+  .work-main { overflow-y: auto !important; }
+  .work-main > * { flex-shrink: 0; }
+  .work-main .board { flex: 1 0 280px; min-height: 280px; }
+}
 .structure-material-toggle { padding: 4px 12px; }
 .model-value.is-material-combo, .model-attr.is-material-combo { outline: 3px solid var(--el-color-success); outline-offset: 3px; }
 .designer { display: flex; flex-direction: column; height: calc(100vh - 132px); min-height: 520px; color: var(--text-primary, #253044); }

@@ -23,7 +23,9 @@
     "check:template-compatibility:visual": "node scripts/template-compatibility-visual-check.mjs",
     "check:compatibility-refinement:domain": "node scripts/run-domain-check.mjs scripts/compatibility-refinement-sync-check.ts && node scripts/run-domain-check.mjs scripts/benefit-package-refinement-check.ts && node scripts/run-domain-check.mjs scripts/compatibility-benefit-storage-check.ts && node scripts/run-domain-check.mjs scripts/catalog-async-save-check.ts",
     "check:compatibility-refinement:performance": "node scripts/template-compatibility-edit-performance.mjs",
-    "check:compatibility-refinement:browser": "node scripts/browser-compatibility-benefit-concurrency.mjs && node scripts/browser-catalog-async-save-check.mjs && node scripts/browser-compatibility-refinement.mjs && node scripts/browser-benefit-refinement.mjs"
+    "check:compatibility-refinement:browser": "node scripts/browser-compatibility-benefit-concurrency.mjs && node scripts/browser-catalog-async-save-check.mjs && node scripts/browser-compatibility-refinement.mjs && node scripts/browser-benefit-refinement.mjs",
+    "check:r01": "node scripts/run-domain-check.mjs scripts/r01-plan-check.ts && node scripts/run-domain-check.mjs scripts/r01-business-check.ts",
+    "check:r01:browser": "node scripts/browser-r01.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
