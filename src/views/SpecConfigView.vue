@@ -298,7 +298,7 @@
               <button v-if="data.childCount" type="button" class="fold" @click.stop="toggleExpand(data.id)" @dblclick.stop>{{ data.expanded ? '−' : data.childCount }}</button>
               <Handle type="source" :position="Position.Right" />
             </div>
-            <NodeMaterialSummary :model-id="templateId" :version-id="comboVersionId" :node-id="data.id" />
+            <NodeMaterialSummary v-if="showStructureMaterials" :model-id="templateId" :version-id="comboVersionId" :node-id="data.id" />
             </div>
           </template>
         </VueFlow>
@@ -316,7 +316,7 @@
       </div>
       <ModelOutline
         v-else-if="editorMode === 'outline'"
-        :material-version-id="comboVersionId"
+        :material-version-id="showStructureMaterials ? comboVersionId : ''"
         :nodes="nodes"
         :root-title="schemeTitle"
         :root-id="rootId"
@@ -349,7 +349,7 @@
       <ModelOutline
         v-else
         mubu
-        :material-version-id="comboVersionId"
+        :material-version-id="showStructureMaterials ? comboVersionId : ''"
         :nodes="nodes"
         :root-title="schemeTitle"
         :root-id="rootId"
@@ -1184,7 +1184,7 @@ watch(
 watch(viewMode, () => {
   frameCanvas()
 })
-watch(()=>[comboVersionId.value,JSON.stringify(store.data.materialRelations),store.data.skus.map(s=>`${s.id}:${s.skuName}:${s.materialCode}`).join('|')],()=>{paint();nextTick(frameCanvas)})
+watch(()=>[showStructureMaterials.value,comboVersionId.value,JSON.stringify(store.data.materialRelations),store.data.skus.map(s=>`${s.id}:${s.skuName}:${s.materialCode}`).join('|')],()=>{paint();nextTick(frameCanvas)})
 watch(()=>route.fullPath,()=>{if(typeof route.query.materialVersion==='string')comboVersionId.value=route.query.materialVersion;if(typeof route.query.materialNode==='string')nextTick(()=>{selected.value=String(route.query.materialNode);revealNode(selected.value)})},{immediate:true})
 watch(
   () => `${templateId.value}#${nodes.value.map((item) => `${item.id}:${item.parentId}:${item.nodeType}:${item.attributeId}:${item.valueId}:${item.role || ''}:${item.sort}`).join('|')}`,
@@ -1476,7 +1476,7 @@ function paint() {
   // View-only boxes reserve space for the fixed summary and popover trigger.
   // Neither these offsets nor the cards enter the specification snapshot.
   const placed: {x:number;y:number;width:number;height:number}[] = []
-  const materialNodeIds = new Set(flowNodes.value.filter(item=>item.type === 'value' && nodeMaterialCards(store.data,templateId.value,comboVersionId.value,item.id).length > 0).map(item=>item.id))
+  const materialNodeIds = new Set(flowNodes.value.filter(item=>showStructureMaterials.value && item.type === 'value' && nodeMaterialCards(store.data,templateId.value,comboVersionId.value,item.id).length > 0).map(item=>item.id))
   for (const item of materialNodeIds.size ? [...flowNodes.value].sort((a,b)=>a.position.y-b.position.y) : []) {
     const hasCards = materialNodeIds.has(item.id)
     const width = Math.max(item.data.boxWidth || 120, hasCards ? 220 : 0), height = item.type === 'value' ? (hasCards ? 90 : 34) : 48

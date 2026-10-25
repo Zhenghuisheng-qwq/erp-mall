@@ -1,0 +1,77 @@
+{
+  "time": "2026-10-23T04:00:00.000Z",
+  "checks": [
+    {
+      "name": "sales-create-actual-quota-and-retry",
+      "passed": true,
+      "detail": "real Pinia append fails at setItem without SKU/link/origin; retry writes once; repeated existing candidate writes zero times"
+    },
+    {
+      "name": "material-receipt-atomicity-independent-targets",
+      "passed": true,
+      "detail": "MAT creation/link/receipt commit together; retry returns original material; sales declaration remains a separate identity; unrelated collections remain byte equal"
+    },
+    {
+      "name": "config-save-and-publish-atomic-version-freeze",
+      "passed": true,
+      "detail": "quota preserves drafts and version/PLN arrays; compatibility-only edit publishes a new independent snapshot; unchanged content creates no version and all PLN identities are reused"
+    },
+    {
+      "name": "three-way-safe-sync-and-stale-preview",
+      "passed": true,
+      "detail": "safe template baseline updates once without changing SKU binding/source/spec or MAT/PLN identities; failure atomic; stale replay rejected; refreshed no-op writes zero times"
+    },
+    {
+      "name": "manual-edit-delete-and-durable-keep-protection",
+      "passed": true,
+      "detail": "manual note edits are protected; explicit adopt restores; hand deletion remains suppressed after reload; repeated keep is idempotent"
+    },
+    {
+      "name": "copy-backup-import-and-command-permissions",
+      "passed": true,
+      "detail": "copy remaps rule/claim/node identities without products or published versions; version-15 backup round trip preserves suppression; malformed origin rejected; operator cannot save/publish/sync/copy/import-protect"
+    },
+    {
+      "name": "ordinary-spec-edit-stale-and-explicit-repair",
+      "passed": true,
+      "detail": "existing editable spec remains editable; old template statement is stale; precise valid new combo permits explicit adopt; name-only maintenance does not recalculate compatibility"
+    },
+    {
+      "name": "material-import-transaction-and-only-new",
+      "passed": true,
+      "detail": "actual import candidate fails without half receipt/link; retry persists one complete transaction; stale candidate refused; empty new-ID set never backfills historical records"
+    },
+    {
+      "name": "temporary-actual-attributes-and-display-rename",
+      "passed": true,
+      "detail": "COMMON and VARIANT manual attributes map uniquely without node-name guessing; preview matches actual creation; dictionary display rename and extra non-model common attributes preserve inheritance; precomputed planning deeply equals original entry"
+    },
+    {
+      "name": "stable-merged-lineage-empty-and-invalid-mapping",
+      "passed": true,
+      "detail": "adding identical exception origins updates one existing declaration and keeps its key; explicit empty safely removes managed claim; deleted structure is invalid without clearing; read-only creation is refused"
+    },
+    {
+      "name": "per-claim-manual-protection",
+      "passed": true,
+      "detail": "same-host/basic claims retain separate full source/note identities; editing one is accepted and protects only its lineage; the other untouched template claim still updates safely"
+    },
+    {
+      "name": "manual-identical-not-adopted-and-deny-capability-scope",
+      "passed": true,
+      "detail": "identical manual claim is skipped without origin adoption; same-capability explicit exclusion remains intact by default; independent fast-charge exclusion does not suppress basic claim"
+    },
+    {
+      "name": "old-editor-save-bundle-atomic-only-new",
+      "passed": true,
+      "detail": "legacy editor uses one candidate for SKU and compatibility; quota leaves no half object; retry commits once; later existing-SKU saves never backfill hand-deleted compatibility"
+    },
+    {
+      "name": "deleted-model-draft-save-is-rejected",
+      "passed": true,
+      "detail": "concurrent model/canvas removal invalidates an open compatibility draft; valid claim content does not recreate an orphan configuration and performs zero writes"
+    }
+  ],
+  "attempts": 55,
+  "writes": 48
+}

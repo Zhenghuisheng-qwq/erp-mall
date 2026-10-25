@@ -100,6 +100,7 @@
 </template>
 
 <script setup lang="ts">
+import { materialPlanningIds } from '../../domain/materialRelations'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
@@ -145,7 +146,7 @@ const hosts = computed(() => {
   const familyId = String(route.query.family || '')
   if (!familyId || skuId.value) return rows
   const family = store.data.families.find((item) => item.id === familyId)
-  const plans = new Set(store.data.skus.filter((item) => item.familyId === familyId).map((item) => item.planningId))
+  const plans = new Set(store.data.skus.filter((item) => item.familyId === familyId).flatMap(item=>materialPlanningIds(store.data,item.id)))
   if (family && plans.size) return rows.filter((item) => item.planningIds.some((id) => plans.has(id)))
   return rows
 })

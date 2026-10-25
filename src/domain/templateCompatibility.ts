@@ -19,12 +19,16 @@ export function readTemplateCompatibilityConfig(data: AppData, modelId: string) 
   return Array.isArray(data.templateCompatibilityConfigs) ? data.templateCompatibilityConfigs.find(item => item?.modelId === modelId) : undefined
 }
 
+export function templateConditionsSignature(conditions: TemplateCompatibilityClaim['conditions']): string {
+  return stable(conditions.map(condition => condition.kind === 'attribute' && Array.isArray(condition.value) ? { ...condition, value: [...new Set(condition.value)].sort() } : condition).map(stable).sort())
+}
+
 /** Display names and array order do not change a statement; conditions/notes/evidence do. */
 export function templateClaimContentSignature(claim: TemplateCompatibilityClaim): string {
   const host = claim.host
   // Device directory hosts carry their display name in steps.valueId; the validated host identity
   // already captures real model attributes, so labels must not become another source identity.
-  return stable({ host: { scope: host.scope, productTypeId: host.productTypeId, productModelId: host.productModelId, identityKey: host.identityKey, planningId: host.planningId || '' }, conclusion: claim.conclusion, verification: claim.verification, capability: claim.capability, conditions: claim.conditions.map(condition => condition.kind === 'attribute' && Array.isArray(condition.value) ? { ...condition, value: [...new Set(condition.value)].sort() } : condition).map(stable).sort(), source: claim.source, note: claim.note })
+  return stable({ host: { scope: host.scope, productTypeId: host.productTypeId, productModelId: host.productModelId, identityKey: host.identityKey, planningId: host.planningId || '' }, conclusion: claim.conclusion, verification: claim.verification, capability: claim.capability, conditions: JSON.parse(templateConditionsSignature(claim.conditions)), source: claim.source, note: claim.note })
 }
 function claimSetSignature(claims: TemplateCompatibilityClaim[]) { return stable([...new Set(claims.map(templateClaimContentSignature))].sort()) }
 /** Publishing compares content and stable lineage, but ignores edit timestamps/revision counters. */

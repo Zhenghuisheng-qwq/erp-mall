@@ -1,5 +1,5 @@
 import { isMaterialArchive } from './catalogIdentity'
-import { relatedMaterials } from './materialRelations'
+import { relatedMaterials, materialPlanningIds } from './materialRelations'
 import { latestPublishedVersion, projectAttrs } from './logic'
 import { filedNameSource, suggestMaterialName, suggestTemporaryName } from './naming'
 import { legalPlanningCombinations } from './planning'
@@ -143,9 +143,9 @@ export function materialsOfPlanning(data: AppData, planningId: string, versionId
 }
 
 /** 商品列表上的物料摘要。只统计这一款商品下的物料，规划编号去重，不读取模型的合法组合。 */
-export function familyMaterialDigest(skus: { materialCode?: string; planningId?: string }[]) {
-  const rows = Array.isArray(skus) ? skus : []
-  const plans = new Set(rows.map((item) => (item.planningId || '').trim()).filter(Boolean))
+export function familyMaterialDigest(skus: { id?: string; materialCode?: string; planningId?: string }[], data?: AppData) {
+  const rows = [...new Map((Array.isArray(skus) ? skus : []).map((s,i)=>[s.id||i,s])).values()]
+  const plans = new Set(rows.flatMap(item=>data&&item.id?materialPlanningIds(data,item.id):[(item.planningId||'').trim()]).filter(Boolean))
   const parts = [`已建物料 ${rows.length} 条`]
   if (rows.length === 1) {
     const code = (rows[0]?.materialCode || '').trim()

@@ -79,6 +79,7 @@
 </template>
 
 <script setup lang="ts">
+import { materialPlanningIds } from '../domain/materialRelations'
 import { ElMessage } from 'element-plus'
 import MaterialSourceList from './MaterialSourceList.vue'
 import { isMaterialArchive } from '../domain/catalogIdentity'
@@ -131,7 +132,7 @@ const familyHosts = computed(() => {
   if (!family.value) return []
   const role = family.value.productTypeId ? roleOfType(store.data, family.value.productTypeId) : catalogRole(store.data, family.value.categoryId)
   if (role !== 'host') return []
-  const plans = new Set(materials.value.map((item) => item.planningId).filter(Boolean))
+  const plans = new Set(materials.value.flatMap(item=>materialPlanningIds(store.data,item.id)))
   return listHostModels(store.data).filter((item) => item.planningIds.some((id) => plans.has(id)))
 })
 

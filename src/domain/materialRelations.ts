@@ -24,14 +24,18 @@ export interface MaterialRelation {
   revokedAt?: string
   original: boolean
   requestId: string
+  requestIntent?: string
+  requestAliases?: { requestId: string; intent: string }[]
 }
 export interface MaterialContribution {
   id: string
   materialId: string
   declarationId: string
   baseline: TemplateCompatibilityClaim
+  /** Stable source pairs survive unlink and content changes; absent on legacy records. */
+  lineage?: { modelId: string; ruleId: string; claimId: string }[]
   generated: boolean
-  owners: { relationId: string; planningId: string; ruleIds: string[]; claimIds: string[] }[]
+  owners: { relationId: string; planningId: string; ruleIds: string[]; claimIds: string[]; origins?: { ruleId: string; claimId: string }[] }[]
   state: 'managed' | 'modified' | 'deleted' | 'retired'
 }
 export const activeMaterialRelations = (data: AppData) => (data.materialRelations || []).filter(r => r.kind === 'scope-v1' && r.lifecycle === 'active')
@@ -58,4 +62,9 @@ export function nodeMaterialCards(data: AppData, modelId: string, versionId: str
 export function materialRelationBlock(data: AppData, kind: 'material'|'model'|'version', id: string) {
   const hit = (data.materialRelations || []).find(r => r.lifecycle !== 'revoked' && (kind==='material'?r.materialId===id:kind==='model'?r.source.modelId===id:r.source.versionId===id))
   return hit ? `仍被物料关联 ${hit.id}（${hit.source.modelId} / ${hit.source.versionId}）引用，不能删除；原始建档事实需保留。` : ''
+}
+
+/** All active published ranges plus original filing, across versions; PLN identity deduplicated. */
+export function materialPlanningIds(data: AppData, materialId: string, versionId?: string): string[] {
+  return [...new Set(materialSources(data,materialId).filter(r=>!versionId||r.source.versionId===versionId).flatMap(r=>r.coverage.map(c=>c.planningId)))]
 }

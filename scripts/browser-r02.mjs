@@ -34,7 +34,7 @@ try{
   await page.screenshot({path:resolve(out,'scope-preview.png')})
   await dialog().locator('.el-checkbox').click();const beforeFail=await raw();await page.evaluate(()=>window.__failR02=true);await btn('确认执行',dialog()).click();await dialog().getByRole('alert').filter({hasText:/quota|无法保存/}).waitFor();assert.equal(await raw(),beforeFail);assert(await dialog().isVisible());await page.evaluate(()=>window.__failR02=false);await btn('确认执行',dialog()).click();await dialog().waitFor({state:'hidden'})
   const created=await read(),mat=created.skus.find(s=>s.skuName==='R02浏览器共用物料');assert(mat);assert(!mat.planningId);assert.equal(created.planningRecords.length,planCount)
-  await page.locator(`[data-node-materials="${f.anchor}"]`).waitFor();await page.screenshot({path:resolve(out,'node-summary-desktop.png')})
+  await page.getByText('显示关联物料',{exact:true}).click();await page.locator(`[data-node-materials="${f.anchor}"]`).waitFor();await page.screenshot({path:resolve(out,'node-summary-desktop.png')})
   await noOverlap();await page.locator(`.vue-flow__node[data-id="${f.anchor}"] .fold`).click();await page.waitForTimeout(180);await noOverlap();await page.locator(`.vue-flow__node[data-id="${f.anchor}"] .fold`).click();await page.waitForTimeout(180);await noOverlap()
   mark('node range creates one real MAT with prefix only; quota failure preserves input/data and retry succeeds')
   // Use the existing complete-planning list and its actual new association action.
@@ -52,7 +52,7 @@ try{
   await btn('解除本条关联',page.locator('[data-material-sources]')).click();await page.getByRole('button',{name:'确定',exact:true}).click();await page.waitForFunction(id=>JSON.parse(localStorage.getItem('iyge-v2-mock-db')).data.materialRelations.filter(r=>r.materialId===id&&r.lifecycle==='active').length===1,mat.id)
   assert.equal(JSON.stringify((await read()).specModelVersions.find(v=>v.id===version.id)),snapshot);assert((await read()).skus.some(s=>s.id===mat.id))
   mark('near-node card opens original archive; reverse sources survive reload; unlink leaves original MAT and V1 intact')
-  await btn('定位来源',page.locator('[data-material-sources]')).click();await page.locator(`[data-node-materials="${f.anchor}"]`).waitFor()
+  await btn('定位来源',page.locator('[data-material-sources]')).click();await page.getByText('显示关联物料',{exact:true}).click();await page.locator(`[data-node-materials="${f.anchor}"]`).waitFor()
   await page.setViewportSize({width:980,height:720})
   for(const mode of ['大纲视图','幕布模式']){await page.locator('.view-switch').getByText(mode,{exact:true}).click();const summary=page.locator(`[data-node-materials="${f.anchor}"]`);await summary.waitFor();await summary.scrollIntoViewIfNeeded();const box=await summary.boundingBox();assert(box&&box.x+box.width<=980);await page.screenshot({path:resolve(out,mode==='大纲视图'?'outline-narrow.png':'document-narrow.png')})}
   mark('narrow-window outline and document views show actual near-node MAT summaries')

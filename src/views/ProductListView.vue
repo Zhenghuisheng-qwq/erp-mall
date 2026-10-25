@@ -410,7 +410,7 @@ function saleCount(familyId: string) {
   return realSkus(familyId).filter((item) => item.status === 'on_sale').length
 }
 function materialSummary(familyId: string) {
-  return familyMaterialDigest(materialArchivesOf(store.data, familyId))
+  return familyMaterialDigest(materialArchivesOf(store.data, familyId), store.data)
 }
 function planSource(row: { productPlanId?: string }) {
   if (!row.productPlanId) return ''

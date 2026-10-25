@@ -1,0 +1,47 @@
+{
+  "result": "PASS",
+  "checks": [
+    {
+      "name": "normalization-is-readonly",
+      "result": "PASS",
+      "detail": "startup/import transformation has no independent storage writer"
+    },
+    {
+      "name": "stale-command-watcher-and-reset-refuse",
+      "result": "PASS",
+      "detail": "all operations compare exact accepted persisted base under lock; old live draft remains"
+    },
+    {
+      "name": "failure-retry-and-noop-once",
+      "result": "PASS",
+      "detail": "failed storage leaves memory/metadata unchanged; retry commits once; same favorite writes zero times"
+    },
+    {
+      "name": "dataset-replacement-and-stale-recovery",
+      "result": "PASS",
+      "detail": "import resets random dataset identity; a stale recovery page cannot overwrite it even at repeated revision 1"
+    },
+    {
+      "name": "module-reset-failure-and-retry-atomic",
+      "result": "PASS",
+      "detail": "failed reset leaves live/disk unchanged; retry replaces dataset identity and retains unrelated packages and frozen versions"
+    },
+    {
+      "name": "explicit-recovery-keeps-original-until-commit",
+      "result": "PASS",
+      "detail": "invalid original bytes can only be replaced against their exact captured base under the shared lock"
+    },
+    {
+      "name": "direct-write-without-lock-rejected",
+      "result": "PASS",
+      "detail": "the single production setItem boundary rejects calls outside its transaction"
+    },
+    {
+      "name": "one-business-storage-writer",
+      "result": "PASS",
+      "detail": "watch/startup/creation/template/benefit/SKU views/import/reset/recovery all use catalogPersistence.write"
+    }
+  ],
+  "writes": 6,
+  "lock": "Node test double; real browser Web Locks separately tested"
+}
