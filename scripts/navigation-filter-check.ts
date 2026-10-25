@@ -6,17 +6,20 @@ import type { ProductListViewFilter } from '../src/domain/types'
 
 const allowed = ['product', 'manage', 'tools']
 const read = (value: unknown) => readNavigation(typeof value === 'string' ? value : JSON.stringify(value), allowed, ['product', 'manage'])
-assert.deepEqual(read(null), { layout: 'dual', collapsed: false, openeds: ['product', 'manage'] })
+assert.deepEqual(read(null), { layout: 'dual', collapsed: false, pinned: false, openeds: ['product', 'manage'] })
 for (const value of ['broken', 'null', '[]', '{"mode":"broken"}']) assert.deepEqual(read(value), read(null))
 for (const mode of ['single', 'dual'] as const) {
-  assert.deepEqual(read({ mode, pinned: true, openeds: ['manage', 'removed', 'manage', 'forbidden'] }), { layout: mode, collapsed: false, openeds: ['manage'] })
+  assert.deepEqual(read({ mode, pinned: true, openeds: ['manage', 'removed', 'manage', 'forbidden'] }), { layout: mode, collapsed: false, pinned: true, openeds: ['manage'] })
   assert.equal(read({ mode: 'icons', expandedMode: mode }).layout, mode)
   assert.equal(read({ mode: 'icons', expandedMode: mode }).collapsed, true)
 }
 assert.equal(read({ mode: 'dual', menuOpen: false }).collapsed, true)
 assert.equal(read({ mode: 'single', menuOpen: false }).collapsed, false)
-assert.deepEqual(read({ layout: 'dual', collapsed: true, openeds: [] }), { layout: 'dual', collapsed: true, openeds: [] })
-assert.deepEqual(read({ layout: 'single', collapsed: 'false', openeds: [1, 'tools'] }), { layout: 'single', collapsed: false, openeds: ['tools'] })
+assert.deepEqual(read({ layout: 'dual', collapsed: true, pinned: false, openeds: [] }), { layout: 'dual', collapsed: true, pinned: false, openeds: [] })
+assert.deepEqual(read({ layout: 'single', collapsed: 'false', openeds: [1, 'tools'] }), { layout: 'single', collapsed: false, pinned: false, openeds: ['tools'] })
+assert.deepEqual(read({layout:'center',collapsed:true,openeds:['tools','gone']}),{layout:'single',collapsed:true,pinned:false,openeds:['tools']})
+assert.equal(read({layout:'dual',pinned:true}).pinned,true)
+assert.equal(read({layout:'dual',pinned:'true'}).pinned,false)
 console.log('PASS navigation migration/defaults/invalid config/permission filtering')
 
 const query = emptyModeQuery('spu')

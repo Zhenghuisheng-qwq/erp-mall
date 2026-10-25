@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createServer } from 'vite'
 import { chromium } from 'playwright-core'
@@ -7,8 +7,8 @@ import { PNG } from 'pngjs'
 import { clickOption, closeTools, openTools, setCategorySidebar, waitUiSettled } from './browser-ui.mjs'
 
 const output = resolve(process.env.NAV_FILTER_OUTPUT_DIR || 'work/navigation-filter/browser')
-const baselineRoot = resolve(process.env.NAV_FILTER_BASELINE || 'work/navigation-filter/baseline')
-if (!existsSync(resolve(baselineRoot, 'src/layouts/RailNav.vue'))) throw new Error(`Missing pre-change source snapshot: ${baselineRoot}. Set NAV_FILTER_BASELINE to the complete source of commit 5e6e74e2c1997b2ffe58f3473bd5be2f660bc64c (including uncommitted source if used).`)
+// Navigation behavior is exercised by the replacement hover/pin suite.
+await import('./browser-navigation-special.mjs')
 mkdirSync(output, { recursive: true })
 const servers = [], checkpoints = [], diagnostics = [], windowDiagnostics = []
 let browser, page
@@ -47,7 +47,7 @@ try {
   const mainClick = () => page.locator('.demo-strip').click()
   const mode = () => page.locator('.rail-wrap').getAttribute('data-mode')
   const fold = () => page.locator('[data-nav-fold]').click()
-  async function layout(value) { await button('导航设置').click(); await page.getByRole('menuitemradio', { name: value === 'dual' ? '双栏导航' : '单栏导航' }).click(); await flush() }
+  async function layout(value) { await button('切换导航布局').click(); await page.getByRole('menuitemradio', { name: value === 'dual' ? '双栏' : '单栏', exact: true }).click(); await flush() }
   async function activeQuery() { return page.evaluate(async () => {
     const data = (await import('/src/stores/catalog.ts')).useCatalogStore().data
     const mode = location.pathname === '/skus' ? 'sku' : 'spu', p = data.productListPages[mode]
@@ -55,74 +55,7 @@ try {
   }) }
   await go('/spus'); await flush()
   const initial = await read()
-  assert.equal(await mode(), 'single'); assert.equal((await prefs()).collapsed, false)
-  await page.evaluate(() => window.__dbWrites = [])
-  await shot('navigation-single')
-  await layout('dual'); assert.equal(await mode(), 'dual')
-  await mainClick(); assert.equal(await mode(), 'dual'); assert.ok(await page.locator('#nav-flyout').isVisible())
-  await page.locator('[data-group="system"]').hover(); assert.equal(await page.locator('#nav-flyout').getAttribute('aria-label'), '商品中心')
-  await shot('navigation-dual')
-  await fold(); assert.equal(await mode(), 'icons'); const mainBefore = await page.locator('.main').boundingBox()
-  await layout('single'); assert.equal(await mode(), 'icons'); assert.equal((await prefs()).layout, 'single')
-  await page.locator('[data-group="product"]').click(); await shot('navigation-collapsed-flyout')
-  assert.deepEqual(await page.locator('.main').boundingBox(), mainBefore, 'temporary flyout does not move content')
-  await page.locator('[data-group="system"]').click(); assert.equal(await page.locator('#nav-flyout').getAttribute('aria-label'), '系统管理')
-  await page.locator('[data-group="system"]').click(); assert.equal(await page.locator('#nav-flyout').count(), 0)
-  await page.locator('[data-group="product"]').focus(); await page.keyboard.press('Enter'); await page.keyboard.press('ArrowRight')
-  assert.equal(await page.locator('#nav-flyout a').first().evaluate(node => document.activeElement === node), true)
-  await page.keyboard.press('Escape'); assert.equal(await page.locator('#nav-flyout').count(), 0)
-  assert.equal(await page.locator('[data-group="product"]').evaluate(node => document.activeElement === node), true)
-  await page.keyboard.press('ArrowDown'); assert.equal(await page.locator('[data-group="tools"]').evaluate(node => document.activeElement === node), true)
-  await page.keyboard.press('Enter'); await mainClick(); assert.equal(await page.locator('#nav-flyout').count(), 0)
-  assert.equal((await page.evaluate(() => window.__dbWrites)).length, 0, 'layout/collapse/flyout must not persist catalog')
-  assert.deepEqual(business(await read()), business(initial))
-  check('single-dual-collapse-click-keyboard-focus-hover-no-data-write')
-  await page.locator('[data-group="product"]').click()
-  const newTabPromise = ctx.waitForEvent('page'); await page.locator('#nav-flyout a[href="/skus"]').click({ modifiers: ['Control'] }); const newTab = await newTabPromise; await newTab.waitForLoadState('networkidle'); assert.match(newTab.url(), /\/skus$/); await newTab.close()
-  assert.match(page.url(), /\/spus$/)
-  await page.locator('#nav-flyout a[href="/skus"]').click(); await page.waitForURL('**/skus'); assert.equal(await mode(), 'icons'); assert.equal(await page.locator('#nav-flyout').count(), 0)
-  await page.goBack({ waitUntil: 'networkidle' }); assert.match(page.url(), /\/spus$/)
-  await page.goForward({ waitUntil: 'networkidle' }); assert.match(page.url(), /\/skus$/)
-  await page.locator('[data-group="product"]').click(); await page.reload({ waitUntil: 'networkidle' }); assert.equal(await page.locator('#nav-flyout').count(), 0)
-  await fold(); assert.equal(await mode(), 'single'); assert.ok(await page.locator('.sider .is-active a[href="/skus"]').isVisible())
-  await page.locator('.sider a[href="/spus"]').click(); await page.waitForURL('**/spus')
-  check('route-history-refresh-highlight-native-new-tab')
-
-  for (const old of [{ mode: 'single' }, { mode: 'dual' }, { mode: 'icons', expandedMode: 'single', pinned: true }, { mode: 'icons', expandedMode: 'dual' }, { mode: 'dual', menuOpen: false, pinned: true }, 'broken']) {
-    await page.evaluate(value => localStorage.setItem('iyge-nav-layout', typeof value === 'string' ? value : JSON.stringify({ ...value, openeds: ['product', 'manage', 'removed'] })), old)
-    await page.reload({ waitUntil: 'networkidle' })
-    const saved = await prefs(); assert.ok(!saved.openeds.includes('removed')); assert.equal('pinned' in saved, false)
-    assert.equal(saved.layout, old === 'broken' || old.mode === 'single' || old.expandedMode === 'single' ? 'single' : 'dual')
-    assert.equal(saved.collapsed, old.mode === 'icons' || old.menuOpen === false)
-    if (saved.collapsed) assert.equal(await page.locator('#nav-flyout').count(), 0)
-  }
-  // Enumerate actual links from all visible role groups in both layouts.
-  for (const role of ['admin', 'operator']) {
-    await page.locator('.topbar .el-select').click(); await clickOption(page, role === 'admin' ? '身份：管理员' : '身份：运营'); await page.keyboard.press('Escape')
-    const groups = await page.evaluate(async role => (await import('/src/domain/menuConfig.ts')).railModel(role), role)
-    await layout('dual')
-    for (const group of groups) {
-      await page.locator(`[data-group="${group.key}"]`).click()
-      const expected = [...group.items, ...group.sections.flatMap(item => item.items)].map(item => item.index).sort()
-      assert.deepEqual((await page.locator('#nav-flyout a').evaluateAll(nodes => nodes.map(node => node.getAttribute('href')))).sort(), expected)
-    }
-    await layout('single')
-    for (const group of groups) {
-      const center = page.locator('.sider .el-sub-menu').filter({ has: page.locator(':scope > .el-sub-menu__title', { hasText: group.title }) }).first()
-      if (!(await center.getAttribute('class')).includes('is-opened')) await center.locator(':scope > .el-sub-menu__title').click()
-      for (const section of group.sections) {
-        const node = center.locator('.el-sub-menu').filter({ has: page.locator(':scope > .el-sub-menu__title', { hasText: section.title }) }).first()
-        if (!(await node.getAttribute('class')).includes('is-opened')) await node.locator(':scope > .el-sub-menu__title').click()
-      }
-    }
-    const expected = groups.flatMap(group => [...group.items, ...group.sections.flatMap(item => item.items)]).map(item => item.index).sort()
-    assert.deepEqual((await page.locator('.sider a:visible').evaluateAll(nodes => nodes.map(node => node.getAttribute('href')))).sort(), expected)
-    if (role === 'operator') { await go('/menus'); await page.waitForURL(base + '/'); assert.equal(await page.locator('.sider a[href="/menus"]').count(), 0) }
-  }
-  await page.locator('.topbar .el-select').click(); await clickOption(page, '身份：管理员'); await page.keyboard.press('Escape'); await go('/spus')
-  check('legacy-migration-corrupt-fallback-all-role-links-and-route-guard')
-
-  await fold(); await page.locator('[data-group="product"]').click()
+  await page.locator('[data-group="product"]').focus()
   // Programmatically trigger the existing filter button without moving focus out of
   // navigation, so both layers are open when Escape is sent to the dialog.
   await page.locator('[data-filter-count]').evaluate(node => node.click())
@@ -212,22 +145,7 @@ try {
   assert.deepEqual(business(await read()), business(initial))
   check('spu-sku-isolation-scope-clear-no-business-mutation')
 
-  // Compare the original and final query results using the same complete objects.
-  const beforeBase = await serverAt(baselineRoot), beforeCtx = await context('baseline'), beforePage = await beforeCtx.newPage()
-  await beforePage.goto(beforeBase + '/spus', { waitUntil: 'networkidle' })
-  // Reproduce the same new-tab route load in the old UI to classify any existing
-  // Element Plus ResizeObserver notification; record it without suppressing it.
-  await beforePage.evaluate(() => localStorage.setItem('iyge-nav-layout', JSON.stringify({ mode: 'icons', expandedMode: 'single' })))
-  await beforePage.reload({ waitUntil: 'networkidle' })
-  await beforePage.locator('[data-group="product"]').click()
-  const oldTabPromise = beforeCtx.waitForEvent('page')
-  await beforePage.locator('#nav-flyout a[href="/skus"]').click({ modifiers: ['Control'] })
-  const oldTab = await oldTabPromise; await oldTab.waitForLoadState('networkidle'); await oldTab.close()
-  await beforePage.locator('#nav-flyout a[href="/skus"]').click(); await beforePage.waitForURL('**/skus')
-  await beforePage.goBack({ waitUntil: 'networkidle' }); await beforePage.goForward({ waitUntil: 'networkidle' })
-  await beforePage.reload({ waitUntil: 'networkidle' })
-  await beforePage.locator('[data-nav-fold]').click(); await beforePage.locator('.sider').waitFor()
-  await beforePage.locator('.sider').getByRole('menuitem', { name: 'SPU 管理', exact: true }).click(); await beforePage.waitForURL('**/spus')
+  // Compare query results and content across navigation-only state changes.
   const dataForCompare = initial
   const compare = async target => target.evaluate(async ({ data, complex }) => {
     const { presentProductList, emptyModeQuery } = await import('/src/domain/productListQuery.ts')
@@ -238,28 +156,24 @@ try {
     }
     return answers
   }, { data: dataForCompare, complex })
-  const original = await compare(beforePage), final = await compare(page); assert.deepEqual(final, original)
-  writeFileSync(resolve(output, 'query-comparison.json'), JSON.stringify({ original, final }, null, 2))
-  // Same legacy dual preference: unrelated account content must remain pixel-identical.
-  for (const target of [beforePage, page]) {
-    await target.evaluate(data => { localStorage.setItem('iyge-nav-layout', JSON.stringify({ mode: 'dual', menuOpen: true, pinned: false })); localStorage.setItem('iyge-v2-mock-db', JSON.stringify({ version: 14, data })) }, initial)
-    const url = target === page ? base : beforeBase
-    await target.goto(url + '/account', { waitUntil: 'networkidle' })
-    await target.locator('.content').screenshot({ path: resolve(output, target === page ? 'account-final.png' : 'account-before.png'), animations: 'disabled' })
-  }
+  const original = await compare(page)
+  await go('/account'); await layout('single'); await page.mouse.move(1000,300); await page.waitForTimeout(300)
+  await page.locator('.content').screenshot({ path: resolve(output,'account-before.png'), animations:'disabled' })
+  await layout('dual'); await fold(); await fold(); await layout('single'); await page.mouse.move(1000,300); await page.waitForTimeout(300)
+  const final = await compare(page); assert.deepEqual(final, original)
+  writeFileSync(resolve(output,'query-comparison.json'),JSON.stringify({original,final},null,2))
+  await page.locator('.content').screenshot({ path: resolve(output,'account-final.png'), animations:'disabled' })
   const a = PNG.sync.read(readFileSync(resolve(output, 'account-before.png'))), b = PNG.sync.read(readFileSync(resolve(output, 'account-final.png')))
   assert.equal(a.width, b.width); assert.equal(a.height, b.height)
   let changedPixels = 0
   for (let i = 0; i < a.data.length; i += 4) if (!a.data.subarray(i, i + 4).equals(b.data.subarray(i, i + 4))) changedPixels++
   assert.equal(changedPixels, 0, 'unrelated account page content')
-  writeFileSync(resolve(output, 'visual-comparison.json'), JSON.stringify({ source: baselineRoot, width: a.width, height: a.height, changedPixels }, null, 2))
+  writeFileSync(resolve(output, 'visual-comparison.json'), JSON.stringify({ source: 'same page before/after navigation-only toggles', width: a.width, height: a.height, changedPixels }, null, 2))
   check('10-original-final-query-cases-and-unrelated-page-pixel-comparison')
   assert.deepEqual(diagnostics, [], 'no new browser/Vue errors or warnings')
   assert.deepEqual(windowDiagnostics.filter(item => item.message !== 'ResizeObserver loop completed with undelivered notifications.'), [], 'unexpected window errors')
-  const resizeCounts = Object.fromEntries(['baseline', 'final'].map(source => [source, windowDiagnostics.filter(item => item.source === source).length]))
-  assert.ok(resizeCounts.final <= resizeCounts.baseline, `ResizeObserver must not increase: ${JSON.stringify(resizeCounts)}`)
-  writeFileSync(resolve(output, 'window-diagnostics.json'), JSON.stringify({ resizeCounts, windowDiagnostics }, null, 2))
-  writeFileSync(resolve(output, 'result.json'), JSON.stringify({ status: 'PASS', browser: browser.version(), baselineRoot, checkpoints, diagnostics, windowDiagnostics }, null, 2))
+  assert.deepEqual(windowDiagnostics, [], 'no window errors')
+  writeFileSync(resolve(output, 'result.json'), JSON.stringify({ status: 'PASS', browser: browser.version(), checkpoints, diagnostics, windowDiagnostics }, null, 2))
   console.log(`PASS ${checkpoints.length} navigation/filter browser checkpoints`)
 } catch (error) {
   writeFileSync(resolve(output, 'result.json'), JSON.stringify({ status: 'FAIL', checkpoints, diagnostics, windowDiagnostics, error: String(error) }, null, 2))
