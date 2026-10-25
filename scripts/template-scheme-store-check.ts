@@ -9,8 +9,10 @@ import { DATA_VERSION, STORAGE_KEY, type AppData } from '../src/domain/types'
 import { normalizeStored, useCatalogStore, type TemplateSchemeInput } from '../src/stores/catalog'
 import { installCatalogTestLocks } from './catalog-storage-test-env'
 
+const artifacts=process.argv.includes('--artifacts')
+
 const strict=RBAC_ENFORCEMENT_ENABLED,output=`work/compact-menu-template/scheme-store/${strict?'strict':'default'}`
-mkdirSync(output,{recursive:true})
+if(artifacts)mkdirSync(output,{recursive:true})
 const disk=new Map<string,string>(),session=new Map<string,string>(),checks:string[]=[]
 const restoreLocks=installCatalogTestLocks(),clone=<T>(value:T):T=>JSON.parse(JSON.stringify(value))
 let store:ReturnType<typeof useCatalogStore>|undefined,writes=0,failWrite=false
@@ -34,7 +36,7 @@ async function mount(user='creator',data=fixture()){
 const draft=():TemplateSchemeInput=>({id:'',name:'创建权限方案',structureOrder:['p-color','p-brand'],binds:[{paramId:'p-brand',role:'common',required:true},{paramId:'p-color',role:'variant',required:false}]})
 const snapshot=()=>({memory:JSON.stringify(store!.data),raw:disk.get(STORAGE_KEY),writes})
 async function rejected(operation:()=>unknown){const before=snapshot();let denied=false;try{const result=await operation() as {ok?:boolean};denied=result?.ok===false}catch{denied=true}assert(denied);await nextTick();await store!.waitForPersistence();assert.deepEqual(snapshot(),before)}
-const mark=(name:string)=>{checks.push(name);console.log(`PASS scheme Store ${strict?'strict':'default'} ${name}`)}
+const mark=(name:string)=>{checks.push(name);if(artifacts)console.log(`PASS scheme Store ${strict?'strict':'default'} ${name}`)}
 try{
   let s=await mount();const input=draft(),original=clone(input),before=clone(s.data)
   const created=await s.saveTemplateScheme(input);assert(created.ok,created.message);assert('templateId'in created&&created.templateId);const id=created.templateId!
@@ -78,5 +80,6 @@ try{
   await rejected(()=>s.saveTemplateScheme({...draft(),sourceId:modelId}))
   mark('model and ordinary scheme update permissions remain distinct; model copy cannot enter ordinary scheme creation')
 
-  writeFileSync(`${output}/result.json`,JSON.stringify({status:'PASS',rbacEnforced:strict,checks},null,2))
+  if(artifacts)writeFileSync(`${output}/result.json`,JSON.stringify({status:'PASS',rbacEnforced:strict,checks},null,2))
+  console.log(`PASS template scheme Store ${strict?'strict':'default'} (${checks.length} groups)`)
 }finally{if(store){await nextTick();await store.waitForPersistence();store.$dispose()};restoreLocks()}

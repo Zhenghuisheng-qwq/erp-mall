@@ -10,12 +10,14 @@ import {isMaterialArchive,isRealSku} from '../src/domain/catalogIdentity'
 import {normalizeStored,useCatalogStore} from '../src/stores/catalog'
 import {DATA_VERSION,STORAGE_KEY,type AppData} from '../src/domain/types'
 
-const strict=RBAC_ENFORCEMENT_ENABLED,out=`work/delete-property-repair/${strict?'strict':'default'}`;mkdirSync(out,{recursive:true})
+const artifacts=process.argv.includes('--artifacts')
+
+const strict=RBAC_ENFORCEMENT_ENABLED,out=`work/delete-property-repair/${strict?'strict':'default'}`;if(artifacts)mkdirSync(out,{recursive:true})
 const disk=new Map<string,string>(),session=new Map<string,string>(),checks:string[]=[],clone=<T>(value:T):T=>JSON.parse(JSON.stringify(value))
 const restoreLocks=installCatalogTestLocks();let store:ReturnType<typeof useCatalogStore>|undefined
 Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(key:string)=>disk.get(key)??null,setItem:(key:string,value:string)=>disk.set(key,value),removeItem:(key:string)=>disk.delete(key)}})
 Object.defineProperty(globalThis,'sessionStorage',{configurable:true,value:{getItem:(key:string)=>session.get(key)??null,setItem:(key:string,value:string)=>session.set(key,value),removeItem:(key:string)=>session.delete(key)}})
-const mark=(name:string)=>{checks.push(name);console.log(`PASS deleteProperty ${strict?'strict':'default'} ${name}`)}
+const mark=(name:string)=>{checks.push(name);if(artifacts)console.log(`PASS deleteProperty ${strict?'strict':'default'} ${name}`)}
 const memory=()=>JSON.stringify(store!.data),raw=()=>disk.get(STORAGE_KEY)
 const frozen=(data:AppData)=>JSON.stringify([data.specModelVersions,data.planningRecords,data.materialReceipts,data.materialRelations,data.materialContributions,data.compatibilities,data.benefitDeliveries])
 function fixture(){
@@ -67,5 +69,6 @@ try{
 
  s=await mount('both-records');row=s.data.skus.find(item=>item.id==='delete-mat')!;delete row.recordKind;delete row.materialCode;await flush();assert(isRealSku(s.data,row));assert.equal(row.id,'delete-mat')
  mark('a fully authorized resource transition is not incorrectly blocked by a blanket delete prohibition')
- writeFileSync(out+'/result.json',JSON.stringify({status:'PASS',rbacEnforced:strict,checks},null,2))
+ if(artifacts)writeFileSync(out+'/result.json',JSON.stringify({status:'PASS',rbacEnforced:strict,checks},null,2))
+ console.log(`PASS deleteProperty ${strict?'strict':'default'} (${checks.length} groups)`)
 }finally{store?.$dispose();restoreLocks()}

@@ -24,28 +24,5 @@ backups
 *.sln
 *.sw?
 
-# Local fixtures, logs and screenshots from the planning performance checks
-/work/performance-round1/
-/work/refactor-round2/
-/work/refactor-round3/
-/work/refactor-final/
-/work/spu-sku/
-/work/navigation-filter/
-/work/refactor-round2-current/
-/work/sku-workbench/
-/work/sku-workbench-fixes/
-/work/accessory-compatibility/
-/work/benefit-package/
-/work/template-compatibility/
-/work/compatibility-benefit-refinement/
-
-# Temporary validation output for the functional gaps round
-/work/functional-gaps-round1/
-
-# Reproducible validation caches only; keep scripts, fixtures and evidence visible.
-/work/**/cache/
-/work/**/*-cache/
-/work/**/.vite/
-/work/**/*.tsbuildinfo
-/work/**/tsconfig.*.json
-/work/**/tsconfig.json
+# Optional local test artifacts; never source inputs.
+/work/

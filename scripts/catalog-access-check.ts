@@ -6,9 +6,11 @@ import {ensureRbac,commandPermissions,templateAccessResource,permissionRegistry}
 import {RBAC_ENFORCEMENT_ENABLED} from '../src/domain/accessMode'
 import type {AppData,Sku} from '../src/domain/types'
 
-const output=`work/rbac-repair/proxy-${RBAC_ENFORCEMENT_ENABLED?'enforced':'default'}`;mkdirSync(output,{recursive:true})
+const artifacts=process.argv.includes('--artifacts')
+
+const output=`work/rbac-repair/proxy-${RBAC_ENFORCEMENT_ENABLED?'enforced':'default'}`;if(artifacts)mkdirSync(output,{recursive:true})
 const checks:string[]=[],clone=<T>(value:T):T=>JSON.parse(JSON.stringify(value))
-const mark=(name:string)=>{checks.push(name);console.log(`PASS proxy ${name}`)}
+const mark=(name:string)=>{checks.push(name);if(artifacts)console.log(`PASS proxy ${name}`)}
 function fixture(){
   const data=createSeed();ensureRbac(data)
   const family={...clone(data.families[0]!),id:'guard-family',line:'v2' as const};data.families=[family,{...family,id:'legacy-mat-family',line:'v3'}]
@@ -92,4 +94,6 @@ mark('nested dictionary candidates/groups require existing dictionary update; ne
 mark('templates, bindings and mapping mutations follow actual model ownership; MAT/SKU command deletion also uses record identity')
 
 assert.equal(new Set(permissionRegistry().map(row=>row.code)).size,permissionRegistry().length)
-writeFileSync(output+'/result.json',JSON.stringify({status:'PASS',rbacEnforced:RBAC_ENFORCEMENT_ENABLED,checks},null,2))
+if(artifacts)writeFileSync(output+'/result.json',JSON.stringify({status:'PASS',rbacEnforced:RBAC_ENFORCEMENT_ENABLED,checks},null,2))
+
+console.log(`PASS catalog access ${RBAC_ENFORCEMENT_ENABLED?'strict':'default'} (${checks.length} groups)`)

@@ -3001,11 +3001,11 @@ export const guidePageArticles: GuideArticle[] = [
   },
   {
     "id": "manual-guide",
-    "title": "业务指南首页操作手册",
+    "title": "系统功能说明",
     "kind": "page",
     "summary": "按系统菜单查找页面说明，查看功能、操作限制及关联页面。",
     "aliases": [
-      "业务指南首页",
+      "系统功能说明",
       "/guide"
     ],
     "pageIds": [
@@ -3049,7 +3049,7 @@ export const guidePageArticles: GuideArticle[] = [
   },
   {
     "id": "manual-guide-article",
-    "title": "指南文章操作手册",
+    "title": "页面功能说明",
     "kind": "page",
     "summary": "用同一份页面说明查看功能、使用规则及关联页面。",
     "aliases": [

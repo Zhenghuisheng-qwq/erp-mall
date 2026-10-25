@@ -4,13 +4,16 @@ import { resolve } from 'node:path'
 import { createServer } from 'vite'
 import { chromium } from 'playwright-core'
 
+import {createTestRuntime,removeTestRuntime} from './test-runtime.mjs'
+const artifacts=process.argv.includes('--artifacts'),runtime=createTestRuntime('scheme-browser')
+
 const out=resolve(process.env.TEMPLATE_SCHEME_OUTPUT || 'work/template-scheme-repair/browser')
-mkdirSync(out,{recursive:true})
+if(artifacts)mkdirSync(out,{recursive:true})
 const checks=[],errors=[],servers=[]
 let browser,page
-const mark=name=>{checks.push(name);console.log('PASS '+name)}
+const mark=name=>{checks.push(name);if(artifacts)console.log('PASS '+name)}
 try {
-  const server=await createServer({cacheDir:resolve(out,'strict-cache'),define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify('true')},server:{host:'127.0.0.1',port:0,watch:null,hmr:false}});servers.push(server)
+  const server=await createServer({logLevel:artifacts?'info':'silent',cacheDir:resolve(runtime,'strict-cache'),define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify('true')},server:{host:'127.0.0.1',port:0,watch:null,hmr:false}});servers.push(server)
   const {createSeed}=await server.ssrLoadModule('/src/domain/seed.ts'),{ensureRbac}=await server.ssrLoadModule('/src/domain/rbac.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
   const data=createSeed();data.activeRole='admin';ensureRbac(data)
   const params=data.params.slice(0,3),sourceId='scheme-copy-source',parentId='scheme-copy-parent',modelId='scheme-real-model'
@@ -44,7 +47,7 @@ try {
   const raw=()=>page.evaluate(()=>localStorage.getItem('iyge-v2-mock-db'))
   const btn=(name,scope=page)=>scope.getByRole('button',{name,exact:true})
   const row=id=>page.locator('.el-table__row').filter({has:page.locator(`[data-template-id="${id}"]`)})
-  const shot=name=>page.screenshot({path:resolve(out,name+'.png'),fullPage:true})
+  const shot=async name=>{if(artifacts)await page.screenshot({path:resolve(out,name+'.png'),fullPage:true})}
   const bindsOf=(d,id)=>d.templateParams.filter(p=>p.templateId===id).map(({paramId,role,required})=>({paramId,role,required}))
   const originalBindings=JSON.parse(JSON.stringify(sourceBinds))
   let ctx=await context('scheme-user-create')
@@ -89,14 +92,14 @@ try {
   await btn('保存',drawer).click();await page.getByRole('dialog',{name:'修改：只有编辑权限的原方案',exact:true}).getByRole('button',{name:'确认保存',exact:true}).click();await drawer.waitFor({state:'hidden'});current=await read();assert.equal(current.templates.find(t=>t.id===sourceId).name,'只有编辑权限的原方案');assert.deepEqual(bindsOf(current,sourceId),originalBindings);await ctx.close()
   mark('strict update-only edits the existing scheme while creation/copy remain denied')
 
-  const unrestricted=await createServer({cacheDir:resolve(out,'unrestricted-cache'),define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify('false')},server:{host:'127.0.0.1',port:0,watch:null,hmr:false}});servers.push(unrestricted);await unrestricted.listen();const unrestrictedBase=`http://127.0.0.1:${unrestricted.httpServer.address().port}`
+  const unrestricted=await createServer({logLevel:artifacts?'info':'silent',cacheDir:resolve(runtime,'unrestricted-cache'),define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify('false')},server:{host:'127.0.0.1',port:0,watch:null,hmr:false}});servers.push(unrestricted);await unrestricted.listen();const unrestrictedBase=`http://127.0.0.1:${unrestricted.httpServer.address().port}`
   ctx=await context('scheme-user-create',unrestrictedBase);assert.equal(await page.evaluate(async()=> (await import('/src/stores/catalog.ts')).useCatalogStore().rbacEnforced),false)
   assert(await btn('配置',row(sourceId)).isEnabled());assert.equal(await row(modelId).count(),1)
   await btn('新建方案').click();drawer=page.getByRole('dialog',{name:'新建方案',exact:true});await drawer.getByRole('textbox',{name:'方案名称',exact:true}).fill('默认统一模式方案');await btn('保存',drawer).click();await drawer.waitFor({state:'hidden'});current=await read();assert(current.templates.some(t=>t.name==='默认统一模式方案'))
   const unifiedModelRejected=await page.evaluate(async modelId=>{const s=(await import('/src/stores/catalog.ts')).useCatalogStore(),before=JSON.stringify(s.data),disk=localStorage.getItem('iyge-v2-mock-db');const r=await s.saveTemplateScheme({id:'',name:'统一模式仍不能将模型伪装为方案',sourceId:modelId,structureOrder:[],binds:[]});return !r.ok&&before===JSON.stringify(s.data)&&disk===localStorage.getItem('iyge-v2-mock-db')},modelId);assert(unifiedModelRejected)
   const modelCount=current.specCanvases.length;await btn('复制',row(modelId)).click();await page.waitForFunction(async({modelCount})=> (await import('/src/stores/catalog.ts')).useCatalogStore().data.specCanvases.length===modelCount+1,{modelCount});current=await read();const copiedModel=current.templates.find(t=>t.name==='真实商品模型记录 副本');assert(copiedModel);assert(current.specCanvases.some(c=>c.templateId===copiedModel.id&&c.productTypeId===productType.id));assert.equal(await page.getByRole('dialog',{name:'复制方案',exact:true}).count(),0);await shot('unrestricted-scheme-and-real-model-path');await ctx.close()
   mark('explicit default unrestricted mode retains full editing, creates ordinary schemes and keeps real model copy on the original model transaction')
-  assert.deepEqual(errors,[])
-  writeFileSync(resolve(out,'result.json'),JSON.stringify({result:'PASS',browser:browser.version(),checks,errors},null,2))
-} catch(e) { if(page&&!page.isClosed())await page.screenshot({path:resolve(out,'failure.png'),fullPage:true}).catch(()=>{});writeFileSync(resolve(out,'result.json'),JSON.stringify({result:'FAIL',error:String(e),checks,errors},null,2));throw e }
-finally { await browser?.close(); for(const s of servers)await s.close() }
+  assert.deepEqual(errors,[]);console.log(`PASS template scheme browser (${checks.length} groups)`)
+  if(artifacts)writeFileSync(resolve(out,'result.json'),JSON.stringify({result:'PASS',browser:browser.version(),checks,errors},null,2))
+} catch(e) { if(page&&!page.isClosed())if(artifacts)await page.screenshot({path:resolve(out,'failure.png'),fullPage:true}).catch(()=>{});if(artifacts)writeFileSync(resolve(out,'result.json'),JSON.stringify({result:'FAIL',error:String(e),checks,errors},null,2));throw e }
+finally { await browser?.close(); for(const s of servers)await s.close();removeTestRuntime(runtime) }

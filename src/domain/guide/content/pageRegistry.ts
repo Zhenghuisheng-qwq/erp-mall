@@ -536,7 +536,7 @@ export const guidePages: GuidePage[] = [
   },
   {
     "id": "page-guide",
-    "title": "业务指南首页",
+    "title": "系统功能说明",
     "patterns": [
       "/guide"
     ],
@@ -548,7 +548,7 @@ export const guidePages: GuidePage[] = [
   },
   {
     "id": "page-guide-article",
-    "title": "指南文章",
+    "title": "页面功能说明",
     "patterns": [
       "/guide/articles/:articleId"
     ],

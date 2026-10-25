@@ -92,7 +92,7 @@ function openFeedback(feature?: PageFeature, source:GuideFeedbackSource={}) {
   form.featureId = feature?.id || ''
   form.featureName = feature?.name || ''
   guideSource.value = {...source}
-  if (source.articleId) form.title = `指南反馈：${guide.article(source.articleId)?.title || source.articleId}`
+  if (source.articleId) form.title = `说明反馈：${guide.article(source.articleId)?.title || source.articleId}`
   closeGuide()
   formOpen.value = true
 }
@@ -171,14 +171,7 @@ defineExpose({ openFeedback })
 </script>
 
 <style scoped>
-.assist-page { margin: 0 0 8px; font-size: 16px; font-weight: 650; }
 .assist-note { color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
-.assist-group { margin-top: 14px; }
-.assist-group h3 { margin: 0 0 8px; font-size: 13px; color: var(--text-secondary); }
-.assist-item { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border-subtle); }
-.assist-item strong { margin-right: 8px; }
-.assist-item em { color: var(--text-secondary); font-style: normal; font-size: 12px; }
-.assist-item p { margin: 4px 0 0; color: var(--text-secondary); font-size: 13px; }
 .assist-files { margin: 8px 0 0; padding: 0; list-style: none; }
 .assist-files li { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .assist-files img { width: 42px; height: 42px; object-fit: cover; border-radius: 4px; }

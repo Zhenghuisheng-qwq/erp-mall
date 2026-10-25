@@ -141,7 +141,7 @@ export const guideConceptArticles: GuideArticle[] = [
         "id": "effect",
         "title": "当前影响",
         "paragraphs": [
-          "这些待确认项不作为新增执行限制，不自动合并、补关联或改历史。已实现功能按各手册真实源码说明。"
+          "这些待确认项不作为新增执行限制，不自动合并、补关联或改历史。已实现功能以当前功能和规则说明为准。"
         ]
       }
     ]
