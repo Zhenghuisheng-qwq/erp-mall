@@ -19,7 +19,7 @@ function mount(value?:TemplateSpecSelector,c=context,node?:string){
   return {scope,model,source,prepared,updates,validities,state}
 }
 {
- const m=mount(diagonal);assert.equal(m.state.method.value,'specs');assert.deepEqual(m.state.identities.value.sort(),[first.identityKey,second.identityKey].sort());assert.equal(m.updates.length,0)
+ const m=mount(diagonal);assert.equal(m.state.method.value,'specs');assert.deepEqual(m.state.identities.value.sort(),[first.identityKey,second.identityKey].sort());assert.equal(m.updates.length,0);assert.equal(m.state.pending.value,false)
  assert.equal(salesSignature(m.model.value),salesSignature(diagonal));m.scope.stop()
  const reopened=mount(diagonal);assert.deepEqual(coverage(reopened.model.value),coverage(diagonal));assert.equal(reopened.updates.length,0);reopened.scope.stop()
  mark('correlated OR save/reopen is exact and initialization never rewrites the selector')
@@ -30,8 +30,8 @@ function mount(value?:TemplateSpecSelector,c=context,node?:string){
  mark('removing one full spec cannot introduce another Cartesian combination; parent echo retains editing method')
 }
 {
- const m=mount(diagonal);m.state.requestMethod('values');assert.equal(m.state.method.value,'specs');assert.equal(m.state.valid.value,false);assert.equal(m.state.proposal.value?.added.length,2);assert.equal(m.state.proposal.value?.removed.length,0);assert.equal(m.updates.length,0)
- m.state.cancelMethod();assert.equal(m.state.valid.value,true);assert.deepEqual(coverage(m.model.value),coverage(diagonal))
+ const m=mount(diagonal);m.state.requestMethod('values');assert.equal(m.state.method.value,'specs');assert.equal(m.state.valid.value,false);assert.equal(m.state.pending.value,true);assert.equal(m.state.proposal.value?.added.length,2);assert.equal(m.state.proposal.value?.removed.length,0);assert.equal(m.updates.length,0)
+ m.state.cancelMethod();assert.equal(m.state.pending.value,false);assert.equal(m.state.valid.value,true);assert.deepEqual(coverage(m.model.value),coverage(diagonal))
  m.state.requestMethod('values');m.state.confirmMethod();assert.equal(m.state.method.value,'values');assert.equal(m.state.valid.value,true);assert.equal(coverage(m.model.value).length,4);assert.equal(m.updates.length,1);m.scope.stop()
  mark('lossy method switch previews additions/removals, cancellation preserves range, explicit redefinition applies exactly once')
 }
@@ -58,7 +58,7 @@ function mount(value?:TemplateSpecSelector,c=context,node?:string){
 {
  const large=createTemplateCompatibilityFixture({styles:1,colors:23,packs:23}),c=salesBindingContext(large.data,large.modelId,large.versionId),original=selectorForNode(c,'compat-pack-0').selector!
  const m=mount(original,c),ids=[...c.terms.keys()].filter(id=>id.startsWith('compat-color-0-')||id.startsWith('compat-pack-'))
- m.state.setValues(ids);assert.equal(m.state.valid.value,false);assert.equal(m.updates.length,0);assert.deepEqual(m.state.valueIds.value,ids);assert.equal(salesSignature(m.model.value),salesSignature(original));assert.match(m.state.message.value,/500.*原范围已保留/)
+ m.state.setValues(ids);assert.equal(m.state.pending.value,true);assert.equal(m.state.valid.value,false);assert.equal(m.updates.length,0);assert.deepEqual(m.state.valueIds.value,ids);assert.equal(salesSignature(m.model.value),salesSignature(original));assert.match(m.state.message.value,/500.*原范围已保留/)
  m.prepared.value={...c,byNode:new Map([...c.byNode].reverse()),terms:new Map([...c.terms].reverse()),combinations:[...c.combinations].reverse(),stats:{...c.stats}};assert.equal(m.state.valid.value,false);assert.deepEqual(m.state.valueIds.value,ids);assert.equal(m.updates.length,0);assert.match(m.state.message.value,/500/)
  m.state.requestMethod('specs');assert.deepEqual(m.state.valueIds.value,ids);assert.equal(m.state.method.value,'values')
  const reduced=ids.filter(id=>!['compat-pack-21','compat-pack-22'].includes(id));m.state.setValues(reduced);assert.equal(m.state.valid.value,true);assert.equal(coverage(m.model.value,c).length,483)
@@ -69,6 +69,8 @@ function mount(value?:TemplateSpecSelector,c=context,node?:string){
  const m=mount(diagonal),broken={...context,byNode:new Map(context.byNode),terms:new Map(context.terms),combinations:context.combinations,byIdentity:new Map(context.byIdentity)} as TemplateCompatibilityContext
  broken.byNode.delete('compat-color-0-0');broken.terms.delete('compat-color-0-0');m.prepared.value=broken
  assert.equal(m.updates.length,0);assert.equal(salesSignature(m.model.value),salesSignature(diagonal));assert.equal(m.state.valid.value,false);m.scope.stop()
+ assert.equal(m.state.pending.value,false)
  mark('changed version context never silently translates an invalid historical node range')
 }
+{const broken=structuredClone(diagonal);broken.anyOf[0]![0]!.valueNodeId='missing-real-node';const m=mount(broken);assert.equal(m.state.valid.value,false);assert.equal(m.state.pending.value,false);m.state.setSpecs([first.identityKey]);assert.equal(m.state.pending.value,false);assert.equal(m.state.valid.value,true);m.scope.stop();mark('invalid historical input opens clean; only explicit unaccepted input becomes pending')}
 console.log(`PASS sales scope component ${groups} groups`)

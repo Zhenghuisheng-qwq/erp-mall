@@ -128,6 +128,7 @@ try{
   assert.equal(await edit.getByPlaceholder('填写实际依据；资料缺失请说明待核验，不虚构测试结果').inputValue(),'本地旧基准尚未应用的修改')
   mark('external-edit-rejects-old-editor-and-keeps-local-input')
   await edit.getByRole('button',{name:'取消',exact:true}).click()
+  await page.getByRole('button',{name:'放弃输入',exact:true}).click()
   await page.getByRole('tab',{name:'查看结果',exact:true}).click()
   assert.equal(await panel.locator('[data-result-host]').count(),2,'returning from maintenance retains the selected accessory')
   await results.context.close()

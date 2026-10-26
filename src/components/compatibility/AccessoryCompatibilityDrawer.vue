@@ -32,9 +32,9 @@
             <el-empty v-if="!currentMatches.length" :description="emptyMessage" />
             <section v-for="group in groupedMatches" :key="group.id" class="accessory-group"><h3>{{ group.name }} <span>{{ group.items.length }}</span></h3>
               <article v-for="item in group.items" :key="`${item.target.kind}:${item.target.id}`" class="accessory-card" :data-accessory-match="item.target.id" :data-target-kind="item.target.kind">
-                <div class="match-head"><div><el-tag size="small" effect="plain">{{ item.target.kind === 'sku' ? '销售 SKU' : 'MAT 物料' }}</el-tag><strong>{{ item.name }}</strong><p class="muted">{{ item.code }} · {{ item.spec || '未记录规格' }}</p></div><div class="match-status"><el-tag :type="statusType(item.target.kind === 'sku' ? item.basic.status : item.status)">{{ item.target.kind === 'sku' ? '基本使用：' : '' }}{{ statusLabels[item.target.kind === 'sku' ? item.basic.status : item.status] }}</el-tag><small v-if="item.target.kind === 'sku' && item.status !== item.basic.status" class="muted">能力资料汇总：{{ statusLabels[item.status] }}</small></div></div>
+                <div class="match-head"><div><el-tag size="small" effect="plain">{{ item.target.kind === 'sku' ? '销售 SKU' : 'MAT 物料' }}</el-tag><strong>{{ item.name }}</strong><p class="muted">{{ item.code }} · {{ item.spec || '未记录规格' }}</p></div><div class="match-status"><el-tag :type="statusType(item.target.kind === 'sku' ? item.basic.status : item.status)">{{ compatibilityUseLabel(accessoryUseEvaluation(item)) }}</el-tag><small v-if="item.target.kind === 'sku' && item.status !== item.basic.status" class="muted">能力资料汇总：{{ statusLabels[item.status] }}</small></div></div>
                 <p v-for="(reason, index) in item.reasons" :key="index" class="reason">{{ reason }}</p>
-                <el-alert v-if="item.conflict" title="存在相反声明，按保守规则处理；请维护人员核对。" type="warning" :closable="false" />
+                <el-alert v-if="accessoryUseEvaluation(item).conflict" title="基本使用存在相反声明，请维护人员核对。" type="warning" :closable="false" />
                 <div v-for="cap in item.capabilities" :key="cap.capability" class="capability-line"><strong>{{ capabilityLabels[cap.capability] }}</strong><span>{{ statusLabels[cap.status] }}</span><span v-if="cap.conflict" class="warn"> · 存在冲突</span><ul v-if="cap.conditions.length"><li v-for="(evaluation, index) in cap.conditions" :key="index"><el-tag size="small" :type="evaluation.state === 'met' ? 'success' : evaluation.state === 'unmet' ? 'danger' : 'warning'">{{ conditionStatus[evaluation.state] }}</el-tag> {{ evaluation.label }}</li></ul></div>
                 <details class="evidence"><summary>查看 {{ item.declarations.length }} 条匹配依据与范围</summary><div v-for="link in item.declarations" :key="link.id" class="evidence-row"><p>{{ scopeText(link.host) }} · {{ capabilityLabels[declarationDefaults(link).capability] }} · {{ verificationLabels[declarationDefaults(link).verification] }}{{ conclusionLabels[declarationDefaults(link).conclusion] }}</p><p>来源：{{ declarationDefaults(link).source }}</p><TemplateCompatibilitySource :link="link" /><p v-if="declarationDefaults(link).provenance.kind === 'material-copy'">确认复制自物料 {{ declarationDefaults(link).provenance.materialSnapshot?.code }} · {{ declarationDefaults(link).provenance.materialSnapshot?.name }}；原声明 {{ declarationDefaults(link).provenance.declarationId }} 的历史快照保留。</p><p v-if="link.note">备注：{{ link.note }}</p><p class="muted">{{ link.id }} · 更新 {{ link.updatedAt || '未记录' }}</p></div></details>
                 <div class="card-actions"><el-button link type="primary" @click="detailId = item.target.id">查看详情</el-button><el-button link type="primary" @click="chooseSku(item.target.id)">适用主机</el-button><el-button v-if="store.can('product:compatibility:read')" link @click="manageTarget = item.target; managerOpen = true">维护声明</el-button></div>
@@ -47,12 +47,12 @@
           <p data-reverse-count>{{ reverse.counts.models }} 个型号 · {{ reverse.counts.devices }} 条设备 SKU · {{ reverse.counts.declarations }} 条声明</p>
           <el-empty v-if="!reverse.hosts.length" description="尚无适用主机声明。可以选择已有型号维护；不要求主机已有 MAT 或在售 SKU。" />
           <article v-for="item in reverse.hosts" :key="item.key" class="accessory-card" :data-reverse-host="item.key">
-            <div class="match-head"><strong>{{ item.label }}</strong><el-tag :type="statusType(item.status)">{{ statusLabels[item.status] }}</el-tag></div>
+            <div class="match-head"><strong>{{ item.label }}</strong><el-tag :type="statusType(reverseAccessoryUseEvaluation(item).status)">{{ reverseAccessoryUseEvaluation(item).hasSpecDifferences ? '包含规格例外，需逐项核对' : compatibilityUseLabel(reverseAccessoryUseEvaluation(item)) }}</el-tag></div>
             <p>{{ item.scopeSummary }}</p>
-            <el-alert v-if="item.conflict" title="此型号存在相反声明，需要核对。" type="warning" :closable="false" />
+            <el-alert v-if="reverseAccessoryUseEvaluation(item).conflict" title="此型号的基本使用存在相反声明，需要核对。" type="warning" :closable="false" />
             <div v-for="cap in item.capabilities" :key="cap.capability" class="capability-line"><strong>{{ capabilityLabels[cap.capability] }}</strong><span>{{ statusLabels[cap.status] }}</span><span v-if="cap.conflict" class="warn"> · 存在冲突</span></div>
             <div v-for="link in item.declarations" :key="link.id" class="evidence-row"><p>{{ scopeText(link.host) }} · {{ capabilityLabels[declarationDefaults(link).capability] }} · {{ verificationLabels[declarationDefaults(link).verification] }}{{ conclusionLabels[declarationDefaults(link).conclusion] }}</p><p class="muted">来源：{{ declarationDefaults(link).source }}</p><TemplateCompatibilitySource :link="link" /><ul><li v-for="(condition, index) in declarationDefaults(link).conditions" :key="index">{{ conditionText(store.data, condition) }} · 具体前提请结合设备核验</li></ul></div>
-            <div class="reverse-devices"><p v-if="!item.devices.length" class="muted">该型号尚无可查看的具体销售 SKU；型号声明仍保留。</p><el-button v-for="device in item.devices" :key="device.skuId" @click="chooseSku(device.skuId)">{{ device.code }} · {{ device.name }} · {{ statusLabels[device.status] }}</el-button></div>
+            <div class="reverse-devices"><p v-if="!item.devices.length" class="muted">该型号尚无可查看的具体销售 SKU；型号声明仍保留。</p><el-button v-for="device in item.devices" :key="device.skuId" @click="chooseSku(device.skuId)">{{ device.code }} · {{ device.name }} · {{ compatibilityUseLabel(accessoryUseEvaluation(device)) }}</el-button></div>
           </article>
           <el-alert v-for="(issue, index) in reverse.issues" :key="index" :title="issue.message" type="warning" :closable="false" />
         </template>
@@ -73,9 +73,9 @@ import { useCatalogStore } from '../../stores/catalog'
 import { roleOfType } from '../../domain/compatibility'
 import { isMaterialArchive, isRealSku } from '../../domain/catalogIdentity'
 import { compatibilityRecordRole, resolveDeviceSku } from '../../domain/deviceResolution'
-import { declarationDefaults, queryAccessoryDevices, queryDeviceAccessories } from '../../domain/accessoryCompatibilityQuery'
+import { declarationDefaults, queryAccessoryDevices, queryDeviceAccessories, accessoryUseEvaluation, reverseAccessoryUseEvaluation } from '../../domain/accessoryCompatibilityQuery'
 import type { AccessoryMatch, AccessoryTarget } from '../../domain/accessoryCompatibilityTypes'
-import { capabilityLabels, conclusionLabels, verificationLabels, hostKey, hostText, scopeText, conditionText, recordSpec } from './compatibilityPresentation'
+import { capabilityLabels, conclusionLabels, verificationLabels, hostKey, hostText, scopeText, conditionText, recordSpec, compatibilityUseLabel } from './compatibilityPresentation'
 import DeviceBindingDialog from './DeviceBindingDialog.vue'
 import CompatibilityManager from './CompatibilityManager.vue'
 import TemplateCompatibilitySource from '../template-compatibility/TemplateCompatibilitySource.vue'

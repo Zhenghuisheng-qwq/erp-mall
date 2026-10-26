@@ -17,16 +17,18 @@
   </section>
 </template>
 <script setup lang="ts">
-import {computed} from 'vue'
+import {computed,watch} from 'vue'
 import {useCatalogStore} from '../../stores/catalog'
 import {salesBindingContext} from '../../domain/salesConfiguration'
 import type {TemplateSpecSelector} from '../../domain/templateCompatibilityTypes'
 import {useSalesScopeSelection} from './useSalesScopeSelection'
-const props=defineProps<{modelValue?:TemplateSpecSelector;modelId:string;versionId?:string|null;initialNodeId?:string}>()
-const emit=defineEmits<{'update:modelValue':[TemplateSpecSelector|undefined];'validity-change':[boolean]}>()
+const props=defineProps<{modelValue?:TemplateSpecSelector;modelId:string;versionId?:string|null;initialNodeId?:string;initializeNodeSelection?:boolean}>()
+const emit=defineEmits<{'update:modelValue':[TemplateSpecSelector|undefined];'validity-change':[boolean];'pending-change':[boolean]}>()
 const store=useCatalogStore()
 const context=computed(()=>salesBindingContext(store.data,props.modelId,props.versionId))
-const {method,valueIds,identities,message,proposal,valid,setValues,setSpecs,requestMethod,cancelMethod,confirmMethod}=useSalesScopeSelection({context,modelValue:()=>props.modelValue,sourceKey:()=>JSON.stringify([props.modelId,props.versionId,props.initialNodeId]),initialNodeId:()=>props.initialNodeId},selector=>emit('update:modelValue',selector),value=>emit('validity-change',value))
+const {method,valueIds,identities,message,proposal,valid,pending,inputSignature,discardPending,setValues,setSpecs,requestMethod,cancelMethod,confirmMethod}=useSalesScopeSelection({context,modelValue:()=>props.modelValue,sourceKey:()=>JSON.stringify([props.modelId,props.versionId,props.initialNodeId]),initialNodeId:()=>props.initialNodeId,initializeNodeSelection:()=>props.initializeNodeSelection!==false},selector=>emit('update:modelValue',selector),value=>emit('validity-change',value))
+watch(pending,value=>emit('pending-change',value),{immediate:true,flush:'sync'})
+defineExpose({pending,valid,inputSignature,discardPending})
 const terms=computed(()=>[...context.value.terms.values()])
 const attributeStart=computed(()=>context.value.byNode.get(props.initialNodeId||'')?.nodeType==='ATTRIBUTE')
 function changeMethod(value:string|number|boolean|undefined){if(value==='values'||value==='specs')requestMethod(value)}

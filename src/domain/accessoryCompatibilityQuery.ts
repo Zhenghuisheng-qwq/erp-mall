@@ -76,7 +76,7 @@ function missingCapability(capability: CompatibilityCapability): CapabilityEvalu
 }
 /** Consume a single host query's evaluated facts; never infer basic use from
  * a specialty ability or rescan/replace the actual SKU and PLN context. */
-export function accessoryUseEvaluation(match: AccessoryMatch | undefined, options: { requireFastCharge?: boolean } = {}): AccessoryUseEvaluation {
+export function accessoryUseEvaluation(match: (Pick<AccessoryMatch, 'capabilities'> & Partial<Pick<AccessoryMatch, 'basic'>>) | undefined, options: { requireFastCharge?: boolean } = {}): AccessoryUseEvaluation {
   const basic = match?.basic || match?.capabilities.find(item => item.capability === 'basic') || missingCapability('basic')
   const fastCharge = match?.capabilities.find(item => item.capability === 'fast-charge') || missingCapability('fast-charge')
   const required = options.requireFastCharge ? [basic, fastCharge] : [basic]
@@ -175,8 +175,8 @@ export function queryAccessoryDevices(data: AppData, target: AccessoryTarget): R
       if (resolution.status !== 'resolved' || !resolution.host || !sameDeviceHost(resolution.host, first.host, false)) return []
       const applicable = declarations.filter(link => link.host.scope === 'model' || (resolution.planningId && link.host.planningId === resolution.planningId))
       if (!applicable.length) return []
-      const status = overallCapabilityStatus(evaluateCapabilities(data, applicable, resolution))
-      return [{ skuId: sku.id, code: sku.code, name: sku.skuName || sku.code, status }]
+      const capabilities=evaluateCapabilities(data,applicable,resolution),status = overallCapabilityStatus(capabilities)
+      return [{ skuId: sku.id, code: sku.code, name: sku.skuName || sku.code, status, capabilities, planningId:resolution.planningId }]
     })
     // Each model can have different PLN facts. The summary stays conservative;
     // actual phone decisions are always evaluated above with their own scope.
@@ -190,3 +190,14 @@ export function queryAccessoryDevices(data: AppData, target: AccessoryTarget): R
   result.counts = { models: result.hosts.length, declarations: result.hosts.reduce((sum, host) => sum + host.declarations.length, 0), devices: new Set(result.hosts.flatMap(host => host.devices.map(device => device.skuId))).size }
   return result
 }
+
+/** Reverse model summaries keep PLN restrictions only for the requested abilities.
+ * A fast-charge-only exception cannot narrow an unconditional basic-use result. */
+export function reverseAccessoryUseEvaluation(host: ReverseCompatibilityResult['hosts'][number], options: { requireFastCharge?: boolean } = {}) {
+  const evaluation=accessoryUseEvaluation(host,options)
+  const limited=host.declarations.some(link=>link.host.scope==='planning'&&(declarationDefaults(link).capability==='basic'||options.requireFastCharge&&declarationDefaults(link).capability==='fast-charge'))
+  return {...evaluation,status:limited&&evaluation.status==='compatible'?'conditional' as const:evaluation.status,hasSpecDifferences:limited}
+}
+
+/** Explicit, resolved model/combination context, without creating a pretend SKU. */
+export function queryDeviceContextAccessories(data:AppData,device:DeviceResolution){return queryResolvedDevice(data,device)}

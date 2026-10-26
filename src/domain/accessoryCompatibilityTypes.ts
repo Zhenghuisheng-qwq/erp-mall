@@ -117,7 +117,7 @@ export interface AccessoryQueryResult {
 }
 export interface ReverseCompatibilityResult {
   target: AccessoryTarget
-  hosts: { key: string; host: CompatibilityHost; label: string; declarations: CompatibilityLink[]; devices: { skuId: string; code: string; name: string; status: AccessoryMatch['status'] }[]; status: AccessoryMatch['status']; conflict: boolean; scopeSummary: string; capabilities: CapabilityEvaluation[] }[]
+  hosts: { key: string; host: CompatibilityHost; label: string; declarations: CompatibilityLink[]; devices: { skuId: string; code: string; name: string; status: AccessoryMatch['status']; capabilities: CapabilityEvaluation[]; planningId?: string }[]; status: AccessoryMatch['status']; conflict: boolean; scopeSummary: string; capabilities: CapabilityEvaluation[] }[]
   issues: CompatibilityIssue[]
   counts: { models: number; declarations: number; devices: number }
 }

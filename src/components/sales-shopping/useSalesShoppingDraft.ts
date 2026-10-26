@@ -2,6 +2,7 @@ import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useCatalogStore } from '../../stores/catalog'
 import { cloneBenefit, copyBenefitPackageDraft, newBenefitPackageDraft, previewBenefitDelivery, validateBenefitPackage } from '../../domain/benefitPackages'
 import type { BenefitCommandResult, BenefitDeliveryPreview, BenefitPackageDraft } from '../../domain/benefitPackageTypes'
+import {rememberSalesScheme} from './salesShoppingNavigation'
 import { localBenefitRequest } from '../benefit-package/benefitPackagePresentation'
 
 function freshDraft(): BenefitPackageDraft {
@@ -16,6 +17,7 @@ function content(draft: BenefitPackageDraft) {
 /** One composition ledger; local edits are immediate and Store writes are serialized. */
 export function useSalesShoppingDraft() {
   const store = useCatalogStore(), draft = ref<BenefitPackageDraft>(freshDraft())
+  watch(()=>draft.value.id,id=>rememberSalesScheme(store,id),{flush:'sync',immediate:true})
   const saving = ref(false), businessPending = ref(false), error = ref(''), inputError = ref('')
   const missing = ref(false), dirty = ref(false), preview = ref<BenefitDeliveryPreview>()
   const confirmed = ref(false), packageCount = ref(1)

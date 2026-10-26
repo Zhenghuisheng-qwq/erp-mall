@@ -1,6 +1,7 @@
 import type { AppData } from './types'
 import type { SalesOptionPlan, SalesOptionBinding, SalesProductRelation } from './salesConfigurationTypes'
 import { planProblems, bindingProblems, relationProblems, previewSalesBinding } from './salesConfiguration'
+import type { SalesBindingWorkingContext } from './salesBindingWorkingCopy'
 
 type Receipt = { requestId: string; intent: string; sourceRevision: number; resultRevision: number }
 type RecordBase = { id: string; revision: number; schemaVersion: number; receipts?: Receipt[] }
@@ -8,7 +9,7 @@ export type SalesConfigurationResult = { ok: boolean; message?: string; id?: str
 export interface SalesPlanSave { draft: SalesOptionPlan; expectedRevision: number; requestId: string }
 export interface SalesPlanPublish { id: string; expectedRevision: number; requestId: string }
 export interface SalesPlanStatus extends SalesPlanPublish { status: 'available' | 'disabled' }
-export interface SalesBindingSave { draft: SalesOptionBinding; expectedRevision: number; expectedBasis: string; requestId: string }
+export interface SalesBindingSave { draft: SalesOptionBinding; expectedRevision: number; expectedBasis: string; requestId: string; workingContext?:SalesBindingWorkingContext }
 export interface SalesBindingsSave { drafts: SalesOptionBinding[]; expectedRevisions: Record<string, number>; expectedBasis: Record<string, string>; requestId: string }
 export interface SalesRelationSave { draft: SalesProductRelation; expectedRevision: number; requestId: string }
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value))

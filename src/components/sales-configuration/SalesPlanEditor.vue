@@ -70,7 +70,7 @@ async function publish(){
   busy.value=true;error.value=''
   try{const result=await store.publishSalesOptionPlan({id:candidate.id,expectedRevision:candidate.revision,requestId:publishRequest},current);if(!result.ok){error.value=result.message||'发布失败，已保存草稿保留，可重试。';return}if(result.plan)draft.value=clone(result.plan);baseline.value=JSON.stringify(draft.value);emit('saved',result.id!);emit('update:modelValue',false)}catch(cause){error.value=cause instanceof Error?cause.message:'发布失败，已保存草稿保留，可重试。'}finally{busy.value=false}
 }
-onBeforeRouteLeave(async()=>{if(!props.modelValue)return true;await close();return !props.modelValue})
+onBeforeRouteLeave(async()=>{if(props.embedded||!props.modelValue)return true;await close();return !props.modelValue})
 onBeforeUnmount(()=>{alive=false;epoch++})
 </script>
 <style scoped>

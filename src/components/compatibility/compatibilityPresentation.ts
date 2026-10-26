@@ -1,6 +1,6 @@
 import type { AppData, CompatibilityHost, CompatibilityLink, Sku } from '../../domain/types'
 import { savedSkuSpec } from '../../domain/productList'
-import type { AccessoryTarget, CompatibilityCapability, CompatibilityConclusion, CompatibilityCondition, CompatibilityVerification } from '../../domain/accessoryCompatibilityTypes'
+import type { AccessoryTarget, CompatibilityCapability, CompatibilityConclusion, CompatibilityCondition, CompatibilityVerification, AccessoryUseEvaluation } from '../../domain/accessoryCompatibilityTypes'
 import { compatibilityTarget, declarationDefaults } from '../../domain/accessoryCompatibilityQuery'
 
 export const conclusionLabels: Record<CompatibilityConclusion, string> = { compatible: '适用', conditional: '有条件适用', incompatible: '明确不兼容' }
@@ -25,4 +25,12 @@ export function conditionText(data: AppData, condition: CompatibilityCondition) 
 export function declarationText(data: AppData, link: CompatibilityLink) {
   const state = declarationDefaults(link)
   return `${targetText(data, compatibilityTarget(link))} → ${hostText(link.host)} · ${scopeText(link.host)} · ${capabilityLabels[state.capability]} · ${verificationLabels[state.verification]}${conclusionLabels[state.conclusion]}`
+}
+
+export function compatibilityUseBucket(use:AccessoryUseEvaluation):'available'|'review'|'blocked'{return use.conflict||use.status==='incompatible'?'blocked':use.status==='compatible'?'available':'review'}
+export function compatibilityUseLabel(use:AccessoryUseEvaluation){
+  if(use.conflict)return use.basic.conflict?'基本使用规则冲突':'快充规则冲突'
+  if(!use.requiresFastCharge&&use.status==='compatible'&&use.fastCharge.conflict)return '基本使用适用，快充存在冲突'
+  if(!use.requiresFastCharge&&use.status==='compatible'&&use.fastCharge.status==='incompatible')return '基本使用适用，快充不适用'
+  return {compatible:use.requiresFastCharge?'基本使用与快充适用':'已确认适用',conditional:'需核对条件',pending:'依据待确认',incompatible:'明确不适用'}[use.status]
 }

@@ -4,6 +4,7 @@ import { effectScope } from 'vue'
 import { installCatalogTestLocks } from './catalog-storage-test-env'
 import { createSalesConfigurationFixture } from './sales-configuration-fixtures'
 import { useCatalogStore } from '../src/stores/catalog'
+import {salesShoppingEntryQuery} from '../src/components/sales-shopping/salesShoppingNavigation'
 import { useSalesShoppingDraft } from '../src/components/sales-shopping/useSalesShoppingDraft'
 import { addBenefitSku, cloneBenefit, reviewBenefitQuote, setBenefitDevice } from '../src/domain/benefitPackages'
 import { addSalesCandidate, attachSalesSource, querySalesCandidates, removeSalesPosition } from '../src/domain/salesSelection'
@@ -39,7 +40,7 @@ assert(sale.change(current=>addSalesCandidate(store.data,current,caseCandidate()
 assert.equal(sale.draft.value.goods.length,2);assert.equal(writes,initialWrites)
 release();assert(await initial);assert(await sale.flush())
 assert.equal(stored().goods.length,2);assert.equal(store.data.benefitPackages?.length,1)
-assert.equal(stored().revision,2);mark('first create waiting: add → remove → add stays immediate and one ledger receives latest revision')
+assert.equal(stored().revision,2);assert.deepEqual(salesShoppingEntryQuery(store,'phone-b'),{scheme:sale.draft.value.id,sku:'phone-b'});mark('first create waiting: add → remove → add stays immediate and one ledger receives latest revision')
 
 ready=gate();assert(sale.change(current=>({...current,name:'A'})));const old=sale.flush();await ready
 assert(sale.change(current=>({...current,name:'B'})))
@@ -58,7 +59,7 @@ assert(await sale.retry());assert.equal(stored().name,'失败后最新选择');a
 mark('quota failure writes zero; later removal is retained and retry persists latest only')
 
 const priorCount=store.data.benefitPackages!.length
-assert(await sale.replaceSession(undefined,false,true))
+assert(await sale.replaceSession(undefined,false,true));assert.deepEqual(salesShoppingEntryQuery(store,'phone-a'),{sku:'phone-a'})
 assert(sale.change(current=>addBenefitSku(store.data,current,'phone-b',1,{role:'host',groupId:null})))
 assert(await sale.flush());assert.equal(store.data.benefitPackages!.length,priorCount+1)
 const secondId=sale.draft.value.id
@@ -70,7 +71,7 @@ const beforeIdentity=disk.get(STORAGE_KEY)
 assert(store.startPermissionPreview('sales-local-user').ok)
 release();assert.equal(await identitySave,false);await store.waitForPersistence();assert.equal(disk.get(STORAGE_KEY),beforeIdentity)
 if(RBAC_ENFORCEMENT_ENABLED){
-  assert(sale.canEdit.value);assert.equal(sale.canPersist.value,false)
+  assert(sale.canEdit.value);assert.equal(sale.canPersist.value,false);assert.deepEqual(salesShoppingEntryQuery(store,'phone-a'),{sku:'phone-a'})
   assert(sale.change(current=>addBenefitSku(store.data,current,'phone-a',1,{role:'host',groupId:null})))
   assert.equal(await sale.flush(),false);await store.waitForPersistence();assert.equal(disk.get(STORAGE_KEY),beforeIdentity)
   assert.match(sale.saveLabel.value,/临时选购/)
@@ -83,7 +84,7 @@ if(RBAC_ENFORCEMENT_ENABLED){
   assert.notEqual(direct.draft.value.name,'旧身份待保存');directScope.stop()
 }
 assert(store.stopPermissionPreview().ok);assert.equal(sale.draft.value.id,secondId);assert.equal(sale.draft.value.name,'旧身份待保存')
-assert(await sale.retry());assert.equal(stored().name,'旧身份待保存')
+assert(await sale.retry());assert.equal(stored().name,'旧身份待保存');assert.equal(salesShoppingEntryQuery(store).scheme,secondId)
 mark('identity change cancels locked write; read-only role can choose locally with zero persistence; owner retry recovers draft')
 
 const unchangedWrites=writes;assert(sale.change(current=>cloneBenefit(current)));assert(await sale.flush());assert.equal(writes,unchangedWrites)

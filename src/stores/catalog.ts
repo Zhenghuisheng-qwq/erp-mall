@@ -64,7 +64,7 @@ import { arrangeSpecPositions } from '../domain/logic'
 import { activeProductListView, applyPresetToActiveView, currentModeQuery, ensureProductListViews } from '../domain/productListViews'
 import { createSeed, defaultColumns, emptyQuery, phoneCanvas, phoneSpecNodes } from '../domain/seed'
 import { DATA_VERSION, STORAGE_KEY, type AppData, type Category, type ColumnPref, type FeedbackItem, type ListQuery, type ListView, type ParamDef, type ProductFamily, type ProductGroup, type ProductType, type Sku, type SpecRule, type Brand, type UserRole } from '../domain/types'
-import { readSalesBindingWorkingCopy, writeSalesBindingWorkingCopy, salesBindingWorkingCopyKey, type SalesBindingWorkingCopyInput } from '../domain/salesBindingWorkingCopy'
+import { readSalesBindingWorkingCopy, writeSalesBindingWorkingCopy, salesBindingWorkingCopyKey, listSalesBindingWorkingCopies, validateSalesBindingWorkingApplication, type SalesBindingWorkingCopyInput, type SalesBindingWorkingIdentity } from '../domain/salesBindingWorkingCopy'
 
 type ModuleName = 'products' | 'categories' | 'templates' | 'params' | 'rules' | 'groups' | 'system'
 type StoredPayload = { version?: number; data?: AppData }
@@ -1701,9 +1701,16 @@ export const useCatalogStore = defineStore('catalog', () => {
     saveSalesOptionPlan: (input: SalesPlanSave, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input); return salesCommand(next=>saveSalesPlanCommand(next,value,()=>uid('sales-plan'),new Date().toISOString()),['salesOptionPlans'],isCurrent) },
     publishSalesOptionPlan: (input: SalesPlanPublish, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input); return salesCommand(next=>publishSalesPlanCommand(next,value,new Date().toISOString()),['salesOptionPlans'],isCurrent) },
     setSalesOptionPlanStatus: (input: SalesPlanStatus, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input); return salesCommand(next=>setSalesPlanStatusCommand(next,value,new Date().toISOString()),['salesOptionPlans'],isCurrent) },
-    saveSalesOptionBinding: (input: SalesBindingSave, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input),key=value.draft?.id||'0'; return salesCommand(next=>saveSalesBindingsCommand(next,{drafts:[value.draft],expectedRevisions:{[key]:value.expectedRevision},expectedBasis:{[key]:value.expectedBasis},requestId:value.requestId},()=>uid('sales-binding'),new Date().toISOString()),['salesOptionBindings'],isCurrent) },
+    saveSalesOptionBinding: (input: SalesBindingSave, isCurrent: () => boolean = () => true) => {
+      const value=cloneCompatibility(input),key=value.draft?.id||'0',owner=activeUserId.value,preview=previewUserId.value
+      return salesCommand(next=>{
+        if(value.workingContext){const problem=validateSalesBindingWorkingApplication(salesBindingWorkingCopyKey(owner,preview,value.workingContext.key),next,value.draft,value.workingContext);if(problem)return {ok:false,message:problem}}
+        return saveSalesBindingsCommand(next,{drafts:[value.draft],expectedRevisions:{[key]:value.expectedRevision},expectedBasis:{[key]:value.expectedBasis},requestId:value.requestId},()=>uid('sales-binding'),new Date().toISOString())
+      },['salesOptionBindings'],isCurrent)
+    },
     saveSalesOptionBindings: (input: SalesBindingsSave, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input); return salesCommand(next=>saveSalesBindingsCommand(next,value,()=>uid('sales-binding'),new Date().toISOString()),['salesOptionBindings'],isCurrent) },
-    getSalesBindingWorkingCopy: (key:string) => readSalesBindingWorkingCopy(salesBindingWorkingCopyKey(activeUserId.value,previewUserId.value,key),data),
+    getSalesBindingWorkingCopy: (key:string,identity?:SalesBindingWorkingIdentity) => readSalesBindingWorkingCopy(salesBindingWorkingCopyKey(activeUserId.value,previewUserId.value,key),data,identity),
+    listSalesBindingWorkingCopies: () => listSalesBindingWorkingCopies(activeUserId.value,previewUserId.value,data),
     saveSalesBindingWorkingCopy: (input:SalesBindingWorkingCopyInput,isCurrent:()=>boolean=()=>true) => {
       const value=cloneCompatibility(input),owner=activeUserId.value,preview=previewUserId.value,key=salesBindingWorkingCopyKey(owner,preview,value.key)
       return command(()=>owner!==activeUserId.value||preview!==previewUserId.value||!isCurrent()?{ok:false,message:'操作者或编辑上下文已变化，工作草稿未保存。'}:writeSalesBindingWorkingCopy(key,data,value))

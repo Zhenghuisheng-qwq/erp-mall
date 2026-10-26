@@ -37,7 +37,7 @@
         <section class="panel sales-options" aria-label="规格与相关选配">
           <template v-if="selectedFamily">
             <div class="section-head"><h2>{{selectedFamily.name}}</h2><span class="muted">选择实际规格</span></div>
-            <SalesSkuSelector :data="store.data" :family="selectedFamily" :skus="familySkus(selectedFamily.id)" :model-value="sourceSkuId" :label="displaySpec" @select="browseSku"/>
+            <SalesSkuSelector ref="skuSelector" :data="store.data" :family="selectedFamily" :skus="familySkus(selectedFamily.id)" :model-value="sourceSkuId" :label="displaySpec" @selection-state="acceptSkuSelection"/>
           </template>
           <template v-if="sourceSummary">
             <nav v-if="trail.length>1" class="source-trail" aria-label="最近查看的相关商品"><button v-for="(entry,index) in trail" :key="`${entry.skuId}:${entry.positionId||''}`" @click="returnToSource(index)">{{benefitSkuSummary(store.data,entry.skuId)?.name||'来源已失效'}}</button></nav>
@@ -46,7 +46,7 @@
             <div class="section-head related-head"><h2>相关选配</h2><span v-if="candidates.resolution.plan" class="muted">{{candidates.resolution.plan.name}}</span></div>
             <el-alert v-if="['conflict','invalid'].includes(candidates.resolution.state)" :title="candidates.resolution.message" type="warning" :closable="false"/>
             <p v-if="!candidateGroups.length" class="muted">{{candidates.resolution.message||'此商品暂未配置相关选配，可继续浏览其他商品。'}}</p>
-            <SalesCandidateGroup v-for="group in candidateGroups" :key="`${sourceSkuId}:${group.key}`" :group="group" :disabled="!canEdit||businessPending" :selected="candidateQuantity" :display-spec="displaySpec" @add="addCandidate" @browse="browseCandidate"/>
+            <SalesCandidateGroup v-for="group in candidateGroups" :key="`${sourceSkuId}:${group.key}`" :group="group" :context-key="JSON.stringify([sourceSkuId,sourcePositionId||null])" :disabled="!canEdit||businessPending" :selected="candidateQuantity" :display-spec="displaySpec" @add="addCandidate" @browse="browseCandidate"/>
           </template>
           <el-empty v-else description="先找到商品，再选择规格" :image-size="78"/>
         </section>
@@ -88,6 +88,7 @@ import { useRoute, useRouter, onBeforeRouteLeave, onBeforeRouteUpdate } from 'vu
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHead from '../components/PageHead.vue'
 import CategoryFilterTree from '../components/CategoryFilterTree.vue'
+import type {SalesSkuSelectionState} from '../components/sales-shopping/salesSkuSelection'
 import SalesSkuSelector from '../components/sales-shopping/SalesSkuSelector.vue'
 import SalesCandidateGroup from '../components/sales-shopping/SalesCandidateGroup.vue'
 import DeviceModelPicker from '../components/compatibility/DeviceModelPicker.vue'
@@ -109,6 +110,7 @@ const {store,draft,validation,businessPending,dirty,error,inputError,missing,can
 const supported=computed(()=>draft.value.compositionVersion===2&&(!draft.value.sales||draft.value.sales.schemaVersion===1)&&(!draft.value.framework||['type-v1','type-v2'].includes(draft.value.framework.kind)))
 const legacyFramework=computed(()=>!!draft.value.framework)
 const keyword=ref(''),brand=ref(''),categoryIds=ref<string[]>([]),shownCount=ref(24),selectedFamilyId=ref(''),sourceSkuId=ref(''),sourcePositionId=ref<string>()
+const skuSelector=ref<{allows:(id:string)=>boolean}>()
 const trail=ref<{skuId:string;positionId?:string}[]>([])
 const nameEditing=ref(false),nameText=ref(''),nameComposing=ref(false),nameInput=ref<{focus:()=>void}>(),recordsOpen=ref(false),commonOpen=ref(false),deliveryOpen=ref(false),quoteOpen=ref(false),quoteText=ref(''),quoteComposing=ref(false),quoteError=ref('')
 const basketElement=ref<HTMLElement>(),commonSaving=ref(false),commonError=ref('')
@@ -142,12 +144,13 @@ const commonSchemes=computed(()=>(store.can('product:benefit:read')?store.data.b
 const otherIssues=computed(()=>validation.value.issues.filter(issue=>!issue.positionId&&!issue.skuId&&issue.code!=='quote-review'))
 function toggleCategory(id:string,multiple=false){categoryIds.value=multiple?(categoryIds.value.includes(id)?categoryIds.value.filter(value=>value!==id):[...categoryIds.value,id]):[id]}
 function openFamily(id:string){selectedFamilyId.value=id;const skus=familySkus(id);if(skus.length===1)browseSku(skus[0]!.id);else if(!skus.some(sku=>sku.id===sourceSkuId.value)){sourceSkuId.value='';sourcePositionId.value=undefined;trail.value=[]}}
-function browseSku(id:string,positionId?:string){const sku=store.data.skus.find(item=>item.id===id);if(!sku)return;if(positionId&&!draft.value.goods.some(line=>line.id===positionId&&line.skuId===id))positionId=undefined;selectedFamilyId.value=sku.familyId;sourceSkuId.value=id;sourcePositionId.value=positionId;const previous=trail.value.findIndex(item=>item.skuId===id&&item.positionId===positionId);trail.value=previous>=0?trail.value.slice(0,previous+1):[...trail.value,{skuId:id,positionId}].slice(-16)}
+function browseSku(id:string,positionId?:string){if(!id){sourceSkuId.value='';sourcePositionId.value=undefined;return}const sku=realSkus.value.find(item=>item.id===id);if(!sku){sourceSkuId.value='';sourcePositionId.value=undefined;return}if(positionId&&!draft.value.goods.some(line=>line.id===positionId&&line.skuId===id))positionId=undefined;selectedFamilyId.value=sku.familyId;sourceSkuId.value=id;sourcePositionId.value=positionId;const previous=trail.value.findIndex(item=>item.skuId===id&&item.positionId===positionId);trail.value=previous>=0?trail.value.slice(0,previous+1):[...trail.value,{skuId:id,positionId}].slice(-16)}
+function acceptSkuSelection(state:SalesSkuSelectionState){if(state.familyId!==selectedFamilyId.value)return;if(!state.selectedSkuId){browseSku('');return}if(state.selectedSkuId!==sourceSkuId.value)browseSku(state.selectedSkuId)}
 function returnToSource(index:number){const entry=trail.value[index];if(entry)browseSku(entry.skuId,entry.positionId)}
 function apply(operation:(value:BenefitPackageDraft)=>BenefitPackageDraft){clearInputError();const accepted=change(operation);if(quoteError.value)inputError.value=quoteError.value;return accepted}
 function chooseDevice(device:BenefitDeviceContext){if(apply(value=>legacyFramework.value?setBenefitDevice(store.data,value,device):setSalesDevice(store.data,value,device)))deviceOpen.value=false}
 function confirmDevice(){if(deviceMode.value==='sku')chooseDevice({kind:'sku',skuId:deviceSkuChoice.value});else{const model=models.value.find(item=>item.key===deviceModelChoice.value);if(model)chooseDevice({kind:'model',host:cloneBenefit(model.host)})}}
-function addCurrent(){if(legacyFramework.value)return;const id=sourceSkuId.value;if(!id)return;const accepted=apply(value=>{let next=value;if(sourceRole.value==='host'&&!next.device)next=setBenefitDevice(store.data,next,{kind:'sku',skuId:id});next=addBenefitSku(store.data,next,id,1,{role:sourceRole.value==='host'?'host':'item',groupId:null});const line=next.goods.find(item=>item.skuId===id&&item.groupId===null&&item.role===(sourceRole.value==='host'?'host':'item'));return attachSalesSource(store.data,next,id,line?.id)});if(accepted){const line=draft.value.goods.find(item=>item.skuId===id&&item.groupId===null&&item.role===(sourceRole.value==='host'?'host':'item'));if(line){sourcePositionId.value=line.id;const entry=trail.value[trail.value.length-1];if(entry?.skuId===id&&!entry.positionId)entry.positionId=line.id;else browseSku(id,line.id)}}}
+function addCurrent(){if(legacyFramework.value)return;const id=sourceSkuId.value;if(!id||!skuSelector.value?.allows(id)||!realSkus.value.some(sku=>sku.id===id&&sku.familyId===selectedFamilyId.value)){browseSku('');inputError.value='当前规格选择已变化，请重新选择实际在售规格。';return}const accepted=apply(value=>{let next=value;if(sourceRole.value==='host'&&!next.device)next=setBenefitDevice(store.data,next,{kind:'sku',skuId:id});next=addBenefitSku(store.data,next,id,1,{role:sourceRole.value==='host'?'host':'item',groupId:null});const line=next.goods.find(item=>item.skuId===id&&item.groupId===null&&item.role===(sourceRole.value==='host'?'host':'item'));return attachSalesSource(store.data,next,id,line?.id)});if(accepted){const line=draft.value.goods.find(item=>item.skuId===id&&item.groupId===null&&item.role===(sourceRole.value==='host'?'host':'item'));if(line){sourcePositionId.value=line.id;const entry=trail.value[trail.value.length-1];if(entry?.skuId===id&&!entry.positionId)entry.positionId=line.id;else browseSku(id,line.id)}}}
 function candidatePositions(candidate:SalesCandidate){return draft.value.sales?.origins.filter(origin=>origin.sourceSkuId===candidate.sourceSkuId&&origin.sourcePositionId===sourcePositionId.value&&origin.itemId===candidate.item.id&&origin.plan?.planId===candidate.plan?.planId&&origin.plan?.version===candidate.plan?.version).flatMap(origin=>[...draft.value.goods,...draft.value.services].filter(line=>line.id===origin.positionId&&(!candidate.skuId||'skuId' in line&&line.skuId===candidate.skuId)))||[]}
 function candidateQuantity(candidate:SalesCandidate){return candidatePositions(candidate).reduce((total,line)=>total+line.quantity,0)}
 function addCandidate(candidate:SalesCandidate){if(legacyFramework.value)return;apply(value=>addSalesCandidate(store.data,value,candidate,{sourcePositionId:sourcePositionId.value}))}

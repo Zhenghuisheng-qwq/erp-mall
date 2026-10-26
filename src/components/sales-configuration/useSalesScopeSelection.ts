@@ -15,9 +15,14 @@ export function useSalesScopeSelection(input:{
   modelValue:()=>TemplateSpecSelector|undefined
   sourceKey:()=>string
   initialNodeId:()=>string|undefined
+  initializeNodeSelection?:()=>boolean
 },update:(selector:TemplateSpecSelector|undefined)=>void,validity:(valid:boolean)=>void){
   const method=ref<Method>('values'),valueIds=ref<string[]>([]),identities=ref<string[]>([]),message=ref('')
   const proposal=ref<Proposal>(),accepted=ref<TemplateSpecSelector>(),invalidInput=ref(false)
+  const acceptedInput=ref('')
+  const inputSignature=computed(()=>salesSignature([method.value,valueIds.value,identities.value,proposal.value]))
+  const pending=computed(()=>!!acceptedInput.value&&inputSignature.value!==acceptedInput.value)
+  const acceptInput=()=>{acceptedInput.value=inputSignature.value}
   const valid=computed(()=>!invalidInput.value&&!proposal.value)
   // A Store update may rebuild the context object without changing this source.
   // Only identities/coverage/validation changes may reset or recheck scope input.
@@ -58,10 +63,11 @@ export function useSalesScopeSelection(input:{
     valueIds.value=represented.ids
     method.value=represented.lossless?'values':'specs'
     if(represented.original.message){message.value=`${represented.original.message} 原范围保留，请核对后明确重新选择。`;invalidInput.value=true}
+    acceptInput()
   }
   function publish(selector:TemplateSpecSelector|undefined){
     accepted.value=selector?copy(selector):undefined
-    echo=salesSignature(selector);update(selector?copy(selector):undefined)
+    echo=salesSignature(selector);acceptInput();update(selector?copy(selector):undefined)
   }
   function setValues(ids=valueIds.value){
     valueIds.value=[...ids];proposal.value=undefined
@@ -85,10 +91,10 @@ export function useSalesScopeSelection(input:{
     if(invalidInput.value){message.value+=' 请先处理未应用的输入，再切换选择方式。';return}
     proposal.value=undefined;message.value=''
     if(next==='specs'){
-      identities.value=[...coverage(accepted.value).identities];method.value=next;return
+      identities.value=[...coverage(accepted.value).identities];method.value=next;acceptInput();return
     }
     const represented=valueRepresentation(accepted.value)
-    if(represented.lossless){valueIds.value=represented.ids;method.value=next;return}
+    if(represented.lossless){valueIds.value=represented.ids;method.value=next;acceptInput();return}
     if(represented.message||!represented.selector){message.value=represented.message||'当前范围无法转换，请保留完整规格方式编辑。';return}
     proposal.value={selector:represented.selector,valueIds:represented.ids,
       added:[...represented.proposed.identities].filter(id=>!represented.original.identities.has(id)),
@@ -112,10 +118,11 @@ export function useSalesScopeSelection(input:{
     const first=!initialized;initialized=true
     const selector=input.modelValue(),context=input.context.value
     if(selector){restore(selector);return}
-    if((first||key!==previous?.[0])&&input.initialNodeId()&&context.byNode.get(input.initialNodeId()!)?.nodeType==='VALUE'){
+    if(input.initializeNodeSelection?.()!==false&&(first||key!==previous?.[0])&&input.initialNodeId()&&context.byNode.get(input.initialNodeId()!)?.nodeType==='VALUE'){
       const result=selectorForNode(context,input.initialNodeId()!);restore(result.selector)
       if(result.message){message.value=result.message;invalidInput.value=true}else publish(result.selector)
     }else restore(undefined)
   },{immediate:true,flush:'sync'})
-  return {method,valueIds,identities,message,proposal,valid,accepted,setValues,setSpecs,requestMethod,cancelMethod,confirmMethod}
+  function discardPending(){restore(accepted.value)}
+  return {method,valueIds,identities,message,proposal,valid,pending,inputSignature,discardPending,accepted,setValues,setSpecs,requestMethod,cancelMethod,confirmMethod}
 }
