@@ -1447,7 +1447,7 @@ export const guidePageArticles: GuideArticle[] = [
   },
   {
     "id": "manual-benefits",
-    "title": "权益包与框架操作手册",
+    "title": "常用组合操作手册",
     "kind": "page",
     "summary": "查询包配置、收藏/复制常用包，并独立维护只有类型范围的选配框架。",
     "aliases": [

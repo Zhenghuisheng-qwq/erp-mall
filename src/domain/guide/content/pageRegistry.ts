@@ -265,7 +265,7 @@ export const guidePages: GuidePage[] = [
   },
   {
     "id": "page-benefits",
-    "title": "权益包与框架",
+    "title": "常用组合",
     "patterns": [
       "/benefit-packages"
     ],
@@ -279,7 +279,7 @@ export const guidePages: GuidePage[] = [
   },
   {
     "id": "page-benefit-create",
-    "title": "新建权益包",
+    "title": "新建组合 · 高级配置",
     "patterns": [
       "/benefit-packages/new"
     ],
@@ -293,7 +293,7 @@ export const guidePages: GuidePage[] = [
   },
   {
     "id": "page-benefit-edit",
-    "title": "权益包详情",
+    "title": "常用组合 · 高级详情",
     "patterns": [
       "/benefit-packages/:id"
     ],

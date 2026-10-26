@@ -95,6 +95,20 @@ release();const delivered=await generating;assert(delivered.ok&&delivered.delive
 assert.equal(store.data.benefitDeliveries?.length,1);assert.equal(delivered.delivery.goods[0]!.skuId,'phone-b')
 mark('unchanged draft does not write; quotation and formal delivery use existing protected Store with duplicate prevention')
 
+const known=cloneBenefit(sale.draft.value),unknown=cloneBenefit(known)
+Object.assign(unknown,{compositionVersion:99})
+const beforeUnknown=disk.get(STORAGE_KEY)
+assert(await sale.replaceSession(unknown,false,true));assert.equal(sale.canEdit.value,false);assert.equal(sale.canPersist.value,false)
+assert.equal(sale.change(current=>({...current,name:'不允许改写'})),false);assert.equal(sale.draft.value.name,unknown.name)
+assert.equal(await sale.replaceSession(unknown,true,true),false);assert.equal(disk.get(STORAGE_KEY),beforeUnknown)
+Object.assign(unknown,{compositionVersion:2,sales:{schemaVersion:99,origins:[],contexts:[]}})
+assert(await sale.replaceSession(unknown,false,true));assert.equal(sale.canEdit.value,false);assert.equal(await sale.replaceSession(unknown,true,true),false)
+const unknownFramework=cloneBenefit(known);Object.assign(unknownFramework,{framework:{kind:'future-framework',frameworkId:'future',revision:1,name:'未来框架',groups:[]}})
+assert(await sale.replaceSession(unknownFramework,false,true));assert.equal(sale.canEdit.value,false);assert.equal(sale.canPersist.value,false);assert.equal(await sale.replaceSession(unknownFramework,true,true),false);assert.equal(disk.get(STORAGE_KEY),beforeUnknown)
+assert(await sale.replaceSession({...known,favorite:true},true,true));assert.equal(sale.draft.value.favorite,false)
+assert(await sale.flush());assert.notEqual(sale.draft.value.id,known.id);assert.equal(store.data.benefitPackages!.find(row=>row.id===known.id)!.name,known.name)
+mark('unknown composition and sales versions stay read-only with zero writes; using a favorite creates an independent non-favorite sales draft')
+
 ready=gate();assert(sale.change(current=>({...current,name:'页面销毁后不可写'})));const disposal=sale.flush();await ready
 const beforeDispose=disk.get(STORAGE_KEY);scope.stop();release();assert.equal(await disposal,false);await store.waitForPersistence();assert.equal(disk.get(STORAGE_KEY),beforeDispose)
 assert.equal(JSON.stringify([store.data.families,store.data.skus,store.data.specModelVersions,store.data.planningRecords,store.data.materialReceipts,store.data.compatibilities]),business)

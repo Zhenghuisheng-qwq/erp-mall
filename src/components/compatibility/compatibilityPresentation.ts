@@ -6,9 +6,9 @@ import { compatibilityTarget, declarationDefaults } from '../../domain/accessory
 export const conclusionLabels: Record<CompatibilityConclusion, string> = { compatible: '适用', conditional: '有条件适用', incompatible: '明确不兼容' }
 export const verificationLabels: Record<CompatibilityVerification, string> = { confirmed: '已确认', pending: '待确认' }
 export const capabilityLabels: Record<CompatibilityCapability, string> = { basic: '基本使用', 'fast-charge': '快充能力', other: '指定能力' }
-export function hostText(host: CompatibilityHost) { return host.steps.map(step => step.valueId).join(' · ') || '型号信息未记录' }
-export function hostKey(host: CompatibilityHost) { return JSON.stringify([host.productTypeId, host.productModelId, host.identityKey]) }
-export function scopeText(host: CompatibilityHost) { return host.scope === 'planning' ? `仅规划规格 ${host.planningId || '引用失效'}` : '整款型号，全部容量和颜色' }
+export function hostText(host: CompatibilityHost) { return (Array.isArray(host?.steps)?host.steps.map(step => step?.valueId||'').join(' · '):'') || '型号信息未记录' }
+export function hostKey(host: CompatibilityHost) { return JSON.stringify([host?.productTypeId, host?.productModelId, host?.identityKey]) }
+export function scopeText(host: CompatibilityHost) { return host?.scope === 'planning' ? `仅规划规格 ${host.planningId || '引用失效'}` : '整款型号，全部容量和颜色' }
 export function recordSpec(data: AppData, record: Sku) {
   const family = data.families.find(item => item.id === record.familyId)
   return family ? savedSkuSpec(family, record) : '所属商品引用失效'

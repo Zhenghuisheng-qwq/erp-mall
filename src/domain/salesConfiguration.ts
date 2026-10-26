@@ -158,6 +158,16 @@ export function resolveSalesPlan(data:AppData,skuId:string):SalesPlanResolution{
   return result
 }
 
+/** Model workspace reads only the explicitly viewed version, including draft-only scopes. */
+export function resolveSalesPlanForCombination(data:AppData,input:{modelId:string;versionId:string|null;identityKey:string},suppliedContext?:ReturnType<typeof salesBindingContext>):SalesPlanResolution{
+  const source:SalesSourceResolution={state:'resolved',skuId:'',modelId:input.modelId,versionId:input.versionId||'',identityKey:input.identityKey,message:''}
+  const context=suppliedContext||salesBindingContext(data,input.modelId,input.versionId)
+  if(context.issues.length||!context.byIdentity.has(input.identityKey))return {state:'invalid',source,bindingIds:[],message:'当前版本没有此合法规格，不能推测其他版本的范围。'}
+  const hits=(data.salesOptionBindings||[]).filter(binding=>bindingShape(binding)&&binding.enabled&&binding.scope.kind==='model'&&binding.scope.modelId===input.modelId&&binding.scope.versionId===input.versionId).filter(binding=>binding.mode==='default'||binding.scope.kind==='model'&&binding.scope.selector&&templateSelectorCoverage(context,binding.scope.selector).identities.has(input.identityKey))
+  const result=resultForBindings(data,source,hits)
+  return input.versionId===null?{...result,message:[result.message,'模型草稿仅供预览，正式应用需明确发布版本。'].filter(Boolean).join(' ')}:result
+}
+
 export function salesConfigurationStamp(data:AppData){return salesSignature([data.salesOptionPlans,data.salesOptionBindings,data.salesProductRelations,data.specModelVersions,data.productSpecNodes,data.specCanvases,data.params,data.templateParams,data.templates,data.skus,data.families,data.productTypes,data.categories,data.planningRecords,data.businessDefinitions,data.productPlans,data.materialReceipts,data.compatibilities,data.deviceModels,data.deviceBindings])}
 export function previewSalesBinding(data:AppData,binding:SalesOptionBinding):SalesBindingPreview{
   const result:SalesBindingPreview={stamp:salesSignature([salesConfigurationStamp(data),binding]),legalCount:0,skuCount:0,skuIds:[],samples:[],unresolved:[],issues:bindingProblems(data,binding),canApply:false,draftOnly:binding.scope?.kind==='model'&&!binding.scope.versionId}

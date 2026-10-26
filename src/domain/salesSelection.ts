@@ -1,5 +1,5 @@
 import { evaluateCompatibilityCondition } from './accessoryCompatibilityQuery'
-import { addBenefitSku, benefitCompatibilitySummary, benefitSkuSummary, cloneBenefit, removeBenefitPosition, setBenefitDevice } from './benefitPackages'
+import { addBenefitSku, benefitCompatibilitySummary, benefitSkuSummary, cloneBenefit, copyBenefitPackageDraft, removeBenefitPosition, setBenefitDevice, setBenefitPositionQuantity } from './benefitPackages'
 import { benefitSelectionCatalogStamp, createBenefitSelectionIndex, resolveBenefitRange, type BenefitSelectionIndex } from './benefitFrameworks'
 import { benefitGroupRuleIssues } from './benefitPositions'
 import { compatibilityRecordRole } from './deviceResolution'
@@ -99,6 +99,7 @@ export function setSalesDevice(data:AppData,draft:BenefitPackageDraft,device:Ben
   return next
 }
 export function addSalesCandidate(data:AppData,draft:BenefitPackageDraft,candidate:SalesCandidate,options:{sourcePositionId?:string}={}):BenefitPackageDraft{
+  if(draft.framework)throw Error('此组合保留原选配框架，请在高级配置中增补商品；不能自动叠加销售选配方案。')
   const current=querySalesCandidates(data,draft,candidate.sourceSkuId,undefined,options.sourcePositionId).rows.find(row=>row.key===candidate.key)
   if(!current||!current.canAdd)throw Error(current?.reason||'候选或来源方案已变化，请重新查看相关商品。')
   if(current.evidence!==candidate.evidence)throw Error('适用依据或方案范围已变化，请重新核对当前候选。')
@@ -136,6 +137,74 @@ export function removeSalesPosition(draft:BenefitPackageDraft,positionId:string)
   if(next.sales?.schemaVersion===1){next.sales.origins=next.sales.origins.filter(origin=>origin.positionId!==positionId);pruneSalesContexts(next)}
   next.groups=next.groups.filter(group=>!group.id.startsWith('sales:')||next.goods.some(line=>line.groupId===group.id))
   next.confirmations=[];next.quote.reviewedBasis='';return next
+}
+
+function replacePosition(data:AppData,draft:BenefitPackageDraft,positionId:string,candidate:SalesCandidate|string,options:{sourcePositionId?:string},reselect=false):BenefitPackageDraft{
+  const good=draft.goods.find(line=>line.id===positionId),service=draft.services.find(line=>line.id===positionId),old=good||service
+  if(!old)throw Error('待更换位置已不存在，请重新查看本次清单。')
+  const origin=draft.sales?.origins.find(item=>item.positionId===positionId)
+  if(origin&&typeof candidate==='string')throw Error('选配位置必须从该用途的有效候选更换，不能直接改 SKU。')
+  if(typeof candidate!=='string'){
+    const candidateKey=candidate.key
+    const current=querySalesCandidates(data,draft,candidate.sourceSkuId,undefined,options.sourcePositionId??origin?.sourcePositionId).rows.find(row=>row.key===candidateKey)
+    if(!current||!current.canAdd||current.evidence!==candidate.evidence)throw Error('候选或适用依据已变化，请重新核对更换范围。')
+    // Quantity limits and purpose come from the current frozen record, not caller fields.
+    candidate=current
+  }
+  let next=removeSalesPosition(draft,positionId)
+  const before=new Set([...next.goods,...next.services].map(line=>line.id))
+  if(typeof candidate==='string'){
+    if(!good)throw Error('服务不能更换为商品位置。')
+    if(good.role==='host'&&draft.device?.kind==='sku'&&draft.device.skuId===good.skuId)next=setSalesDevice(data,next,{kind:'sku',skuId:candidate})
+    next=addBenefitSku(data,next,candidate,good.quantity,{role:good.role,groupId:good.groupId})
+    const line=next.goods.find(item=>!before.has(item.id))
+    if(!line)throw Error('目标用途已有该商品，请调整已有位置数量；本次未合并。')
+    next=attachSalesSource(data,next,candidate,line.id)
+  }else{
+    const sourcePositionId=options.sourcePositionId??origin?.sourcePositionId
+    if(!origin)throw Error('普通商品不能伪装成选配用途，请明确从选配项目加入。')
+    if((candidate.item.scope.kind==='service')!==!!service)throw Error('商品和服务的位置类型不能互换。')
+    if(!reselect&&(candidate.sourceSkuId!==origin.sourceSkuId||sourcePositionId!==origin.sourcePositionId||!service&&candidate.item.id!==origin.itemId||salesSignature(candidate.plan)!==salesSignature(origin.plan)))throw Error('更换必须保留用途及冻结来源版本；如需改变来源请使用重新选择来源。')
+    if(sourcePositionId&&!next.goods.some(line=>line.id===sourcePositionId&&line.skuId===candidate.sourceSkuId))throw Error('来源位置已移除，请先明确选择有效来源。')
+    if(!sourcePositionId&&(next.device?.kind!=='sku'||next.device.skuId!==candidate.sourceSkuId))throw Error('原使用设备已变化，请先明确重新选择来源。')
+    next=addSalesCandidate(data,next,candidate,{sourcePositionId})
+    const added=[...next.goods,...next.services].find(line=>!before.has(line.id))
+    if(!added)throw Error('该用途已有目标商品或服务，请调整已有位置数量；本次未合并。')
+    const quantity=old.quantity>=candidate.item.minQuantity&&old.quantity<=candidate.item.maxQuantity?old.quantity:candidate.item.defaultQuantity
+    if(service)next.services.find(line=>line.id===added.id)!.quantity=quantity
+    else next=setBenefitPositionQuantity(data,next,added.id,quantity)
+  }
+  const added=(good?next.goods:next.services).find(line=>!before.has(line.id))!
+  // A replacement always receives a fresh protected identity, but keeps its visual slot.
+  if(good){const index=draft.goods.findIndex(line=>line.id===positionId);next.goods=next.goods.filter(line=>line.id!==added.id);next.goods.splice(index,0,added as typeof good)}
+  else{const index=draft.services.findIndex(line=>line.id===positionId);next.services=next.services.filter(line=>line.id!==added.id);next.services.splice(index,0,added as NonNullable<typeof service>)}
+  next.confirmations=[];next.quote.reviewedBasis=''
+  return next
+}
+
+export function replaceSalesPosition(data:AppData,draft:BenefitPackageDraft,positionId:string,candidate:SalesCandidate|string,options:{sourcePositionId?:string}={}):BenefitPackageDraft{
+  return replacePosition(data,draft,positionId,candidate,options)
+}
+
+/** Explicit source reassignment is removal + validated addition, never an origin edit. */
+export function reselectSalesSource(data:AppData,draft:BenefitPackageDraft,positionId:string,sourcePositionId:string):BenefitPackageDraft{
+  const source=draft.goods.find(line=>line.id===sourcePositionId),origin=draft.sales?.origins.find(item=>item.positionId===positionId)
+  const good=draft.goods.find(line=>line.id===positionId),service=draft.services.find(line=>line.id===positionId)
+  if(!source||!origin||sourcePositionId===positionId)throw Error('请选择本次清单内的有效来源商品。')
+  // Rebinding a parent to its own descendant would create a dependency cycle.
+  let cursor:string|undefined=sourcePositionId
+  const visited=new Set<string>()
+  while(cursor){if(cursor===positionId||visited.has(cursor))throw Error('来源关系不能形成循环。');visited.add(cursor);cursor=draft.sales?.origins.find(item=>item.positionId===cursor)?.sourcePositionId}
+  const rows=querySalesCandidates(data,draft,source.skuId,undefined,source.id).rows.filter(row=>row.canAdd&&row.item.id===origin.itemId&&row.item.checkTarget===origin.checkTarget&&row.plan?.planId===origin.plan?.planId&&(good?row.skuId===good.skuId:!!service&&row.item.scope.kind==='service'))
+  if(rows.length!==1)throw Error('新来源没有唯一匹配的用途与商品，请从其相关选配中重新选择。')
+  return replacePosition(data,draft,positionId,rows[0]!,{sourcePositionId},true)
+}
+
+export function createSalesCommonCombinationDraft(source:BenefitPackageDraft,name:string):BenefitPackageDraft{
+  if(source.sales&&source.sales.schemaVersion!==1||source.compositionVersion!==undefined&&![1,2].includes(source.compositionVersion)||source.framework&&!['type-v1','type-v2'].includes(source.framework.kind))throw Error('未知销售方案版本只读保留，不能另存为常用组合。')
+  const next=copyBenefitPackageDraft(source)
+  next.name=name.trim()||source.name||'常用组合';next.favorite=true
+  return next
 }
 
 export function salesPositionCompatibility(data:AppData,draft:BenefitPackageDraft,positionId:string,index:BenefitSelectionIndex):BenefitCompatibilitySummary|undefined{

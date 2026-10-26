@@ -1,9 +1,9 @@
 <template>
-  <el-dialog :model-value="visible" :title="`适用设备配置 · ${modelName}${loadedVersionId ? '（历史版本只读）' : ''}`" width="min(1080px, 96vw)" top="4vh" class="template-config-dialog" :close-on-click-modal="false" :close-on-press-escape="!saving" :show-close="!saving" :before-close="beforeClose" append-to-body data-template-compatibility-dialog @closed="returnFocus">
+  <TemplateCompatibilityFrame :embedded="embedded" :model-value="visible" :title="`适用设备配置 · ${modelName}${loadedVersionId ? '（历史版本只读）' : ''}`" width="min(1080px, 96vw)" top="4vh" class="template-config-dialog" :close-on-click-modal="false" :close-on-press-escape="!saving" :show-close="!saving" :before-close="beforeClose" append-to-body data-template-compatibility-dialog @closed="returnFocus">
     <el-alert v-if="contextNotice" :title="contextNotice" type="warning" :closable="false" />
     <el-alert v-if="readOnly" title="当前配置只读，可以查看规则和预览，不能保存或转换。" type="info" :closable="false" />
-    <p class="muted task-guide">选择适用设备 → 有特殊规格时设置例外 → 检查结果 → 保存草稿。发布后才冻结到新版本。</p>
-    <nav v-if="draft" class="config-summary" aria-label="配置摘要">
+
+    <nav v-if="draft && !embedded" class="config-summary" aria-label="配置摘要">
       <button type="button" @click="tab='default'"><strong>{{ defaultDeviceCount }}</strong><span>默认适用型号</span></button>
       <button type="button" @click="tab='exceptions'"><strong>{{ draft.exceptions.length }}</strong><span>规格例外</span></button>
       <button type="button" @click="showPreview('default')"><strong>{{ originCounts.default }}</strong><span>规格使用默认</span></button>
@@ -12,6 +12,27 @@
     </nav>
     <details v-if="issues.length" class="issue-summary" :open="!!error"><summary>{{ issues.length }} 处待完善 · 点击定位</summary><button v-for="(issue,index) in issues" :key="`${issue.ruleId}:${issue.claimId}:${issue.message}`" type="button" @click="locateIssue(issue)">{{ index+1 }}. {{ ruleName(issue.ruleId || '') }} · {{ issue.message }}</button></details>
     <el-tabs v-if="draft" v-model="tab" data-template-tabs>
+
+      <el-tab-pane label="当前结果" name="result">
+        <div v-if="requiresRange" class="range-picker" data-template-result-range>
+          <p class="muted">属性节点需要明确选择实际规格，不能自动代表全部取值。</p>
+          <el-select v-model="resultPicks" multiple filterable placeholder="选择当前范围的完整合法规格" aria-label="当前结果规格范围"><el-option v-for="item in context.combinations" :key="item.identityKey" :value="item.identityKey" :label="item.label" /></el-select>
+        </div>
+        <p data-template-result-count>当前范围 {{ rangeResults.length }} 个合法组合 · {{ resultGroups.length }} 种生效结果</p>
+        <el-alert v-if="resultGroups.length > 1" title="此范围存在多种结果。请先缩小规格范围，再单独设置；不会合并或覆盖成一个结果。" type="info" :closable="false" />
+        <article v-for="group in resultGroups" :key="group.key" class="preview-row" data-template-result-group>
+          <div class="preview-head"><strong>{{ group.label }}</strong><el-tag>{{ group.rows.length }} 个组合</el-tag></div>
+          <p>{{ group.result.message }}</p>
+          <p v-for="entry in group.result.claims" :key="entry.claim.id">{{ hostText(entry.claim.host) }} · {{ verificationLabels[entry.claim.verification] }}{{ conclusionLabels[entry.claim.conclusion] }}</p>
+          <details><summary>规格、依据与规则追溯</summary><p>{{ group.rows.map(row => row.label).join('；') }}</p><p v-for="entry in group.result.claims" :key="entry.claim.id">{{ claimText(entry.claim) }}</p><p class="muted">{{ group.result.ruleIds.join('、') || '未配置规则' }}</p></details>
+          <el-button v-if="resultGroups.length > 1" link type="primary" @click="resultPicks=group.rows.map(row=>row.identityKey)">缩小到这组规格</el-button>
+        </article>
+        <el-empty v-if="!rangeResults.length" description="先选择可证明的实际规格范围。" :image-size="60" />
+        <div v-if="!readOnly" class="exception-actions">
+          <el-button v-if="!loadedInitialNodeId && !loadedScopeSelector && !resultPicks.length" type="primary" @click="tab='default'">设置模板默认</el-button>
+          <el-button v-else type="primary" :disabled="!canCreateRange" data-template-set-range @click="editCurrentRange">为此范围单独设置</el-button>
+        </div>
+      </el-tab-pane>
       <el-tab-pane label="默认配置" name="default">
         <el-form label-position="top">
           <el-form-item label="默认配置状态"><el-select :model-value="draft.defaultRule.configured" :disabled="readOnly || converting || saving" data-template-default-state @update:model-value="setDefaultConfigured"><el-option label="未配置：不产生声明" :value="false" /><el-option label="已明确配置（允许为空）" :value="true" /></el-select></el-form-item>
@@ -60,30 +81,33 @@
       </el-tab-pane>
     </el-tabs>
     <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon data-template-config-error />
-    <template #footer><span v-if="dirty" class="dirty-note">有未保存修改</span><el-button :disabled="converting || saving" @click="requestClose">{{ readOnly ? '关闭' : '取消' }}</el-button><el-button @click="showPreview('all')">查看生效预览</el-button><el-button v-if="!readOnly" type="primary" :loading="saving" data-template-save @click="save">保存到模型草稿</el-button></template>
-  </el-dialog>
+    <template #footer><span v-if="dirty" class="dirty-note">有未保存修改</span><el-button v-if="!embedded" :disabled="converting || saving" @click="requestClose">{{ readOnly ? '关闭' : '取消' }}</el-button><el-button @click="showPreview('all')">查看生效预览</el-button><el-button v-if="!readOnly" type="primary" :disabled="!dirty" :loading="saving" data-template-save @click="save">保存到模型草稿</el-button></template>
+  </TemplateCompatibilityFrame>
 </template>
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onBeforeRouteLeave } from 'vue-router'
 import { useCatalogStore, uid } from '../../stores/catalog'
-import { applyLegacyTemplateCompatibilityConversion, cloneTemplateCompatibility, createEmptyTemplateCompatibilityConfig, createTemplateCompatibilityContext, prepareTemplateCompatibilityConfig, previewLegacyTemplateCompatibilityConversion, resolveTemplateCompatibility, selectorForCombination, selectorForNode } from '../../domain/templateCompatibility'
+import { applyLegacyTemplateCompatibilityConversion, cloneTemplateCompatibility, createEmptyTemplateCompatibilityConfig, createTemplateCompatibilityContext, prepareTemplateCompatibilityConfig, previewLegacyTemplateCompatibilityConversion, resolveTemplateCompatibility, selectorForCombination, selectorForNode, templateSelectorCoverage, templateClaimContentSignature } from '../../domain/templateCompatibility'
 import type { TemplateCompatibilityClaim, TemplateCompatibilityConfig, TemplateCompatibilityIssue, TemplateSpecSelector } from '../../domain/templateCompatibilityTypes'
 import { capabilityLabels, conclusionLabels, conditionText, hostText, scopeText, verificationLabels } from '../compatibility/compatibilityPresentation'
 import TemplateClaimSetEditor from './TemplateClaimSetEditor.vue'
+import TemplateCompatibilityFrame from './TemplateCompatibilityFrame.vue'
 
-const props = defineProps<{ modelValue: boolean; modelId: string; initialNodeId?: string; readonly?: boolean; versionId?: string }>()
+const props = defineProps<{ modelValue: boolean; modelId: string; initialNodeId?: string; readonly?: boolean; versionId?: string; embedded?: boolean; scopeSelector?: TemplateSpecSelector }>()
 const emit = defineEmits<{ 'update:modelValue': [value:boolean]; saved: [] }>()
 const store = useCatalogStore(), visible = ref(false), loadedModelId = ref(''), loadedVersionId = ref(''), loadedInitialNodeId = ref('')
+const loadProblem=ref('')
 const draft = ref<TemplateCompatibilityConfig>(), baseline = ref(''), expectedRevision = ref(0), error = ref(''), saving = ref(false), converting=ref(false), contextNotice = ref('')
+const loadedScopeSelector=ref<TemplateSpecSelector>()
 const selectedExceptionId = ref(''), combinationPicks = ref<string[]>([]), chooseRange = ref(false), legacyPicks = ref<string[]>([])
-const tab = ref('default'), previewKeyword = ref(''), previewPage = ref(1), pageSize = 12
+const tab = ref('result'), previewKeyword = ref(''), previewPage = ref(1), pageSize = 12
 const defaultBatchDirty=ref(false),exceptionBatchDirty=ref(false)
 const previewOrigin=ref('all'), defaultEditor=ref<InstanceType<typeof TemplateClaimSetEditor>>(),exceptionEditor=ref<InstanceType<typeof TemplateClaimSetEditor>>()
 let opener: HTMLElement | null = null, guardPending = false, contextEpoch = 0
 watch(
-  () => [props.modelValue, props.modelId, props.versionId, props.initialNodeId, props.readonly,
+  () => [props.modelValue, props.modelId, props.versionId, props.initialNodeId, props.scopeSelector, props.readonly,
     store.editorGeneration, store.can('product:model:update'), store.data, visible.value, loadedModelId.value, loadedVersionId.value, selectedExceptionId.value],
   () => { contextEpoch++ }, { flush: 'sync' },
 )
@@ -107,15 +131,49 @@ async function confirmBatchDiscard(
   } catch { return false }
 }
 onBeforeRouteLeave(async () => !visible.value || await canDiscard())
-const readOnly = computed(() => !!props.readonly || !store.can('product:model:update') || !!loadedVersionId.value)
+const readOnly = computed(() => !!loadProblem.value || !!props.readonly || !store.can('product:model:update') || !!loadedVersionId.value)
 const modelName = computed(() => store.data.specCanvases.find(item => item.templateId === loadedModelId.value)?.name || store.data.templates.find(item => item.id === loadedModelId.value)?.name || loadedModelId.value)
 const dirty = computed(() => !!draft.value && (JSON.stringify(draft.value) !== baseline.value || defaultBatchDirty.value || exceptionBatchDirty.value))
 // Structural dependencies are tracked by Vue; typing evidence/notes only prepares rules, never re-expands the model.
 const structure = computed(() => createTemplateCompatibilityContext(store.data,{modelId:loadedModelId.value,versionId:loadedVersionId.value || undefined,config:createEmptyTemplateCompatibilityConfig(loadedModelId.value)}))
 const context = computed(() => draft.value && !loadedVersionId.value ? prepareTemplateCompatibilityConfig(store.data,structure.value,draft.value) : structure.value)
 // Hidden preview panes do not clone every effective claim while the user types.
-const effective = computed(() => tab.value==='preview' ? context.value.combinations.map(item => resolveTemplateCompatibility(context.value,item)) : [])
+const effective = computed(() => ['result','preview'].includes(tab.value) ? context.value.combinations.map(item => resolveTemplateCompatibility(context.value,item)) : [])
 const originCounts=computed(()=>{const current=context.value,result={default:0,exception:0};if(current.issues.length)return result;for(const combo of current.combinations){if(current.matches.get(combo.identityKey)?.length)result.exception++;else if(current.config.defaultRule.configured)result.default++}return result})
+const resultPicks=ref<string[]>([])
+const requiresRange=computed(()=>!loadedScopeSelector.value && !!loadedInitialNodeId.value && context.value.byNode.get(loadedInitialNodeId.value)?.nodeType !== 'VALUE')
+const rangeSelector=computed<TemplateSpecSelector | undefined>(()=>{
+  if(resultPicks.value.length)return {anyOf:context.value.combinations.filter(item=>resultPicks.value.includes(item.identityKey)).flatMap(item=>selectorForCombination(item).anyOf)}
+  if(loadedScopeSelector.value)return loadedScopeSelector.value
+  if(!loadedInitialNodeId.value || requiresRange.value)return undefined
+  return selectorForNode(context.value,loadedInitialNodeId.value).selector
+})
+const rangeResults=computed(()=>{
+  if(requiresRange.value&&!resultPicks.value.length)return []
+  if(!rangeSelector.value)return loadedInitialNodeId.value?[]:effective.value
+  const coverage=templateSelectorCoverage(context.value,rangeSelector.value)
+  return effective.value.filter(item=>coverage.identities.has(item.identityKey))
+})
+const resultGroups=computed(()=>{
+  const groups=new Map<string,{key:string;label:string;result:typeof rangeResults.value[number];rows:typeof rangeResults.value}>()
+  for(const result of rangeResults.value){
+    const key=JSON.stringify([result.state,result.origin,result.claims.map(entry=>templateClaimContentSignature(entry.claim)).sort()])
+    const label=result.state==='configured'||result.state==='empty' ? `${result.origin==='default'?'沿用模板默认':'此范围单独设置'} · ${result.state==='empty'?'明确为空声明':`${result.claims.length} 条声明`}` : stateLabels[result.state]
+    const group=groups.get(key)||{key,label,result,rows:[]};group.rows.push(result);groups.set(key,group)
+  }
+  return [...groups.values()]
+})
+const canCreateRange=computed(()=>!!rangeSelector.value&&resultGroups.value.length===1&&!['conflict','invalid'].includes(resultGroups.value[0]?.result.state||'')&&!saving.value&&!converting.value)
+async function editCurrentRange(){
+  if(readOnly.value||!draft.value||!canCreateRange.value||!rangeSelector.value||!await discardExceptionBatch())return
+  const selector=cloneTemplateCompatibility(rangeSelector.value)
+  const existing=draft.value.exceptions.find(item=>JSON.stringify(item.selector)===JSON.stringify(selector))
+  if(existing){selectedExceptionId.value=existing.id;tab.value='exceptions';return}
+  const result=resultGroups.value[0]?.result;if(!result)return
+  const id=uid('texception')
+  draft.value.exceptions.push({id,name:`规格单独设置（${rangeResults.value.length} 个组合）`,selector,claims:result.claims.map(entry=>({...cloneTemplateCompatibility(entry.claim),id:uid('tclaim')}))})
+  selectedExceptionId.value=id;chooseRange.value=false;tab.value='exceptions'
+}
 const defaultDeviceCount=computed(()=>new Set(draft.value?.defaultRule.claims.map(claim=>JSON.stringify([claim.host.productTypeId,claim.host.productModelId,claim.host.identityKey]))).size)
 const issues=computed(()=>{const current=context.value,conflicts:TemplateCompatibilityIssue[]=[];for(const ids of current.matches.values()){const rules=ids.flatMap(id=>{const rule=current.rules.get(id);return rule?[rule]:[]});if(rules.every(rule=>!rule.issues.length)&&new Set(rules.map(rule=>rule.signature)).size>1)for(const ruleId of ids)conflicts.push({ruleId,message:'同一规格命中不同的完整替代配置。'})}return [...new Map([...current.issues,...[...current.rules.values()].flatMap(rule=>rule.issues),...conflicts].map(issue=>[JSON.stringify([issue.ruleId,issue.claimId,issue.field,issue.message]),issue])).values()]})
 const previewRows = computed(() => effective.value.filter(item => (previewOrigin.value==='all'||previewOrigin.value===item.origin||previewOrigin.value==='problems'&&['invalid','conflict'].includes(item.state)) && (!previewKeyword.value.trim() || `${item.label} ${item.claims.map(entry => hostText(entry.claim.host)).join(' ')}`.toLowerCase().includes(previewKeyword.value.trim().toLowerCase()))))
@@ -124,7 +182,7 @@ const previewSummary = computed(() => Object.entries(stateLabels).map(([key,labe
 const selectedException = computed(() => draft.value?.exceptions.find(item => item.id === selectedExceptionId.value))
 const exceptionCount = computed(() => [...context.value.matches.values()].filter(ids=>ids.includes(selectedExceptionId.value)).length)
 const legacy = computed(() => previewLegacyTemplateCompatibilityConversion(store.data,loadedModelId.value,draft.value,context.value))
-const stateLabels = {unconfigured:'未配置',configured:'已配置',empty:'空结果',invalid:'引用失效',conflict:'规则冲突'}
+const stateLabels = {unconfigured:'未配置',configured:'已配置',empty:'明确为空声明',invalid:'引用失效',conflict:'规则冲突'}
 watch([previewKeyword,previewOrigin],() => {previewPage.value = 1})
 function preventUnload(event:BeforeUnloadEvent){if(visible.value&&dirty.value&&!store.persistenceState.discardConfirmed){event.preventDefault();event.returnValue=''}}
 onMounted(()=>window.addEventListener('beforeunload',preventUnload));onUnmounted(()=>window.removeEventListener('beforeunload',preventUnload))
@@ -141,27 +199,31 @@ watch(() => props.modelValue,async value => {
   if (value && !visible.value) { opener = document.activeElement instanceof HTMLElement ? document.activeElement : null; load(); visible.value = true }
   else if (!value && visible.value) { if (await canDiscard()) visible.value = false; else emit('update:modelValue',true) }
 },{immediate:true})
-watch(() => [props.modelId,props.versionId,props.initialNodeId] as const,async () => {
+watch(() => [props.modelId,props.versionId,props.initialNodeId,props.scopeSelector] as const,async () => {
   if (!visible.value) return
-  if (props.modelId === loadedModelId.value && (props.versionId || '') === loadedVersionId.value && (props.initialNodeId || '') === loadedInitialNodeId.value) return
+  if (props.modelId === loadedModelId.value && (props.versionId || '') === loadedVersionId.value && (props.initialNodeId || '') === loadedInitialNodeId.value && JSON.stringify(props.scopeSelector)===JSON.stringify(loadedScopeSelector.value)) return
   if (await canDiscard()) load()
   else contextNotice.value = `已保留“${modelName.value}”的未保存配置。当前弹窗仍属于该模型，请先保存或取消后再打开其他模型。`
 })
 function load() {
   contextEpoch++
   defaultEditor.value?.resetPendingBatch();exceptionEditor.value?.resetPendingBatch();defaultBatchDirty.value=false;exceptionBatchDirty.value=false
-  loadedModelId.value = props.modelId; loadedVersionId.value = props.versionId || ''; loadedInitialNodeId.value = props.initialNodeId || ''
+  loadedModelId.value = props.modelId; loadedVersionId.value = props.versionId || ''; loadedInitialNodeId.value = props.initialNodeId || '';loadedScopeSelector.value=props.scopeSelector?cloneTemplateCompatibility(props.scopeSelector):undefined
   const version = store.data.specModelVersions.find(item => item.id === loadedVersionId.value)
-  const saved = loadedVersionId.value ? version?.templateCompatibilitySnapshot?.config : store.data.templateCompatibilityConfigs?.find(item => item.modelId === loadedModelId.value)
+  const saved = loadedVersionId.value ? version?.templateCompatibilitySnapshot?.config : (Array.isArray(store.data.templateCompatibilityConfigs)?store.data.templateCompatibilityConfigs.find(item => item?.modelId === loadedModelId.value):undefined)
+  const checked=createTemplateCompatibilityContext(store.data,{modelId:loadedModelId.value,versionId:loadedVersionId.value||undefined,config:saved})
+  loadProblem.value=checked.issues.map(item=>item.message).join('；')
+  if(loadProblem.value){draft.value=undefined;baseline.value='';error.value=loadProblem.value;return}
   draft.value = cloneTemplateCompatibility(saved || createEmptyTemplateCompatibilityConfig(loadedModelId.value)); baseline.value = JSON.stringify(draft.value); expectedRevision.value = draft.value.revision
-  tab.value = 'default'; selectedExceptionId.value = draft.value.exceptions[0]?.id || ''; combinationPicks.value = []; legacyPicks.value = []; chooseRange.value = false; previewKeyword.value = ''; previewOrigin.value='all'; previewPage.value = 1; error.value = ''; contextNotice.value = ''
-  if (props.initialNodeId && !readOnly.value) {
-    const result = selectorForNode(context.value,props.initialNodeId)
-    tab.value = 'exceptions'
-    if (!result.selector) {error.value = result.message; return}
-    const existing = draft.value.exceptions.find(item => JSON.stringify(item.selector) === JSON.stringify(result.selector))
-    if (existing) selectedExceptionId.value = existing.id
-    else { const id = uid('texception'); draft.value.exceptions.push({id,name:`节点规格例外（${result.count} 个组合）`,selector:result.selector,claims:[]}); selectedExceptionId.value = id }
+  tab.value = 'result'; selectedExceptionId.value = draft.value.exceptions[0]?.id || ''; combinationPicks.value = []; legacyPicks.value = []; chooseRange.value = false; resultPicks.value = []; previewKeyword.value = ''; previewOrigin.value='all'; previewPage.value = 1; error.value = ''; contextNotice.value = ''
+  if (props.initialNodeId) {
+    const node = context.value.byNode.get(props.initialNodeId)
+    if (node?.nodeType === 'VALUE') {
+      const result = selectorForNode(context.value,props.initialNodeId)
+      if (!result.selector) error.value = result.message
+      const existing = draft.value.exceptions.find(item => JSON.stringify(item.selector) === JSON.stringify(result.selector))
+      selectedExceptionId.value = existing?.id || ''
+    }
   }
 }
 async function canDiscard() { if(saving.value||converting.value) return false; if (!dirty.value) return true; if (guardPending) return false; guardPending = true; try {await ElMessageBox.confirm('当前适用设备配置尚未保存，放弃这些修改？','未保存配置',{confirmButtonText:'放弃修改',cancelButtonText:'继续编辑',type:'warning'});defaultEditor.value?.resetPendingBatch();exceptionEditor.value?.resetPendingBatch(); return true} catch {return false} finally {guardPending = false} }
@@ -193,7 +255,7 @@ function attributeName(id:string) {const snapshot=store.data.specModelVersions.f
 function selectorText(selector:TemplateSpecSelector) { if(!selector.anyOf.length) return '尚未选择有效范围'; return selector.anyOf.map(terms => terms.map(term => `${attributeName(term.attributeId)}：${term.valueId}`).join(' 且 ')).join('；或 ') }
 function ruleName(id:string) {return id===draft.value?.defaultRule.id ? '默认配置' : draft.value?.exceptions.find(item=>item.id===id)?.name || '已保留的来源规则'}
 async function setDefaultConfigured(value:boolean) {if(!draft.value||readOnly.value||saving.value)return;if(!value&&(draft.value.defaultRule.claims.length||defaultBatchDirty.value)){try{await ElMessageBox.confirm('改为未配置会移除本次草稿中的默认声明，规格例外保持。继续？','停用默认配置',{confirmButtonText:'改为未配置',cancelButtonText:'继续保留',type:'warning'})}catch{return}defaultEditor.value?.resetPendingBatch();draft.value.defaultRule.claims=[]}draft.value.defaultRule.configured=value}
-function claimText(claim:TemplateCompatibilityClaim) { return `${hostText(claim.host)} · ${scopeText(claim.host)} · ${capabilityLabels[claim.capability]} · ${verificationLabels[claim.verification]}${conclusionLabels[claim.conclusion]}${claim.conditions.length ? ` · ${claim.conditions.map(item => conditionText(store.data,item)).join('；')}` : ''} · 依据：${claim.source || '未填写'}${claim.note ? ` · 备注：${claim.note}` : ''}` }
+function claimText(claim:TemplateCompatibilityClaim) { if(!claim?.host||!Array.isArray(claim.host.steps))return '声明的设备型号引用结构失效，请修复来源数据。'; return `${hostText(claim.host)} · ${scopeText(claim.host)} · ${capabilityLabels[claim.capability]} · ${verificationLabels[claim.verification]}${conclusionLabels[claim.conclusion]}${claim.conditions.length ? ` · ${claim.conditions.map(item => conditionText(store.data,item)).join('；')}` : ''} · 依据：${claim.source || '未填写'}${claim.note ? ` · 备注：${claim.note}` : ''}` }
 function toggleLegacy(id:string) {if(saving.value)return;legacyPicks.value = legacyPicks.value.includes(id) ? legacyPicks.value.filter(item => item !== id) : [...legacyPicks.value,id]}
 async function convertLegacy() {
   if (readOnly.value || !draft.value || saving.value || converting.value || guardPending || !legacyPicks.value.length) return
@@ -226,6 +288,8 @@ async function convertLegacy() {
   } finally { converting.value = false }
 }
 async function save() {if(readOnly.value || !draft.value || saving.value || converting.value) return;if(defaultBatchDirty.value||exceptionBatchDirty.value){tab.value=defaultBatchDirty.value?'default':'exceptions';error.value='还有尚未应用的批量型号，请先点击“对所选型号应用”，或明确放弃这批输入后保存。';return}if(issues.value.length){error.value=`请先处理 ${issues.value.length} 处待完善，当前输入已保留。`;if(issues.value[0])await locateIssue(issues.value[0]);return}const submittedModelId=loadedModelId.value;saving.value=true;try{const result=await store.saveTemplateCompatibility(cloneTemplateCompatibility(draft.value),expectedRevision.value);if(!result.ok) {error.value=result.message || '保存失败，当前草稿已保留。'; return}; const saved=store.data.templateCompatibilityConfigs?.find(item => item.modelId===submittedModelId); if(saved) draft.value=cloneTemplateCompatibility(saved); baseline.value=JSON.stringify(draft.value); expectedRevision.value=draft.value.revision; error.value=''; emit('saved'); ElMessage.success(result.message || '适用设备配置已保存到模型草稿。')}catch(cause){error.value=cause instanceof Error?cause.message:'保存失败，当前输入已保留。'}finally{saving.value=false}}
+function acceptContextChange(){defaultEditor.value?.resetPendingBatch();exceptionEditor.value?.resetPendingBatch();defaultBatchDirty.value=false;exceptionBatchDirty.value=false;baseline.value=JSON.stringify(draft.value)}
+defineExpose({ canDiscard, acceptContextChange, dirty, saving, save })
 </script>
 <style scoped>
 .muted { color:var(--el-text-color-secondary); font-size:13px; line-height:1.65; }.exception-tools,.exception-actions,.range-picker { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0; }.exception-tools>.el-select { flex:1; min-width:220px; }.range-picker>.el-select { width:100%; }.preview-row,.legacy-row { border:1px solid var(--el-border-color-lighter); border-radius:10px; padding:12px; margin:12px 0; overflow-wrap:anywhere; }.preview-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }.preview-row p,.legacy-row p { margin:8px 0; line-height:1.65; }.claim-preview { padding-left:12px; border-left:2px solid var(--el-color-primary-light-5); font-size:13px; }.danger {color:var(--el-color-danger);}.dirty-note { color:var(--el-color-warning); margin-right:12px; font-size:13px; }.el-pagination { flex-wrap:wrap; }

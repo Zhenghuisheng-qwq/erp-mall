@@ -98,12 +98,12 @@ const viewSku = computed(() => store.data.skus.find(item => item.id === viewSkuI
 const viewFamily = computed(() => store.data.families.find(item => item.id === viewSku.value?.familyId))
 const accessoryMode = computed(() => compatibilityRecordRole(store.data, viewSkuId.value) === 'accessory')
 const entrySkuId = computed(() => props.skuId || '')
-const forward = computed(() => queryDeviceAccessories(store.data, viewSkuId.value, { keyword: keyword.value, productTypeId: typeId.value }))
+const forward = computed(() => queryDeviceAccessories(store.data, viewSkuId.value))
 const target = computed<AccessoryTarget>(() => ({ kind: viewSku.value && isMaterialArchive(store.data, viewSku.value) ? 'material' : 'sku', id: viewSkuId.value }))
 const reverse = computed(() => queryAccessoryDevices(store.data, target.value))
 const hasSalesDeclarations = computed(() => [...forward.value.sales, ...forward.value.pending, ...forward.value.excluded, ...forward.value.unavailable].some(item => item.target.kind === 'sku'))
 const accessoryTypes = computed(() => store.data.productTypes.filter(item => roleOfType(store.data, item.id) === 'accessory'))
-const currentMatches = computed(() => ({ sales: forward.value.sales, materials: forward.value.materials, pending: forward.value.pending, excluded: forward.value.excluded, unavailable: forward.value.unavailable })[section.value] || [])
+const currentMatches = computed(() => ({ sales: forward.value.sales, materials: forward.value.materials, pending: forward.value.pending, excluded: forward.value.excluded, unavailable: forward.value.unavailable })[section.value].filter(item=>(!typeId.value||item.productTypeId===typeId.value)&&(!keyword.value.trim()||`${item.name} ${item.code} ${item.spec}`.toLocaleLowerCase().includes(keyword.value.trim().toLocaleLowerCase()))) || [])
 const groupedMatches = computed(() => {
   const groups = new Map<string, { id: string; name: string; items: AccessoryMatch[] }>()
   for (const item of currentMatches.value) { const group = groups.get(item.productTypeId) || { id: item.productTypeId, name: item.productTypeName || '未分类配件', items: [] }; group.items.push(item); groups.set(item.productTypeId, group) }
@@ -118,7 +118,7 @@ const familyChoiceMessage = computed(() => {
 })
 const emptyMessage = computed(() => keyword.value ? '搜索无结果，请调整关键词。' : typeId.value ? '当前配件类型没有结果，可切换其他类型。' : section.value === 'materials' ? '尚无适用物料声明。' : section.value === 'pending' ? '没有待确认声明或待处理配置。' : section.value === 'excluded' ? '当前范围没有明确不兼容声明；未声明不代表兼容。' : section.value === 'unavailable' ? '当前没有非在售的匹配配件。' : '当前没有可推荐的销售配件，可以查看其他状态或维护声明。')
 const deviceStatusLabels = { resolved: '已确认设备型号', unconfigured: '尚未确认设备型号', ambiguous: '存在多个可能型号', invalid: '来源或引用失效' }
-const statusLabels = { compatible: '适用', conditional: '有条件适用', incompatible: '当前不适用', pending: '待确认' }
+const statusLabels = { compatible: '已确认适用', conditional: '需核对条件', incompatible: '明确不适用', pending: '依据待确认' }
 const conditionStatus = { met: '已满足', unmet: '不满足', unknown: '仍需确认' }
 function statusType(status: AccessoryMatch['status']) { return status === 'compatible' ? 'success' : status === 'incompatible' ? 'danger' : 'warning' }
 function chooseSku(id: string) { viewSkuId.value = id; keyword.value = ''; typeId.value = ''; section.value = 'sales'; manageTarget.value = undefined; detailId.value = ''; syncOpen.value = false }

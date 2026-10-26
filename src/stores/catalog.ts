@@ -64,6 +64,7 @@ import { arrangeSpecPositions } from '../domain/logic'
 import { activeProductListView, applyPresetToActiveView, currentModeQuery, ensureProductListViews } from '../domain/productListViews'
 import { createSeed, defaultColumns, emptyQuery, phoneCanvas, phoneSpecNodes } from '../domain/seed'
 import { DATA_VERSION, STORAGE_KEY, type AppData, type Category, type ColumnPref, type FeedbackItem, type ListQuery, type ListView, type ParamDef, type ProductFamily, type ProductGroup, type ProductType, type Sku, type SpecRule, type Brand, type UserRole } from '../domain/types'
+import { readSalesBindingWorkingCopy, writeSalesBindingWorkingCopy, salesBindingWorkingCopyKey, type SalesBindingWorkingCopyInput } from '../domain/salesBindingWorkingCopy'
 
 type ModuleName = 'products' | 'categories' | 'templates' | 'params' | 'rules' | 'groups' | 'system'
 type StoredPayload = { version?: number; data?: AppData }
@@ -740,7 +741,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
-  function commitCompatibilityChanges(changes: CompatibilityChange[]): CompatibilityCommandResult {
+  function commitCompatibilityChanges(changes: CompatibilityChange[], options: {isCurrent?:()=>boolean; expectedLinks?:{id:string;stamp:string}[];expectedBasis?:string} = {}): CompatibilityCommandResult {
+    if (options.isCurrent && !options.isCurrent()) return {ok:false,message:'编辑上下文已变化，本次没有保存，输入保留。'}
+    if (options.expectedBasis !== undefined && options.expectedBasis !== JSON.stringify(data.compatibilities) || options.expectedLinks?.some(link => JSON.stringify(data.compatibilities.find(item=>item.id===link.id)) !== link.stamp)) return {ok:false,message:'适用声明已变化，请重新核对变更预览；本次未保存。'}
     const denied = compatibilityPermission()
     if (denied) return denied
     const next = cloneCompatibility(data)
@@ -1700,6 +1703,21 @@ export const useCatalogStore = defineStore('catalog', () => {
     setSalesOptionPlanStatus: (input: SalesPlanStatus, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input); return salesCommand(next=>setSalesPlanStatusCommand(next,value,new Date().toISOString()),['salesOptionPlans'],isCurrent) },
     saveSalesOptionBinding: (input: SalesBindingSave, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input),key=value.draft?.id||'0'; return salesCommand(next=>saveSalesBindingsCommand(next,{drafts:[value.draft],expectedRevisions:{[key]:value.expectedRevision},expectedBasis:{[key]:value.expectedBasis},requestId:value.requestId},()=>uid('sales-binding'),new Date().toISOString()),['salesOptionBindings'],isCurrent) },
     saveSalesOptionBindings: (input: SalesBindingsSave, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input); return salesCommand(next=>saveSalesBindingsCommand(next,value,()=>uid('sales-binding'),new Date().toISOString()),['salesOptionBindings'],isCurrent) },
+    getSalesBindingWorkingCopy: (key:string) => readSalesBindingWorkingCopy(salesBindingWorkingCopyKey(activeUserId.value,previewUserId.value,key),data),
+    saveSalesBindingWorkingCopy: (input:SalesBindingWorkingCopyInput,isCurrent:()=>boolean=()=>true) => {
+      const value=cloneCompatibility(input),owner=activeUserId.value,preview=previewUserId.value,key=salesBindingWorkingCopyKey(owner,preview,value.key)
+      return command(()=>owner!==activeUserId.value||preview!==previewUserId.value||!isCurrent()?{ok:false,message:'操作者或编辑上下文已变化，工作草稿未保存。'}:writeSalesBindingWorkingCopy(key,data,value))
+    },
+    discardSalesBindingWorkingCopy: (key:string,expectedRevision:number,isCurrent:()=>boolean=()=>true) => {
+      const owner=activeUserId.value,preview=previewUserId.value,storageKey=salesBindingWorkingCopyKey(owner,preview,key)
+      return command(()=>{
+        if(owner!==activeUserId.value||preview!==previewUserId.value||!isCurrent())return {ok:false,message:'操作者或编辑上下文已变化，未移除工作草稿。'}
+        const prior=readSalesBindingWorkingCopy(storageKey,data)
+        if(!prior.ok)return prior
+        if((prior.copy?.revision||0)!==expectedRevision)return {ok:false,message:'工作草稿已更新，未移除其他页面的修改。'}
+        try{localStorage.removeItem(storageKey);return {ok:true}}catch{return {ok:false,message:'未能移除已保存的工作草稿，请重试。'}}
+      })
+    },
     saveSalesProductRelation: (input: SalesRelationSave, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input); return salesCommand(next=>saveSalesRelationCommand(next,value,()=>uid('sales-relation'),new Date().toISOString()),['salesProductRelations'],isCurrent) },
     saveBenefitFramework: (input: Parameters<typeof saveBenefitFramework>[0], isCurrent: () => boolean = () => true) => { const copied = cloneBenefit(input); return command(() => saveBenefitFramework(copied, isCurrent)) },
     removeBenefitFramework: (...args: Parameters<typeof removeBenefitFramework>) => command(() => removeBenefitFramework(...args)),
@@ -1707,7 +1725,10 @@ export const useCatalogStore = defineStore('catalog', () => {
     setBenefitPackageStatus: (...args: Parameters<typeof setBenefitPackageStatus>) => command<BenefitCommandResult>(() => setBenefitPackageStatus(...args)),
     setBenefitPackageFavorite: (...args: Parameters<typeof setBenefitPackageFavorite>) => command<BenefitCommandResult>(() => setBenefitPackageFavorite(...args)),
     generateBenefitDelivery: (input: Parameters<typeof generateBenefitDelivery>[0], isCurrent: () => boolean = () => true) => { const copied = cloneBenefit(input); return command<BenefitCommandResult>(() => generateBenefitDelivery(copied, isCurrent)) },
-    commitCompatibilityChanges: (...args: Parameters<typeof commitCompatibilityChanges>) => command<CompatibilityCommandResult>(() => commitCompatibilityChanges(...args)),
+    commitCompatibilityChanges: (...args: Parameters<typeof commitCompatibilityChanges>) => {
+      const owner=activeUserId.value,preview=previewUserId.value,changes=cloneCompatibility(args[0]),options=args[1]
+      return command<CompatibilityCommandResult>(() => commitCompatibilityChanges(changes,{...options,isCurrent:()=>owner===activeUserId.value&&preview===previewUserId.value&&(!options?.isCurrent||options.isCurrent())}))
+    },
     commitDeviceBinding: (...args: Parameters<typeof commitDeviceBinding>) => command<CompatibilityCommandResult>(() => commitDeviceBinding(...args)),
     clearDeviceBinding: (...args: Parameters<typeof clearDeviceBinding>) => command<CompatibilityCommandResult>(() => clearDeviceBinding(...args)),
     saveDeviceModel: (...args: Parameters<typeof saveDeviceModel>) => command<CompatibilityCommandResult>(() => saveDeviceModel(...args)),

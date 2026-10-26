@@ -1,17 +1,21 @@
 <template>
-  <el-dialog :model-value="modelValue" title="选配设置" width="min(900px,96vw)" top="5vh" :close-on-click-modal="false" :before-close="close" :show-close="!busy" data-sales-binding-dialog destroy-on-close>
-    <el-form v-if="draft" label-position="top" :disabled="busy || !canEdit">
+  <component :is="embedded ? 'section' : ElDialog" :model-value="modelValue" title="选配设置" width="min(900px,96vw)" top="5vh" :close-on-click-modal="false" :before-close="close" :show-close="!busy" data-sales-binding-dialog destroy-on-close>
+    <el-form v-if="draft && !planEditorOpen" label-position="top" :disabled="busy || !canEdit">
+      <details v-if="contextual" class="context-details"><summary>范围与来源详情</summary><p>{{draft.name}} · {{draft.source}}</p><p>{{draft.scope.kind==='model'?`${draft.scope.modelId} · ${draft.scope.versionId||'模型草稿'}`:draft.id}}</p></details>
+      <template v-if="!contextual">
       <div class="form-grid"><el-form-item label="绑定名称"><el-input v-model="draft.name" aria-label="绑定名称" placeholder="例如：手机机型选配"/></el-form-item><el-form-item label="作用来源"><el-select :model-value="draft.scope.kind" aria-label="绑定来源类型" @change="changeSource"><el-option value="model" label="模型 / 规格范围"/><el-option value="products" label="明确的真实商品范围"/></el-select></el-form-item></div>
       <template v-if="draft.scope.kind==='model'">
         <div class="form-grid"><el-form-item label="商品模型"><el-select :model-value="draft.scope.modelId" filterable aria-label="绑定模型" @change="changeModel"><el-option v-for="model in models" :key="model.id" :value="model.id" :label="model.name"/></el-select></el-form-item><el-form-item label="来源版本"><el-select :model-value="draft.scope.versionId||'$draft'" aria-label="来源模型版本" @change="changeVersion"><el-option value="$draft" label="当前模型草稿 · 仅预览"/><el-option v-for="version in versions" :key="version.id" :value="version.id" :label="`${version.versionName || 'v'+version.version} · ${version.status==='published'?'已发布':'已下线'}`" :disabled="version.status!=='published'"/></el-select></el-form-item></div>
       </template>
       <div v-else class="form-grid"><el-form-item label="商品范围"><el-select v-model="draft.scope.familyIds" multiple filterable collapse-tags aria-label="绑定商品范围"><el-option v-for="family in store.data.families" :key="family.id" :value="family.id" :label="`${family.name} · ${family.oaProductId||family.id}`"/></el-select></el-form-item><el-form-item label="或指定 SKU"><el-select v-model="draft.scope.skuIds" multiple filterable collapse-tags aria-label="绑定 SKU 范围"><el-option v-for="sku in skus" :key="sku.id" :value="sku.id" :label="sku.label"/></el-select></el-form-item></div>
-      <el-form-item label="匹配方式"><el-radio-group v-model="draft.mode" aria-label="方案匹配方式" @change="changeMode"><el-radio-button v-if="draft.scope.kind==='model'" value="default">模型默认方案</el-radio-button><el-radio-button value="replace">此范围替换方案</el-radio-button><el-radio-button value="none">此范围不使用方案</el-radio-button></el-radio-group></el-form-item>
+      </template>
+      <el-form-item label="匹配方式"><el-radio-group v-model="draft.mode" aria-label="方案匹配方式" @change="changeMode"><el-radio-button v-if="draft.scope.kind==='model'" value="default">模板默认</el-radio-button><el-radio-button value="replace">此范围单独设置</el-radio-button><el-radio-button value="none">此范围不展示选配</el-radio-button></el-radio-group></el-form-item>
       <SalesScopePicker v-if="draft.scope.kind==='model' && draft.mode!=='default'" :key="`${draft.scope.modelId}:${draft.scope.versionId||'draft'}:${draft.id}`" v-model="draft.scope.selector" :model-id="draft.scope.modelId" :version-id="draft.scope.versionId" :initial-node-id="draft.scope.nodeId" @validity-change="scopeValid=$event"/>
-      <div v-if="draft.mode!=='none'" class="form-grid"><el-form-item label="选配方案"><div class="inline-control"><el-select :model-value="draft.planId||''" filterable aria-label="选择选配方案" @change="changePlan"><el-option v-for="plan in (store.data.salesOptionPlans||[]).filter(item=>item.schemaVersion===1)" :key="plan.id" :value="plan.id" :label="`${plan.name}${plan.status==='disabled'?'（停用）':!plan.publishedVersion?'（待发布）':''}`"/></el-select><el-button v-if="draft.planId" link @click="planEditorId=draft.planId;planEditorOpen=true">编辑方案</el-button><el-button v-if="store.can('product:sales-config:create')" link @click="planEditorId='';planEditorOpen=true">新建</el-button></div></el-form-item><el-form-item label="方案版本"><el-select v-model="draft.planVersion" aria-label="选配方案版本" placeholder="选择已发布版本"><el-option v-for="version in selectedPlan?.versions||[]" :key="version.version" :value="version.version" :label="`v${version.version} · ${version.name}`"/></el-select></el-form-item></div>
-      <el-form-item label="配置来源"><el-input v-model="draft.source" aria-label="绑定配置来源" placeholder="例如：门店销售选配规则"/></el-form-item>
+      <div v-if="draft.mode!=='none'" class="form-grid"><el-form-item label="选配方案"><div class="inline-control"><el-select :model-value="draft.planId||''" filterable aria-label="选择选配方案" @change="changePlan"><el-option v-for="plan in (store.data.salesOptionPlans||[]).filter(item=>item.schemaVersion===1)" :key="plan.id" :value="plan.id" :label="`${plan.name}${plan.status==='disabled'?'（停用）':!plan.publishedVersion?'（待发布）':''}`"/></el-select><el-button v-if="draft.planId" link @click="editPlan(false)">编辑共享方案</el-button><el-button v-if="draft.planId && store.can('product:sales-config:create')" link @click="editPlan(true)">复制后调整</el-button><el-button v-if="store.can('product:sales-config:create')" link @click="planEditorId='';planCopyId='';planEditorOpen=true">新建</el-button></div></el-form-item><el-form-item label="方案版本"><el-select v-model="draft.planVersion" aria-label="选配方案版本" placeholder="选择已发布版本"><el-option v-for="version in selectedPlan?.versions||[]" :key="version.version" :value="version.version" :label="`v${version.version} · ${version.name}`"/></el-select></el-form-item></div>
+      <ul v-if="selectedPlanSnapshot" class="plan-summary"><li v-for="item in selectedPlanSnapshot.items.filter(item=>item.enabled)" :key="item.id">{{item.name}}：{{item.required?'必选':'可选'}}，最多 {{item.maxKinds}} 款<span v-if="item.service"> · {{item.service.description}} · {{item.service.unit}}<template v-if="item.service.validity"> · {{item.service.validity}}</template></span></li></ul><p v-if="selectedPlan" class="muted">共享方案 · {{planUsage}} 个正式范围使用；修改草稿后仍需发布并核对绑定版本。</p>
+      <el-form-item v-if="!contextual" label="配置来源"><el-input v-model="draft.source" aria-label="绑定配置来源" placeholder="例如：门店销售选配规则"/></el-form-item>
     </el-form>
-    <section v-if="preview" class="coverage" data-sales-binding-preview>
+    <section v-if="preview && !planEditorOpen" class="coverage" data-sales-binding-preview>
       <div class="counts"><span><strong data-sales-legal-count>{{preview.legalCount}}</strong> 合法规格</span><span><strong data-sales-sku-count>{{preview.skuCount}}</strong> 当前销售 SKU</span><el-tag v-if="preview.draftOnly" type="info">草稿预览</el-tag></div>
       <details v-if="preview.samples.length"><summary>查看覆盖样本（{{preview.samples.length}}）</summary><ul><li v-for="sample in preview.samples.slice(0,20)" :key="sample.identityKey">{{sample.label}}<span class="muted"> · 当前 SKU {{sample.skuIds.length}} 条</span></li></ul></details>
       <el-alert v-for="issue in preview.issues" :key="issue" :title="issue" type="warning" :closable="false"/>
@@ -19,56 +23,72 @@
       <p v-if="preview.draftOnly" class="muted">应用到现有商品前，请选择其实际来源的已发布模型版本。草稿不会作为正式适用依据。</p>
     </section>
     <el-alert v-if="error" :title="error" type="error" :closable="false" role="alert"/>
-    <template #footer><span v-if="dirty" class="muted">有未保存修改</span><el-button :disabled="busy" @click="close()">关闭</el-button><el-button v-if="canEdit" :loading="busy" :disabled="!canSaveInactive || !scopeReady" :title="canSaveInactive?undefined:'停用已启用绑定需要发布权限'" data-sales-save-binding-draft @click="save(false)">{{draft?.enabled?'停用并保存':'保存配置草稿'}}</el-button><el-button v-if="canPublish" type="primary" :loading="busy" :disabled="!preview?.canApply || !scopeReady" data-sales-apply-binding @click="save(true)">{{draft?.scope.kind==='products'?'应用到商品范围':'应用到已发布范围'}}</el-button></template>
-    <SalesPlanEditor v-model="planEditorOpen" :plan-id="planEditorId" keep-open-after-save @saved="id=>{changePlan(id)}"/>
-  </el-dialog>
+    <el-alert v-if="copyConflict" title="正式配置已被其他操作更新，工作草稿已保留。重新核对当前版本后再保存或应用。" type="warning" :closable="false"><el-button link @click="reviewLatest">重新核对当前版本</el-button></el-alert>
+    <div v-if="!planEditorOpen" class="binding-actions"><span v-if="dirty" class="muted">有未保存修改</span><span v-else-if="workingRevision" class="muted" data-binding-working-saved>工作草稿已保存 · 正式配置保持原样</span><el-button :disabled="busy" @click="close()">{{embedded?'返回当前结果':'关闭'}}</el-button><el-button v-if="canEdit" :loading="busy" :disabled="!scopeReady || copyConflict" data-sales-save-binding-draft @click="save(false)">保存工作草稿</el-button><el-button v-if="canPublish" type="primary" :loading="busy" :disabled="!preview?.canApply || !scopeReady || copyConflict" data-sales-apply-binding @click="save(true)">{{draft?.enabled?'更新正式配置':draft?.scope.kind==='products'?'应用到商品范围':'应用到已发布范围'}}</el-button></div>
+    <SalesPlanEditor ref="planEditor" v-model="planEditorOpen" :plan-id="planEditorId" :copy-id="planCopyId" :embedded="embedded" keep-open-after-save @saved="id=>{changePlan(id)}"/>
+
+  </component>
 </template>
 <script setup lang="ts">
 import {computed,onBeforeUnmount,ref,watch} from 'vue'
-import {ElMessageBox} from 'element-plus'
+import {ElDialog,ElMessageBox} from 'element-plus'
 import {onBeforeRouteLeave} from 'vue-router'
 import {useCatalogStore,uid} from '../../stores/catalog'
 import {isRealSku} from '../../domain/catalogIdentity'
 import {savedSkuName,savedSkuCode} from '../../domain/productList'
 import {previewSalesBinding} from '../../domain/salesConfiguration'
-import {commandPermissions} from '../../domain/rbac'
 import type {SalesOptionBinding} from '../../domain/salesConfigurationTypes'
 import SalesScopePicker from './SalesScopePicker.vue'
 import SalesPlanEditor from './SalesPlanEditor.vue'
-const props=defineProps<{modelValue:boolean;bindingId?:string;modelId?:string;nodeId?:string}>()
+const props=defineProps<{modelValue:boolean;bindingId?:string;modelId?:string;nodeId?:string;versionId?:string|null;readonly?:boolean;embedded?:boolean;contextual?:boolean;initialDraft?:SalesOptionBinding}>()
 const emit=defineEmits<{'update:modelValue':[boolean];saved:[string]}>()
-const store=useCatalogStore(),draft=ref<SalesOptionBinding>(),baseline=ref(''),busy=ref(false),error=ref(''),planEditorOpen=ref(false),planEditorId=ref('')
+const store=useCatalogStore(),draft=ref<SalesOptionBinding>(),baseline=ref(''),busy=ref(false),error=ref(''),planEditorOpen=ref(false),planEditorId=ref(''),planCopyId=ref(''),workingRevision=ref(0),copyConflict=ref(false),baseRevision=ref(0)
+const planEditor=ref<InstanceType<typeof SalesPlanEditor>>()
 let requestId='',epoch=0,alive=true
 const clone=<T,>(value:T):T=>JSON.parse(JSON.stringify(value))
 const scopeValid=ref(true)
 const scopeReady=computed(()=>draft.value?.scope.kind!=='model'||draft.value.mode==='default'||scopeValid.value)
-const canSaveInactive=computed(()=>!!draft.value&&commandPermissions('saveSalesOptionBinding',[{draft:{...draft.value,enabled:false}}],store.data).every(store.can))
+const workingKey=computed(()=>props.bindingId||`new:${props.modelId||'global'}:${props.versionId||'draft'}:${props.nodeId||'default'}`)
 const dirty=computed(()=>!!draft.value&&JSON.stringify(draft.value)!==baseline.value)
-const canEdit=computed(()=>store.can('product:sales-config:update'))
+const canEdit=computed(()=>!props.readonly&&store.can('product:sales-config:update'))
 const canPublish=computed(()=>canEdit.value&&store.can('product:sales-config:publish'))
 const models=computed(()=>store.data.specCanvases.map(item=>({id:item.templateId,name:item.name||store.data.templates.find(x=>x.id===item.templateId)?.name||item.templateId})))
 const versions=computed(()=>draft.value?.scope.kind==='model'?store.data.specModelVersions.filter(item=>item.templateId===(draft.value!.scope as Extract<SalesOptionBinding['scope'],{kind:'model'}>).modelId).sort((a,b)=>b.version-a.version):[])
 const skus=computed(()=>store.data.skus.filter(item=>isRealSku(store.data,item)).map(item=>({id:item.id,label:`${savedSkuName(item)} · ${savedSkuCode(item)}`})))
 const selectedPlan=computed(()=>store.data.salesOptionPlans?.find(item=>item.schemaVersion===1&&item.id===draft.value?.planId))
+const selectedPlanSnapshot=computed(()=>selectedPlan.value?.versions.find(version=>version.version===draft.value?.planVersion))
+const planUsage=computed(()=>(store.data.salesOptionBindings||[]).filter(binding=>binding.schemaVersion===1&&binding.enabled&&binding.planId===draft.value?.planId).length)
 const preview=computed(()=>draft.value?previewSalesBinding(store.data,draft.value):undefined)
-watch(()=>[props.modelValue,props.bindingId,props.modelId,props.nodeId],()=>{if(!props.modelValue)return;epoch++;scopeValid.value=true;requestId=uid('sales-binding-request');error.value='';const found=store.data.salesOptionBindings?.find(item=>item.id===props.bindingId);draft.value=found?clone(found):{schemaVersion:1,id:'',revision:0,name:props.nodeId?'节点选配':props.modelId?'模型默认选配':'',enabled:false,scope:{kind:'model',modelId:props.modelId||'',versionId:null,...(props.nodeId?{nodeId:props.nodeId}:{})},mode:props.nodeId?'replace':'default',planId:null,planVersion:null,source:'人工配置',updatedAt:''};baseline.value=JSON.stringify(draft.value)},{immediate:true})
+watch(()=>[props.modelValue,props.bindingId,props.modelId,props.nodeId,props.versionId,store.activeUserId,store.previewUserId],()=>{if(!props.modelValue)return;epoch++;planEditorOpen.value=false;scopeValid.value=true;requestId=uid('sales-binding-request');error.value='';const found=store.data.salesOptionBindings?.find(item=>item.id===props.bindingId);const work=store.getSalesBindingWorkingCopy(workingKey.value);workingRevision.value=work.copy?.revision||0;copyConflict.value=!!work.conflict;baseRevision.value=work.copy?.baseRevision??found?.revision??0;draft.value=work.copy?clone(work.copy.draft):props.initialDraft?clone(props.initialDraft):found?clone(found):{schemaVersion:1,id:'',revision:0,name:props.nodeId?'节点选配':props.modelId?'模型默认选配':'',enabled:false,scope:{kind:'model',modelId:props.modelId||'',versionId:props.versionId||null,...(props.nodeId?{nodeId:props.nodeId}:{})},mode:props.nodeId?'replace':'default',planId:null,planVersion:null,source:'人工配置',updatedAt:''};baseline.value=JSON.stringify(draft.value);if(!work.ok)error.value=work.message||'工作草稿暂时无法读取，原内容保留。'},{immediate:true})
+function editPlan(copy:boolean){planEditorId.value=copy?'':draft.value?.planId||'';planCopyId.value=copy?draft.value?.planId||'':'';planEditorOpen.value=true}
+async function reviewLatest(){try{await ElMessageBox.confirm('保留当前工作草稿，以最新正式修订重新计算范围和冲突。请再次检查方案与版本后应用。','重新核对正式配置',{confirmButtonText:'保留草稿并重新核对',cancelButtonText:'返回'})}catch{return}const latest=store.data.salesOptionBindings?.find(item=>item.id===props.bindingId);baseRevision.value=latest?.revision||0;if(draft.value)draft.value.revision=baseRevision.value;copyConflict.value=false;error.value='';requestId=uid('sales-binding-request')}
+
 function changeSource(kind:string){if(!draft.value)return;draft.value.scope=kind==='model'?{kind:'model',modelId:props.modelId||'',versionId:null}:{kind:'products',familyIds:[],skuIds:[]};draft.value.mode=kind==='model'?'default':'replace'}
 function changeModel(id:string){if(draft.value?.scope.kind!=='model')return;draft.value.scope={kind:'model',modelId:id,versionId:null};draft.value.mode='default'}
 function changeVersion(id:string){if(draft.value?.scope.kind!=='model')return;draft.value.scope={...draft.value.scope,versionId:id==='$draft'?null:id,selector:undefined}}
 function changeMode(){if(!draft.value)return;if(draft.value.mode==='default'&&draft.value.scope.kind==='model'){delete draft.value.scope.selector;delete draft.value.scope.nodeId}if(draft.value.mode==='none'){draft.value.planId=null;draft.value.planVersion=null}}
 function changePlan(id:string){if(!draft.value)return;draft.value.planId=id||null;draft.value.planVersion=store.data.salesOptionPlans?.find(item=>item.id===id)?.publishedVersion??null}
-async function close(done?:()=>void){if(busy.value)return;if(dirty.value){try{await ElMessageBox.confirm('选配绑定尚未保存，放弃本次输入？','未保存修改',{confirmButtonText:'放弃修改',cancelButtonText:'继续编辑'})}catch{return}}emit('update:modelValue',false);done?.()}
+async function canDiscard(){if(busy.value)return false;if(planEditorOpen.value&&planEditor.value&&!await planEditor.value.canDiscard())return false;if(dirty.value){try{await ElMessageBox.confirm('选配绑定尚未保存，放弃本次输入？','未保存修改',{confirmButtonText:'放弃修改',cancelButtonText:'继续编辑'})}catch{return false}}return true}
+async function close(done?:()=>void){if(!await canDiscard())return;emit('update:modelValue',false);done?.()}
 async function save(enabled:boolean){
-  if(!draft.value||busy.value||!scopeReady.value||!canEdit.value||enabled&&!canPublish.value||!enabled&&!canSaveInactive.value)return
-  const candidate={...clone(draft.value),enabled},reviewed=previewSalesBinding(store.data,candidate)
-  const input=JSON.stringify(draft.value),version=epoch,owner=store.activeUserId,identity=store.previewUserId
+  if(!draft.value||busy.value||!scopeReady.value||!canEdit.value||copyConflict.value||enabled&&!canPublish.value)return
+  const candidate={...clone(draft.value),...(enabled?{enabled:true}:{})},reviewed=previewSalesBinding(store.data,candidate)
+  const input=JSON.stringify(draft.value),version=epoch,owner=store.activeUserId,identity=store.previewUserId,key=workingKey.value
   const current=()=>alive&&version===epoch&&props.modelValue&&owner===store.activeUserId&&identity===store.previewUserId&&input===JSON.stringify(draft.value)
   if(enabled){if(!reviewed.canApply)return;try{await ElMessageBox.confirm(`将此销售绑定应用到 ${reviewed.legalCount} 条合法规格、当前 ${reviewed.skuCount} 条销售 SKU？商品规格、已发布模型和历史清单保持原样。`,'确认应用范围',{confirmButtonText:'启用此绑定',cancelButtonText:'继续核对'})}catch{return}}
   if(!current()){error.value='输入或操作者已变化，请重新核对范围。';return}
   busy.value=true;error.value=''
-  try{const result=await store.saveSalesOptionBinding({draft:candidate,expectedRevision:candidate.revision,expectedBasis:reviewed.stamp,requestId},current);if(!result.ok){error.value=result.message||'保存失败，输入已保留。';return}baseline.value=JSON.stringify(draft.value);emit('saved',result.id!);emit('update:modelValue',false)}catch(cause){error.value=cause instanceof Error?cause.message:'保存失败，输入已保留。'}finally{busy.value=false}
+  try{
+    if(!enabled){const result=await store.saveSalesBindingWorkingCopy({key,draft:candidate,baseRevision:baseRevision.value,expectedRevision:workingRevision.value},current);if(!result.ok){error.value=result.message||'保存失败，输入已保留。';copyConflict.value='conflict' in result&&!!result.conflict;return}workingRevision.value=result.copy?.revision||workingRevision.value;baseline.value=JSON.stringify(draft.value);return}
+    const result=await store.saveSalesOptionBinding({draft:candidate,expectedRevision:baseRevision.value,expectedBasis:reviewed.stamp,requestId},current);if(!result.ok){error.value=result.message||'保存失败，输入已保留。';return}
+    if(workingRevision.value)await store.discardSalesBindingWorkingCopy(key,workingRevision.value,current)
+    baseline.value=JSON.stringify(draft.value);emit('saved',result.id!);emit('update:modelValue',false)
+  }catch(cause){error.value=cause instanceof Error?cause.message:'保存失败，输入已保留。'}finally{busy.value=false}
 }
+function acceptContextChange(){baseline.value=JSON.stringify(draft.value);planEditor.value?.acceptContextChange()}
+defineExpose({canDiscard,acceptContextChange,dirty,busy})
+
 onBeforeRouteLeave(async()=>{if(!props.modelValue)return true;await close();return !props.modelValue})
 onBeforeUnmount(()=>{alive=false;epoch++})
 </script>
-<style scoped>.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}.el-select{width:100%}.inline-control{display:flex;width:100%;align-items:center;gap:8px}.inline-control .el-select{min-width:0;flex:1}.coverage{padding:14px;border:1px solid var(--el-border-color);border-radius:8px;margin:12px 0}.counts{display:flex;align-items:center;gap:22px;flex-wrap:wrap}.counts strong{font-size:22px}.coverage details{margin-top:12px}.coverage summary{cursor:pointer}.coverage li{margin:7px 0;overflow-wrap:anywhere}.coverage .el-alert{margin-top:10px}.muted{font-size:12px;color:var(--el-text-color-secondary)}@media(max-width:650px){.form-grid{grid-template-columns:1fr}.inline-control{flex-wrap:wrap}}</style>
+<style scoped>.binding-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap}.context-details{margin-bottom:14px;color:var(--el-text-color-secondary)}.context-details summary{cursor:pointer}.plan-summary{padding-left:20px;margin:0 0 12px}.plan-summary li{margin:6px 0}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}.el-select{width:100%}.inline-control{display:flex;width:100%;align-items:center;gap:8px}.inline-control .el-select{min-width:0;flex:1}.coverage{padding:14px;border:1px solid var(--el-border-color);border-radius:8px;margin:12px 0}.counts{display:flex;align-items:center;gap:22px;flex-wrap:wrap}.counts strong{font-size:22px}.coverage details{margin-top:12px}.coverage summary{cursor:pointer}.coverage li{margin:7px 0;overflow-wrap:anywhere}.coverage .el-alert{margin-top:10px}.muted{font-size:12px;color:var(--el-text-color-secondary)}@media(max-width:650px){.form-grid{grid-template-columns:1fr}.inline-control{flex-wrap:wrap}}</style>

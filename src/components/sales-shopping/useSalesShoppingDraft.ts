@@ -19,8 +19,9 @@ export function useSalesShoppingDraft() {
   const saving = ref(false), businessPending = ref(false), error = ref(''), inputError = ref('')
   const missing = ref(false), dirty = ref(false), preview = ref<BenefitDeliveryPreview>()
   const confirmed = ref(false), packageCount = ref(1)
-  const canEdit = computed(() => store.can('product:sales:read'))
-  const canPersist = computed(() => store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create'))
+  const supported = computed(() => draft.value.compositionVersion === 2 && (!draft.value.sales || draft.value.sales.schemaVersion === 1) && (!draft.value.framework || ['type-v1', 'type-v2'].includes(draft.value.framework.kind)))
+  const canEdit = computed(() => supported.value && store.can('product:sales:read'))
+  const canPersist = computed(() => supported.value && store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create'))
   const validation = computed(() => validateBenefitPackage(store.data, draft.value))
   const saveState = computed(() => error.value ? 'failed' : saving.value ? 'saving' : dirty.value ? 'queued' : 'saved')
   const saveLabel = computed(() => error.value ? '保存失败 · 修改已保留' : saving.value ? '保存中' : dirty.value ? canPersist.value ? '待保存' : '临时选购 · 当前身份无保存权限' : draft.value.id ? '已保存' : '尚未开始选购')
@@ -88,12 +89,15 @@ export function useSalesShoppingDraft() {
   }
   async function retry() { error.value = ''; return flush() }
   async function replaceSession(source?: BenefitPackageDraft, copy = false, discard = false): Promise<boolean> {
+    if (copy && source && (source.compositionVersion !== 2 || source.sales && source.sales.schemaVersion !== 1 || source.framework && !['type-v1', 'type-v2'].includes(source.framework.kind))) { inputError.value = '此版本仅支持原样查看，请使用原有高级编辑入口。'; return false }
     if (source && !store.can('product:benefit:read')) { inputError.value = '当前身份没有查看已保存销售方案的权限。'; return false }
     if (businessPending.value || !discard && !await flush()) return false
     generation++; clearTimeout(timer); version = 0; acknowledged = 0; attempt = undefined
     draft.value = source ? cloneBenefit(source) : freshDraft()
     if (copy) {
       draft.value = copyBenefitPackageDraft(draft.value)
+      draft.value.favorite = false
+      draft.value.sales ??= { schemaVersion: 1, origins: [], contexts: [] }
       version++; dirty.value = true
     } else dirty.value = false
     missing.value = false; error.value = ''; inputError.value = ''; invalidatePreview(); schedule()

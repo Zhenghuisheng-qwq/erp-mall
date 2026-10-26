@@ -263,6 +263,8 @@ export function salesBindingNeedsPublish(previous: { enabled?: boolean } | undef
 
 /** Store command bindings. An unknown command fails closed. These are execution points, not labels. */
 export function commandPermissions(name: string, args: unknown[] = [], data?: AppData): string[] {
+  if(name==='getSalesBindingWorkingCopy')return ['product:sales-config:read']
+  if(name==='saveSalesBindingWorkingCopy'||name==='discardSalesBindingWorkingCopy')return ['product:sales-config:update']
   if (name === 'commitModelDictionaryBatch') {
     const input = args[0] as ModelDictionaryBatchInput | undefined
     const codes = data ? modelDictionaryPermissions(data, input as ModelDictionaryBatchInput) : ['product:model:update']
