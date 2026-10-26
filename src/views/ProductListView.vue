@@ -12,7 +12,7 @@
       <p class="muted">当前为临时范围，筛选和视图调整不会覆盖全部 SKU 的保存设置。</p>
     </div>
     <div class="spu-view-tabs" :data-mode="listMode" :data-view-id="activeView.id">
-      <ProductListViewTabs :views="displayViews" :active-id="activeView.id" :busy="pageSaving || manualBusy" :can-create="canSaveView" @select="switchDisplayView" @create="openCreate">
+      <ProductListViewTabs :views="displayViews" :active-id="activeView.id" :busy="manualBusy" :can-create="canSaveView" @select="switchDisplayView" @create="openCreate">
         <template #actions><span :class="['view-save-state',{failed:!!saveError}]" data-view-save-state>{{saveStatus}}</span><el-button v-if="saveError || manualSaveError" link type="danger" @click="retryPageSave">重试保存</el-button><el-dropdown trigger="click"><el-button :disabled="pageSaving || manualBusy" data-view-management>视图管理</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item :disabled="!canSaveView" @click="openCreate">新建视图</el-dropdown-item><el-dropdown-item :disabled="!canSaveView" @click="openSettings">当前视图设置</el-dropdown-item><el-dropdown-item :disabled="!canSaveView" @click="confirmCopy">复制当前视图</el-dropdown-item><el-dropdown-item :disabled="!canSaveView" @click="saveFilter">保存当前筛选预设</el-dropdown-item><el-dropdown-item @click="router.push('/import')">导入导出</el-dropdown-item></el-dropdown-menu></template></el-dropdown></template>
       </ProductListViewTabs><p v-if="saveError || manualSaveError" class="warn" role="status">{{saveError || manualSaveError}} 当前输入与排序暂存已保留。</p>
     </div>
@@ -35,7 +35,7 @@
         <span class="muted" data-result-count>{{listMode==='spu'?`商品 ${presentation.total} 款`:`SKU ${presentation.total} 条`}}</span>
       </div>
       </div>
-      <ProductListExposedFilters :key="activeView.id" :fields="filterFields" :error="saveError" @retry="retryPageSave" @pin="field=>setViewExposed(listData,field,true)" @move="moveExposed" :rows="exposedRows" :busy="pageSaving || manualBusy" @value="setExposedTypedValue" @clear="clearExposedField" @clear-all="clearExposedValues" @unexpose="unexposeField" @unexpose-all="unexposeAll" @advanced="filterOpen=true"/>
+      <ProductListExposedFilters ref="exposedFiltersRef" :key="`${activeView.id}:${scopeId}:${store.activeUserId}:${store.previewUserId}`" :fields="filterFields" :error="saveError" @retry="retryPageSave" @pin="field=>setViewExposed(listData,field,true)" @move="moveExposed" :rows="exposedRows" :busy="manualBusy" @value="setExposedTypedValue" @clear="clearExposedField" @clear-all="clearExposedValues" @unexpose="unexposeField" @unexpose-all="unexposeAll" @advanced="filterOpen=true"/>
       <div v-if="summaries.length" class="active-filters" data-active-filters aria-label="已生效筛选">
         <span class="muted">已筛选（条件同时满足）：</span>
         <el-tag v-for="item in summaries" :key="item.id" closable :data-filter-summary="item.id" @close="removeSummary(item.id)">{{ item.label }}</el-tag>
@@ -234,7 +234,8 @@
 <script setup lang="ts">
 import { categoryFilterCaption } from '../domain/categoryTree'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useProductListPageDraft } from '../components/product-list/useProductListPageDraft'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import CategoryFilterTree from '../components/CategoryFilterTree.vue'
 import ProductListFilterDialog from '../components/product-list/ProductListFilterDialog.vue'
@@ -282,43 +283,21 @@ watch(scopeId, id => {
   temporary.value = next
 }, { immediate: true })
 const clonePage = (value: ProductListPageState): ProductListPageState => JSON.parse(JSON.stringify(value))
-const pageDraft = ref<ProductListPageState>(clonePage(store.data.productListPages![mode]))
-const savedPageStamp = ref(JSON.stringify(store.data.productListPages![mode])), pageSaving = ref(false), saveError = ref(''), manualSaveError = ref('')
-let pendingClearRetry:{ids:string[];stamp:string;keyword?:boolean}|undefined
+const pagePersistence = useProductListPageDraft(mode, temporary)
+const { pageDraft, pageSaving, saveError, canSaveView, persistPage } = pagePersistence
+const manualSaveError = ref('')
 let pendingManualRetry: {ids:string[];targetId?:string;place:'before'|'after'|'top'|'bottom';context:string}|undefined
-const canSaveView = computed(() => store.can('product:view:update'))
-let alive = true, savingOwnPage = false, saveTimer: ReturnType<typeof setTimeout> | undefined, savePromise: Promise<boolean> | undefined
 const listData = computed(() => productListPageData(store.data, mode, temporary.value || pageDraft.value))
-const draftDirty = computed(() => JSON.stringify(pageDraft.value) !== savedPageStamp.value)
-const saveStatus = computed(() => !canSaveView.value ? '临时查询 · 当前身份不保存视图' : pageSaving.value ? '正在保存…' : saveError.value || manualSaveError.value ? '保存失败 · 未落盘' : draftDirty.value ? '配置未保存' : '配置已保存')
-async function persistPage() : Promise<boolean> {
-  clearTimeout(saveTimer)
-  if (!canSaveView.value || temporary.value) return true
-  if (savePromise) { if (!await savePromise) return false; return persistPage() }
-  if (!draftDirty.value) return true
-  const next = clonePage(pageDraft.value), captured = JSON.stringify(next), expected = savedPageStamp.value, actor = store.activeUserId, preview = store.previewUserId
-  pageSaving.value = true; savingOwnPage = true
-  savePromise = (async () => {
-    try {
-      const result = await store.commitSpuPage(next, expected, () => alive && actor === store.activeUserId && preview === store.previewUserId)
-      if (!result.ok) { saveError.value = result.message || '视图设置没有写入本机。'; return false }
-      savedPageStamp.value = JSON.stringify(store.data.productListPages![mode]); saveError.value = ''
-      return true
-    } catch (error) { saveError.value = error instanceof Error ? error.message : '视图设置保存失败。'; return false }
-    finally { pageSaving.value = false; savingOwnPage = false }
-  })()
-  const result = await savePromise; savePromise = undefined
-  if (result && captured !== JSON.stringify(pageDraft.value)) return persistPage()
-  return result
+const saveStatus = computed(() => manualSaveError.value ? '保存失败 · 排序暂存已保留' : pagePersistence.saveStatus.value)
+async function retryPageSave() {
+  if (!await pagePersistence.retryPageSave()) return
+  const pending = pendingManualRetry
+  if (!pending) return
+  if (pending.context !== manualContext()) { manualSaveError.value = '排序范围已变化，请重新选择目标；暂存仍保留。'; return }
+  const result = await commitManual(pending.ids, pending.targetId, pending.place)
+  if (result.ok) for (const id of pending.ids) removeStaged(id)
 }
-async function retryPageSave() { if(pendingClearRetry){if(pendingClearRetry.stamp!==JSON.stringify(pageDraft.value)){saveError.value='输入已变化，请重新点击清除常用筛选值确认当前范围。';return}await commitClearFilterValues(pendingClearRetry.ids,pendingClearRetry.keyword);return}saveError.value='';if(!await persistPage())return;const pending=pendingManualRetry;if(!pending)return;if(pending.context!==manualContext()){manualSaveError.value='排序范围已变化，请重新选择目标；暂存仍保留。';return}const result=await commitManual(pending.ids,pending.targetId,pending.place);if(result.ok){for(const id of pending.ids)removeStaged(id)}}
-watch(pageDraft, () => { clearTimeout(saveTimer); if (canSaveView.value && !saveError.value) saveTimer = setTimeout(() => { void persistPage() }, 180) }, {deep:true})
-watch(() => JSON.stringify(store.data.productListPages?.[mode]), stamp => {
-  if (!stamp || savingOwnPage || stamp === savedPageStamp.value) return
-  if (!draftDirty.value) { pageDraft.value = clonePage(store.data.productListPages![mode]); savedPageStamp.value = stamp }
-  else saveError.value = '已保存的视图由其他操作更新，本页输入未覆盖；请先核对当前设置。'
-})
-onBeforeUnmount(() => { alive = false; clearTimeout(saveTimer) })
+const exposedFiltersRef = ref<InstanceType<typeof ProductListExposedFilters>>()
 const query = computed(() => listData.value.listQuery)
 const columnOpen = ref(false),toolsSection=ref<'columns'|'group'|'sort'|'display'>('columns')
 function openToolsSection(section:'group'|'sort') {toolsSection.value=section;columnOpen.value=true}
@@ -414,10 +393,9 @@ async function commitManual(ids:string[], targetId?:string, place:'before'|'afte
   if(!plan.changed)return {ok:true}
   view.manualOrder={...view.manualOrder,spuIds:plan.order,skuIds:view.manualOrder?.skuIds||[]};view.updatedAt=new Date().toISOString()
   const guard:ListManualGuard={viewId:before.id,configStamp:JSON.stringify(before),search:currentModeQuery(before).keyword,scopeId:'',sourceIds:[...ids],targetId,...(place==='top'||place==='bottom'?{edge:place}:{place}),matchedIds:[...matches.allIds],groupKeys:{...matches.groupKeys}}
-  const actor=store.activeUserId,preview=store.previewUserId;savingOwnPage=true;pageSaving.value=true
   const failed=(message:string)=>{manualSaveError.value=message;pendingManualRetry={ids:[...ids],targetId,place,context};return {ok:false as const,message}}
-  try {const result=await store.commitSpuPage(next,savedPageStamp.value,()=>alive&&context===manualContext()&&actor===store.activeUserId&&preview===store.previewUserId,guard);if(!result.ok)return failed(result.message||'顺序没有保存，暂存已保留。');manualSaveError.value='';pendingManualRetry=undefined;savedPageStamp.value=JSON.stringify(store.data.productListPages![mode]);pageDraft.value=clonePage(store.data.productListPages![mode]);saveError.value='';return {ok:true}}
-  catch(error){return failed(error instanceof Error?error.message:'顺序没有保存，暂存已保留。')}finally{savingOwnPage=false;pageSaving.value=false}
+  try {const result=await pagePersistence.commitProtected(next,()=>context===manualContext(),guard);if(!result.ok)return failed(result.message||'顺序没有保存，暂存已保留。');manualSaveError.value='';pendingManualRetry=undefined;return {ok:true}}
+  catch(error){return failed(error instanceof Error?error.message:'顺序没有保存，暂存已保留。')}
 }
 const { pickedIds, stageIds, busy:manualBusy, stageContextValid, stageGroupLabel, dropMessage, confirmStage, onRowDrag, onRowOver, onRowDrop, endDrag, rowDropClass, togglePick, addStage, clearStage, removeStaged, askInsert, askBoundary } = useProductListManualOrder({
   move:(id,target,place)=>commitManual([id],target,place),insert:(ids,target,place)=>commitManual(ids,target,place),boundary:(ids,edge)=>commitManual(ids,undefined,edge),
@@ -471,21 +449,21 @@ function warn(result: { ok: true } | { ok: false; message: string }) {
   return result.ok
 }
 async function switchDisplayView(id: string) {
-  if (id === activeView.value.id) return
-  if (!(await confirmStage(false)) || !await persistPage()) return
-  const previous=clonePage(pageDraft.value)
-  if (!warn(selectProductListView(listData.value,id)))return
+  if (id === activeView.value.id || manualBusy.value) return
+  exposedFiltersRef.value?.flush()
+  if (!(await confirmStage(false))) return
+  if (!warn(selectProductListView(listData.value,id))) return
   query.value.page=1
-  if(await persistPage())clearStage();else {pageDraft.value=previous}
+  clearStage()
 }
 function onKeyword(value: string) {
-  setViewKeyword(listData.value, value)
+  if (activeQuery.value.keyword !== value) setViewKeyword(listData.value, value)
 }
 function quickState(field: FilterField) { return quickFilterState(activeQuery.value, field) }
 function toggleCategory(id:string,multiple=false) {
   const ids=multiple?(selectedCategoryIds.value.includes(id)?selectedCategoryIds.value.filter(value=>value!==id):[...selectedCategoryIds.value,id]):[id]
   const next=updateProductCategorySelection(store.data,liveQuery(),ids)
-  if(!next){filterOpen.value=true;return}Object.assign(liveQuery(),next);touchFilters()
+  if(!next){filterOpen.value=true;return}if(JSON.stringify(next)===JSON.stringify(liveQuery()))return;Object.assign(liveQuery(),next);touchFilters()
 }
 function clearCategory() {
   const next=updateProductCategorySelection(store.data,liveQuery(),[])
@@ -498,23 +476,31 @@ function setExposedTypedValue(fieldName:string,value:ProductListViewFilter['valu
   const state=quickState(field);if(!state.simple){filterOpen.value=true;return}
   const queryState=liveQuery();let filter=state.filter&&queryState.filters.find(filter=>filter.id===state.filter!.id)
   if(!filter){const operator=field.kind==='date'?'between':field.kind==='text'?'contains':'in';filter={id:uid('filter'),field:fieldName,operator,value:operator==='between'?{from:'',to:''}:operator==='in'?[]:'',active:false};queryState.filters.push(filter)}
-  Object.assign(queryState,hasFilterValue(value)?setProductListFilterValue(queryState,filter.id,value):clearProductListFilterValue(queryState,filter.id));touchFilters()
+  const next=hasFilterValue(value)?setProductListFilterValue(queryState,filter.id,value):clearProductListFilterValue(queryState,filter.id)
+  if(JSON.stringify(next)===JSON.stringify(queryState))return
+  Object.assign(queryState,next);touchFilters()
 }
-async function commitClearFilterValues(ids:string[],keyword=false) {
-  if(pageSaving.value || manualBusy.value || (!ids.length&&!keyword))return
-  clearTimeout(saveTimer)
-  const stamp=JSON.stringify(pageDraft.value),next=clonePage(pageDraft.value),data=productListPageData(store.data,mode,next),view=activeProductListView(data),queryState=currentModeQuery(view)
-  let cleared=queryState;for(const id of ids)cleared=clearProductListFilterValue(cleared,id);if(keyword)cleared.keyword=''
-  if(view.mode==='spu')view.spuQuery=cleared;else view.skuQuery=cleared
-  view.updatedAt=new Date().toISOString();next.query.page=1
-  if(!canSaveView.value){pageDraft.value=next;return}
-  const actor=store.activeUserId,preview=store.previewUserId;savingOwnPage=true;pageSaving.value=true
-  try {const result=await store.commitSpuPage(next,savedPageStamp.value,()=>alive&&JSON.stringify(pageDraft.value)===stamp&&actor===store.activeUserId&&preview===store.previewUserId);if(!result.ok){saveError.value=result.message||'常用筛选值没有清除，原输入已保留。';pendingClearRetry={ids:[...ids],stamp,keyword};return}savedPageStamp.value=JSON.stringify(store.data.productListPages![mode]);if(JSON.stringify(pageDraft.value)===stamp)pageDraft.value=next;saveError.value='';pendingClearRetry=undefined}
-  catch(error){saveError.value=error instanceof Error?error.message:'常用筛选值没有清除，原输入已保留。';pendingClearRetry={ids:[...ids],stamp,keyword}}
-  finally{pageSaving.value=false;savingOwnPage=false}
+function commitClearFilterValues(ids:string[],keyword=false,fields?:string[]) {
+  if (manualBusy.value) return
+  // Discard only inputs covered by this clear, before any async save response arrives.
+  exposedFiltersRef.value?.discardInputs(fields)
+  const current = liveQuery()
+  let cleared = current
+  for (const id of ids) cleared = clearProductListFilterValue(cleared,id)
+  if (keyword) cleared = {...cleared, keyword:''}
+  if (JSON.stringify(cleared) === JSON.stringify(current)) return
+  Object.assign(current,cleared)
+  touchFilters()
 }
-async function clearExposedField(fieldName:string) {const field=filterFields.value.find(field=>field.field===fieldName);if(!field)return;const state=quickState(field);if(!state.simple||!state.filter)return;await commitClearFilterValues([state.filter.id])}
-async function clearExposedValues() {await commitClearFilterValues(liveQuery().filters.filter(filter=>exposedFields.value.some(field=>field.field===filter.field)).map(filter=>filter.id))}
+function clearExposedField(fieldName:string) {
+  const field=filterFields.value.find(field=>field.field===fieldName);if(!field)return
+  const state=quickState(field);if(!state.simple)return
+  commitClearFilterValues(state.filter?[state.filter.id]:[],false,[fieldName])
+}
+function clearExposedValues() {
+  const fields=exposedFields.value.map(field=>field.field)
+  commitClearFilterValues(liveQuery().filters.filter(filter=>fields.includes(filter.field)).map(filter=>filter.id),false,fields)
+}
 function moveExposed(field:string,delta:number){const values=liveQuery().exposed,index=values.indexOf(field),target=index+delta;if(index<0||target<0||target>=values.length)return;const [item]=values.splice(index,1);values.splice(target,0,item!);touchFilters()}
 function unexposeField(field:string) {setViewExposed(listData.value,field,false)}
 function unexposeAll() {for(const field of [...exposedFields.value])setViewExposed(listData.value,field.field,false)}
@@ -595,6 +581,8 @@ function setConditionValue(id: string, value: ProductListViewFilter['value']) {
 }
 function removeCondition(id: string) {
   const queryState = liveQuery()
+  const field=queryState.filters.find(item=>item.id===id)?.field
+  if(field)exposedFiltersRef.value?.discardInputs([field])
   queryState.filters = queryState.filters.filter((item) => item.id !== id)
   touchFilters()
 }
@@ -782,7 +770,8 @@ const { categoryOpen, narrowScreen, categoryLayout, showSidebar, setCategorySide
   layout => setViewCategoryLayout(listData.value, layout),
 )
 async function allowListLeave() {
-  if(pageSaving.value || manualBusy.value)return false
+  if(manualBusy.value)return false
+  exposedFiltersRef.value?.flush()
   if(!await confirmStage(false))return false
   return await persistPage()
 }

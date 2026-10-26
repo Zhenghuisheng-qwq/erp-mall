@@ -37,12 +37,12 @@ const business = (data: AppData) => cloneSku({ families: data.families, skus: da
 const originalBusiness = business(fixture)
 const deletedId = 'sku-preset:legacy-delete', editedId = 'sku-preset:legacy-edited'
 const observations: { name: string; page: ProductListPageState; persisted: string | null }[] = []
-function mount() {
+async function mount() {
   setActivePinia(createPinia())
+  const store = useCatalogStore(); await store.waitForPersistence()
   const scope = effectScope()
   const view = scope.run(() => useSkuWorkbench(ref('')))
   assert.ok(view)
-  const store = useCatalogStore()
   const page = () => { const value = store.data.productListPages?.sku; assert.ok(value); return value }
   const capture = (name: string) => observations.push({ name, page: cloneSku(page()), persisted: localStorage.getItem(STORAGE_KEY) })
   const dispose = async () => { await nextTick(); await store.waitForPersistence(); scope.stop(); store.$dispose() }
@@ -58,8 +58,8 @@ function validReferences(page: ProductListPageState) {
   for (const id of [...state.favorites, ...state.order, ...Object.keys(state.working)]) assert.ok(ids.has(id) || id.startsWith(`${SYSTEM_SKU_VIEW_ID}@spu:`), `Invalid view preference ${id}`)
 }
 disk.set(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data: fixture }))
-async function ready() { await running.store.waitForPersistence(); await nextTick(); assert.equal(running.view.pending.value, false) }
-let running = mount(); await ready()
+async function ready() { await running.view.flush(); await running.store.waitForPersistence(); await nextTick(); assert.equal(running.view.pending.value, false) }
+let running = await mount(); await ready()
 try {
   assert.equal(running.page().views.filter(view => view.id === deletedId).length, 1)
   assert.equal(running.page().views.filter(view => view.id === editedId).length, 1)
@@ -93,14 +93,14 @@ try {
   assert.deepEqual(running.page().views.find(view => view.id === editedId), editedView)
   assert.equal(ensureSkuWorkbench(running.store.data), false)
   await running.dispose()
-  running = mount(); await ready()
+  running = await mount(); await ready()
   assert.equal(running.view.views.value.some(view => view.id === deletedId), false, 'Deleted migrated preset must stay deleted on page re-entry')
   await nextTick()
   running.capture('page-reentry')
   const exported = running.store.exportJson()
   await running.dispose()
   disk.set(STORAGE_KEY, exported)
-  running = mount(); await ready()
+  running = await mount(); await ready()
   assert.equal(running.page().views.some(view => view.id === deletedId), false, 'Disk reload must retain migration history after deletion')
   assert.ok(running.page().skuWorkbench?.migratedPresetIds?.includes('legacy-delete'))
   assert.deepEqual(running.page().views.find(view => view.id === editedId), editedView)

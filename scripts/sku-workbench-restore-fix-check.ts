@@ -76,11 +76,11 @@ try {
     disk.set(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data }))
 
     setActivePinia(createPinia())
+    const store = useCatalogStore(); await store.waitForPersistence()
     const scope = effectScope()
     const scopeId = ref(test.scoped ? parent.id : '')
     const workbench = scope.run(() => useSkuWorkbench(scopeId))
     assert.ok(workbench)
-    const store = useCatalogStore()
     assert.ok((await workbench.select(test.view)).ok)
     await nextTick()
     const key = test.scoped && test.view === SYSTEM_SKU_VIEW_ID ? `${SYSTEM_SKU_VIEW_ID}@spu:${parent.id}` : test.view

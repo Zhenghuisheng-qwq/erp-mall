@@ -5,7 +5,7 @@ import { performance } from 'node:perf_hooks'
 import { createFreeCombinationFixture, freeCombinationGroup } from './free-combination-fixture'
 import { ACCESSORY_TEST_TIME as now } from './accessory-compatibility-fixtures'
 import { addBenefitSku, assignBenefitPositionGroup, benefitPackageImportProblems, benefitPackageReferenceProblem, cloneBenefit, confirmBenefitCondition, copyBenefitPackageDraft, createBenefitDeliverySnapshot, newBenefitPackageDraft, previewBenefitDelivery, removeBenefitPosition, replaceBenefitSku, reviewBenefitQuote, setBenefitDevice, setBenefitIncludedPhone, setBenefitPositionPrice, setBenefitPositionQuantity, validateBenefitPackage } from '../src/domain/benefitPackages'
-import { applyBenefitFramework, createBenefitSelectionIndex, frameworkProblems, frameworkSnapshot, previewBenefitFrameworkAdoption, resolveBenefitSelection } from '../src/domain/benefitFrameworks'
+import { applyBenefitFramework, benefitSelectionCatalogStamp, createBenefitSelectionIndex, frameworkProblems, frameworkSnapshot, previewBenefitFrameworkAdoption, resolveBenefitSelection } from '../src/domain/benefitFrameworks'
 import { benefitReferenceTotals } from '../src/domain/benefitPricing'
 import { benefitGroupRuleIssues } from '../src/domain/benefitPositions'
 import type { BenefitPackageDraft, BenefitGroupRule } from '../src/domain/benefitPackageTypes'
@@ -74,6 +74,30 @@ repair('reused candidate context observes template changes',()=>{
  f.data.templates.find(t=>t.id===family.templateId)!.enabled=false
  assert.deepEqual(resolveBenefitSelection(f.data,d,index).rows,resolveBenefitSelection(f.data,d).rows)
 })
+repair('reused candidate context observes legacy category rename and ancestor move',()=>{
+ const f=createFreeCombinationFixture(),d=f.createDraft(),type=f.data.productTypes.find(t=>t.id==='type-film')!,category=f.data.categories.find(c=>c.id===type.categoryId)!
+ delete type.catalogRole;category.name='配件'
+ const index=createBenefitSelectionIndex(f.data),initial=resolveBenefitSelection(f.data,d,index)
+ assert.equal(initial.rows.find(r=>r.summary.skuId==='pending-sku')!.bucket,'pending')
+ category.name='其他'
+ assert.notEqual(benefitSelectionCatalogStamp(f.data),index.stamp,'renaming the fallback role category must invalidate the index')
+ const renamed=resolveBenefitSelection(f.data,d,index)
+ assert.equal(renamed.rows.find(r=>r.summary.skuId==='pending-sku')!.bucket,'recommended')
+ assert.deepEqual(renamed.rows,resolveBenefitSelection(f.data,d).rows)
+ f.data.categories.push({id:'legacy-accessory-parent',name:'配件',parentId:null,enabled:true,sort:3},{id:'legacy-other-parent',name:'其他',parentId:null,enabled:true,sort:4})
+ category.name='保护膜';category.parentId='legacy-accessory-parent'
+ const nestedIndex=createBenefitSelectionIndex(f.data)
+ assert.equal(resolveBenefitSelection(f.data,d,nestedIndex).rows.find(r=>r.summary.skuId==='pending-sku')!.bucket,'pending')
+ category.parentId='legacy-other-parent'
+ assert.notEqual(benefitSelectionCatalogStamp(f.data),nestedIndex.stamp,'moving under a different ancestor must invalidate the index')
+ const moved=resolveBenefitSelection(f.data,d,nestedIndex)
+ assert.equal(moved.rows.find(r=>r.summary.skuId==='pending-sku')!.bucket,'recommended')
+ assert.deepEqual(moved.rows,resolveBenefitSelection(f.data,d).rows)
+ assert.equal(type.catalogRole,undefined,'querying must not rewrite the historical type')
+ assert.equal(f.data.productTypes.find(t=>t.id==='type-case')!.catalogRole,'accessory','explicit roles remain unchanged')
+ const currentIndex=createBenefitSelectionIndex(f.data);f.data.benefitPackages=[saved(d)]
+ assert.equal(resolveBenefitSelection(f.data,d,currentIndex).index,currentIndex,'unrelated saved packages must not invalidate the candidate index')
+})
 repair('conditional export retains two exact frozen position identities',()=>{
  const f=createFreeCombinationFixture();f.framework.groups.push(freeCombinationGroup('cable-gift','type-cable'));f.framework.history=[frameworkSnapshot(f.framework)]
  let d=addBenefitSku(f.data,f.createDraft(),'cable-sku',1,{groupId:'cable'});d=addBenefitSku(f.data,d,'cable-sku',1,{groupId:'cable-gift'})
@@ -84,4 +108,4 @@ repair('conditional export retains two exact frozen position identities',()=>{
  assert(pos>=0&&group>=0);const confirmations=rows.filter(r=>r[0]==='本包人工确认');assert.deepEqual(confirmations.map(r=>[r[pos],r[group]]),d.goods.map(l=>[l.id,l.groupId]));f.framework.groups=[];assert.equal(JSON.stringify(snap),before);assert.deepEqual(XLSX.utils.sheet_to_json(buildBenefitDeliveryWorkbook(snap).Sheets['条件及确认说明']!,{header:1}),rows)
 })
 assert.deepEqual(repairFailures,[])
-console.log(`PASS free combination domain ${groups} groups + 4 repair groups`)
+console.log(`PASS free combination domain ${groups} groups + 5 repair groups`)

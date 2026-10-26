@@ -74,14 +74,14 @@ function changeRange(entry: Entry, key: 'from' | 'to', value: string) { change(e
 function reset(key: string) { delete drafts[key]; delete errors[key]; composing.delete(key) }
 function enter(entry: Entry, event: KeyboardEvent) { if (!event.isComposing && event.keyCode!==229 && !composing.has(entry.key)) { event.preventDefault(); void commitOne(entry) } }
 function rangeBlur(entry: Entry, event: FocusEvent) { if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) void commitOne(entry) }
-async function choose(entry:Entry,value:SkuValue,activate=false){change(entry,value);if(activate)drafts[entry.key]!.active=true;await commitOne(entry)}
+async function choose(entry:Entry,value:SkuValue|undefined,activate=false){change(entry,value??null);if(activate)drafts[entry.key]!.active=true;await commitOne(entry)}
 async function clearValue(entry:Entry){change(entry,null);drafts[entry.key]!.active=false;await commitOne(entry)}
 let running: Promise<boolean> | undefined
 async function commitEntries(selected: Entry[]): Promise<boolean> {
   if (running) { await running; return commitEntries(selected) }
   if (props.busy) return false
   if (composing.size) { for (const key of composing) errors[key] = '请完成中文输入后再应用。'; return false }
-  let next=cloneSku(props.config);const applied:string[]=[]
+  let next=cloneSku(props.config);const applied:string[]=[],submitted=new Map<string,string>()
   for (const entry of selected) {
     const input = drafts[entry.key]
     if (!input) continue
@@ -94,7 +94,7 @@ async function commitEntries(selected: Entry[]): Promise<boolean> {
     const messages = validateSkuConfig(props.data, sample)
     if (messages.length) { errors[entry.key] = messages.join('；'); return false }
     next=cleared&&!['empty','notEmpty'].includes(rule.operator)||input.value===null&&input.active!==true?clearSkuQuickFilterValue(next,entry.ref):setSkuQuickFilterValue(next,entry.ref,rule.value)
-    applied.push(entry.key)
+    applied.push(entry.key);submitted.set(entry.key,JSON.stringify(input))
   }
   if (!applied.length) return true
   if(JSON.stringify(next)===JSON.stringify(props.config)){applied.forEach(reset);return true}
@@ -102,14 +102,23 @@ async function commitEntries(selected: Entry[]): Promise<boolean> {
     let outcome: {ok: boolean; message?: string}
     try { outcome = await props.apply(next) } catch (error) { outcome = {ok: false, message: error instanceof Error ? error.message : '应用失败，请重试。'} }
     if (!outcome.ok) { for (const key of applied) errors[key] = outcome.message || '保存失败，请重试。'; return false }
-    for (const key of applied) reset(key)
+    for (const key of applied) if(JSON.stringify(drafts[key])===submitted.get(key))reset(key)
     return true
   })()
   try { return await running } finally { running = undefined }
 }
 function commitOne(entry: Entry) { return commitEntries([entry]) }
 function flush() { return commitEntries(entries.value) }
-async function clearExposed(){if(props.busy)return;let next=cloneSku(props.config);for(const entry of entries.value)next=clearSkuQuickFilterValue(next,entry.ref);try{const result=await props.apply(next);if(result.ok)entries.value.forEach(entry=>reset(entry.key));else for(const entry of entries.value)errors[entry.key]=result.message||'未保存，请重试。'}catch(error){for(const entry of entries.value)errors[entry.key]=error instanceof Error?error.message:'未保存，请重试。'}}
+async function clearExposed(){
+  if(props.busy)return
+  let next=cloneSku(props.config)
+  const submitted=new Map(entries.value.map(entry=>[entry.key,JSON.stringify(drafts[entry.key])]))
+  for(const entry of entries.value)next=clearSkuQuickFilterValue(next,entry.ref)
+  try{
+    const result=await props.apply(next)
+    for(const [key,value] of submitted)if(JSON.stringify(drafts[key])===value){if(result.ok)reset(key);else errors[key]=result.message||'未应用，请重试。'}
+  }catch(error){for(const [key,value] of submitted)if(JSON.stringify(drafts[key])===value)errors[key]=error instanceof Error?error.message:'未应用，请重试。'}
+}
 async function cancelExposure(){if(props.busy)return;if(Object.keys(drafts).length){pinError.value='请先应用或撤销待提交输入。';return;}const next=cloneSku(props.config);next.quickFilters=[];try{const result=await props.apply(next);if(!result.ok)for(const entry of entries.value)errors[entry.key]=result.message||'未保存，请重试。'}catch(error){for(const entry of entries.value)errors[entry.key]=error instanceof Error?error.message:'未保存，请重试。'}}
 async function hide(key: string) {
   if (props.busy) return

@@ -11,13 +11,13 @@
       <el-button v-if="scopeFamily" link type="primary" @click="router.push(`/spus/${scopeId}`)">查看 SPU</el-button>
       <el-button @click="router.push('/skus')">查看全部 SKU</el-button>
     </div>
-    <div class="panel workbench-panel" :inert="workbench.pending.value">
+    <div class="panel workbench-panel">
       <div class="view-bar list-switch" data-mode="sku" :data-view-id="activeId">
-        <ProductListViewTabs :views="views" :active-id="activeId" :tab-ids="viewTabIds" :busy="workbench.pending.value" :can-create="store.can('product:sku:read')" @select="selectView" @create="openName('新建视图')">
+        <ProductListViewTabs :views="views" :active-id="activeId" :tab-ids="viewTabIds" :busy="workbench.commandPending.value" :can-create="store.can('product:sku:read')" @select="selectView" @create="openName('新建视图')">
           <template #actions>
-            <span v-if="workbench.pending.value" class="view-state" data-view-saving role="status">正在保存</span><span v-else-if="error" class="dirty-mark" data-view-save-error role="status">保存失败，草稿保留</span><span v-else-if="dirty" class="dirty-mark" data-unsaved>未保存</span><span v-else class="muted view-state">{{activeId===SYSTEM_SKU_VIEW_ID?'系统视图':'已保存'}}</span>
-            <div class="view-actions"><el-button :disabled="(!dirty&&activeId!==SYSTEM_SKU_VIEW_ID)||!store.can('product:sku:read')" @click="saveCurrent">保存视图</el-button></div>
-            <el-popover v-model:visible="moreOpen" trigger="click" placement="bottom-end" :width="230"><template #reference><el-button data-manage-current-view>管理当前视图</el-button></template><div class="more-menu" :inert="workbench.pending.value"><strong>{{currentView.name}}</strong><el-button @click="moreOpen=false;openName('另存为')">另存为</el-button><el-button :disabled="!dirty" @click="restoreView">恢复已保存</el-button><el-button @click="result(workbench.favorite(activeId))">{{state.favorites.includes(activeId)?'取消收藏':'收藏视图'}}</el-button><el-button @click="result(workbench.setDefault(activeId))">设为默认视图</el-button><el-button :disabled="activeId===SYSTEM_SKU_VIEW_ID||!state.favorites.includes(activeId)" @click="result(workbench.moveFavorite(activeId,-1))">常用视图前移</el-button><el-button :disabled="activeId===SYSTEM_SKU_VIEW_ID||!state.favorites.includes(activeId)" @click="result(workbench.moveFavorite(activeId,1))">常用视图后移</el-button><el-button :disabled="activeId===SYSTEM_SKU_VIEW_ID" @click="moreOpen=false;openName('重命名视图')">重命名</el-button><el-button @click="copyView">复制视图</el-button><el-button type="danger" :disabled="activeId===SYSTEM_SKU_VIEW_ID" @click="deleteView">删除视图</el-button><el-button @click="router.push('/import')">导入导出</el-button></div></el-popover>
+            <span class="view-state" :data-save-state="workbench.saveState.value" role="status">{{workbench.saveState.value==='failed'?'保存失败，草稿保留':workbench.saveState.value==='saving'?'保存中':workbench.saveState.value==='queued'?'待保存':'工作配置已保存'}}</span><el-button v-if="error" link type="danger" data-retry-save @click="result(workbench.retry())">重试保存</el-button><span v-if="dirty" class="dirty-mark" data-unsaved>视图未保存</span>
+            <div class="view-actions"><el-button :disabled="workbench.commandPending.value||!store.can('product:sku:read')" @click="saveCurrent">保存视图</el-button></div>
+            <el-popover v-model:visible="moreOpen" trigger="click" placement="bottom-end" :width="230"><template #reference><el-button data-manage-current-view>管理当前视图</el-button></template><div class="more-menu" :inert="workbench.commandPending.value"><strong>{{currentView.name}}</strong><el-button @click="moreOpen=false;openName('另存为')">另存为</el-button><el-button :disabled="!dirty" @click="restoreView">恢复已保存</el-button><el-button @click="result(workbench.favorite(activeId))">{{state.favorites.includes(activeId)?'取消收藏':'收藏视图'}}</el-button><el-button @click="result(workbench.setDefault(activeId))">设为默认视图</el-button><el-button :disabled="activeId===SYSTEM_SKU_VIEW_ID||!state.favorites.includes(activeId)" @click="result(workbench.moveFavorite(activeId,-1))">常用视图前移</el-button><el-button :disabled="activeId===SYSTEM_SKU_VIEW_ID||!state.favorites.includes(activeId)" @click="result(workbench.moveFavorite(activeId,1))">常用视图后移</el-button><el-button :disabled="activeId===SYSTEM_SKU_VIEW_ID" @click="moreOpen=false;openName('重命名视图')">重命名</el-button><el-button @click="copyView">复制视图</el-button><el-button type="danger" :disabled="activeId===SYSTEM_SKU_VIEW_ID" @click="deleteView">删除视图</el-button><el-button @click="router.push('/import')">导入导出</el-button></div></el-popover>
 
           </template>
         </ProductListViewTabs>
@@ -38,7 +38,7 @@
             <div class="list-structure-actions"><el-button data-group-button @click="openDisplay('group')">{{config.groups.length?`分组 ${config.groups.length}`:'分组'}}</el-button><el-button data-sort-button @click="openDisplay('sort')">排序：{{config.sortMode==='manual'?(config.groups.length?'组内手工':'手工'):config.sortMode==='field'?`字段 ${config.sorts.length}`:'默认'}}</el-button></div><el-button data-list-settings data-fields-button @click="openDisplay('fields')">列表设置</el-button>
             <el-select :model-value="scopeId" filterable clearable placeholder="筛选所属 SPU" data-list-spu @change="changeScope"><el-option v-for="family in store.data.families" :key="family.id" :value="family.id" :label="`${family.name} · ${family.oaProductId || family.id}`" /></el-select>
           </div>
-          <SkuQuickFilters ref="quickFiltersRef" :key="`${activeId}:${scopeId}`" :data="store.data" :config="config" :apply="applyQuickConfig" :busy="workbench.pending.value" hide-category @edit="openFilters" />
+          <SkuQuickFilters ref="quickFiltersRef" :key="`${activeId}:${scopeId}:${store.activeUserId}:${store.previewUserId}`" :data="store.data" :config="config" :apply="applyQuickConfig" :busy="workbench.commandPending.value" hide-category @edit="openFilters" />
           <div v-if="hasFilters || search" class="query-summary" data-active-filters>
             <el-button v-if="expandedSummary" link @click="openFilters" aria-label="编辑条件摘要">{{ expandedSummary ? summary : summary.slice(0, 180) }}{{ !expandedSummary && summary.length > 180 ? '…' : '' }}</el-button>
             <el-button v-if="conditionCount>1" link @click="expandedSummary = !expandedSummary">{{ expandedSummary ? '收起逻辑' : '查看条件逻辑' }}</el-button>
@@ -84,11 +84,11 @@
     <SkuDisplayDialog v-model="displayOpen" :data="store.data" :config="config" :tab="displayTab" :apply-config="applyQuickConfig"/>
     <el-drawer v-if="narrowScreen" v-model="categoryOpen" title="商品分类" size="min(330px, calc(100vw - 20px))"><CategoryFilterTree v-if="simpleCategory" :categories="store.data.categories" :selected-ids="categoryIds" :key="`SkuWorkbenchView.vue:${activeId}:${scopeId}`" :state-key="`SkuWorkbenchView.vue:${activeId}:${scopeId}`" @toggle="toggleCategory" @clear="clearCategory"/><template v-else><p>分类属于历史或组合条件。</p><el-button @click="categoryOpen=false;openFilters()">管理分类条件</el-button></template></el-drawer>
     <AccessoryCompatibilityDrawer v-model="compatibilityOpen" :sku-id="compatibilitySkuId" @prepare-benefit-package="rememberPackageReturn" />
-    <el-dialog v-model="nameOpen" :show-close="!workbench.pending.value" :close-on-press-escape="!workbench.pending.value" :title="nameAction" width="420px" :close-on-click-modal="false" @closed="nameError = ''">
-      <el-input :disabled="workbench.pending.value" v-model="draftName" placeholder="视图名称" maxlength="80" @keyup.enter="submitName" />
+    <el-dialog v-model="nameOpen" :show-close="!workbench.commandPending.value" :close-on-press-escape="!workbench.commandPending.value" :title="nameAction" width="420px" :close-on-click-modal="false" @closed="nameError = ''">
+      <el-input :disabled="workbench.commandPending.value" v-model="draftName" placeholder="视图名称" maxlength="80" @keyup.enter="submitName" />
       <el-checkbox v-if="scopeId && nameAction !== '重命名视图'" v-model="includeScope">将当前 SPU 范围保存为条件</el-checkbox>
       <p v-if="nameError" class="warn" role="alert">{{ nameError }}</p><p class="muted">视图仅保存在本机浏览器，不复制商品数据。</p>
-      <template #footer><el-button :disabled="workbench.pending.value" @click="nameOpen = false">取消</el-button><el-button type="primary" :loading="workbench.pending.value" @click="submitName" :disabled="!(store.can('product:sku:read'))">{{ nameAction === '重命名视图' ? '保存名称' : '创建' }}</el-button></template>
+      <template #footer><el-button :disabled="workbench.commandPending.value" @click="nameOpen = false">取消</el-button><el-button type="primary" :loading="workbench.commandPending.value" @click="submitName" :disabled="!(store.can('product:sku:read'))">{{ nameAction === '重命名视图' ? '保存名称' : '创建' }}</el-button></template>
     </el-dialog>
     <el-drawer v-model="stageOpen" title="排序暂存区" size="min(420px, 90vw)"><p>共 {{stageIds.length}} 条 · {{stageGroupLabel}}</p><el-alert v-if="!stageContextValid" title="筛选、分组或范围已变化；暂存已保留，请核对后移除并重新暂存。" type="warning" :closable="false"/><ul><li v-for="item in stagedRows" :key="item.id" class="staged-row"><div :title="item.detail"><strong>{{ item.name }}</strong><span>{{ item.detail }}</span><em v-if="!item.valid">记录已删除或不再是销售 SKU</em><em v-else-if="!item.inResult">当前筛选外；调整筛选后可插入</em></div> <el-button link @click="removeStaged(item.id)">移除</el-button></li></ul><el-button @click="clearStage" :disabled="!(store.can('product:sku:read'))">清空暂存</el-button></el-drawer>
   </div>
@@ -142,10 +142,10 @@ const selectedIds = ref<string[]>([]), selectionNotice = ref(''), collapsed = re
 const compatibilityOpen = ref(false), compatibilitySkuId = ref('')
 function openCompatibility(id: string) { compatibilitySkuId.value = id; compatibilityOpen.value = true }
 const scopeSearch = ref(''), scopePage = ref(1)
-const pageSettings = computed(() => store.data.productListPages?.sku)
-const page = computed({ get: () => scopeId.value ? scopePage.value : pageSettings.value?.query.page || 1, set: value => { if (scopeId.value) scopePage.value = value; else if (pageSettings.value) pageSettings.value.query.page = value } })
+const pageSettings = computed(() => ({query:workbench.query.value}))
+const page = computed({ get: () => scopeId.value ? scopePage.value : pageSettings.value?.query.page || 1, set: value => { if (scopeId.value) scopePage.value = value; else workbench.updateQuery({page:value}) } })
 const pageSize = computed(() => pageSettings.value?.query.pageSize || 10)
-const search = computed({ get: () => scopeId.value ? scopeSearch.value : pageSettings.value?.query.keyword || '', set: value => { if (scopeId.value) scopeSearch.value = value; else if (pageSettings.value) pageSettings.value.query.keyword = value; page.value = 1 } })
+const search = computed({ get: () => scopeId.value ? scopeSearch.value : pageSettings.value?.query.keyword || '', set: value => { if (scopeId.value) scopeSearch.value = value; else workbench.updateQuery({keyword:value}); page.value = 1 } })
 watch(scopeId, () => { scopeSearch.value = ''; scopePage.value = 1 })
 const presentation = computed(() => querySkuWorkbench(store.data, config.value, { scopeId: scopeId.value, search: search.value, page: page.value, pageSize: pageSize.value, now: now.value }))
 const compatibilityRoles = computed(() => new Map(presentation.value.rows.map(row => [row.id, compatibilityRecordRole(store.data, row.id)])))
@@ -221,7 +221,8 @@ async function result(pending: { ok: boolean; message?: string } | Promise<{ ok:
 const quickFiltersRef = ref<InstanceType<typeof SkuQuickFilters>>()
 async function flushQuick() { return await quickFiltersRef.value?.flush() ?? true }
 onBeforeRouteLeave(async to => {
-  if (workbench.pending.value || manualBusy.value || !await flushQuick()) return false
+  if (workbench.commandPending.value || manualBusy.value || !await flushQuick()) return false
+  if (!await result(workbench.flush())) return false
   const returnable = to.path === '/benefit-packages/new' && to.query.returnTo === route.fullPath && hasBenefitSkuReturn(route.fullPath) && store.can('product:benefit:create')
   if (returnable) {
     const id = typeof to.query.device === 'string' ? to.query.device : ''
@@ -233,15 +234,15 @@ onBeforeRouteLeave(async to => {
   if (allowed) clearBenefitSkuReturn(route.fullPath)
   return allowed
 })
-onBeforeRouteUpdate(async to => !workbench.pending.value && await flushQuick() && (String(to.query.spu || '') === scopeId.value || await confirmStage(false)))
-async function applyQuickConfig(next: SkuViewConfig) { const outcome = await workbench.apply(next); if (outcome.ok) page.value = 1; return outcome }
+onBeforeRouteUpdate(async to => !workbench.commandPending.value && await flushQuick() && (String(to.query.spu || '') === scopeId.value || await confirmStage(false)))
+async function applyQuickConfig(next: SkuViewConfig) { const outcome = workbench.update(next); if (outcome.ok) page.value = 1; return outcome }
 async function openFilters() { if (await flushQuick()) filterOpen.value = true }
-async function applyConfig(next:SkuViewConfig){const outcome=await workbench.apply(next);if(outcome.ok)page.value=1;else if(outcome.message)ElMessage.error(outcome.message);return outcome}
+async function applyConfig(next:SkuViewConfig){const outcome=workbench.update(next);if(outcome.ok)page.value=1;else if(outcome.message)ElMessage.error(outcome.message);return outcome}
 async function openDisplay(tab:'fields'|'group'|'sort'|'display'|'more') { if (!(await flushQuick())) return; displayTab.value = tab; displayOpen.value = true }
 async function selectView(id: string) {if(id===activeId.value)return; if (!(await flushQuick()) || (id !== activeId.value && !(await confirmStage(false)))) return; if (await result(workbench.select(id))) { clearStage();pickedIds.value=[];page.value = 1 } }
 async function restoreView() { if (!(await flushQuick())) return; if (await result(workbench.restore())) page.value = 1 }
 async function rebuildInvalid() { try { await ElMessageBox.confirm('将当前工作配置重建为全部 SKU 的默认规则？原保存视图保留，只有再次保存才会覆盖。当前 SPU 范围仍保留。', '重建工作配置') } catch { return }; applyConfig(defaultSkuConfig()) }
-async function clearFilters(){const next=clearSkuFilterValues(config.value);const outcome=await applyConfig(next);if(outcome.ok){search.value='';quickFiltersRef.value?.discardInputs()}}
+function clearFilters(){const outcome=workbench.update(clearSkuFilterValues(config.value));if(outcome.ok){search.value='';page.value=1;quickFiltersRef.value?.discardInputs()}else if(outcome.message)ElMessage.error(outcome.message)}
 function nodeSummary(id: string) { return describeSkuConditions(store.data, { ...activeConfig.value, legacy: undefined, conditions: { ...activeConfig.value.conditions, children: activeConfig.value.conditions.children.filter(node => node.id === id) } }) }
 function removeSummary(id: string) { const next = JSON.parse(JSON.stringify(config.value)) as SkuViewConfig; if (id === '$legacy' && next.legacy) { next.legacy.keyword = ''; next.legacy.filters = [] }; if (id !== '$legacy') next.conditions.children = next.conditions.children.filter(node => node.id !== id); applyConfig(next) }
 function clearCategory() {
@@ -266,7 +267,7 @@ function openBenefitPackage(skuId: string) {
 function onPage(value: number) { page.value = value }
 async function openName(action: string) { if (!(await flushQuick()) || (action !== '重命名视图' && !(await confirmStage(false)))) return; nameAction.value = action; draftName.value = action === '重命名视图' ? currentView.value.name : ''; includeScope.value = false; nameError.value = ''; nameOpen.value = true }
 async function saveCurrent() { if (!(await flushQuick())) return; if (activeId.value === SYSTEM_SKU_VIEW_ID) { openName('另存为'); return }; result(workbench.save()) }
-async function submitName() { if (workbench.pending.value) return; const outcome = await (nameAction.value === '重命名视图' ? workbench.rename(activeId.value, draftName.value) : workbench.create(draftName.value, includeScope.value,nameAction.value==='新建视图')); if (!outcome.ok) { nameError.value = outcome.message; return };if(nameAction.value!=='重命名视图'){clearStage();pickedIds.value=[]}; nameOpen.value = false }
+async function submitName() { if (workbench.commandPending.value) return; const outcome = await (nameAction.value === '重命名视图' ? workbench.rename(activeId.value, draftName.value) : workbench.create(draftName.value, includeScope.value,nameAction.value==='新建视图')); if (!outcome.ok) { nameError.value = outcome.message; return };if(nameAction.value!=='重命名视图'){clearStage();pickedIds.value=[]}; nameOpen.value = false }
 async function copyView() { if (!(await flushQuick()) || !(await confirmStage(false))) return; if (await result(workbench.copy(activeId.value))){clearStage();pickedIds.value=[];moreOpen.value=false} }
 async function deleteView() { if (!(await confirmStage(false))) return; moreOpen.value = false; try { await ElMessageBox.confirm(`删除视图「${currentView.value.name}」？只删除视图，不删除任何商品。`, '删除视图', { type: 'warning' }) } catch { return };if(await result(workbench.remove(activeId.value))){clearStage();pickedIds.value=[]} }
 function onColumnWidth(width: number, _old: number, column: TableColumnCtx<ProductListSkuRow>) { const next = JSON.parse(JSON.stringify(config.value)) as SkuViewConfig; const found = next.columns.find(item => item.key === column.columnKey); if (found) { found.width = Math.max(80, Math.min(600, Math.round(width))); result(workbench.apply(next)) } }

@@ -102,7 +102,8 @@ export function runGroupingFixChecks(phase: 'before' | 'after', output: string, 
   ]
   const sorted = groupingConfig()
   sorted.sortMode = 'field'; sorted.sorts = [{ field: 'name', direction: 'asc' }, { field: 'code', direction: 'desc' }]
-  matrix.push({ name: 'grouped multi-sort applies inside each identity bucket', config: sorted, expected: ['s4', 's8', 's7', 's5', 's2', 's6', 's9', 's3', 's1'], counts: [count(['白色'], [2]), count(['黑色'], [1]), count(['不适用'], [2]), count(['未记录'], [4])] })
+  // Group order is independent of row sorting; only rows inside each identity bucket use the multi-sort.
+  matrix.push({ name: 'grouped multi-sort applies inside each identity bucket', config: sorted, expected: ['s4', 's8', 's7', 's6', 's9', 's3', 's1', 's5', 's2'], counts: [count(['白色'], [2]), count(['黑色'], [1]), count(['未记录'], [4]), count(['不适用'], [2])] })
   for (const item of matrix) {
     const whole = querySkuWorkbench(larger, item.config, { now, pageSize: 100 })
     assert.deepEqual(whole.groups.map(group => ({ labels: group.labels, totals: group.totals, total: group.total })), item.counts, 'Fixed independent expectations protect full ancestor and leaf counts')

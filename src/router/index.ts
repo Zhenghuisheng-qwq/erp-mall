@@ -68,9 +68,13 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach(async (to) => {
+router.beforeEach(async (to, from) => {
   const store = useCatalogStore()
-  await store.waitForPersistence()
+  // Changing the temporary SKU scope is local navigation. Its working drafts
+  // already have isolated keys; an ordinary config write must not hold it up.
+  // Initial authorization migration and all route permission checks still apply.
+  const skuScopeNavigation = to.name === 'skus' && from.name === 'skus' && store.authorizationReady
+  if (!skuScopeNavigation) await store.waitForPersistence()
   if(store.canRoute({path:to.path,query:to.query}))return true
   guideRouteFailure.value=createFailure({kind:'permission',ruleId:'rule-permission',actionId:'action-rbac-authorize',message:store.rbacEnforced?'当前身份没有此页面的有效访问授权。':'此地址不是已登记的正式页面；当前统一管理员模式仍保留路由登记保护。',savedState:'unchanged',context:{requiredPermissions:(routePermissions(to.path,to.query)||[]).join('、'),mode:store.rbacEnforced?'严格授权':'统一管理员'},recovery:['feedback']})
   return {path:'/forbidden',query:{from:to.fullPath}}

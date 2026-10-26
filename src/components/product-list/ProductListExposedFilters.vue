@@ -30,6 +30,9 @@ function commit(field:string){if(composing.has(field)||pending[field]===undefine
 function clear(field:string){pending[field]='';commit(field)}
 function enter(field:string,event:KeyboardEvent){if(event.isComposing||event.keyCode===229||composing.has(field))return;event.preventDefault();commit(field)}
 function dateRange(field:string,value:unknown){const range=Array.isArray(value)?value:[];emit('value',field,{from:typeof range[0]==='string'?range[0]:'',to:typeof range[1]==='string'?range[1]:''})}
+function discardInputs(fields?:string[]){for(const field of fields??Object.keys(pending)){delete pending[field];composing.delete(field)}}
+function flush(){for(const field of Object.keys(pending))commit(field)}
+defineExpose({discardInputs,flush})
 const operatorLabel=(operator:ProductListFilterOperator)=>({eq:'等于',neq:'不等于',in:'属于任一',descendants:'包含下级',contains:'包含',notContains:'不包含',before:'早于',after:'晚于',between:'日期范围'})[operator]
 </script>
 <style scoped>
