@@ -256,6 +256,11 @@ function selectorMatches(context: TemplateCompatibilityContext, selector: Templa
   }
   return { identities, message: '' }
 }
+/** Shared structural selector boundary; independent callers do not interpret display paths. */
+export function templateSelectorCoverage(context: TemplateCompatibilityContext, selector: TemplateSpecSelector) {
+  if (!selector || !Array.isArray(selector.anyOf) || !selector.anyOf.length) return { identities: new Set<string>(), message: '请明确选择实际规格条件范围。' }
+  return selectorMatches(context, selector)
+}
 export function selectorForNode(context: TemplateCompatibilityContext, nodeId: string): { selector?: TemplateSpecSelector; message: string; count: number } {
   const node = context.byNode.get(nodeId)
   if (!node) return { message: '来源节点不在当前实际规格中。', count: 0 }

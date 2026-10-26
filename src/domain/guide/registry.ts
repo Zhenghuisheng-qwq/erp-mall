@@ -4,6 +4,7 @@ import { guideActionArticles } from './content/actions'
 import { guideRuleArticles } from './content/rules'
 import { guideConceptArticles } from './content/concepts'
 import { guideTroubleshootingArticles } from './content/troubleshooting'
+import { salesOptionArticles } from './content/manuals-sales-options'
 export { guidePages } from './content/pageRegistry'
 
-export const guideArticles: GuideArticle[] = [...guidePageArticles, ...guideActionArticles, ...guideRuleArticles, ...guideConceptArticles, ...guideTroubleshootingArticles]
+export const guideArticles: GuideArticle[] = [...guidePageArticles, ...salesOptionArticles, ...guideActionArticles, ...guideRuleArticles, ...guideConceptArticles, ...guideTroubleshootingArticles]

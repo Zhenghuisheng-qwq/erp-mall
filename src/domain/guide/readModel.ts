@@ -19,6 +19,7 @@ export interface GuideDirectoryCenter extends GuideDirectoryGroup { groups: Guid
 // Only registered, object-independent destinations. Detail pages fall back to their real
 // list/workspace entrance; an explanation never invents an object ID or selects a record.
 const targets: Record<string, GuideLocation> = {
+  'page-sales-shopping':{path:'/sales-shopping'}, 'page-sales-configurations':{path:'/sales-configurations'},
   'page-home':{path:'/'}, 'page-categories':{path:'/categories'}, 'page-product-types':{path:'/product-types'},
   'page-params':{path:'/params'}, 'page-templates':{path:'/templates'}, 'page-models':{path:'/models'},
   'page-specs':{path:'/specs'}, 'page-plans':{path:'/plans'}, 'page-tree':{path:'/tree'},
@@ -54,6 +55,10 @@ type PageLink = [from:string,to:string,kind:GuideRelationKind,reason:string,reve
 // Relationships are authored against real page identities. Kind and explanation are not
 // inferred from a title, menu position, object name, or similar-looking route.
 const links: PageLink[] = [
+  ['page-sales-shopping','page-sales-configurations','upstream','已发布方案和正式范围绑定组织选购候选；浏览不修改配置。','销售选购按具体商品读取正式方案并建立实际清单。'],
+  ['page-sales-configurations','page-specs','related','模型节点的选配设置和独立配置页共用相同绑定与方案。','在节点打开选配设置，预览真实范围后明确应用。'],
+  ['page-sales-configurations','page-compatibility','related','选配方案组织选择，具体适用仍由正式声明及相关条件决定。'],
+  ['page-sales-shopping','page-benefits','downstream','实际清单复用现有权益包草稿与冻结交付能力。'],
   ['page-home','page-spus','related','工作台的商品搜索和快捷入口进入 SPU 管理。','商品工作台提供商品搜索和统计入口。'],
   ['page-home','page-check','related','工作台问题统计可进入商品质量检查。','商品工作台提供待处理问题入口。'],
   ['page-product-types','page-categories','upstream','产品类型显式关联分类，分类需要先存在。','分类下的产品类型在产品类型页面维护。'],

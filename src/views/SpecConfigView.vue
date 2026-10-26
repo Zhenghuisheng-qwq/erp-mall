@@ -63,6 +63,7 @@
               <el-button link type="primary" data-open-template-compatibility @click="openTemplateCompatibility()">{{ viewing || !store.can('product:model:update') ? '查看适用设备' : '配置适用设备' }}</el-button>
               <span v-if="compatibilityUnpublished">兼容配置尚未发布</span>
             </p>
+            <p v-if="store.can('product:sales-config:read')" class="meta-row" data-model-sales-summary><span>{{salesModelSummary}}</span><el-button link type="primary" data-open-sales-options @click="openSalesBinding()">选配设置</el-button></p>
           </div>
           <div class="studio-actions">
             <el-button v-if="fromOverview" @click="backToOverview">返回总览</el-button>
@@ -147,6 +148,8 @@
           </template>
           <span v-else class="ops-idle">{{ !canEditStructure ? '当前视图只读，不能改结构和命名规则' : '选中节点后，可以添加属性、属性值或条件属性' }}</span>
           <el-button v-if="!canEditStructure && selected && selected !== rootId" size="small" @click="namingOpen = true">查看命名规则</el-button>
+          <el-button v-if="selected && store.can('product:sales-config:read')" size="small" data-open-node-sales-options @click="openSalesBinding(selected===rootId?'':selected)">选配设置</el-button>
+          <span v-if="selected && store.can('product:sales-config:read')" class="muted" data-node-sales-summary>{{salesNodeSummary}}</span>
         </div>
         <EmptyModelGuide
           v-else-if="showEmptyGuide"
@@ -464,6 +467,7 @@
       :initial-node-id="compatibilityNodeId || undefined"
       :readonly="viewing || !store.can('product:model:update')"
     />
+    <SalesBindingDialog v-model="salesBindingOpen" :binding-id="salesBindingId" :model-id="templateId" :node-id="salesNodeId||undefined"/>
     <el-dialog v-model="copyOpen" title="复制模型" width="440px" :show-close="!copying" :close-on-click-modal="!copying" :close-on-press-escape="!copying">
       <p class="copy-label">原模型</p>
       <strong v-if="!copyPick" class="copy-source">{{ copySourceName }}</strong>
@@ -502,6 +506,7 @@ import LegalComboDialog from '../components/model-editor/LegalComboDialog.vue'
 import { presentComboRow, type MaterialLaunchMode } from '../components/model-editor/comboPresentation'
 import { useComboSelection } from '../components/model-editor/useComboSelection'
 import TemplateCompatibilityDialog from '../components/template-compatibility/TemplateCompatibilityDialog.vue'
+import SalesBindingDialog from '../components/sales-configuration/SalesBindingDialog.vue'
 import TypeModelRail from '../components/model-editor/TypeModelRail.vue'
 import { categoryChain, visibleCategoryRows } from '../domain/categoryTree'
 import { nearestNamingRule } from '../domain/naming'
@@ -759,6 +764,12 @@ function onDictEsc(event: KeyboardEvent) {
 }
 const copyOpen = ref(false)
 const copying = ref(false), modelSaving = ref(false)
+const salesBindingOpen=ref(false),salesBindingId=ref(''),salesNodeId=ref('')
+const salesBindings=computed(()=>(store.data.salesOptionBindings||[]).filter(binding=>binding.schemaVersion===1&&binding.scope?.kind==='model'&&binding.scope.modelId===templateId.value))
+function salesBindingText(nodeId:string){const matches=salesBindings.value.filter(binding=>binding.scope.kind==='model'&&(nodeId?binding.scope.nodeId===nodeId:binding.mode==='default'));if(!matches.length)return nodeId?'':'选配：尚未配置';const names=[...new Set(matches.map(binding=>{const plan=store.data.salesOptionPlans?.find(plan=>plan.schemaVersion===1&&plan.id===binding.planId),name=binding.mode==='none'?'不使用方案':plan?.name||'引用失效';return `${name}${!binding.enabled?'（待启用）':plan?.status==='disabled'?'（方案已停用）':''}`}))];return `选配：${names.slice(0,2).join('、')}${names.length>2?' 等':''}`}
+const salesModelSummary=computed(()=>salesBindingText(''))
+const salesNodeSummary=computed(()=>salesBindingText(selected.value===rootId?'':selected.value))
+function openSalesBinding(nodeId=''){salesNodeId.value=nodeId;const matches=salesBindings.value.filter(binding=>binding.scope.kind==='model'&&(nodeId?binding.scope.nodeId===nodeId:binding.mode==='default'));const existing=matches.find(binding=>binding.scope.kind==='model'&&!binding.scope.versionId)||matches[0];salesBindingId.value=existing?.id||'';salesBindingOpen.value=true}
 const templateCompatibilityOpen = ref(false)
 const compatibilityNodeId = ref('')
 const namingOpen = ref(false)

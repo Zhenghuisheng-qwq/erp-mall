@@ -14,11 +14,11 @@ if (!RBAC_ENFORCEMENT_ENABLED) {
   await import('./unrestricted-access-check')
 } else {
 
-const output='work/rbac/store';mkdirSync(output,{recursive:true})
+const artifacts=process.argv.includes('--artifacts'),output=process.env.CHECK_OUTPUT_DIR||'work/rbac/store';if(artifacts)mkdirSync(output,{recursive:true})
 const disk=new Map<string,string>(),session=new Map<string,string>(),checks:string[]=[]
 const restoreLocks=installCatalogTestLocks()
 let failNext=false,store:ReturnType<typeof useCatalogStore>|undefined
-Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(key:string)=>disk.get(key)??null,setItem:(key:string,value:string)=>{if(failNext){failNext=false;throw Error('RBAC quota injection')};disk.set(key,value)},removeItem:(key:string)=>disk.delete(key)}})
+Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(key:string)=>disk.get(key)??null,setItem:(key:string,value:string)=>{if(failNext&&key===STORAGE_KEY){failNext=false;throw Error('RBAC quota injection')};disk.set(key,value)},removeItem:(key:string)=>disk.delete(key)}})
 Object.defineProperty(globalThis,'sessionStorage',{configurable:true,value:{getItem:(key:string)=>session.get(key)??null,setItem:(key:string,value:string)=>session.set(key,value),removeItem:(key:string)=>session.delete(key)}})
 const clone=<T>(value:T):T=>JSON.parse(JSON.stringify(value))
 const mark=(name:string)=>{checks.push(name);console.log('PASS RBAC Store '+name)}
@@ -126,6 +126,6 @@ try{
   const backup=s.exportJson(),userBefore=s.activeUserId;await s.importJson(backup);assert.equal(s.activeUserId,userBefore);assert.deepEqual(s.data.rbac,payload().rbac)
   s=await mount(legacy,'u-admin',defaultMenuNodes(),true);assert(!s.authorizationReady);assert.equal(JSON.parse(raw()!).data.rbac,undefined);assert.equal(s.data.rbac,undefined);assert(catalogMigrationError().includes('迁移'))
   mark('authorization save/import roundtrip and migration write failure preserve original memory/disk and recovery evidence')
-  writeFileSync(output+'/result.json',JSON.stringify({status:'PASS',checks},null,2))
+  if(artifacts)writeFileSync(output+'/result.json',JSON.stringify({status:'PASS',checks},null,2))
 }finally{store?.$dispose();restoreLocks()}
 }

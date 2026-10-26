@@ -290,6 +290,7 @@ export async function runPlanningChecks(): Promise<CheckResult[]> {
   })
   setActivePinia(createPinia())
   const store = useCatalogStore()
+  await store.waitForPersistence()
   const beforeVersions = JSON.stringify(store.data.specModelVersions)
   const published = (await store.publishSpecModel('t-phone'))
   const phoneIds = idsOf(store.data.planningRecords, 't-phone')
@@ -298,6 +299,7 @@ export async function runPlanningChecks(): Promise<CheckResult[]> {
   await nextTick()
   setActivePinia(createPinia())
   const restored = useCatalogStore()
+  await restored.waitForPersistence()
   const restoredIds = idsOf(restored.data.planningRecords, 't-phone')
   const expectedPhone = [
     '品牌 Apple · 系列 iPhone · 型号 iPhone 17 · 容量 128G · 颜色 黑色',

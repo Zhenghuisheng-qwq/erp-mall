@@ -98,6 +98,7 @@ export const foundationManuals: Record<string, GuideManualContent> = {
       feature('specs-business','配置值节点业务','设置销售定位、物料策略和路径允许值。','选属性值节点点“业务配置”；选功能、范围、参数，点“保存节点配置”。','配置是值节点附属实例，不新增规格轴；目录复用不代表实例共用。',{primary:true,actionIds:['action-node-business-save']}),
       feature('specs-naming','设置命名规则','按字段与固定文字顺序生成物料命名预览。','节点“命名规则”；点击/拖入字段、插入文字并调整顺序，预览合法组合后保存。','只写当前草稿节点；自有规则整段覆盖继承规则，预览不建物料。',{actionIds:['action-node-naming-save']}),
       feature('specs-hosts','适用设备默认与例外','配置模型层和分支层的适用设备。','模型头部“配置适用设备”或节点“节点适用配置”。','保存草稿后还需发布；多来源冲突需明确处理，不改人工取消决定。'),
+        feature('specs-sales','绑定销售选配方案','从模型或真实节点范围复用已发布选配方案。','点击“选配设置”，明确发布版本与值节点范围，核对合法规格数和销售 SKU 数，再应用到已发布范围。','与独立选配方案页共用同一绑定；属性节点必须明确选值，不增加规格轴，也不改变适用声明。',{actionIds:['action-business-save']}),
       feature('specs-save-publish','保存与发布模型','区分保存草稿和生成正式版本。','点“保存模型”保存编辑；点“发布模型”验证并创建版本；“发布记录”查历史。','保存草稿不替换最近发布版本；发布保留树、词典、业务配置和来源快照。',{primary:true,actionIds:['action-model-edit','action-model-publish']}),
       feature('specs-combos','管理合法组合','按发布版本核对完整路径、PLN、物料与历史记录。','点“管理合法组合”；切版本、搜索、筛未建档，勾选后标核心/一般或批量创建物料。','草稿预览无正式规划编号；单条可查看、新建或关联已有 MAT，多个 MAT 可指向同一组合。'),
       feature('specs-node-materials','节点附近建档和反查','从较早值节点建立/关联 MAT 并查看覆盖范围。','选值节点点“节点范围建档／关联”；用“显示关联物料”控制三视图物料展示。','明确预览并确认当前/下级范围；显示开关不改物料关系，也不截断完整销售组合。',{actionIds:['action-material-relation']}),

@@ -27,7 +27,7 @@ export interface RbacRole {
   superAdmin?: boolean
   permissionCodes: string[]
 }
-export interface RbacState { version: 1; guideAccessVersion?: 1; roles: RbacRole[]; permissions: RbacPermission[] }
+export interface RbacState { version: 1; guideAccessVersion?: 1; salesAccessVersion?: 1; roles: RbacRole[]; permissions: RbacPermission[] }
 type AuthorizationData = AppData & { rbac?: RbacState }
 export const SUPER_ROLE_ID = 'role:super-admin'
 export const OPERATOR_ROLE_ID = 'role:operator'
@@ -50,6 +50,8 @@ const resources: { module: string; resource: string; label: string; route: strin
   { module: '商品中心', resource: 'group', label: '运营分组', route: '/groups', actions: ['create','update','delete'] },
   { module: '商品中心', resource: 'compatibility', label: '适用关系与设备型号', route: '/compatibility', actions: ['create','update','delete'] },
   { module: '商品中心', resource: 'benefit', label: '权益包', route: '/benefit-packages', actions: ['create','update'] },
+  { module: '商品中心', resource: 'sales', label: '销售选购', route: '/sales-shopping', actions: [] },
+  { module: '商品中心', resource: 'sales-config', label: '销售选配配置', route: '/sales-configurations', actions: ['create','update','publish'] },
   { module: '商品中心', resource: 'framework', label: '权益包框架', route: '/benefit-packages', actions: ['create','update','delete'] },
   { module: '商品中心', resource: 'delivery', label: '交付清单', route: '/benefit-packages', actions: ['create','export'] },
   { module: '商品中心', resource: 'view', label: '列表视图与列配置', route: '/products?panel=columns', actions: ['update'] },
@@ -89,6 +91,8 @@ export function routePermissions(path: string, query: Record<string,unknown> = {
   if(clean==='/guide/manage'||clean==='/guide/learn')return ['system:guide:read']
   if(clean==='/guide'||/^\/guide\/(articles|learn)\/[^/]+$/.test(clean))return ['system:guide:read']
   if (clean === '/forbidden') return []
+  if (clean === '/sales-shopping') return ['product:sales:read']
+  if (clean === '/sales-configurations') return ['product:sales-config:read']
   if (clean === '/columns' || (['/products','/spus','/skus'].includes(clean) && query.panel === 'columns')) return ['product:view:read', clean === '/skus' ? 'product:sku:read' : 'product:spu:read']
   if (clean === '/products/new') return ['product:spu:read','product:spu:create']
   if (/^\/products\/[^/]+$/.test(clean)) {
@@ -155,6 +159,15 @@ export function ensureRbac(data: AppData, legacyMenus: MenuNode[] = defaultMenuN
       }
     }
     if(saved&&saved.guideAccessVersion===undefined)saved.guideAccessVersion=1
+    const sales=permissionRegistry().filter(permission=>['sales','sales-config'].includes(permission.resource))
+    if(saved&&saved.salesAccessVersion===undefined&&Array.isArray(saved.permissions)&&Array.isArray(saved.roles)&&sales.every(permission=>!saved.permissions.some(old=>old?.code===permission.code))){
+      saved.permissions.push(...sales)
+      // Custom/operator grants remain explicit. Only the protected administrator
+      // receives the newly registered maintenance capabilities during migration.
+      const admin=saved.roles.find(role=>role.id===SUPER_ROLE_ID&&role.code==='super-admin'&&role.builtIn&&role.superAdmin)
+      if(admin&&Array.isArray(admin.permissionCodes))admin.permissionCodes=[...new Set([...admin.permissionCodes,...sales.map(p=>p.code)])]
+    }
+    if(saved&&saved.salesAccessVersion===undefined)saved.salesAccessVersion=1
     const problems = rbacProblems(data)
     if (problems.length) throw new Error(`授权数据校验失败：${problems.join(' ')}`)
     return
@@ -162,7 +175,7 @@ export function ensureRbac(data: AppData, legacyMenus: MenuNode[] = defaultMenuN
   if (!Array.isArray(data.users)) throw new Error('授权迁移失败：用户数组损坏，原始内容应保留。')
   const permissions = permissionRegistry()
   const operatorCodes = permissions.filter(permission => permission.action === 'read' && permission.route && legacyAllowed(legacyMenus,permission.resource === 'material' ? '/spus' : permission.route)).map(permission => permission.code)
-  ;(data as AuthorizationData).rbac = { version:1, guideAccessVersion:1, permissions, roles:[
+  ;(data as AuthorizationData).rbac = { version:1, guideAccessVersion:1, salesAccessVersion:1, permissions, roles:[
     { id:SUPER_ROLE_ID,code:'super-admin',name:'超级管理员',description:'受保护的内置恢复身份。',enabled:true,builtIn:true,superAdmin:true,permissionCodes:permissions.map(permission => permission.code) },
     { id:OPERATOR_ROLE_ID,code:'operator',name:'只读运营',description:'由旧运营菜单访问范围迁移，只读；新增功能不会自动授权。',enabled:true,builtIn:true,superAdmin:false,permissionCodes:operatorCodes },
   ] }
@@ -187,6 +200,7 @@ export function rbacProblems(data: AppData): string[] {
   const problems: string[] = [], rbac: unknown = state(data)
   if (!object(rbac) || rbac.version !== 1 || !Array.isArray(rbac.roles) || !Array.isArray(rbac.permissions)) return ['授权容器或版本无效。']
   if(rbac.guideAccessVersion!==undefined&&rbac.guideAccessVersion!==1)problems.push('指南授权迁移标记无效。')
+  if(rbac.salesAccessVersion!==undefined&&rbac.salesAccessVersion!==1)problems.push('销售配置授权迁移标记无效。')
   const registered = new Map(permissionRegistry().map(permission => [permission.code,permission]))
   const codes = new Set<string>(), roleSet = new Set<string>(), roleCodes = new Set<string>()
   for (const value of rbac.permissions) {
@@ -256,6 +270,13 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
   }
   const first = args[0] as Record<string,unknown> | undefined
   const save = (resource:string, exists:boolean) => [`product:${resource}:${exists ? 'update' : 'create'}`]
+  if(name==='saveSalesOptionPlan')return save('sales-config',Boolean((first?.draft as {id?:string})?.id))
+  if(name==='publishSalesOptionPlan'||name==='setSalesOptionPlanStatus')return ['product:sales-config:publish']
+  if(name==='saveSalesOptionBinding'||name==='saveSalesOptionBindings'){
+    const drafts=name==='saveSalesOptionBinding'?[first?.draft]:first?.drafts
+    return ['product:sales-config:update',...(Array.isArray(drafts)&&drafts.some(draft=>(draft as {enabled?:boolean})?.enabled)?['product:sales-config:publish']:[])]
+  }
+  if(name==='saveSalesProductRelation')return save('compatibility',Boolean((first?.draft as {id?:string})?.id))
   if (name === 'saveRbacRole') return [`system:role:${(data ? state(data) : undefined)?.roles.some(role => role.id === first?.id) ? 'update' : 'create'}`]
   if (name === 'saveRbacUser') return [`system:user:${data?.users.some(user => user.id === first?.id) ? 'update' : 'create'}`]
   if (name === 'saveSpu') {

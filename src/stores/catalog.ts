@@ -6,6 +6,8 @@ import { ensureRbac, rbacProblems, canPermission, isSuperAdmin, routePermissions
 import { loadMenu, saveMenu, defaultMenuNodes, type MenuNode } from '../domain/menuConfig'
 import { createRbacCommands } from './catalogRbac'
 import { catalogPublicData } from './catalogAccess'
+import { salesConfigurationImportProblems } from '../domain/salesConfiguration'
+import { saveSalesPlanCommand, publishSalesPlanCommand, setSalesPlanStatusCommand, saveSalesBindingsCommand, saveSalesRelationCommand, type SalesPlanSave, type SalesPlanPublish, type SalesPlanStatus, type SalesBindingSave, type SalesBindingsSave, type SalesRelationSave, type SalesConfigurationResult } from '../domain/salesConfigurationCommands'
 import { frameworkProductResetProblems, frameworkCommand, frameworkReference, frameworkSnapshot, frameworkSnapshotProblem, frameworkProblems, frameworkSignature } from '../domain/benefitFrameworks'
 import type { BenefitFramework } from '../domain/benefitPackageTypes'
 import { defineStore } from 'pinia'
@@ -101,6 +103,8 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   if (relationProblems.length) throw new Error(`物料关联校验失败：${relationProblems.join(' ')} 原始记录已保留。`)
   const benefitProblems = benefitPackageImportProblems(data)
   if (benefitProblems.length) throw new Error(`权益包数据校验失败：${benefitProblems.join(' ')} 原始记录已保留。`)
+  const salesProblems = salesConfigurationImportProblems(data)
+  if (salesProblems.length) throw new Error(`销售配置结构校验失败：${salesProblems.join(' ')} 原始记录已保留。`)
   const templateProblems = [...templateCompatibilityImportProblems(data), ...templateCompatibilityOriginProblems(data)]
   if (templateProblems.length) throw new Error(`模板兼容数据校验失败：${templateProblems.join(' ')} 原始记录已保留。`)
   const mark = { changed: version !== DATA_VERSION }
@@ -272,9 +276,10 @@ export const useCatalogStore = defineStore('catalog', () => {
   const originalRaw = localStorage.getItem(STORAGE_KEY)
   const startupCandidate = loadData(originalRaw)
   ensureRbac(startupCandidate,loadMenu())
-  const needsAuthorizationMigration = !originalRaw || !JSON.parse(originalRaw).data?.rbac
+  const originalAuthorization = originalRaw ? JSON.parse(originalRaw).data?.rbac : undefined
+  const needsAuthorizationMigration = !originalAuthorization || originalAuthorization.salesAccessVersion !== 1
   const startingData = cloneCompatibility(startupCandidate)
-  if(needsAuthorizationMigration){delete startingData.rbac;startingData.users=originalRaw?JSON.parse(originalRaw).data.users:startingData.users.map(u=>{const x={...u};delete x.roleIds;return x})}
+  if(needsAuthorizationMigration){if(originalAuthorization)startingData.rbac=cloneCompatibility(originalAuthorization);else delete startingData.rbac;startingData.users=originalRaw?JSON.parse(originalRaw).data.users:startingData.users.map(u=>{const x={...u};delete x.roleIds;return x})}
   const data = reactive<AppData>(startingData)
   const authorizationReady=ref(!needsAuthorizationMigration)
   const SESSION_KEY='iyge-rbac-simulated-user'
@@ -356,6 +361,17 @@ export const useCatalogStore = defineStore('catalog', () => {
     } catch (error) { const message=`无法保存到本机：${error instanceof Error ? error.message : String(error)}。当前数据未改变，操作草稿已保留，请重试。`;return withFailure({ok:false,message},caughtFailure(error,message,'unchanged')) }
   }
   const creationKeys: (keyof AppData)[] = ['families', 'skus', 'planningRecords', 'materialReceipts', 'compatibilities', 'templateCompatibilityOrigins', 'materialRelations', 'materialContributions']
+  function salesCommand(operation: (next: AppData) => SalesConfigurationResult, keys: (keyof AppData)[], isCurrent: () => boolean) {
+    const owner = activeUserId.value, preview = previewUserId.value
+    return command(() => {
+      const current = () => owner === activeUserId.value && preview === previewUserId.value && typeof isCurrent === 'function' && isCurrent()
+      if (!current()) return { ok: false, message: '操作者或配置上下文已变化，本次未保存，输入保留。' }
+      const next = cloneCompatibility(data), result = operation(next)
+      if (!result.ok) return result
+      if (!current()) return { ok: false, message: '配置上下文已变化，本次未保存。' }
+      return commitCandidate(next, result, keys)
+    })
+  }
   function saveMaterialRelation(input: Parameters<typeof executeMaterialRelation>[1]) {
     const next = cloneCompatibility(data)
     const result = executeMaterialRelation(next, input, uid)
@@ -801,6 +817,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     editorGeneration.value += 1
     ensureProductListPages(next)
     Object.assign(data, next)
+    if (next.salesOptionPlans === undefined) delete data.salesOptionPlans
+    if (next.salesOptionBindings === undefined) delete data.salesOptionBindings
+    if (next.salesProductRelations === undefined) delete data.salesProductRelations
     if (next.deviceModels === undefined) delete data.deviceModels
     if (next.deviceBindings === undefined) delete data.deviceBindings
     if (next.benefitFrameworks === undefined) delete data.benefitFrameworks
@@ -883,6 +902,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (templateProblems.length) throwImportValidation(`模板兼容导入校验失败：${templateProblems.join(' ')} 当前数据没有被替换。`)
     const benefitProblems = benefitPackageImportProblems(parsed.data)
     if (benefitProblems.length) throwImportValidation(`权益包导入校验失败：${benefitProblems.join(' ')} 当前数据没有被替换。`)
+    const salesProblems = salesConfigurationImportProblems(parsed.data)
+    if (salesProblems.length) throwImportValidation(`销售配置导入校验失败：${salesProblems.join(' ')} 当前数据没有被替换。`)
     const compatibilityProblems = compatibilityImportProblems(parsed.data)
     if (compatibilityProblems.length) throwImportValidation(`适用关系导入校验失败：${compatibilityProblems.join(' ')} 当前数据没有被替换。`)
     const next = normalizeStored(parsed, { persist: false })
@@ -893,13 +914,34 @@ export const useCatalogStore = defineStore('catalog', () => {
       const own=effectivePermissions(data,effectiveUserId.value)
       if(!isAdmin.value&&next.rbac!.roles.some(role=>role.superAdmin||role.permissionCodes.some(code=>!own.has(code))))throwImportPermission('导入不能取得超级管理员身份或超出操作者委派范围。')
     }
-    const prefixes:Partial<Record<keyof AppData,string>>={families:'product:spu',skus:'product:sku',productSpecNodes:'product:model',specCanvases:'product:model',specModelVersions:'product:model',businessDefinitions:'product:model',nodeCompatibilityRules:'product:model',materialRelations:'product:material',materialContributions:'product:material',materialReceipts:'product:material',compatibilities:'product:compatibility',deviceModels:'product:compatibility',deviceBindings:'product:compatibility',templateCompatibilityConfigs:'product:model',templateCompatibilityOrigins:'product:compatibility',benefitPackages:'product:benefit',benefitDeliveries:'product:delivery',benefitFrameworks:'product:framework',categories:'product:category',params:'product:dictionary',templates:'product:model',templateParams:'product:template',mappings:'product:template',productTypes:'product:type',rules:'product:rule',brands:'product:brand',productGroups:'product:group',planningRecords:'product:planning',productPlans:'product:planning',feedbacks:'system:feedback',profile:'system:account'}
+    const prefixes:Partial<Record<keyof AppData,string>>={families:'product:spu',skus:'product:sku',productSpecNodes:'product:model',specCanvases:'product:model',specModelVersions:'product:model',businessDefinitions:'product:model',nodeCompatibilityRules:'product:model',materialRelations:'product:material',materialContributions:'product:material',materialReceipts:'product:material',compatibilities:'product:compatibility',deviceModels:'product:compatibility',deviceBindings:'product:compatibility',templateCompatibilityConfigs:'product:model',templateCompatibilityOrigins:'product:compatibility',benefitPackages:'product:benefit',benefitDeliveries:'product:delivery',benefitFrameworks:'product:framework',salesOptionPlans:'product:sales-config',salesOptionBindings:'product:sales-config',salesProductRelations:'product:compatibility',categories:'product:category',params:'product:dictionary',templates:'product:model',templateParams:'product:template',mappings:'product:template',productTypes:'product:type',rules:'product:rule',brands:'product:brand',productGroups:'product:group',planningRecords:'product:planning',productPlans:'product:planning',feedbacks:'system:feedback',profile:'system:account'}
     const preferences=new Set(['mode','activeRole','productListPages','productListViews','activeProductListViewId','columns','listViews','activeViewId','listQuery','productListMode'])
     for(const key of new Set([...Object.keys(data),...Object.keys(next)])){
       if(key==='rbac'||key==='users'||preferences.has(key)||JSON.stringify((data as any)[key])===JSON.stringify((next as any)[key]))continue
       const prefix=prefixes[key as keyof AppData]
       if(!prefix)throwImportValidation(`导入含未登记的变更字段：${key}`)
       const old=(data as any)[key],value=(next as any)[key]
+      if (['salesOptionPlans','salesOptionBindings','salesProductRelations'].includes(key) && Array.isArray(old)) {
+        for (const previous of old.filter(row=>row.schemaVersion!==1)) {
+          const incoming = Array.isArray(value) ? value.find(row=>row.id===previous.id) : undefined
+          if (!incoming || frameworkSignature(incoming)!==frameworkSignature(previous)) throwImportValidation('未知版本销售记录只读保留，导入不能改写、移除或降级已有记录。')
+        }
+      }
+      if (key === 'salesOptionPlans' || key === 'salesOptionBindings') {
+        const oldRows = Array.isArray(old) ? old : [], nextRows = Array.isArray(value) ? value : []
+        const formalChange = key === 'salesOptionPlans'
+          ? JSON.stringify(oldRows.map(row=>[row.id,row.versions,row.publishedVersion,row.status])) !== JSON.stringify(nextRows.map(row=>[row.id,row.versions,row.publishedVersion,row.status]))
+          : oldRows.some(row=>row.enabled) || nextRows.some(row=>row.enabled)
+        if (formalChange && !can('product:sales-config:publish')) throwImportPermission('导入不能绕过销售方案发布及正式范围应用权限。')
+        if (key === 'salesOptionPlans') for (const previous of oldRows.filter(row=>row.schemaVersion===1)) {
+          const replacement = nextRows.find(row=>row.id===previous.id)
+          if (!replacement) continue
+          for (const version of previous.versions) {
+            const incoming = replacement.schemaVersion===1 && replacement.versions.find((row:{version:number})=>row.version===version.version)
+            if (!incoming || JSON.stringify(incoming) !== JSON.stringify(version)) throwImportValidation('导入不能改写或移除已有销售方案的冻结发布版本，请发布新版本。')
+          }
+        }
+      }
       if(key==='specModelVersions'){if(!can('product:model:publish'))throwImportPermission('无权导入或改写模型发布快照。');continue}
       if(Array.isArray(old)&&Array.isArray(value)){
         const byId=(item:any)=>item.id||JSON.stringify(item)
@@ -1638,6 +1680,12 @@ export const useCatalogStore = defineStore('catalog', () => {
       const copied = cloneCompatibility(next), copiedGuard = manualGuard && cloneCompatibility(manualGuard)
       return command(() => commitListPage('sku', copied, expectedPage, isCurrent, copiedGuard))
     },
+    saveSalesOptionPlan: (input: SalesPlanSave, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input); return salesCommand(next=>saveSalesPlanCommand(next,value,()=>uid('sales-plan'),new Date().toISOString()),['salesOptionPlans'],isCurrent) },
+    publishSalesOptionPlan: (input: SalesPlanPublish, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input); return salesCommand(next=>publishSalesPlanCommand(next,value,new Date().toISOString()),['salesOptionPlans'],isCurrent) },
+    setSalesOptionPlanStatus: (input: SalesPlanStatus, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input); return salesCommand(next=>setSalesPlanStatusCommand(next,value,new Date().toISOString()),['salesOptionPlans'],isCurrent) },
+    saveSalesOptionBinding: (input: SalesBindingSave, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input),key=value.draft?.id||'0'; return salesCommand(next=>saveSalesBindingsCommand(next,{drafts:[value.draft],expectedRevisions:{[key]:value.expectedRevision},expectedBasis:{[key]:value.expectedBasis},requestId:value.requestId},()=>uid('sales-binding'),new Date().toISOString()),['salesOptionBindings'],isCurrent) },
+    saveSalesOptionBindings: (input: SalesBindingsSave, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input); return salesCommand(next=>saveSalesBindingsCommand(next,value,()=>uid('sales-binding'),new Date().toISOString()),['salesOptionBindings'],isCurrent) },
+    saveSalesProductRelation: (input: SalesRelationSave, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input); return salesCommand(next=>saveSalesRelationCommand(next,value,()=>uid('sales-relation'),new Date().toISOString()),['salesProductRelations'],isCurrent) },
     saveBenefitFramework: (input: Parameters<typeof saveBenefitFramework>[0], isCurrent: () => boolean = () => true) => { const copied = cloneBenefit(input); return command(() => saveBenefitFramework(copied, isCurrent)) },
     removeBenefitFramework: (...args: Parameters<typeof removeBenefitFramework>) => command(() => removeBenefitFramework(...args)),
     saveBenefitPackage: (input: Parameters<typeof saveBenefitPackage>[0], isCurrent: () => boolean = () => true) => { const copied = cloneBenefit(input); return command<BenefitCommandResult>(() => saveBenefitPackage(copied, isCurrent)) },

@@ -9,7 +9,7 @@ import {ensureRbac,rbacProblems,permissionRegistry,effectivePermissions,isSuperA
 import {normalizeStored,useCatalogStore} from '../src/stores/catalog'
 import {DATA_VERSION,STORAGE_KEY,type AppData} from '../src/domain/types'
 
-const output='work/unrestricted-access';mkdirSync(output,{recursive:true})
+const artifacts=process.argv.includes('--artifacts'),output=process.env.CHECK_OUTPUT_DIR||'work/unrestricted-access';if(artifacts)mkdirSync(output,{recursive:true})
 const disk=new Map<string,string>(),session=new Map<string,string>(),checks:string[]=[]
 const restoreLocks=installCatalogTestLocks()
 Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(key:string)=>disk.get(key)??null,setItem:(key:string,value:string)=>disk.set(key,value),removeItem:(key:string)=>disk.delete(key)}})
@@ -74,5 +74,5 @@ try{
   assert.throws(()=>useCatalogStore(),/无法安全读取|业务配置结构校验失败/)
   assert.equal(disk.get(STORAGE_KEY),damagedRaw)
   mark('damaged business startup still preserves original storage instead of silently loading seed data')
-  writeFileSync(output+'/result.json',JSON.stringify({status:'PASS',mode:'unrestricted-mock-administrator',checks},null,2))
+  if(artifacts)writeFileSync(output+'/result.json',JSON.stringify({status:'PASS',mode:'unrestricted-mock-administrator',checks},null,2))
 }finally{store?.$dispose();restoreLocks()}

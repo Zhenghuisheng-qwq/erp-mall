@@ -1,6 +1,8 @@
 import type { GuidePage } from '../types'
+import { salesOptionPages } from './manuals-sales-options'
 
 export const guidePages: GuidePage[] = [
+  ...salesOptionPages,
   {
     "id": "page-home",
     "title": "商品工作台",

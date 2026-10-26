@@ -1,4 +1,5 @@
 import type { CompatibilityHost } from './types'
+import type { SalesSelectionMetadata } from './salesConfigurationTypes'
 
 export type BenefitPackageStatus = 'draft' | 'available' | 'disabled'
 export type BenefitDeviceContext = { kind: 'sku'; skuId: string } | { kind: 'model'; host: CompatibilityHost } | null
@@ -70,6 +71,7 @@ export interface BenefitConditionConfirmation {
 }
 /** New local drafts have empty id/code/times and revision 0; commands allocate identities only on save. */
 export interface BenefitPackageDraft {
+  sales?: SalesSelectionMetadata
   compositionVersion?: number
   id: string
   code: string
@@ -126,6 +128,7 @@ export interface BenefitDeliveryGoods extends BenefitSkuSummary { lineId: string
 export interface BenefitDeliverySkuTotal { skuId: string; code: string; name: string; perPackageQuantity: number; totalQuantity: number; positionIds: string[] }
 export interface BenefitDeliveryService extends BenefitServiceLine { perPackageQuantity: number; totalQuantity: number; referenceLineCents?: number | null; referenceTotalCents?: number | null }
 export interface BenefitDeliveryPreview {
+  sales?: SalesSelectionMetadata
   compositionVersion?: number
   goodsSummary?: BenefitDeliverySkuTotal[]
   framework?: BenefitFrameworkSnapshot

@@ -1,4 +1,5 @@
 import type { BenefitFramework } from './benefitPackageTypes'
+import type { SalesOptionPlan, SalesOptionBinding, SalesProductRelation } from './salesConfigurationTypes'
 import type { SkuViewConfig, SkuWorkbenchState } from './skuWorkbenchTypes'
 import type { AccessoryTargetKind, CompatibilityCapability, CompatibilityConclusion, CompatibilityCondition, CompatibilityProvenance, CompatibilityVerification, DeviceBinding, DeviceModel } from './accessoryCompatibilityTypes'
 import type { BenefitDeliverySnapshot, BenefitPackage } from './benefitPackageTypes'
@@ -523,6 +524,10 @@ export interface Profile {
 }
 
 export interface AppData {
+  /** Sales configuration is independent of specification axes and historical SKU snapshots. */
+  salesOptionPlans?: SalesOptionPlan[]
+  salesOptionBindings?: SalesOptionBinding[]
+  salesProductRelations?: SalesProductRelation[]
   rbac?: import('./rbac').RbacState
   materialRelations?: import('./materialRelations').MaterialRelation[]
   materialContributions?: import('./materialRelations').MaterialContribution[]
