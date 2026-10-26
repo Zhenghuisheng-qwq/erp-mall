@@ -256,6 +256,11 @@ export function templateAccessResource(data: AppData, template: string | {id?: s
   return data.specCanvases.some(canvas => canvas.templateId === id && Boolean(canvas.productTypeId)) ? 'model' : 'template'
 }
 
+/** Either end can carry an already effective binding; disabling it is a publication change too. */
+export function salesBindingNeedsPublish(previous: { enabled?: boolean } | undefined, next: { enabled?: boolean } | undefined): boolean {
+  return previous?.enabled === true || next?.enabled === true
+}
+
 /** Store command bindings. An unknown command fails closed. These are execution points, not labels. */
 export function commandPermissions(name: string, args: unknown[] = [], data?: AppData): string[] {
   if (name === 'commitModelDictionaryBatch') {
@@ -274,7 +279,8 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
   if(name==='publishSalesOptionPlan'||name==='setSalesOptionPlanStatus')return ['product:sales-config:publish']
   if(name==='saveSalesOptionBinding'||name==='saveSalesOptionBindings'){
     const drafts=name==='saveSalesOptionBinding'?[first?.draft]:first?.drafts
-    return ['product:sales-config:update',...(Array.isArray(drafts)&&drafts.some(draft=>(draft as {enabled?:boolean})?.enabled)?['product:sales-config:publish']:[])]
+    const formal=Array.isArray(drafts)&&drafts.some(value=>{const draft=value as {id?:string;enabled?:boolean}|undefined;return salesBindingNeedsPublish(data?.salesOptionBindings?.find(row=>row.id===draft?.id),draft)})
+    return ['product:sales-config:update',...(formal?['product:sales-config:publish']:[])]
   }
   if(name==='saveSalesProductRelation')return save('compatibility',Boolean((first?.draft as {id?:string})?.id))
   if (name === 'saveRbacRole') return [`system:role:${(data ? state(data) : undefined)?.roles.some(role => role.id === first?.id) ? 'update' : 'create'}`]

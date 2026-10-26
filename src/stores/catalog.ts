@@ -2,11 +2,12 @@ import { branchFailure, rejectGuide, getFailure, failureError, failureForResult,
 import type { GuideFailure } from '../domain/guide/types'
 import { createCatalogSimulation } from './catalogSimulation'
 import { RBAC_ENFORCEMENT_ENABLED } from '../domain/accessMode'
-import { ensureRbac, rbacProblems, canPermission, isSuperAdmin, routePermissions, commandPermissions, effectivePermissions, permissionRegistry, templateAccessResource } from '../domain/rbac'
+import { ensureRbac, rbacProblems, canPermission, isSuperAdmin, routePermissions, commandPermissions, effectivePermissions, permissionRegistry, templateAccessResource, salesBindingNeedsPublish } from '../domain/rbac'
 import { loadMenu, saveMenu, defaultMenuNodes, type MenuNode } from '../domain/menuConfig'
 import { createRbacCommands } from './catalogRbac'
 import { catalogPublicData } from './catalogAccess'
 import { salesConfigurationImportProblems } from '../domain/salesConfiguration'
+import { salesSelectionIssues } from '../domain/salesSelection'
 import { saveSalesPlanCommand, publishSalesPlanCommand, setSalesPlanStatusCommand, saveSalesBindingsCommand, saveSalesRelationCommand, type SalesPlanSave, type SalesPlanPublish, type SalesPlanStatus, type SalesBindingSave, type SalesBindingsSave, type SalesRelationSave, type SalesConfigurationResult } from '../domain/salesConfigurationCommands'
 import { frameworkProductResetProblems, frameworkCommand, frameworkReference, frameworkSnapshot, frameworkSnapshotProblem, frameworkProblems, frameworkSignature } from '../domain/benefitFrameworks'
 import type { BenefitFramework } from '../domain/benefitPackageTypes'
@@ -299,7 +300,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     if(legacy&&legacy[1]!=='new'&&location.query?.sku){const sku=data.skus.find(s=>s.id===location.query!.sku&&s.familyId===legacy[1]);path=sku?(isMaterialArchive(data,sku)?`/materials/${sku.familyId}`:`/skus/${sku.id}`):`/spus/${legacy[1]}`}
     const permissions=routePermissions(path,location.query);return permissions!==null&&permissions.every(can)
   }
-  type CommandContext={codes:string[];actor:string;name:string}
+  type CommandContext={codes:string[];actor:string;name:string;currentCodes?:()=>string[]}
   let invocation:CommandContext|undefined
   let executingAction = 'action-business-save'
   const commandAction = (name:string) => ({ commitCategoryMove:'action-category-move', commitCategoryMoves:'action-category-move', renameCategoryName:'action-category-rename', publishSpecModel:'action-model-publish', createMaterial:'action-material-create', createTemporary:'action-material-create', saveMaterialRelation:'action-material-create', saveSpu:'action-spu-save', saveBundle:'action-spu-save', appendSkus:'action-sku-save', editSku:'action-sku-save', commitDeviceBinding:'action-compatibility-bind', applyTemplateSync:'action-compatibility-sync', applyTemplateCompatibilitySync:'action-compatibility-sync', commitSkuPage:'action-view-save', saveBenefitPackage:'action-benefit-save', generateBenefitDelivery:'action-benefit-deliver', importJson:'action-json-import', commitMaterialImport:'action-json-import', saveView:'action-view-save', saveSkuView:'action-view-save', saveRbacRole:'action-rbac-authorize', grantRbacRole:'action-rbac-authorize' } as Record<string,string>)[name] || 'action-business-save'
@@ -339,7 +340,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     const context=invocation
     const actionId=context?commandAction(context.name):'action-business-save'
     return persistence.run<T | CommandFailure>(()=>{
-      if(context&&(context.actor!==effectiveUserId.value||!context.codes.every(can)))return rejectGuide('command.authorization-changed','操作者或授权已变化，本次提交被拒绝，草稿保留。',{actionId,savedState:'unchanged',context:{requiredPermissions:context.codes.join('、'),mode:RBAC_ENFORCEMENT_ENABLED?'enforced':'unrestricted'}})
+      const codes=context?[...new Set([...context.codes,...(context.currentCodes?.()||[])])]:[]
+      if(context&&(context.actor!==effectiveUserId.value||!codes.every(can)))return rejectGuide('command.authorization-changed','操作者或授权已变化，本次提交被拒绝，草稿保留。',{actionId,savedState:'unchanged',context:{requiredPermissions:codes.join('、'),mode:RBAC_ENFORCEMENT_ENABLED?'enforced':'unrestricted'}})
       const previous=executingAction;executingAction=actionId
       try{return failureForResult(operation(),actionId)}finally{executingAction=previous}
     }, (message,failure) => ({ ok: false as const, message, failure }), {actionId,savedState:'unchanged'})
@@ -906,21 +908,30 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (salesProblems.length) throwImportValidation(`销售配置导入校验失败：${salesProblems.join(' ')} 当前数据没有被替换。`)
     const compatibilityProblems = compatibilityImportProblems(parsed.data)
     if (compatibilityProblems.length) throwImportValidation(`适用关系导入校验失败：${compatibilityProblems.join(' ')} 当前数据没有被替换。`)
+    const prefixes:Partial<Record<keyof AppData,string>>={families:'product:spu',skus:'product:sku',productSpecNodes:'product:model',specCanvases:'product:model',specModelVersions:'product:model',businessDefinitions:'product:model',nodeCompatibilityRules:'product:model',materialRelations:'product:material',materialContributions:'product:material',materialReceipts:'product:material',compatibilities:'product:compatibility',deviceModels:'product:compatibility',deviceBindings:'product:compatibility',templateCompatibilityConfigs:'product:model',templateCompatibilityOrigins:'product:compatibility',benefitPackages:'product:benefit',benefitDeliveries:'product:delivery',benefitFrameworks:'product:framework',salesOptionPlans:'product:sales-config',salesOptionBindings:'product:sales-config',salesProductRelations:'product:compatibility',categories:'product:category',params:'product:dictionary',templates:'product:model',templateParams:'product:template',mappings:'product:template',productTypes:'product:type',rules:'product:rule',brands:'product:brand',productGroups:'product:group',planningRecords:'product:planning',productPlans:'product:planning',feedbacks:'system:feedback',profile:'system:account'}
+    for(const key of Object.keys(prefixes))if(key!=='profile'&&(parsed.data as any)[key]!==undefined&&!Array.isArray((parsed.data as any)[key]))throwImportValidation(`导入记录集合 ${key} 必须为数组，不能按空集合处理损坏内容。`)
     const next = normalizeStored(parsed, { persist: false })
     if (!next?.params) throwImportValidation('演示数据版本不匹配，当前数据没有被替换')
+    for(const incoming of next.benefitPackages||[]){
+      const previous=data.benefitPackages?.find(record=>record.id===incoming.id)
+      if(!previous?.sales&&incoming.sales?.schemaVersion!==1||previous&&frameworkSignature(previous)===frameworkSignature(incoming))continue
+      const identityProblems=salesSelectionIssues({...next,benefitPackages:data.benefitPackages},incoming).filter(issue=>issue.structural)
+      if(identityProblems.length)throwImportValidation(`销售位置身份校验失败：${identityProblems.map(issue=>issue.message).join('；')}`)
+    }
     const authChanged=JSON.stringify([next.rbac,next.users])!==JSON.stringify([data.rbac,data.users])
     if(authChanged){
       if(!can('system:role:grant')||!can('system:user:bind')||!can('system:permission:update'))throwImportPermission('导入不能修改当前操作者无权维护的授权或用户角色绑定。')
       const own=effectivePermissions(data,effectiveUserId.value)
       if(!isAdmin.value&&next.rbac!.roles.some(role=>role.superAdmin||role.permissionCodes.some(code=>!own.has(code))))throwImportPermission('导入不能取得超级管理员身份或超出操作者委派范围。')
     }
-    const prefixes:Partial<Record<keyof AppData,string>>={families:'product:spu',skus:'product:sku',productSpecNodes:'product:model',specCanvases:'product:model',specModelVersions:'product:model',businessDefinitions:'product:model',nodeCompatibilityRules:'product:model',materialRelations:'product:material',materialContributions:'product:material',materialReceipts:'product:material',compatibilities:'product:compatibility',deviceModels:'product:compatibility',deviceBindings:'product:compatibility',templateCompatibilityConfigs:'product:model',templateCompatibilityOrigins:'product:compatibility',benefitPackages:'product:benefit',benefitDeliveries:'product:delivery',benefitFrameworks:'product:framework',salesOptionPlans:'product:sales-config',salesOptionBindings:'product:sales-config',salesProductRelations:'product:compatibility',categories:'product:category',params:'product:dictionary',templates:'product:model',templateParams:'product:template',mappings:'product:template',productTypes:'product:type',rules:'product:rule',brands:'product:brand',productGroups:'product:group',planningRecords:'product:planning',productPlans:'product:planning',feedbacks:'system:feedback',profile:'system:account'}
     const preferences=new Set(['mode','activeRole','productListPages','productListViews','activeProductListViewId','columns','listViews','activeViewId','listQuery','productListMode'])
     for(const key of new Set([...Object.keys(data),...Object.keys(next)])){
       if(key==='rbac'||key==='users'||preferences.has(key)||JSON.stringify((data as any)[key])===JSON.stringify((next as any)[key]))continue
       const prefix=prefixes[key as keyof AppData]
       if(!prefix)throwImportValidation(`导入含未登记的变更字段：${key}`)
       const old=(data as any)[key],value=(next as any)[key]
+      const records=key!=='profile'
+      if(records&&((old!==undefined&&!Array.isArray(old))||(value!==undefined&&!Array.isArray(value))))throwImportValidation(`导入记录集合 ${key} 必须为数组，不能按空集合处理损坏内容。`)
       if (['salesOptionPlans','salesOptionBindings','salesProductRelations'].includes(key) && Array.isArray(old)) {
         for (const previous of old.filter(row=>row.schemaVersion!==1)) {
           const incoming = Array.isArray(value) ? value.find(row=>row.id===previous.id) : undefined
@@ -929,9 +940,12 @@ export const useCatalogStore = defineStore('catalog', () => {
       }
       if (key === 'salesOptionPlans' || key === 'salesOptionBindings') {
         const oldRows = Array.isArray(old) ? old : [], nextRows = Array.isArray(value) ? value : []
-        const formalChange = key === 'salesOptionPlans'
-          ? JSON.stringify(oldRows.map(row=>[row.id,row.versions,row.publishedVersion,row.status])) !== JSON.stringify(nextRows.map(row=>[row.id,row.versions,row.publishedVersion,row.status]))
-          : oldRows.some(row=>row.enabled) || nextRows.some(row=>row.enabled)
+        const publication=(row:any)=>!row?null:row.schemaVersion!==1?row:row.versions.length||row.publishedVersion!==null||row.status!=='draft'?[row.versions,row.publishedVersion,row.status]:null
+        const formalChange=[...new Set([...oldRows,...nextRows].map(row=>row.id))].some(id=>{
+          const a=oldRows.find(row=>row.id===id),b=nextRows.find(row=>row.id===id)
+          if(frameworkSignature(a)===frameworkSignature(b))return false
+          return key==='salesOptionPlans'?frameworkSignature(publication(a))!==frameworkSignature(publication(b)):salesBindingNeedsPublish(a,b)
+        })
         if (formalChange && !can('product:sales-config:publish')) throwImportPermission('导入不能绕过销售方案发布及正式范围应用权限。')
         if (key === 'salesOptionPlans') for (const previous of oldRows.filter(row=>row.schemaVersion===1)) {
           const replacement = nextRows.find(row=>row.id===previous.id)
@@ -943,10 +957,11 @@ export const useCatalogStore = defineStore('catalog', () => {
         }
       }
       if(key==='specModelVersions'){if(!can('product:model:publish'))throwImportPermission('无权导入或改写模型发布快照。');continue}
-      if(Array.isArray(old)&&Array.isArray(value)){
+      if(records){
+        const previousRows=old||[],incomingRows=value||[]
         const byId=(item:any)=>item.id||JSON.stringify(item)
-        const keys=new Set([...old,...value].map(byId))
-        for(const identity of keys){const a=old.find((v:any)=>byId(v)===identity),b=value.find((v:any)=>byId(v)===identity);if(JSON.stringify(a)===JSON.stringify(b))continue;if(key==='families'&&b&&!commandPermissions('saveSpu',[b],data).every(can))throwImportPermission('导入不能绕过商品编辑或发布权限。');if(key==='skus'&&a&&b&&isMaterialArchive(data,a)!==isMaterialArchive(next,b)&&(!can('product:sku:update')||!can('product:material:update')))throwImportPermission('导入不能跨越 SKU/MAT 身份权限。');const templateRow=(key==='templates'||key==='templateParams'||key==='mappings');const templateId=key==='templates'?(b||a)?.id:(b||a)?.templateId;const resource=templateRow?`product:${templateAccessResource(b?next:data,templateId||'')}`:key==='skus'&&((a||b)?.recordKind==='material'||(a||b)?.materialCode)?'product:material':prefix;const action=key==='templateParams'||key==='mappings'?'update':!a?'create':!b?'delete':'update';if(!can(`${resource}:${action}`))throwImportPermission(`导入被拒绝：没有 ${resource}:${action}，当前数据及会话未改变。`)}
+        const keys=new Set([...previousRows,...incomingRows].map(byId))
+        for(const identity of keys){const a=previousRows.find((v:any)=>byId(v)===identity),b=incomingRows.find((v:any)=>byId(v)===identity);if(JSON.stringify(a)===JSON.stringify(b))continue;if(key==='families'&&b&&!commandPermissions('saveSpu',[b],data).every(can))throwImportPermission('导入不能绕过商品编辑或发布权限。');if(key==='skus'&&a&&b&&isMaterialArchive(data,a)!==isMaterialArchive(next,b)&&(!can('product:sku:update')||!can('product:material:update')))throwImportPermission('导入不能跨越 SKU/MAT 身份权限。');const templateRow=(key==='templates'||key==='templateParams'||key==='mappings');const templateId=key==='templates'?(b||a)?.id:(b||a)?.templateId;const resource=templateRow?`product:${templateAccessResource(b?next:data,templateId||'')}`:key==='skus'&&((a||b)?.recordKind==='material'||(a||b)?.materialCode)?'product:material':prefix;const action=key==='templateParams'||key==='mappings'||key==='salesOptionBindings'&&b?'update':!a?'create':!b?'delete':'update';if(!can(`${resource}:${action}`))throwImportPermission(`导入被拒绝：没有 ${resource}:${action}，当前数据及会话未改变。`)}
       }else if(!can(`${prefix}:update`))throwImportPermission(`导入被拒绝：没有 ${prefix}:update。`)
     }
     next.activeRole=data.activeRole // Deprecated backup mirror must never change the current or next mock identity.
@@ -1701,7 +1716,13 @@ export const useCatalogStore = defineStore('catalog', () => {
     resetAll: () => command(resetAll),
     resetModule: (...args: Parameters<typeof resetModule>) => command(() => resetModule(...args)),
     exportJson,
-    importJson: (text: string) => persistence.run(() => importJson(text), (message,failure) => { throw failureError(message,failure) }, {actionId:'action-json-import',savedState:'unchanged'}),
+    importJson: (text: string) => {
+      const owner=activeUserId.value,preview=previewUserId.value
+      return persistence.run(() => {
+        if(owner!==activeUserId.value||preview!==previewUserId.value||!can('product:import:execute'))throwImportPermission('操作者或导入授权已变化，本次导入未执行。')
+        return importJson(text)
+      }, (message,failure) => { throw failureError(message,failure) }, {actionId:'action-json-import',savedState:'unchanged'})
+    },
     skusOf,
     saveBundle: (...args: Parameters<typeof saveBundle>) => command(() => saveBundle(...args)),
     saveSpu: (family: ProductFamily) => command(() => {
@@ -1770,7 +1791,8 @@ export const useCatalogStore = defineStore('catalog', () => {
       const codes=commandPermissions(name,args,data)
       if(!codes.every(can)){const message=`未授权操作：${codes.join('、')}。`;throw failureError(message,branchFailure('command.permission',message,{actionId:commandAction(name),savedState:'unchanged',context:{requiredPermissions:codes.join('、'),mode:RBAC_ENFORCEMENT_ENABLED?'enforced':'unrestricted'},recovery:['view-related','feedback']}))}
       if((name==='resetAll'||name==='resetModule')&&!isAdmin.value)throw new Error('只有受保护的超级管理员可重置演示数据。')
-      const previous=invocation;invocation={codes,actor:effectiveUserId.value,name}
+      const bindingArgs=name==='saveSalesOptionBinding'||name==='saveSalesOptionBindings'?[cloneCompatibility(args[0])]:undefined
+      const previous=invocation;invocation={codes,actor:effectiveUserId.value,name,...(bindingArgs?{currentCodes:()=>commandPermissions(name,bindingArgs,data)}:{})}
       try{return (original as (...a:unknown[])=>unknown)(...args)}finally{invocation=previous}
     }
   }

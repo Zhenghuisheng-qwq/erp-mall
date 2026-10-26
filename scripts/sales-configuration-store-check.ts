@@ -110,3 +110,4 @@ assert(recovered.authorizationReady);assert.equal(recovered.data.rbac!.salesAcce
 assert.deepEqual(copy(recovered.data.rbac!.roles.find(role=>role.id==='sales-reader-role')),legacy.rbac!.roles.find(role=>role.id==='sales-reader-role'));recovered.$dispose()
 mark('additive authorization migration write failure preserves old grants and disk; reload retries protected migration')
 console.log(`PASS sales configuration Store ${groups} groups (${RBAC_ENFORCEMENT_ENABLED?'strict':'default'})`)
+await import('./sales-permission-repair-check')

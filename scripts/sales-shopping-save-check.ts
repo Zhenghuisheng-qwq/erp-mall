@@ -100,3 +100,5 @@ const beforeDispose=disk.get(STORAGE_KEY);scope.stop();release();assert.equal(aw
 assert.equal(JSON.stringify([store.data.families,store.data.skus,store.data.specModelVersions,store.data.planningRecords,store.data.materialReceipts,store.data.compatibilities]),business)
 store.$dispose();mark('page disposal cancels old save; SKU/model/PLN/MAT and compatibility business data unchanged')
 console.log(`PASS sales shopping delayed save ${groups} groups (${RBAC_ENFORCEMENT_ENABLED?'strict':'default'})`)
+
+await import('./sales-selection-store-repair-check')

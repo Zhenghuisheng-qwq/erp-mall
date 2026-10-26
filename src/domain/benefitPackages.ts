@@ -7,7 +7,7 @@ import { compatibilityRecordRole } from './deviceResolution'
 import { queryDeviceAccessories, queryModelAccessories } from './accessoryCompatibilityQuery'
 import { savedSkuCode, savedSkuName, savedSkuSpec } from './productList'
 import { shelfOf } from './logic'
-import { salesMetadataProblems, salesPositionCompatibility, salesSelectionEvidence, salesSelectionIssues, synchronizeSalesGroupIds } from './salesSelection'
+import { salesMetadataProblems, salesPositionIdentityProblems, salesPositionCompatibility, salesSelectionEvidence, salesSelectionIssues, synchronizeSalesGroupIds, pruneSalesContexts } from './salesSelection'
 import type { AppData, CompatibilityHost } from './types'
 import type { AccessoryMatch, AccessoryQueryResult } from './accessoryCompatibilityTypes'
 import type { BenefitCapabilitySummary, BenefitCompatibilitySummary, BenefitConditionConfirmation, BenefitDeliveryPreview, BenefitDeliverySnapshot, BenefitDeviceContext, BenefitIssue, BenefitPackage, BenefitPackageDraft, BenefitSkuSummary, BenefitValidation, BenefitReferencePrice, BenefitDeliveryGoods, BenefitDeliverySkuTotal } from './benefitPackageTypes'
@@ -140,7 +140,7 @@ export function removeBenefitPosition(draft:BenefitPackageDraft,lineId:string):B
  if(!line)throw Error('商品位置已不存在。')
  next.goods=next.goods.filter(item=>item.id!==lineId)
  if(line.role==='host'||benefitCompositionVersion(next)===1&&line.skuId===next.includedPhoneSkuId)next.includedPhoneSkuId=''
- if(next.sales?.schemaVersion===1){next.sales.origins=next.sales.origins.filter(origin=>origin.positionId!==lineId);next.sales.contexts=next.sales.contexts.filter(context=>context.sourcePositionId!==lineId);next.groups=next.groups.filter(group=>!group.id.startsWith('sales:')||next.goods.some(item=>item.groupId===group.id))}
+ if(next.sales?.schemaVersion===1){next.sales.origins=next.sales.origins.filter(origin=>origin.positionId!==lineId);pruneSalesContexts(next);next.groups=next.groups.filter(group=>!group.id.startsWith('sales:')||next.goods.some(item=>item.groupId===group.id))}
  return touchComposition(next)
 }
 export function setBenefitPositionQuantity(data:AppData,draft:BenefitPackageDraft,lineId:string,quantity:number,index?:BenefitSelectionIndex):BenefitPackageDraft{if(!validBenefitQuantity(quantity))throw Error('位置数量必须是安全范围内的正整数。');const next=cloneBenefit(draft),line=next.goods.find(item=>item.id===lineId);if(!line)throw Error('商品位置已不存在。');const range=resolveBenefitRange(data,next,index),group=benefitCompositionVersion(next)===2?range.groups.find(item=>item.id===line.groupId):range.membership(line.skuId)[0];if(group&&(group.adjustable?quantity<group.minQuantity||quantity>group.maxQuantity:quantity!==group.defaultQuantity))throw Error(`「${group.name}」件数超出该组约定。`);line.quantity=quantity;return touchComposition(next)}
@@ -189,6 +189,7 @@ export function benefitDraftStructureIssues(draft:unknown):BenefitIssue[]{
  if(draft.services.some(line=>!object(line)||!['id','name','unit','measurement','validity','description'].every(key=>string(line[key]))))return fail('服务条目结构无效，原输入保留。')
  if(draft.framework!==undefined&&frameworkSnapshotProblem(draft.framework))return fail(frameworkSnapshotProblem(draft.framework))
  if(salesMetadataProblems(draft.sales).length)return fail(salesMetadataProblems(draft.sales).join('；'))
+ if(salesPositionIdentityProblems(draft as unknown as BenefitPackageDraft).length)return fail(salesPositionIdentityProblems(draft as unknown as BenefitPackageDraft).join('；'))
  return [...benefitPositionStructureIssues(draft as unknown as BenefitPackageDraft),...benefitRuleStructureIssues(draft.groups)]
 }
 export function validateBenefitPackage(data: AppData, draft: BenefitPackageDraft, suppliedIndex?:BenefitSelectionIndex): BenefitValidation {
@@ -388,7 +389,7 @@ export function benefitPackageImportProblems(data: unknown): string[] {
     if(value.saveReceipts!==undefined){if(!Array.isArray(value.saveReceipts)||value.saveReceipts.some(receipt=>!object(receipt)||!string(receipt.requestId)||!receipt.requestId||!string(receipt.intent)||!receipt.intent||!Number.isSafeInteger(receipt.sourceRevision)||Number(receipt.sourceRevision)<0||!validBenefitQuantity(receipt.resultRevision)||Number(receipt.resultRevision)!==Number(receipt.sourceRevision)+1||Number(receipt.resultRevision)>Number(value.revision))||new Set(value.saveReceipts.map(receipt=>object(receipt)?receipt.requestId:undefined)).size!==value.saveReceipts.length)problems.push('组合保存回执集合结构、身份或修订依据无效。')}
     accepted(String(value.id),value.creationRequestId,value.creationIntent)
     if(value.sales!==undefined&&(!object(value.sales)||!Number.isSafeInteger(value.sales.schemaVersion)||Number(value.sales.schemaVersion)<1))problems.push('销售方案来源版本无效。')
-    else if(object(value.sales)&&value.sales.schemaVersion===1)problems.push(...salesMetadataProblems(value.sales))
+    else if(object(value.sales)&&value.sales.schemaVersion===1){problems.push(...salesMetadataProblems(value.sales));problems.push(...salesPositionIdentityProblems(value as unknown as BenefitPackageDraft))}
     if(object(value.saveReceipt))accepted(String(value.id),value.saveReceipt.requestId,value.saveReceipt.intent,value.saveReceipt)
     if(Array.isArray(value.saveReceipts))for(const receipt of value.saveReceipts)if(object(receipt))accepted(String(value.id),receipt.requestId,receipt.intent,receipt)
     if (!Array.isArray(value.goods) || value.goods.some(line => !object(line) || !string(line.id) || !line.id || !string(line.skuId) || !line.skuId || !validBenefitQuantity(line.quantity) || !summaryShape(line.snapshot) || !object(line.snapshot) || line.snapshot.skuId !== line.skuId)) problems.push('权益包实物条目结构、身份或数量无效。')
@@ -425,6 +426,7 @@ export function benefitPackageImportProblems(data: unknown): string[] {
     }
     if (!strings(value.hostSkuIds) || !Array.isArray(value.hostSkuIds) || new Set(value.hostSkuIds).size !== value.hostSkuIds.length || value.hostSkuIds.some(id => !id || !Array.isArray(value.goods) || !value.goods.some(line => object(line) && line.skuId === id)) || string(value.includedPhoneSkuId) && value.includedPhoneSkuId && !value.hostSkuIds.includes(value.includedPhoneSkuId)) problems.push('交付主机身份须为商品明细中的唯一 SKU 引用。')
     if (!Array.isArray(value.services) || value.services.some(line => !serviceShape(line) || !object(line) || !string(line.id) || !line.id || !string(line.name) || !line.name.trim() || !string(line.unit) || !line.unit.trim() || !validBenefitQuantity(line.perPackageQuantity) || !validBenefitQuantity(line.totalQuantity) || line.quantity !== line.perPackageQuantity || line.totalQuantity !== (line.measurement === 'per-delivery' ? line.quantity : Number(line.quantity) * Number(value.packageCount))) || new Set(value.services.map(line => line.id)).size !== value.services.length) problems.push('交付服务明细或计量无效。')
+    if(object(value.sales)&&value.sales.schemaVersion===1&&Array.isArray(value.goods)&&value.goods.every(object)&&Array.isArray(value.services))problems.push(...salesPositionIdentityProblems({sales:value.sales,goods:value.goods.map(line=>({...line,id:line.lineId,snapshot:line})),services:value.services} as unknown as BenefitPackageDraft))
     if (!object(value.quote) || value.quote.currency !== 'CNY' || typeof value.quote.needsReview !== 'boolean' || (value.quote.amountCents === null ? value.quote.totalCents !== null : !validBenefitCents(value.quote.amountCents) || !validBenefitCents(value.quote.totalCents) || value.quote.totalCents !== Number(value.quote.amountCents) * Number(value.packageCount))) problems.push('交付清单报价无效。')
     if (!Array.isArray(value.confirmations) || !value.confirmations.every(confirmationShape) || !Array.isArray(value.issues) || value.issues.some(issue => !object(issue) || !string(issue.code) || !string(issue.message) || issue.severity !== 'warning')) problems.push('交付清单条件或确认说明无效。')
   }

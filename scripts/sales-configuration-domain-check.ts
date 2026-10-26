@@ -185,4 +185,73 @@ check('100×100 is one range configuration, not ten thousand SKU pairs or new go
   assert.equal(rows.length,101,'100 new/old case SKUs plus existing off-sale case remains visible as unavailable')
   assert(f.data.compatibilities.length<200);assert.equal(business(f.data),before)
 })
+const repairFailures:unknown[]=[]
+function repair(name:string,run:()=>void){try{check(name,run)}catch(error){console.error(`FAIL sales repair: ${name}: ${String(error)}`);repairFailures.push(error)}}
+repair('removing a saved source retains frozen downstream context and allows pending draft',()=>{
+  const f=createSalesConfigurationFixture();let draft=draftFor(f.data)
+  draft=addSalesCandidate(f.data,draft,querySalesCandidates(f.data,draft,'phone-a').rows.find(row=>row.skuId==='case-sku')!,{sourcePositionId:draft.goods[0]!.id})
+  const source=draft.goods.find(line=>line.skuId==='case-sku')!
+  draft=addSalesCandidate(f.data,draft,querySalesCandidates(f.data,draft,'case-sku').rows.find(row=>row.skuId==='film-sku')!,{sourcePositionId:source.id})
+  draft.id='pending-source';draft.code='PENDING';draft.revision=1;draft.createdAt=f.now;draft.updatedAt=f.now;f.data.benefitPackages=[cloneSales(draft)]
+  const removed=removeSalesPosition(draft,source.id),validation=validateBenefitPackage(f.data,removed)
+  assert.equal(validation.canSaveDraft,true,validation.issues.map(issue=>issue.message).join(';'))
+  assert.equal(validation.canSaveAvailable,false);assert.equal(validation.canDeliver,false)
+  assert(removed.sales!.contexts.some(context=>context.sourcePositionId===source.id))
+  const resolved=removeSalesPosition(removed,removed.goods.find(line=>line.skuId==='film-sku')!.id)
+  assert.equal(validateBenefitPackage(f.data,resolved).canSaveDraft,true)
+  assert(!resolved.sales!.contexts.some(context=>context.sourcePositionId===source.id))
+})
+repair('direct source applicability reads manual attribute identity and rejects known unmet',()=>{
+  const f=createSalesConfigurationFixture(),source=f.data.skus.find(sku=>sku.id==='case-sku')!
+  f.data.params.push({id:'probe-fit',name:'贴合',values:['yes','no'],valueGroups:[],participateInStructure:false})
+  source.manualAttrs=[{attributeId:'probe-fit',attributeName:'贴合',value:'no',source:'manual'}]
+  f.data.salesProductRelations=[{schemaVersion:1,id:'fit',revision:1,enabled:true,sourceSkuId:'case-sku',targetSkuId:'film-sku',kind:'applicability',conclusion:'compatible',verification:'confirmed',conditions:[{kind:'attribute',attributeId:'probe-fit',operator:'eq',value:'yes'}],source:'真实属性检查',note:'',updatedAt:f.now}]
+  assert.equal(salesDirectCompatibility(f.data,'case-sku','film-sku').basicStatus,'incompatible')
+  const family=f.data.families.find(family=>family.id===source.familyId)!,original=business(f.data),dictionary=JSON.stringify(f.data.params)
+  source.manualAttrs[0]!.value='yes';assert.equal(salesDirectCompatibility(f.data,'case-sku','film-sku').basicStatus,'compatible')
+  source.manualAttrs=[];assert.equal(salesDirectCompatibility(f.data,'case-sku','film-sku').basicStatus,'conditional')
+  for(const attrs of [family.commonAttrs,source.variantAttrs]){attrs['probe-fit']='no';assert.equal(salesDirectCompatibility(f.data,'case-sku','film-sku').basicStatus,'incompatible');attrs['probe-fit']='yes';assert.equal(salesDirectCompatibility(f.data,'case-sku','film-sku').basicStatus,'compatible');delete attrs['probe-fit']}
+  source.manualAttrs=[{attributeId:'probe-fit',attributeName:'贴合',value:'yes',source:'manual'}];source.variantAttrs['probe-fit']='no'
+  assert.equal(salesDirectCompatibility(f.data,'case-sku','film-sku').basicStatus,'compatible','explicit manual actual values retain their existing precedence')
+  source.manualAttrs[0]!.value='no';source.variantAttrs['probe-fit']='yes';assert.equal(salesDirectCompatibility(f.data,'case-sku','film-sku').basicStatus,'incompatible')
+  source.manualAttrs=[];family.commonAttrs['probe-fit']='no';assert.equal(salesDirectCompatibility(f.data,'case-sku','film-sku').basicStatus,'pending','common/variant conflicts remain blocked rather than confirmed as unknown');delete family.commonAttrs['probe-fit']
+  delete source.variantAttrs['probe-fit'];source.manualAttrs=[]
+  f.data.params.push({id:'other-fit',name:'贴合',values:['yes','no'],valueGroups:[],participateInStructure:false});family.commonAttrs['贴合']='yes';source.manualAttrs=[{attributeId:'other-fit',attributeName:'贴合',value:'yes',source:'manual'}]
+  assert.equal(salesDirectCompatibility(f.data,'case-sku','film-sku').basicStatus,'conditional','same-name different ID cannot satisfy the required attribute')
+  source.manualAttrs.push({attributeId:'probe-fit',attributeName:'别名',value:'no',source:'manual'})
+  assert.equal(salesDirectCompatibility(f.data,'case-sku','film-sku').basicStatus,'incompatible','real ID wins over names')
+  delete family.commonAttrs['贴合'];f.data.params.pop();source.manualAttrs=[{attributeId:'probe-fit',attributeName:'贴合',value:'no',source:'manual'}]
+  assert.equal(JSON.stringify(f.data.params),dictionary);assert.equal(business(f.data),original)
+})
+repair('source specification identity includes actual manual values with frozen names',()=>{
+  const f=createSalesConfigurationFixture(),sku=f.data.skus.find(item=>item.id==='phone-a')!,original=resolveSalesSource(f.data,sku.id)
+  sku.manualAttrs=Object.entries(sku.variantAttrs).map(([attributeId,value])=>({attributeId,attributeName:f.data.params.find(param=>param.id===attributeId)!.name,value,source:'manual' as const}))
+  sku.variantAttrs={};sku.sourceNodeIds=[];assert.deepEqual(resolveSalesSource(f.data,sku.id),original)
+  f.data.params=f.data.params.filter(param=>param.id!=='attr-style');assert.deepEqual(resolveSalesSource(f.data,sku.id),original,'frozen attribute identity survives live dictionary deletion')
+  const item=sku.manualAttrs.find(item=>item.attributeId==='attr-style')!;sku.variantAttrs[item.attributeId]='different';assert.deepEqual(resolveSalesSource(f.data,sku.id),original);sku.manualAttrs.push({...item,value:'conflicting actual value'});assert.equal(resolveSalesSource(f.data,sku.id).state,'invalid')
+})
+repair('direct source confirmation freezes actual values even when both values satisfy the same condition',()=>{
+  const f=createSalesConfigurationFixture(),source=f.data.skus.find(sku=>sku.id==='case-sku')!
+  f.data.salesOptionBindings=f.data.salesOptionBindings!.filter(binding=>binding.id!==f.caseBinding.id)
+  f.data.params.push({id:'probe-fit',name:'贴合',values:['yes','also-yes'],valueGroups:[],participateInStructure:false})
+  source.manualAttrs=[{attributeId:'probe-fit',attributeName:'贴合',value:'yes',source:'manual'}]
+  f.data.salesProductRelations=[{schemaVersion:1,id:'fit',revision:1,enabled:true,sourceSkuId:'case-sku',targetSkuId:'film-sku',kind:'applicability',conclusion:'conditional',verification:'confirmed',conditions:[{kind:'attribute',attributeId:'probe-fit',operator:'in',value:['yes','also-yes']}],source:'真实属性检查',note:'',updatedAt:f.now}]
+  let draft=draftFor(f.data);draft=addSalesCandidate(f.data,draft,querySalesCandidates(f.data,draft,'phone-a').rows.find(row=>row.skuId==='case-sku')!,{sourcePositionId:draft.goods[0]!.id})
+  const sourceId=draft.goods.find(line=>line.skuId==='case-sku')!.id;draft=addSalesCandidate(f.data,draft,querySalesCandidates(f.data,draft,'case-sku').rows[0]!,{sourcePositionId:sourceId})
+  const line=draft.goods.find(line=>line.skuId==='film-sku')!;draft=confirmBenefitCondition(f.data,draft,line.id,'确认实际值',f.now)
+  assert(!validateBenefitPackage(f.data,draft).issues.some(issue=>issue.code==='condition-confirmation'&&issue.positionId===line.id))
+  source.manualAttrs[0]!.value='also-yes'
+  assert.equal(salesDirectCompatibility(f.data,'case-sku','film-sku').basicStatus,'conditional')
+  assert(validateBenefitPackage(f.data,draft).issues.some(issue=>issue.code==='condition-confirmation'&&issue.positionId===line.id))
+})
+repair('required product cannot be counted as service under the same sales position',()=>{
+  const f=createSalesConfigurationFixture();f.phonePlan.items[0]!.required=true;f.phonePlan.items[0]!.minKinds=1;f.phonePlan.versions[0]!.items=cloneSales(f.phonePlan.items)
+  let draft=draftFor(f.data);draft=addSalesCandidate(f.data,draft,querySalesCandidates(f.data,draft,'phone-a').rows.find(row=>row.skuId==='case-sku')!,{sourcePositionId:draft.goods[0]!.id})
+  draft.id='saved-required';draft.code='REQUIRED';draft.revision=1;draft.createdAt=f.now;draft.updatedAt=f.now;f.data.benefitPackages=[cloneSales(draft)]
+  const line=draft.goods.find(line=>line.skuId==='case-sku')!;draft.goods=draft.goods.filter(row=>row.id!==line.id)
+  draft.services.push({id:line.id,name:'冒充手机壳',quantity:1,unit:'次',measurement:'per-package',validity:'',description:''})
+  const validation=validateBenefitPackage(f.data,draft)
+  assert.equal(validation.canSaveDraft,false,validation.issues.map(issue=>issue.message).join(';'));assert.equal(validation.canSaveAvailable,false);assert.equal(validation.canDeliver,false)
+})
+if(repairFailures.length)throw new AggregateError(repairFailures,'sales repair regressions failed')
 console.log(`PASS sales configuration domain ${groups} groups`)

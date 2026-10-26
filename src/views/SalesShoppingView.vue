@@ -19,6 +19,7 @@
         <el-button v-if="keyword||brand||categoryIds.length" link @click="keyword='';brand='';categoryIds=[]">清除筛选</el-button>
         <span class="muted" data-sales-result-count>{{families.length}} 款商品</span>
       </div>
+      <el-alert v-if="invalidCategoryIds.length" type="warning" :closable="false" class="sales-notice" data-sales-category-invalid :title="`${invalidCategoryIds.length} 项分类已失效，当前无匹配商品。`"><el-button link type="primary" @click="categoryIds=[]">清除分类</el-button></el-alert>
       <div class="sales-context panel" data-sales-device>
         <div><small>本次使用设备</small><strong>{{deviceLabel}}</strong></div>
         <el-button @click="deviceOpen=true">{{draft.device?'更换设备':'选择已有设备'}}</el-button>
@@ -89,8 +90,8 @@ import PageHead from '../components/PageHead.vue'
 import CategoryFilterTree from '../components/CategoryFilterTree.vue'
 import DeviceModelPicker from '../components/compatibility/DeviceModelPicker.vue'
 import { useSalesShoppingDraft } from '../components/sales-shopping/useSalesShoppingDraft'
-import { categoryFilterCaption } from '../domain/categoryTree'
-import { categoryPath, descendantIds, shelfOf, projectAttrs } from '../domain/logic'
+import { categoryFilterCaption, categoryScopeIds } from '../domain/categoryTree'
+import { categoryPath, shelfOf, projectAttrs } from '../domain/logic'
 import { isRealSku } from '../domain/catalogIdentity'
 import { familyBrandText, familyBrandValues, savedSkuCode, savedSkuSpec } from '../domain/productList'
 import { compatibilityRecordRole, listDeviceModels } from '../domain/deviceResolution'
@@ -117,7 +118,9 @@ const attributeLabels=computed(()=>new Map(store.data.params.map(param=>[param.i
 function displaySpec(id:string,fallback=''){const sku=store.data.skus.find(item=>item.id===id),family=sku&&store.data.families.find(item=>item.id===sku.familyId);return sku&&family?Object.entries(projectAttrs(family,sku)).filter(([,value])=>value.trim()).map(([key,value])=>`${attributeLabels.value.get(key)||key} ${value}`).join(' · ')||fallback:fallback}
 const brands=computed(()=>[...new Set(store.data.families.flatMap(family=>familyBrandValues(store.data,family)))].sort((a,b)=>a.localeCompare(b,'zh')))
 const categoryCaption=computed(()=>categoryFilterCaption(store.data.categories,categoryIds.value,true))
-const families=computed(()=>{const ids=new Set(categoryIds.value.flatMap(id=>descendantIds(store.data.categories,id))),term=keyword.value.trim().toLocaleLowerCase();return store.data.families.filter(family=>{const skus=familySkus(family.id);return skus.length&&(!ids.size||ids.has(family.categoryId))&&(!brand.value||familyBrandValues(store.data,family).includes(brand.value))&&(!term||`${family.name} ${skus.map(sku=>`${savedSkuCode(sku)} ${savedSkuSpec(family,sku)} ${sku.skuName||''}`).join(' ')}`.toLocaleLowerCase().includes(term))})})
+const invalidCategoryIds=computed(()=>categoryIds.value.filter(id=>!store.data.categories.some(category=>category.id===id)))
+const categoryRange=computed(()=>new Set(categoryIds.value.flatMap(id=>categoryScopeIds(store.data.categories,id,'with-children'))))
+const families=computed(()=>{if(invalidCategoryIds.value.length)return [];const term=keyword.value.trim().toLocaleLowerCase();return store.data.families.filter(family=>{const skus=familySkus(family.id);return skus.length&&(!categoryIds.value.length||categoryRange.value.has(family.categoryId))&&(!brand.value||familyBrandValues(store.data,family).includes(brand.value))&&(!term||`${family.name} ${skus.map(sku=>`${savedSkuCode(sku)} ${savedSkuSpec(family,sku)} ${sku.skuName||''}`).join(' ')}`.toLocaleLowerCase().includes(term))})})
 const shownFamilies=computed(()=>families.value.slice(0,shownCount.value)),selectedFamily=computed(()=>store.data.families.find(family=>family.id===selectedFamilyId.value))
 watch([keyword,brand,categoryIds],()=>{shownCount.value=24})
 const sourceSummary=computed(()=>benefitSkuSummary(store.data,sourceSkuId.value)),sourceRole=computed(()=>compatibilityRecordRole(store.data,sourceSkuId.value))

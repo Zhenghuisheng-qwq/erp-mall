@@ -1,4 +1,5 @@
 import { isRealSku } from './catalogIdentity'
+import { actualSkuAttributes } from './actualSkuAttributes'
 import { benefitGroupRuleIssues, benefitGroupRuleStructureIssues } from './benefitPositions'
 import { conditionProblem } from './compatibilityValidation'
 import { createEmptyTemplateCompatibilityConfig, createTemplateCompatibilityContext, templateSelectorCoverage } from './templateCompatibility'
@@ -90,15 +91,8 @@ export function resolveSalesSource(data:AppData,skuId:string):SalesSourceResolut
     matches=matches.filter(combo=>combo.identityKey===record.identityKey)
   }
   // Attribute identity is accepted only by actual dictionary id; ambiguous legacy names do not infer a match.
-  const names=version.templateCompatibilitySnapshot?.attributeNames||[]
-  const read=(id:string)=>{
-    const name=names.find(item=>item.attributeId===id)?.name
-    const uniqueName=name&&names.filter(item=>item.name===name).length===1?name:undefined
-    const common=family.commonAttrs[id]??(uniqueName?family.commonAttrs[uniqueName]:undefined)
-    const variant=sku.variantAttrs[id]??(uniqueName?sku.variantAttrs[uniqueName]:undefined)
-    return common&&variant&&common!==variant?null:variant||common
-  }
-  matches=matches.filter(combo=>combo.steps.every(step=>{const value=read(step.attributeId);return value!==null&&(value===undefined||value===step.valueId)}))
+  const actual=actualSkuAttributes(data,family,sku,version.templateCompatibilitySnapshot?.attributeNames||[])
+  matches=matches.filter(combo=>combo.steps.every(step=>!actual.conflicts.includes(step.attributeId)&&(actual.attributes[step.attributeId]===undefined||actual.attributes[step.attributeId]===step.valueId)))
   if(matches.length!==1)return {...result,message:`来源规格无法唯一解析（命中 ${matches.length} 个合法规格），请核对真实节点和属性来源。`}
   return {...result,state:'resolved',identityKey:matches[0]!.identityKey,message:''}
 }
