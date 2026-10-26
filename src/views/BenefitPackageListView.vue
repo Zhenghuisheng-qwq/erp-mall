@@ -1,6 +1,6 @@
 <template>
   <div data-benefit-packages>
-    <PageHead title="权益包" desc="把真实商品和服务约定组合保存，按本次包数生成独立的交付清单。"><el-button v-if="store.can('product:benefit:create')" type="primary" data-new-benefit-package @click="router.push('/benefit-packages/new')">新建权益包</el-button></PageHead>
+    <PageHead title="自由组合与权益包" desc="把真实商品和服务约定组合保存，按本次包数生成独立的交付清单。"><el-button v-if="store.can('product:benefit:create')" type="primary" data-new-benefit-package @click="router.push('/benefit-packages/new')">新建普通自由组合</el-button><el-button v-if="store.can('product:benefit:create')" data-compose-with-host @click="hostOpen=true">选择主机开始选配</el-button></PageHead>
     <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon class="page-error" />
     <section class="panel list-panel">
       <el-tabs v-model="tab"><el-tab-pane v-if="store.can('product:benefit:read')" label="选配框架" name="frameworks" /><el-tab-pane v-if="store.can('product:benefit:read')" label="权益包配置" name="packages" /><el-tab-pane v-if="store.can('product:delivery:read')" :label="`交付清单 ${deliveries.length}`" name="deliveries" /></el-tabs>
@@ -9,13 +9,14 @@
         <p class="list-count">{{ rows.length }} 个权益包 · 常用包优先展示</p>
         <el-empty v-if="!rows.length" :description="keyword || status || favoritesOnly ? '没有匹配的权益包，请调整搜索或状态。' : '还没有权益包。从设备或已有 SKU 开始，也可以自由添加商品和服务。'"><el-button v-if="store.can('product:benefit:create') && !keyword && !status && !favoritesOnly" @click="router.push('/benefit-packages/new')">开始组包</el-button></el-empty>
         <article v-for="row in rows" :key="row.item.id" class="package-card" :data-benefit-package="row.item.id">
-          <div class="card-main"><div class="card-heading"><h2><button class="linkish" @click="edit(row.item.id)">{{ row.item.name || '未命名草稿' }}</button></h2><el-tag size="small" :type="row.item.status === 'disabled' ? 'info' : row.needsAttention ? 'warning' : row.item.status === 'available' ? 'success' : 'info'">{{ row.needsAttention ? '需处理' : packageStatusLabels[row.item.status] }}</el-tag><el-tag v-if="row.item.favorite" size="small" effect="plain">常用</el-tag></div><p class="muted">{{ row.item.code }} · 修订 {{ row.item.revision }} · {{ row.item.goods.length }} 种商品 / {{ row.item.services.length }} 项服务</p><p class="device-line">{{ row.validation.deviceLabel || '普通组合包 · 未做设备适配校验' }}</p><p v-if="row.needsAttention" class="issue-warn attention">{{ row.validation.issues.find(issue => issue.severity === 'error')?.message }}</p></div>
+          <div class="card-main"><div class="card-heading"><h2><button class="linkish" @click="edit(row.item.id)">{{ row.item.name || '未命名草稿' }}</button></h2><el-tag size="small" :type="row.item.status === 'disabled' ? 'info' : row.needsAttention ? 'warning' : row.item.status === 'available' ? 'success' : 'info'">{{ row.needsAttention ? '需处理' : packageStatusLabels[row.item.status] }}</el-tag><el-tag v-if="row.item.favorite" size="small" effect="plain">常用</el-tag></div><p class="muted">{{ row.item.code }} · 修订 {{ row.item.revision }} · {{new Set(row.item.goods.map(line=>line.skuId)).size}} 种商品 · {{row.item.goods.length}} 个位置 / {{ row.item.services.length }} 项服务</p><p class="device-line">{{ row.validation.deviceLabel || '普通组合包 · 未做设备适配校验' }}</p><p v-if="row.needsAttention" class="issue-warn attention">{{ row.validation.issues.find(issue => issue.severity === 'error')?.message }}</p></div>
           <div class="card-price"><strong>{{ formatBenefitCents(row.item.quote.amountCents) }}</strong><span>每包 · 人民币 CNY</span></div>
           <div class="card-actions"><el-button @click="edit(row.item.id)">{{ store.can('product:benefit:update') ? '打开权益包' : '查看权益包' }}</el-button><el-button v-if="store.can('product:benefit:create')" @click="copy(row.item.id)" :data-copy-benefit-package="row.item.id" :disabled="!(store.can('product:benefit:create'))">复制组包</el-button><el-button v-if="store.can('product:benefit:update')" link :loading="pendingId === row.item.id" :disabled="Boolean(pendingId)" @click="favorite(row.item.id)">{{ row.item.favorite ? '取消常用' : '设为常用' }}</el-button><el-button v-if="store.can('product:benefit:update')" link :disabled="Boolean(pendingId)" :type="row.item.status === 'disabled' ? 'primary' : 'danger'" @click="setStatus(row.item.id)">{{ row.item.status === 'disabled' ? '启用' : '停用' }}</el-button></div>
         </article>
       </template>
       <template v-else-if="tab === 'deliveries' && store.can('product:delivery:read')"><el-empty v-if="!deliveries.length" description="还没有匹配的交付清单。先保存权益包，再明确发起一次清单生成。" /><article v-for="item in deliveries" :key="item.id" class="package-card" :data-benefit-delivery="item.id"><div class="card-main"><h2>{{ item.packageName }}</h2><p class="muted">{{ item.code }} · 来源 {{ item.packageCode }} / 修订 {{ item.sourceRevision }}</p><p class="device-line">{{ item.packageCount }} 包 · {{ item.generatedAt }}</p></div><div class="card-price"><strong>{{ formatBenefitCents(item.quote.totalCents) }}</strong><span>本次总报价</span></div><el-button @click="router.push(`/benefit-packages/deliveries/${encodeURIComponent(item.id)}`)">查看清单</el-button></article></template>
     </section>
+    <el-dialog v-model="hostOpen" title="选择具体主机 SKU" width="min(650px,94vw)"><p>选择适配对象不会自动把主机加入组成。存在多个规格时，请明确选择一个真实 SKU。</p><el-select v-model="hostSkuId" filterable placeholder="搜索主机名称、编号或规格" aria-label="自由组合主机 SKU" style="width:100%"><el-option v-for="host in hostSkus" :key="host.skuId" :value="host.skuId" :label="`${host.name} · ${host.code} · ${host.spec}`"/></el-select><template #footer><el-button @click="hostOpen=false">取消</el-button><el-button type="primary" :disabled="!hostSkuId" @click="router.push({path:'/benefit-packages/new',query:{device:hostSkuId}})">以此主机开始选配</el-button></template></el-dialog>
   </div>
 </template>
 <script setup lang="ts">
@@ -25,9 +26,12 @@ import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import PageHead from '../components/PageHead.vue'
 import { useCatalogStore } from '../stores/catalog'
-import { validateBenefitPackage } from '../domain/benefitPackages'
+import { validateBenefitPackage,benefitSkuSummary } from '../domain/benefitPackages'
+import {isRealSku} from '../domain/catalogIdentity'
+import {compatibilityRecordRole} from '../domain/deviceResolution'
 import { formatBenefitCents, packageStatusLabels } from '../components/benefit-package/benefitPackagePresentation'
-const store = useCatalogStore(), router = useRouter()
+const store = useCatalogStore(), router = useRouter(),hostOpen=ref(false),hostSkuId=ref('')
+const hostSkus=computed(()=>store.data.skus.filter(sku=>isRealSku(store.data,sku)&&compatibilityRecordRole(store.data,sku.id)==='host').flatMap(sku=>{const summary=benefitSkuSummary(store.data,sku.id);return summary?[summary]:[]}))
 const tab = ref(''), keyword = ref(''), status = ref(''), favoritesOnly = ref(false), error = ref(''), pendingId = ref('')
 // Prefer the existing package landing view, then the other explicitly readable sections.
 const availableTabs = computed(() => [

@@ -1,18 +1,20 @@
 import { getFailure } from '../../domain/guide/failure'
 import type { GuideFailure } from '../../domain/guide/types'
-import { resolveBenefitRange, applyBenefitFramework } from '../../domain/benefitFrameworks'
+import { resolveBenefitSelection,createBenefitSelectionIndex,previewBenefitFrameworkAdoption } from '../../domain/benefitFrameworks'
 import { nextTick, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useCatalogStore } from '../../stores/catalog'
 import { compatibilityRecordRole, deviceHostKey, listDeviceModels } from '../../domain/deviceResolution'
 import { isRealSku } from '../../domain/catalogIdentity'
-import { addBenefitSku, benefitSkuCandidates, benefitSkuSummary, cloneBenefit, confirmBenefitCondition, copyBenefitPackageDraft, newBenefitPackageDraft, parseBenefitAmount, previewBenefitDelivery, replaceBenefitSku, reviewBenefitQuote, setBenefitDevice, setBenefitIncludedPhone, validateBenefitPackage } from '../../domain/benefitPackages'
-import type { BenefitCommandResult, BenefitDeviceContext, BenefitDeliveryPreview, BenefitIssue, BenefitPackageDraft, BenefitServiceLine } from '../../domain/benefitPackageTypes'
+import { addBenefitSku,removeBenefitPosition,setBenefitPositionQuantity,setBenefitPositionPrice,assignBenefitPositionGroup, benefitSkuSummary, cloneBenefit, confirmBenefitCondition, copyBenefitPackageDraft, newBenefitPackageDraft, parseBenefitAmount, previewBenefitDelivery, replaceBenefitSku, reviewBenefitQuote, setBenefitDevice, setBenefitIncludedPhone, validateBenefitPackage } from '../../domain/benefitPackages'
+import type { BenefitCommandResult, BenefitDeviceContext, BenefitDeliveryPreview, BenefitIssue, BenefitPackageDraft, BenefitServiceLine,BenefitReferencePrice } from '../../domain/benefitPackageTypes'
+import {referencePriceProblem} from '../../domain/benefitPricing'
 import { amountInput, localBenefitRequest } from './benefitPackagePresentation'
 import { safeBenefitReturn } from './benefitNavigation'
 import BenefitServiceDialog from './BenefitServiceDialog.vue'
 import BenefitRuleEditor from './BenefitRuleEditor.vue'
+import type {CompositionCandidate} from './BenefitCandidatePanel.vue'
 
 // A bounded in-memory return point, released when the related package is reopened.
 // Search/scroll/draft editing never writes business AppData.
@@ -22,16 +24,16 @@ let previewOnArrival: { path: string; count: number } | undefined
 
 export function useBenefitPackageEditor() {
   const store = useCatalogStore(), route = useRoute(), router = useRouter()
-  const draft = ref(newBenefitPackageDraft()), original = ref(''), missing = ref(false)
+  const inputEpoch=ref(0),draft = ref(newBenefitPackageDraft()), original = ref(''), missing = ref(false)
   const error = ref(''), saving = ref(false), saveRequest = ref('')
   const guideFailure=ref<GuideFailure>()
   watch(error,value=>{if(!value)guideFailure.value=undefined})
   const keyword = ref(''), productTypeId = ref(''), candidateTab = ref<'recommended' | 'all' | 'common'>('recommended')
-  const quoteText = ref(''), quoteError = ref('')
+  const quoteText = ref(''), quoteError = ref(''),referenceErrors=ref<Record<string,string>>({}),quantityErrors=ref<Record<string,string>>({})
   const serviceOpen = ref(false), editedService = ref<BenefitServiceLine>(), serviceDirty = ref(false)
   const serviceDialog = ref<InstanceType<typeof BenefitServiceDialog>>()
   const ruleEditor = ref<InstanceType<typeof BenefitRuleEditor>>()
-  const membersOpen=ref(true), frameworkId=ref('')
+  const membersOpen=ref(true), frameworkId=ref(''),activeGroupId=ref(''),groupChoiceOpen=ref(false),pendingAddSkuId=ref(''),targetGroupId=ref('')
   const advancedOpen = ref<string[]>([]), narrowPane = ref('candidates')
   const leaveIntent = ref<'route' | 'service'>('route')
   let allowNextNavigation = false
@@ -41,8 +43,9 @@ export function useBenefitPackageEditor() {
   const deliveryCount = ref(1), deliveryPreview = ref<BenefitDeliveryPreview>(), deliveryConfirmed = ref(false), generating = ref(false), generationRequest = ref('')
   const leaveOpen = ref(false), leaving = ref(false)
   let resolveLeave: ((value: boolean) => void) | undefined
-  const validation = computed(() => validateBenefitPackage(store.data, draft.value))
-  const dirty = computed(() => JSON.stringify(draft.value) !== original.value || Boolean(quoteError.value))
+  const selectionIndex=computed(()=>createBenefitSelectionIndex(store.data))
+  const validation = computed(() => validateBenefitPackage(store.data,draft.value,selectionIndex.value))
+  const dirty = computed(() => JSON.stringify(draft.value) !== original.value || Boolean(quoteError.value)||Object.values(referenceErrors.value).some(Boolean)||Object.values(quantityErrors.value).some(Boolean))
   const busy = computed(() => saving.value || generating.value || leaving.value)
   const unsaved = computed(() => dirty.value || serviceDirty.value)
   const saved = computed(() => store.data.benefitPackages?.find(item => item.id === draft.value.id))
@@ -50,12 +53,18 @@ export function useBenefitPackageEditor() {
   const commonPackages = computed(() => (store.data.benefitPackages || []).filter(item => item.favorite && item.status !== 'disabled'))
   const models = computed(() => listDeviceModels(store.data))
   const deviceSkus = computed(() => store.data.skus.filter(sku => isRealSku(store.data, sku) && compatibilityRecordRole(store.data, sku.id) === 'host').map(sku => benefitSkuSummary(store.data, sku.id)).filter(item => item !== undefined))
-  const frameworkRange = computed(() => resolveBenefitRange(store.data,draft.value))
-  const allCandidates = computed(() => draft.value.framework?frameworkRange.value.candidates:benefitSkuCandidates(store.data, draft.value.device))
-  const candidates = computed(() => draft.value.framework?allCandidates.value.filter(s=>(candidateTab.value!=='recommended'||frameworkRange.value.recommendedSkuIds.has(s.skuId))&&(!productTypeId.value||s.productTypeId===productTypeId.value)&&(!keyword.value||`${s.name} ${s.code} ${s.spec}`.toLowerCase().includes(keyword.value.toLowerCase()))):benefitSkuCandidates(store.data, draft.value.device, { keyword: keyword.value, productTypeId: productTypeId.value, accessoriesOnly: candidateTab.value === 'recommended' }))
-  const types = computed(() => [...new Map(allCandidates.value.map(item => [item.productTypeId, { id: item.productTypeId, name: item.typeName }])).values()])
+  const frameworkRange=computed(()=>resolveBenefitSelection(store.data,draft.value,selectionIndex.value))
+  const allCandidates=computed(()=>frameworkRange.value.rows.map(row=>row.summary))
+  const candidateRows=computed<CompositionCandidate[]>(()=>frameworkRange.value.rows.filter(row=>!activeGroupId.value||activeGroupId.value==='$ungrouped'?!activeGroupId.value||!row.allowedGroups.length:row.allowedGroups.some(group=>group.id===activeGroupId.value)).map(row=>{const group=activeGroupId.value&&activeGroupId.value!=='$ungrouped'?activeGroupId.value:undefined,possible=row.allowedGroups.length?row.allowedGroups.some(target=>!frameworkRange.value.reason(row.summary.skuId,target.id,'item')):!frameworkRange.value.reason(row.summary.skuId,null,'item');return {summary:row.summary,basicStatus:row.basic,fastChargeStatus:row.fastCharge,capabilities:row.compatibility.capabilities,reasons:row.compatibility.reasons,recommended:frameworkRange.value.recommendedSkuIds.has(row.summary.skuId),reason:group?frameworkRange.value.reason(row.summary.skuId,group,'item'):row.reason,canAdd:row.canAdd&&(group?!frameworkRange.value.reason(row.summary.skuId,group,'item'):possible),bucket:row.bucket==='recommended'?(row.basic==='compatible'?'confirmed':'pending'):row.bucket,groupIds:row.allowedGroups.map(group=>group.id)}}))
+  const candidates=computed(()=>candidateRows.value.filter(row=>(candidateTab.value!=='recommended'||['confirmed','conditional'].includes(row.bucket))&&(!productTypeId.value||row.summary.productTypeId===productTypeId.value)&&(!keyword.value||`${row.summary.name} ${row.summary.code} ${row.summary.spec}`.toLocaleLowerCase().includes(keyword.value.toLocaleLowerCase()))).map(row=>row.summary))
+  const types=computed(()=>[...new Map(allCandidates.value.map(item=>[item.productTypeId,{id:item.productTypeId,name:item.typeName}])).values()])
+  const selectionGroups=computed(()=>frameworkRange.value.groups)
+  const pendingAddGroups=computed(()=>frameworkRange.value.membership(pendingAddSkuId.value))
+  function positionGroupName(id:string){const line=draft.value.goods.find(line=>line.id===id);return line?.role==='host'?'主机实物':line?.groupId?selectionGroups.value.find(group=>group.id===line.groupId)?.name||`失效组 ${line.groupId}`:draft.value.compositionVersion===2?'未分组／待指定':'旧版唯一归组'}
+  const groupCounts=computed(()=>new Map(selectionGroups.value.map(group=>{const lines=draft.value.goods.filter(line=>line.role!=='host'&&(draft.value.compositionVersion===2?line.groupId===group.id:frameworkRange.value.membership(line.skuId).some(hit=>hit.id===group.id)));return [group.id,{kinds:new Set(lines.map(line=>line.skuId)).size,quantity:lines.reduce((n,line)=>n+line.quantity,0)}]})))
+  const contentGroups=computed(()=>{const result=new Map<string,{key:string;name:string;rows:typeof validation.value.goods}>();for(const row of validation.value.goods){const host=row.line.role==='host'||draft.value.compositionVersion!==2&&row.line.skuId===draft.value.includedPhoneSkuId;const hits=host?[]:frameworkRange.value.membership(row.line.skuId),key=host?'$host':row.line.groupId||(draft.value.compositionVersion!==2&&hits.length===1?hits[0]!.id:'$ungrouped');const name=host?'主机实物':key==='$ungrouped'?'未分组／待指定':selectionGroups.value.find(group=>group.id===key)?.name||`失效组 ${key}`;if(!result.has(key))result.set(key,{key,name,rows:[]});result.get(key)!.rows.push(row)}const order=new Map(selectionGroups.value.map((group,index)=>[group.id,index]));const rank=(key:string)=>key==='$host'?-1:order.get(key)??Number.MAX_SAFE_INTEGER;return [...result.values()].sort((a,b)=>rank(a.key)-rank(b.key))})
   const currentPhone = computed(() => draft.value.device?.kind === 'sku' ? benefitSkuSummary(store.data, draft.value.device.skuId) : undefined)
-  const includedPhone = computed(() => draft.value.goods.find(line => line.skuId === draft.value.includedPhoneSkuId)?.snapshot)
+  const includedPhone = computed(() => draft.value.goods.find(line => line.skuId === draft.value.includedPhoneSkuId&&(draft.value.compositionVersion!==2||line.role==='host'))?.snapshot)
   const currentIsIncluded = computed(() => Boolean(currentPhone.value && draft.value.includedPhoneSkuId === currentPhone.value.skuId))
   const deviceValue = computed(() => {
     if (draft.value.device?.kind === 'sku') return `sku:${draft.value.device.skuId}`
@@ -68,6 +77,7 @@ export function useBenefitPackageEditor() {
   const relatedDeliveries = computed(() => (store.data.benefitDeliveries || []).filter(item => item.packageId === draft.value.id))
   const canGenerate = computed(() => Boolean(draft.value.id && !dirty.value && !stale.value && draft.value.status === 'available' && store.can('product:delivery:create') && !store.persistenceState.external))
   function initialize() {
+    inputEpoch.value++
     const id = typeof route.params.id === 'string' ? route.params.id : ''
     const source = id ? store.data.benefitPackages?.find(item => item.id === id) : undefined
     const copyId = typeof route.query.copy === 'string' ? route.query.copy : ''
@@ -79,9 +89,9 @@ export function useBenefitPackageEditor() {
     deviceSwitchOpen.value = false; pendingDevice.value = null
     deliveryPreview.value = undefined; deliveryConfirmed.value = false; deliveryCount.value = 1
     leaveOpen.value = false; leaving.value = false
-    keyword.value = ''; productTypeId.value = ''
+    keyword.value = ''; productTypeId.value = '';activeGroupId.value='';groupChoiceOpen.value=false
     draft.value = source ? cloneBenefit(source) : copySource ? copyBenefitPackageDraft(copySource) : newBenefitPackageDraft(device)
-    quoteText.value = amountInput(draft.value.quote.amountCents); quoteError.value = ''; error.value = ''
+    referenceErrors.value={};quantityErrors.value={};quoteText.value = amountInput(draft.value.quote.amountCents); quoteError.value = ''; error.value = ''
     candidateTab.value = draft.value.device ? 'recommended' : 'all'
     original.value = JSON.stringify(draft.value); saveRequest.value = ''; generationRequest.value = ''; conditionNotes.value = {}
     if (editorReturn?.path === route.fullPath) {
@@ -99,6 +109,7 @@ export function useBenefitPackageEditor() {
     void nextTick(async () => { deliveryCount.value = arrival.count; await nextTick(); makeDeliveryPreview(); await nextTick(); document.querySelector('[data-benefit-delivery-preview]')?.scrollIntoView({ block: 'start', behavior: 'instant' }) })
   }
   watch(draft, () => { deliveryPreview.value = undefined; deliveryConfirmed.value = false }, { deep: true })
+  watch([quoteError,referenceErrors,quantityErrors],()=>{deliveryPreview.value=undefined;deliveryConfirmed.value=false},{deep:true})
   watch(deliveryCount, () => { deliveryPreview.value = undefined; deliveryConfirmed.value = false; generationRequest.value = '' })
   function change(operation: () => BenefitPackageDraft) {
     if (!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || saving.value || generating.value) return
@@ -107,26 +118,31 @@ export function useBenefitPackageEditor() {
   }
   async function useFramework(){
     if(!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create')||busy.value)return
+    if(Object.values(referenceErrors.value).some(Boolean)||Object.values(quantityErrors.value).some(Boolean)){error.value='位置价格或件数有待修正输入，请先处理；框架和全部原输入保留。';return}
     const f=store.data.benefitFrameworks?.find(f=>f.id===frameworkId.value)
     if(frameworkId.value&&!f){error.value='框架已不存在。';return}
     let next:BenefitPackageDraft
-    try{next=applyBenefitFramework(draft.value,f)}catch(e){error.value=String(e);return}
-    const issues=validateBenefitPackage(store.data,next).issues.filter(i=>i.code.startsWith('framework'))
-    try{await ElMessageBox.confirm(`${f?`使用「${f.name}」修订 ${f.revision}`:'解除框架'}。保留 ${draft.value.goods.length} 种商品、服务及人工价格；清除旧条件确认并复核报价。${issues.map(i=>i.message).join(' ')||'当前成员符合新范围。'}`,'确认框架变更',{confirmButtonText:'保留成员并应用',cancelButtonText:'取消'})}catch{return}
-    change(()=>next)
+    const before=JSON.stringify(draft.value),actor=store.activeUserId,previewActor=store.previewUserId,revision=f?.revision
+    try{const preview=previewBenefitFrameworkAdoption(store.data,draft.value,f);next=preview.draft;const lines=[`保留 ${draft.value.goods.length} 个位置、全部服务与独立人工价格。`,`位置待指定：${preview.unassignedPositionIds.length}。`,...preview.issues.map(issue=>issue.message)];await ElMessageBox.confirm(`${f?`采用「${f.name}」修订 ${f.revision}`:'解除框架'}。${lines.join(' ')} 条件确认及报价需要重新核对。`,'框架变更影响预览',{confirmButtonText:'保留位置并采用',cancelButtonText:'取消'})}catch(problem){if(problem instanceof Error)error.value=problem.message;return}
+    if(before!==JSON.stringify(draft.value)||actor!==store.activeUserId||previewActor!==store.previewUserId||f&&store.data.benefitFrameworks?.find(item=>item.id===f.id)?.revision!==revision){error.value='框架或编辑上下文已变化，原草稿保留，请重新预览后采用。';return}
+    change(()=>next);activeGroupId.value=''
   }
-  function addSku(skuId: string) { change(() => addBenefitSku(store.data, draft.value, skuId)) }
-  function quantity(lineId: string, value: number) { if (store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') && !busy.value) draft.value.goods = draft.value.goods.map(line => line.id === lineId ? { ...line, quantity: value } : line) }
+  function addSku(skuId:string){const hits=frameworkRange.value.membership(skuId);if(draft.value.compositionVersion===2&&hits.length>1&&!hits.some(group=>group.id===activeGroupId.value)){pendingAddSkuId.value=skuId;targetGroupId.value='';groupChoiceOpen.value=true;return}const groupId=hits.some(group=>group.id===activeGroupId.value)?activeGroupId.value:hits.length===1?hits[0]!.id:null;change(()=>addBenefitSku(store.data,draft.value,skuId,undefined,{groupId,role:'item',index:selectionIndex.value}))}
+  function confirmGroupAdd(){if(!targetGroupId.value)return;const before=draft.value;change(()=>addBenefitSku(store.data,draft.value,pendingAddSkuId.value,undefined,{groupId:targetGroupId.value,role:'item',index:selectionIndex.value}));if(draft.value!==before)groupChoiceOpen.value=false}
+  function quantity(lineId:string,value:number){if(!store.can(draft.value.id?'product:benefit:update':'product:benefit:create')||busy.value)return;try{const next=setBenefitPositionQuantity(store.data,draft.value,lineId,value,selectionIndex.value);delete quantityErrors.value[lineId];change(()=>next)}catch(problem){quantityErrors.value[lineId]=problem instanceof Error?problem.message:String(problem);error.value=quantityErrors.value[lineId]!}}
+  function referenceValidity(lineId:string,message:string){if(message)referenceErrors.value[lineId]=message;else delete referenceErrors.value[lineId]}
+  function setReference(lineId:string,price:BenefitReferencePrice){const problem=referencePriceProblem(price);referenceValidity(lineId,problem);if(!problem)change(()=>setBenefitPositionPrice(draft.value,lineId,price))}
+  function assignGroup(lineId:string,groupId:string|null){if(referenceErrors.value[lineId]||quantityErrors.value[lineId]){error.value='请先修正此位置的数量或参考价，原输入和所属组保留。';return}change(()=>assignBenefitPositionGroup(store.data,draft.value,lineId,groupId,selectionIndex.value))}
   async function removeSku(lineId: string) {
     const line = draft.value.goods.find(item => item.id === lineId)
     if (!line || !store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || busy.value) return
-    if (line.skuId === draft.value.includedPhoneSkuId) { await includePhone(false); return }
-    draft.value.goods = draft.value.goods.filter(item => item.id !== lineId)
+    if (line.skuId === draft.value.includedPhoneSkuId&&(draft.value.compositionVersion!==2||line.role==='host')) { await includePhone(false); return }
+    change(()=>removeBenefitPosition(draft.value,lineId));delete quantityErrors.value[lineId];delete referenceErrors.value[lineId]
   }
-  function chooseReplacement(lineId: string) { if (!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || saving.value || generating.value) return; replaceLineId.value = lineId; replaceSkuId.value = ''; replaceOpen.value = true }
+  function chooseReplacement(lineId: string) {if(referenceErrors.value[lineId]||quantityErrors.value[lineId]){error.value='请先修正此位置的数量或参考价，原输入保留。';return} if (!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || saving.value || generating.value) return; replaceLineId.value = lineId; replaceSkuId.value = ''; replaceOpen.value = true }
   function replace() {
     const before = draft.value
-    change(() => replaceBenefitSku(store.data, draft.value, replaceLineId.value, replaceSkuId.value))
+    change(() => replaceBenefitSku(store.data, draft.value, replaceLineId.value, replaceSkuId.value,selectionIndex.value))
     if (draft.value !== before) replaceOpen.value = false
   }
   function requestDevice(value: string) {
@@ -168,19 +184,22 @@ export function useBenefitPackageEditor() {
     try { draft.value.quote.amountCents = parseBenefitAmount(quoteText.value); draft.value.quote.reviewedBasis = ''; quoteError.value = '' }
     catch (problem) { quoteError.value = problem instanceof Error ? problem.message : String(problem) }
   }
-  function reviewQuote() { change(() => reviewBenefitQuote(draft.value)) }
-  function confirmCondition(skuId: string, capability: 'basic' | 'fast-charge') { change(() => confirmBenefitCondition(store.data, draft.value, skuId, conditionNotes.value[`${skuId}:${capability}`] || '', new Date().toISOString(), capability)) }
-  function isConditionConfirmed(skuId: string, capability: 'basic' | 'fast-charge') { return draft.value.confirmations.some(item => item.skuId === skuId && item.capability === capability && item.basis === validation.value.basis) }
+  function reviewQuote() { change(() => reviewBenefitQuote(draft.value,store.data,selectionIndex.value)) }
+  function confirmCondition(positionId:string,capability:'basic'|'fast-charge'){change(()=>confirmBenefitCondition(store.data,draft.value,positionId,conditionNotes.value[`${positionId}:${capability}`]||'',new Date().toISOString(),capability))}
+  function isConditionConfirmed(positionId:string,capability:'basic'|'fast-charge'){const line=draft.value.goods.find(line=>line.id===positionId);return draft.value.confirmations.some(item=>(draft.value.compositionVersion===2?item.positionId===positionId:item.skuId===line?.skuId)&&item.capability===capability&&item.basis===validation.value.basis)}
   async function save(status: 'draft' | 'available', navigate = true) {
     if (serviceDirty.value) { error.value = '服务弹窗还有未确认输入，请先加入服务清单或明确放弃，再保存权益包。'; return false }
     if (saving.value || !store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create')) return false
     if (quoteError.value) { error.value = quoteError.value; return false }
+    if(Object.values(quantityErrors.value).some(Boolean)){error.value='位置件数还有无效输入，已完整保留；请修正后再保存。';const id=Object.keys(quantityErrors.value)[0];if(id)void locateIssue({code:'position-quantity-input',positionId:id,message:error.value,severity:'error'});return false}
+    if(Object.values(referenceErrors.value).some(Boolean)){error.value='人工参考价还有无效输入，已完整保留；请修正位置价格后再保存。';return false}
     // Live references may become invalid without changing the saved package itself.
     if (!dirty.value && draft.value.id && draft.value.status === status && !store.persistenceState.external && (status === 'draft' ? validation.value.canSaveDraft : validation.value.canSaveAvailable)) return true
     saving.value = true
     saveRequest.value ||= localBenefitRequest('save-package')
     let result: BenefitCommandResult
-    try { result = await store.saveBenefitPackage({ draft: cloneBenefit(draft.value), status, expectedRevision: draft.value.revision, requestId: saveRequest.value }) }
+    const actor=store.activeUserId,previewActor=store.previewUserId,path=route.fullPath,stamp=JSON.stringify(draft.value)
+    try { result = await store.saveBenefitPackage({ draft: cloneBenefit(draft.value), status, expectedRevision: draft.value.revision, requestId: saveRequest.value },()=>actor===store.activeUserId&&previewActor===store.previewUserId&&path===route.fullPath&&stamp===JSON.stringify(draft.value)&&!Object.values(referenceErrors.value).some(Boolean)&&!Object.values(quantityErrors.value).some(Boolean)) }
     catch (problem) { guideFailure.value=getFailure(problem);error.value = `保存未完成，当前输入已保留：${problem instanceof Error ? problem.message : String(problem)}`; return false }
     finally { saving.value = false }
     if (!result.ok || !result.package) { guideFailure.value=getFailure(result);error.value = result.message || '保存失败，输入已保留，可直接重试。'; const first = result.validation?.issues.find(issue => issue.structural || status === 'available' && issue.severity === 'error'); if (first) void locateIssue(first); return false }
@@ -208,7 +227,8 @@ export function useBenefitPackageEditor() {
     generating.value = true; generationRequest.value ||= localBenefitRequest('delivery-request')
     const preview = deliveryPreview.value
     let result: BenefitCommandResult
-    try { result = await store.generateBenefitDelivery({ packageId: preview.packageId, expectedRevision: preview.sourceRevision, requestId: generationRequest.value, packageCount: preview.packageCount, expectedBasis: preview.basis }) }
+    const actor=store.activeUserId,previewActor=store.previewUserId,path=route.fullPath,stamp=JSON.stringify(draft.value),previewStamp=JSON.stringify(preview)
+    try { result = await store.generateBenefitDelivery({ packageId: preview.packageId, expectedRevision: preview.sourceRevision, requestId: generationRequest.value, packageCount: preview.packageCount, expectedBasis: preview.basis },()=>actor===store.activeUserId&&previewActor===store.previewUserId&&path===route.fullPath&&stamp===JSON.stringify(draft.value)&&previewStamp===JSON.stringify(deliveryPreview.value)&&deliveryCount.value===preview.packageCount&&deliveryConfirmed.value&&!dirty.value) }
     catch (problem) { guideFailure.value=getFailure(problem);error.value = `清单生成未完成，当前请求已保留：${problem instanceof Error ? problem.message : String(problem)}`; return }
     finally { generating.value = false }
     if (!result.ok || !result.delivery) { guideFailure.value=getFailure(result);error.value = result.message || '清单生成失败，当前预览和请求已保留，请重试。'; return }
@@ -238,20 +258,22 @@ export function useBenefitPackageEditor() {
   }
   async function locateIssue(issue: BenefitIssue) {
     membersOpen.value=true;await nextTick()
-    if(!issue.skuId&&!issue.serviceId&&draft.value.framework&&issue.groupId){document.querySelector('[data-framework-binding]')?.scrollIntoView({block:'center'});return}
+    if(!issue.positionId&&!issue.skuId&&!issue.serviceId&&issue.groupId){activeGroupId.value=issue.groupId;narrowPane.value='candidates';await nextTick();const target=document.querySelector<HTMLElement>(`[data-selection-group="${CSS.escape(issue.groupId)}"]`);if(target){target.scrollIntoView({block:'center'});target.focus({preventScroll:true})}else{const details=document.querySelector<HTMLDetailsElement>('[data-framework-binding] details');if(details)details.open=true;document.querySelector('[data-framework-binding]')?.scrollIntoView({block:'center'})}return}
     if (!issue.skuId && !issue.serviceId && (issue.groupId || issue.code.startsWith('group-'))) {
       advancedOpen.value = ['rules']; await nextTick(); await ruleEditor.value?.focusIssue(issue); return
     }
     narrowPane.value = 'contents'; await nextTick()
-    const selector = issue.skuId ? `[data-benefit-goods="${CSS.escape(issue.skuId)}"]` : issue.serviceId ? `[data-benefit-service="${CSS.escape(issue.serviceId)}"]` : issue.code.startsWith('quote') ? '.quote-panel' : issue.code.startsWith('device') ? '.device-field' : issue.code === 'name' ? '[data-benefit-name]' : '[data-benefit-contents]'
+    const selector = issue.positionId?`[data-benefit-position="${CSS.escape(issue.positionId)}"]`:issue.skuId ? `[data-benefit-goods="${CSS.escape(issue.skuId)}"]` : issue.serviceId ? `[data-benefit-service="${CSS.escape(issue.serviceId)}"]` : issue.code.startsWith('quote') ? '.quote-panel' : issue.code.startsWith('device') ? '.device-field' : issue.code === 'name' ? '[data-benefit-name]' : '[data-benefit-contents]'
     const target = document.querySelector<HTMLElement>(selector)
     if (issue.code === 'condition-confirmation') { const details = target?.querySelector('details'); if (details) details.open = true }
     const input = issue.code.includes('quantity') ? target?.querySelector<HTMLElement>('[data-benefit-quantity] input') : undefined
     target?.scrollIntoView({ block: 'center', behavior: 'instant' }); (input || target?.querySelector<HTMLElement>('input,textarea,button'))?.focus({ preventScroll: true })
   }
   async function manageCompatibility(skuId?: string) {
+    if(!store.can('product:compatibility:read')){error.value='当前身份没有适用关系查看权限，选配草稿保留。';return}
     if (busy.value) return
     if (serviceDirty.value) { error.value = '请先确认或放弃服务弹窗输入，再维护适用关系。'; return }
+    if(Object.values(referenceErrors.value).some(Boolean)||Object.values(quantityErrors.value).some(Boolean)){error.value='位置价格或数量还有无效输入，请先修正；当前全部输入保留。';return}
     editorReturn = { path: route.fullPath, draft: cloneBenefit(draft.value), original: original.value, keyword: keyword.value, type: productTypeId.value, tab: candidateTab.value, quoteText: quoteText.value, quoteError: quoteError.value, notes: { ...conditionNotes.value }, scroll: ['.content', '.candidate-list'].map(selector => ({ selector, top: document.querySelector(selector)?.scrollTop || 0 })) }
     const targetSku = skuId || validation.value.issues.find(issue => issue.skuId)?.skuId || draft.value.goods[0]?.skuId
     allowNextNavigation = true
@@ -291,5 +313,5 @@ export function useBenefitPackageEditor() {
   const beforeUnload = (event: BeforeUnloadEvent) => { if (unsaved.value && store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') && !store.persistenceState.discardConfirmed) { event.preventDefault(); event.returnValue = '' } }
   onMounted(() => window.addEventListener('beforeunload', beforeUnload))
   onBeforeUnmount(() => { window.removeEventListener('beforeunload', beforeUnload); resolveLeave?.(false); resolveLeave = undefined })
-  return { guideFailure, membersOpen,frameworkId,useFramework,busy, serviceDialog, serviceDirty, requestServiceClose, leaveIntent, ruleEditor, advancedOpen, narrowPane, unsaved, saveAndPreview, locateIssue, manageCompatibility, store, draft, missing, dirty, stale, error, saving, keyword, productTypeId, candidateTab, candidates, allCandidates, commonPackages, types, models, deviceSkus, deviceValue, currentPhone, includedPhone, currentIsIncluded, validation, quoteText, quoteError, serviceOpen, editedService, replaceOpen, replaceSkuId, deviceSwitchOpen, pendingDevice, conditionNotes, deliveryCount, deliveryPreview, deliveryConfirmed, generating, canGenerate, relatedDeliveries, leaveOpen, leaving, addSku, quantity, removeSku, chooseReplacement, replace, requestDevice, finishDeviceSwitch, includePhone, editService, saveService, removeService, updateQuote, reviewQuote, confirmCondition, isConditionConfirmed, save, makeDeliveryPreview, generate, back, useCommon, openDelivery, setStatus, reload, continueEditing, discardAndLeave, saveAndLeave }
+  return {inputEpoch,quantityErrors,referenceValidity,contentGroups,candidateRows,selectionGroups,groupCounts,positionGroupName,activeGroupId,groupChoiceOpen,pendingAddSkuId,pendingAddGroups,targetGroupId,confirmGroupAdd,assignGroup,setReference,frameworkRange, guideFailure, membersOpen,frameworkId,useFramework,busy, serviceDialog, serviceDirty, requestServiceClose, leaveIntent, ruleEditor, advancedOpen, narrowPane, unsaved, saveAndPreview, locateIssue, manageCompatibility, store, draft, missing, dirty, stale, error, saving, keyword, productTypeId, candidateTab, candidates, allCandidates, commonPackages, types, models, deviceSkus, deviceValue, currentPhone, includedPhone, currentIsIncluded, validation, quoteText, quoteError, serviceOpen, editedService, replaceOpen, replaceSkuId, deviceSwitchOpen, pendingDevice, conditionNotes, deliveryCount, deliveryPreview, deliveryConfirmed, generating, canGenerate, relatedDeliveries, leaveOpen, leaving, addSku, quantity, removeSku, chooseReplacement, replace, requestDevice, finishDeviceSwitch, includePhone, editService, saveService, removeService, updateQuote, reviewQuote, confirmCondition, isConditionConfirmed, save, makeDeliveryPreview, generate, back, useCommon, openDelivery, setStatus, reload, continueEditing, discardAndLeave, saveAndLeave }
 }

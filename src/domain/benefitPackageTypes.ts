@@ -13,7 +13,9 @@ export interface BenefitSkuSummary {
   typeName: string
   status: string
 }
-export interface BenefitGoodsLine { id: string; skuId: string; quantity: number; snapshot: BenefitSkuSummary; referencePrice?: BenefitReferencePrice }
+/** goods is the sole physical-position ledger; SKU totals are derived, never independently editable. */
+export interface BenefitGoodsLine { id: string; skuId: string; quantity: number; snapshot: BenefitSkuSummary; referencePrice?: BenefitReferencePrice; groupId?: string | null; role?: 'host' | 'item' }
+export interface BenefitGroupRule { id: string; kind: string; sourceGroupId: string; targetGroupId: string; enabled: boolean; note: string }
 export interface BenefitServiceLine {
   id: string
   name: string
@@ -55,6 +57,7 @@ export interface BenefitCompatibilitySummary {
   capabilities: BenefitCapabilitySummary[]
 }
 export interface BenefitConditionConfirmation {
+  positionId?: string
   key: string
   skuId: string
   capability: 'basic' | 'fast-charge'
@@ -67,11 +70,15 @@ export interface BenefitConditionConfirmation {
 }
 /** New local drafts have empty id/code/times and revision 0; commands allocate identities only on save. */
 export interface BenefitPackageDraft {
+  compositionVersion?: number
   id: string
   code: string
   revision: number
   framework?: BenefitFrameworkSnapshot
   creationRequestId?: string
+  creationIntent?: string
+  saveReceipt?: { requestId: string; intent: string; sourceRevision: number; resultRevision: number }
+  saveReceipts?: { requestId: string; intent: string; sourceRevision: number; resultRevision: number }[]
   name: string
   status: BenefitPackageStatus
   favorite: boolean
@@ -99,6 +106,8 @@ export interface BenefitIssue {
   serviceId?: string
   field?: string
   confirmationKey?: string
+  positionId?: string
+  ruleId?: string
 }
 export interface BenefitValidation {
   issues: BenefitIssue[]
@@ -113,9 +122,12 @@ export interface BenefitValidation {
   serviceCount: number
   quoteNeedsReview: boolean
 }
-export interface BenefitDeliveryGoods extends BenefitSkuSummary { lineId: string; perPackageQuantity: number; totalQuantity: number; compatibility: BenefitCompatibilitySummary; referencePrice?: BenefitReferencePrice; referenceLineCents?: number | null; referenceTotalCents?: number | null }
+export interface BenefitDeliveryGoods extends BenefitSkuSummary { lineId: string; perPackageQuantity: number; totalQuantity: number; compatibility: BenefitCompatibilitySummary; referencePrice?: BenefitReferencePrice; referenceLineCents?: number | null; referenceTotalCents?: number | null; groupId?: string | null; groupName?: string; role?: 'host' | 'item' }
+export interface BenefitDeliverySkuTotal { skuId: string; code: string; name: string; perPackageQuantity: number; totalQuantity: number; positionIds: string[] }
 export interface BenefitDeliveryService extends BenefitServiceLine { perPackageQuantity: number; totalQuantity: number; referenceLineCents?: number | null; referenceTotalCents?: number | null }
 export interface BenefitDeliveryPreview {
+  compositionVersion?: number
+  goodsSummary?: BenefitDeliverySkuTotal[]
   framework?: BenefitFrameworkSnapshot
   referenceTotals?: BenefitReferenceTotals
   packageId: string
@@ -141,7 +153,7 @@ export interface BenefitDeliverySnapshot extends BenefitDeliveryPreview {
   code: string
   requestId: string
   generatedAt: string
-  snapshotVersion: 1
+  snapshotVersion: number
 }
 export interface BenefitCommandResult {
   ok: boolean
@@ -154,5 +166,5 @@ export interface BenefitCommandResult {
 
 export interface BenefitReferencePrice { amountCents: number | null; source: 'manual'; enteredAt: string; inputText?: string }
 export interface BenefitReferenceTotals { perPackageKnownCents: number; perDeliveryKnownCents: number; totalKnownCents: number; missingCount: number; complete: boolean; differenceCents: number | null }
-export interface BenefitFrameworkSnapshot { kind: string; frameworkId: string; revision: number; name: string; groups: BenefitSelectionGroup[] }
-export interface BenefitFramework { deletedAt?: string; id: string; name: string; status: 'available' | 'disabled'; revision: number; groups: BenefitSelectionGroup[]; createdAt: string; updatedAt: string; creationRequestId: string; creationIntent: string; history: BenefitFrameworkSnapshot[] }
+export interface BenefitFrameworkSnapshot { kind: string; frameworkId: string; revision: number; name: string; groups: BenefitSelectionGroup[]; rules?: BenefitGroupRule[] }
+export interface BenefitFramework { kind?: string; rules?: BenefitGroupRule[]; deletedAt?: string; id: string; name: string; status: 'available' | 'disabled'; revision: number; groups: BenefitSelectionGroup[]; createdAt: string; updatedAt: string; creationRequestId: string; creationIntent: string; history: BenefitFrameworkSnapshot[] }

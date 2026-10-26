@@ -126,7 +126,7 @@ import {conditionEntries,isSkuConditionActive} from '../domain/skuQuickFilters'
 import type { SkuConditionGroup,SkuViewConfig } from '../domain/skuWorkbenchTypes'
 import type { Sku } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
-import { rememberBenefitSkuReturn, takeBenefitSkuReturn, restoreBenefitSkuScroll } from '../components/benefit-package/skuReturnState'
+import { rememberBenefitSkuReturn, takeBenefitSkuReturn, restoreBenefitSkuScroll, hasBenefitSkuReturn, clearBenefitSkuReturn } from '../components/benefit-package/skuReturnState'
 
 const store = useCatalogStore(), route = useRoute(), router = useRouter()
 const scopeId = computed(() => typeof route.query.spu === 'string' ? route.query.spu : '')
@@ -176,7 +176,7 @@ async function applyManual(ids:string[],targetId:string|undefined,place:'before'
  const saved=await workbench.apply({...config.value,manualOrder:result.order},()=>manualContext()===context,guard)
  return saved.ok?{ok:true as const}:{ok:false as const,message:saved.message||'顺序保存失败，原暂存保留。'}
 }
-const {pickedIds,stageIds,onRowDrag,onRowOver,onRowDrop,endDrag,rowDropClass,dropMessage,busy:manualBusy,stageContextValid,stageGroupLabel,togglePick,addStage,clearStage,removeStaged,askInsert,askBoundary,confirmStage}=useProductListManualOrder({move:(id,target,place)=>applyManual([id],target,place),insert:(ids,target,place)=>applyManual(ids,target,place),boundary:(ids,edge)=>applyManual(ids,undefined,edge),validateStage,groupLabel:manualGroupLabel,context:manualContext,hasFilters:()=>hasFilters.value||!!search.value})
+const {pickedIds,stageIds,onRowDrag,onRowOver,onRowDrop,endDrag,rowDropClass,dropMessage,busy:manualBusy,stageContextValid,stageGroupLabel,togglePick,addStage,clearStage,removeStaged,askInsert,askBoundary,confirmStage,captureManualState,restoreManualState}=useProductListManualOrder({move:(id,target,place)=>applyManual([id],target,place),insert:(ids,target,place)=>applyManual(ids,target,place),boundary:(ids,edge)=>applyManual(ids,undefined,edge),validateStage,groupLabel:manualGroupLabel,context:manualContext,hasFilters:()=>hasFilters.value||!!search.value})
 function eventRowId(event:DragEvent){const target=event.target instanceof Element?event.target.closest('.el-table__row'):null;return target?.querySelector<HTMLElement>('[data-order-row]')?.dataset.orderRow||''}
 function tableDragOver(event:DragEvent){const id=eventRowId(event);if(id)onRowOver(id,event)}
 function tableDrop(event:DragEvent){const id=eventRowId(event);if(id)void onRowDrop(id,event);else endDrag()}
@@ -217,7 +217,19 @@ function isCollapsed(labels: string[]) { return labels.some((_, level) => collap
 async function result(pending: { ok: boolean; message?: string } | Promise<{ ok: boolean; message?: string }>) { const outcome = await pending; if (!outcome.ok && outcome.message) ElMessage.error(outcome.message); return outcome.ok }
 const quickFiltersRef = ref<InstanceType<typeof SkuQuickFilters>>()
 async function flushQuick() { return await quickFiltersRef.value?.flush() ?? true }
-onBeforeRouteLeave(async () => !workbench.pending.value && await flushQuick() && await confirmStage(false))
+onBeforeRouteLeave(async to => {
+  if (workbench.pending.value || manualBusy.value || !await flushQuick()) return false
+  const returnable = to.path === '/benefit-packages/new' && to.query.returnTo === route.fullPath && hasBenefitSkuReturn(route.fullPath) && store.can('product:benefit:create')
+  if (returnable) {
+    const id = typeof to.query.device === 'string' ? to.query.device : ''
+    if (compatibilityRecordRole(store.data, id) !== 'host') return false
+    rememberPackageReturn(id)
+    return true
+  }
+  const allowed = await confirmStage(false)
+  if (allowed) clearBenefitSkuReturn(route.fullPath)
+  return allowed
+})
 onBeforeRouteUpdate(async to => !workbench.pending.value && await flushQuick() && (String(to.query.spu || '') === scopeId.value || await confirmStage(false)))
 async function applyQuickConfig(next: SkuViewConfig) { const outcome = await workbench.apply(next); if (outcome.ok) page.value = 1; return outcome }
 async function openFilters() { if (await flushQuick()) filterOpen.value = true }
@@ -242,7 +254,7 @@ function toggleCategory(id: string) {
 }
 async function changeScope(id: string) { if (!(await flushQuick())) return; router.push({ path: '/skus', query: id ? { spu: id } : {} }) }
 function rememberPackageReturn(skuId: string) {
-  rememberBenefitSkuReturn({ path: route.fullPath, activeId: activeId.value, scopeSearch: scopeSearch.value, scopePage: scopePage.value, selectedIds: selectedIds.value, collapsed, focusSkuId: skuId })
+  rememberBenefitSkuReturn({ path: route.fullPath, activeId: activeId.value, scopeSearch: scopeSearch.value, scopePage: scopePage.value, selectedIds: selectedIds.value, collapsed, focusSkuId: skuId, manual: captureManualState() })
 }
 function openBenefitPackage(skuId: string) {
   rememberPackageReturn(skuId)
@@ -272,6 +284,7 @@ onMounted(async () => {
   await nextTick()
   selectedIds.value = previous.selectedIds.filter(id => presentation.value.allIds.includes(id))
   Object.assign(collapsed, previous.collapsed)
+  if (previous.manual) restoreManualState(previous.manual)
   await nextTick()
   if (benefitReturnActive) benefitReturnFrame = requestAnimationFrame(() => restoreBenefitSkuScroll(previous))
 })

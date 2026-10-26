@@ -11,7 +11,9 @@ import {benefitReferenceTotals} from '../src/domain/benefitPricing'
 import {buildBenefitDeliveryWorkbook} from '../src/domain/benefitPackageExport'
 import {deviceSourceStamp} from '../src/domain/deviceResolution'
 import type {BenefitFramework,BenefitSelectionGroup,BenefitReferencePrice} from '../src/domain/benefitPackageTypes'
-installCatalogTestLocks();const out=process.env.R03_OUTPUT||'work/r03-20261025/domain';mkdirSync(out,{recursive:true});const checks:string[]=[],pass=(s:string)=>{checks.push(s);console.log('PASS R03 '+s)}
+import {RBAC_ENFORCEMENT_ENABLED} from '../src/domain/accessMode'
+const artifacts = process.argv.includes('--artifacts')
+installCatalogTestLocks();const out=process.env.R03_OUTPUT||'work/r03-20261025/domain';if(artifacts)mkdirSync(out,{recursive:true});const checks:string[]=[],pass=(s:string)=>{checks.push(s);if(artifacts)console.log('PASS R03 '+s)}
 const f=createAccessoryCompatibilityFixture(),disk=new Map<string,string>();let fail=false
 Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(k:string)=>disk.get(k)??null,setItem:(k:string,v:string)=>{if(fail){fail=false;throw Error('quota')};disk.set(k,v)},removeItem:(k:string)=>disk.delete(k)}})
 f.data.activeRole='admin';disk.set(STORAGE_KEY,JSON.stringify({version:DATA_VERSION,data:f.data}));setActivePinia(createPinia());const s=useCatalogStore();await s.waitForPersistence()
@@ -38,7 +40,7 @@ draft.goods[0]!.referencePrice=price(125);draft.goods[1]!.referencePrice=price(0
 let totals=benefitReferenceTotals(draft,3);assert.equal(totals.missingCount,1);assert.equal(totals.differenceCents,null)
 draft.goods.find(x=>x.skuId==='phone-a')!.referencePrice=price(10000)
 draft.services=[{id:'service-pack',name:'按包服务',quantity:2,unit:'次',measurement:'per-package',validity:'',description:'',referencePrice:price(100)},{id:'service-once',name:'按次服务',quantity:2,unit:'次',measurement:'per-delivery',validity:'',description:'',referencePrice:price(300)}]
-draft.quote.amountCents=12000;draft=reviewBenefitQuote(draft);totals=benefitReferenceTotals(draft,3);assert.equal(totals.perPackageKnownCents,10450);assert.equal(totals.perDeliveryKnownCents,600);assert.equal(totals.totalKnownCents,31950);assert.equal(totals.differenceCents,-4050)
+draft.quote.amountCents=12000;draft=reviewBenefitQuote(draft,s.data);totals=benefitReferenceTotals(draft,3);assert.equal(totals.perPackageKnownCents,10450);assert.equal(totals.perDeliveryKnownCents,600);assert.equal(totals.totalKnownCents,31950);assert.equal(totals.differenceCents,-4050)
 const replacement=replaceBenefitSku(s.data,draft,draft.goods[0]!.id,added.id);assert.equal(replacement.goods.find(l=>l.skuId===added.id)!.referencePrice,undefined);assert.equal(replacement.quote.amountCents,12000);assert(validateBenefitPackage(s.data,replacement).quoteNeedsReview)
 for(const text of ['-1','1.001','NaN','Infinity','900719925474099.00'])assert.throws(()=>parseBenefitAmount(text));assert.equal(parseBenefitAmount(''),null);assert.equal(parseBenefitAmount('0'),0)
 const overflow=cloneBenefit(draft);overflow.goods[0]!.referencePrice=price(Number.MAX_SAFE_INTEGER);const old=s.exportJson(),oldRaw=disk.get(STORAGE_KEY);assert(!(await s.saveBenefitPackage({draft:overflow,status:'draft',requestId:'overflow'})).ok);assert.equal(s.exportJson(),old);assert.equal(disk.get(STORAGE_KEY),oldRaw)
@@ -60,17 +62,33 @@ const backup=s.exportJson();await s.importJson(backup);assert.equal(s.exportJson
 for(const mutate of [(x:any)=>x.benefitFrameworks={},(x:any)=>x.benefitFrameworks[0].history=[null],(x:any)=>x.benefitPackages[0].goods[0].referencePrice={amountCents:-1},(x:any)=>x.benefitDeliveries[0].referenceTotals.totalKnownCents=0,(x:any)=>x.benefitPackages[0].framework.groups[0].scope.productTypeIds=['type-charger']]){
  const bad=JSON.parse(backup),diskBefore=disk.get(STORAGE_KEY);mutate(bad.data);await assert.rejects(()=>s.importJson(JSON.stringify(bad)),/权益包/);assert.throws(()=>normalizeStored(bad));assert.equal(s.exportJson(),backup);assert.equal(disk.get(STORAGE_KEY),diskBefore)
 }
-s.setRole('operator');await s.waitForPersistence();const operator=s.exportJson(),operatorRaw=disk.get(STORAGE_KEY)
-assert(!(await s.saveBenefitFramework(input)).ok);assert(!(await s.removeBenefitFramework(framework.id,3)).ok);assert(!(await s.saveBenefitPackage({draft,status:'available',requestId:'operator'})).ok);assert(!(await s.generateBenefitDelivery(req)).ok)
-const bad=JSON.parse(operator);bad.data.activeRole='admin';bad.data.benefitFrameworks[0].name='bypass';await assert.rejects(()=>s.importJson(JSON.stringify(bad)),/仅可查看权益包/);assert.equal(s.exportJson(),operator);assert.equal(disk.get(STORAGE_KEY),operatorRaw)
-for(const mutate of [(x:any)=>x.benefitPackages[0].goods[0].referencePrice.amountCents=1,(x:any)=>x.benefitDeliveries[0].goods[0].referencePrice.amountCents=1]){const altered=JSON.parse(operator);mutate(altered.data);await assert.rejects(()=>s.importJson(JSON.stringify(altered)),/仅可查看权益包/);assert.equal(s.exportJson(),operator);assert.equal(disk.get(STORAGE_KEY),operatorRaw)}
-pass('backup restores framework/price/history; malformed containers/prices/totals/forged rules rejected; operator direct commands and role-spoof import atomic')
-s.setRole('admin');await s.waitForPersistence();let free=addBenefitSku(s.data,newBenefitPackageDraft(),'charger-sku');free.name='旧自由包';assert(validateBenefitPackage(s.data,free).canSaveAvailable);assert.equal(copyBenefitPackageDraft(pkg.package).goods.length,pkg.package.goods.length)
+assert(s.startPermissionPreview('u-op').ok);await s.waitForPersistence();const visible=()=>JSON.stringify({version:DATA_VERSION,data:s.data},null,2),operator=visible(),operatorRaw=disk.get(STORAGE_KEY)
+if(RBAC_ENFORCEMENT_ENABLED){
+ const rejected=async(run:()=>unknown)=>{let reason='';try{const result=await run() as {ok:boolean;message?:string};assert.equal(result.ok,false);reason=result.message||''}catch(error){reason=String(error)}assert.match(reason,/未授权|权限|无权|没有/);assert.equal(visible(),operator);assert.equal(disk.get(STORAGE_KEY),operatorRaw)}
+ await rejected(()=>s.saveBenefitFramework(input));await rejected(()=>s.removeBenefitFramework(framework.id,3));await rejected(()=>s.saveBenefitPackage({draft,status:'available',requestId:'operator'}));await rejected(()=>s.generateBenefitDelivery(req))
+ assert.throws(()=>s.exportJson(),/product:export:execute/)
+ const bad=JSON.parse(operator);bad.data.activeRole='admin';bad.data.benefitFrameworks[0].name='bypass';bad.data.benefitFrameworks[0].history.at(-1).name='bypass';await assert.rejects(async()=>s.importJson(JSON.stringify(bad)),/仅可查看权益包|未授权|无权|不能通过导入/);assert.equal(visible(),operator);assert.equal(disk.get(STORAGE_KEY),operatorRaw)
+ for(const mutate of [(x:any)=>x.benefitPackages[0].goods[0].referencePrice.amountCents=1,(x:any)=>x.benefitDeliveries[0].goods[0].referencePrice.amountCents=1]){const altered=JSON.parse(operator);mutate(altered.data);await assert.rejects(async()=>s.importJson(JSON.stringify(altered)),/仅可查看权益包|未授权|无权|不能通过导入/);assert.equal(visible(),operator);assert.equal(disk.get(STORAGE_KEY),operatorRaw)}
+}else{
+ assert(s.can('product:framework:create')&&s.can('product:benefit:create')&&s.can('product:delivery:create'))
+ assert((await s.saveBenefitFramework(input)).ok);assert((await s.generateBenefitDelivery(req)).ok)
+ const allowed=cloneBenefit(s.data.benefitPackages![0]!);allowed.name='默认模式显式保存';const accepted=await s.saveBenefitPackage({draft:allowed,status:'draft',expectedRevision:allowed.revision,requestId:'operator-unrestricted'});assert(accepted.ok&&accepted.package)
+ const permitted=JSON.parse(s.exportJson());permitted.data.benefitPackages.find((p:any)=>p.id===accepted.id).name='默认模式显式恢复';await s.importJson(JSON.stringify(permitted));assert.equal(s.data.benefitPackages!.find(p=>p.id===accepted.id)!.name,'默认模式显式恢复')
+ await s.importJson(operator);assert.equal(s.exportJson(),operator)
+}
+pass('backup restores framework/price/history; malformed records rejected; strict operator writes and role-spoof imports atomic while default unified administrator stays authorized')
+s.stopPermissionPreview();await s.waitForPersistence();let free=addBenefitSku(s.data,newBenefitPackageDraft(),'charger-sku');free.name='旧自由包';assert(validateBenefitPackage(s.data,free).canSaveAvailable);assert.equal(copyBenefitPackageDraft(pkg.package).goods.length,pkg.package.goods.length)
 free.groups=[{...group('旧组','type-charger'),scope:undefined,candidateSkuIds:['charger-sku'],maxKinds:1}];free.rulesEnabled=true;free.goods[0]!.quantity=2;assert(validateBenefitPackage(s.data,free).canSaveAvailable)
 let conditional=applyBenefitFramework(newBenefitPackageDraft({kind:'sku',skuId:'phone-a'}),{...framework,groups:[group('线缆','type-cable')]});conditional.name='条件包';conditional=addBenefitSku(s.data,conditional,'cable-sku');assert(validateBenefitPackage(s.data,conditional).issues.some(i=>i.severity==='condition'));conditional=confirmBenefitCondition(s.data,conditional,'cable-sku','确认使用转换器',new Date().toISOString());assert(validateBenefitPackage(s.data,conditional).canDeliver);assert.throws(()=>confirmBenefitCondition(s.data,conditional,'pending-sku','不能升级',new Date().toISOString()))
 pass('free packages, legacy SKU whitelist and common-package copy retained; conditional confirmation remains scoped and never upgrades pending')
 // Explicit scope changes retain members/prices; unknown legal scope survives import but blocks execution.
-const retained=applyBenefitFramework(changedPkg.package!);assert.equal(retained.framework,undefined);assert.deepEqual(retained.goods,changedPkg.package!.goods);assert.equal(retained.quote.amountCents,changedPkg.package!.quote.amountCents)
+const detachSource=cloneBenefit(changedPkg.package!),retained=applyBenefitFramework(changedPkg.package!);assert.equal(retained.framework,undefined);assert.deepEqual(retained.goods,changedPkg.package!.goods.map(line=>({...line,groupId:null})));assert.deepEqual(changedPkg.package,detachSource);assert.equal(retained.quote.amountCents,changedPkg.package!.quote.amountCents)
+assert.equal(detachSource.compositionVersion,2);assert.equal(JSON.stringify(s.data.benefitDeliveries![0]),frozen)
+// A genuine legacy composition has implicit membership and SKU-keyed lines, not V2 positions.
+const legacyDetach=cloneBenefit(detachSource);delete legacyDetach.compositionVersion
+for(const line of legacyDetach.goods){line.id=line.skuId;delete line.groupId;delete line.role}
+const legacyDetachBefore=cloneBenefit(legacyDetach),legacyRetained=applyBenefitFramework(legacyDetach)
+assert.equal(legacyRetained.framework,undefined);assert.equal(legacyRetained.compositionVersion,undefined);assert.deepEqual(legacyRetained.goods,legacyDetachBefore.goods);assert.deepEqual(legacyDetach,legacyDetachBefore);assert.equal(legacyRetained.quote.amountCents,legacyDetachBefore.quote.amountCents)
 const currentBackup=s.exportJson(),unknown=JSON.parse(currentBackup),uf=unknown.data.benefitFrameworks.find((x:any)=>x.id===framework.id)
 for(const revision of uf.history)revision.groups[0].scope.kind='future-type-range';uf.groups[0].scope.kind='future-type-range'
 for(const p of unknown.data.benefitPackages)if(p.framework?.frameworkId===uf.id)p.framework.groups[0].scope.kind='future-type-range'
@@ -79,12 +97,14 @@ await s.importJson(currentBackup)
 const outside=JSON.parse(currentBackup);outside.data.benefitPackages[0].goods.push(addBenefitSku(s.data,newBenefitPackageDraft(),'charger-sku').goods[0]);await assert.rejects(()=>s.importJson(JSON.stringify(outside)),/框架类型组/)
 assert.equal(s.exportJson(),currentBackup)
 const switched={...conditional,device:{kind:'sku' as const,skuId:'phone-b'}};assert(!validateBenefitPackage(s.data,switched).canDeliver)
-const legacy=JSON.parse(currentBackup);for(const d of legacy.data.benefitDeliveries){delete d.referenceTotals;delete d.framework;for(const l of [...d.goods,...d.services]){delete l.referencePrice;delete l.referenceLineCents;delete l.referenceTotalCents}}
-await s.importJson(JSON.stringify(legacy));assert.equal(s.data.benefitDeliveries![0]!.referenceTotals,undefined);assert(JSON.stringify(buildBenefitDeliveryWorkbook(s.data.benefitDeliveries![0]!)).includes('历史记录未记录'))
+const legacy=JSON.parse(currentBackup);for(const d of legacy.data.benefitDeliveries){d.snapshotVersion=1;delete d.compositionVersion;delete d.goodsSummary;delete d.referenceTotals;delete d.framework;for(const l of d.goods){delete l.groupId;delete l.groupName;delete l.role}for(const l of [...d.goods,...d.services]){delete l.referencePrice;delete l.referenceLineCents;delete l.referenceTotalCents}}
+const historyBytes=s.exportJson(),historyDisk=disk.get(STORAGE_KEY);await assert.rejects(()=>s.importJson(JSON.stringify(legacy)),/product:delivery:update|历史|冻结|清单/);assert.equal(s.exportJson(),historyBytes);assert.equal(disk.get(STORAGE_KEY),historyDisk)
+const legacyRead=normalizeStored(legacy);assert(legacyRead);assert.equal(legacyRead.benefitDeliveries![0]!.snapshotVersion,1);assert.equal(legacyRead.benefitDeliveries![0]!.referenceTotals,undefined);assert(JSON.stringify(buildBenefitDeliveryWorkbook(legacyRead.benefitDeliveries![0]!)).includes('历史记录未记录'))
 await s.importJson(currentBackup);assert(!(await s.generateBenefitDelivery({...req,packageCount:4})).ok)
-pass('detach preserves selections/prices; unknown legal range retained but blocked; outside-member JSON rejected; changed host invalidates confirmation; old snapshots stay unpriced; request intent cannot change count')
+pass('V2 detach clears only group identity and preserves position IDs/quantities/prices/snapshots; legacy detach preserves complete goods; unknown legal range retained but blocked; outside-member JSON rejected; changed host invalidates confirmation; old snapshots stay unpriced; request intent cannot change count')
 const resetBefore=s.exportJson(),resetDisk=disk.get(STORAGE_KEY);assert(!(await s.resetModule('categories')).ok);assert.equal(s.exportJson(),resetBefore);assert.equal(disk.get(STORAGE_KEY),resetDisk)
 const concurrent=cloneBenefit(s.data.benefitFrameworks!.find(f=>f.id===framework.id)!);concurrent.name='并发修订';const results=await Promise.all([s.saveBenefitFramework({draft:concurrent,expectedRevision:concurrent.revision,requestId:'concurrent-1'}),s.saveBenefitFramework({draft:concurrent,expectedRevision:concurrent.revision,requestId:'concurrent-2'})]);assert.equal(results.filter(r=>r.ok).length,1)
 const unused=s.data.benefitFrameworks!.find(f=>f.name==='先于商品')!;assert((await s.removeBenefitFramework(unused.id,unused.revision)).ok);assert(!(await s.saveBenefitFramework({draft:empty,expectedRevision:0,requestId:'empty'})).ok);assert(!(await s.saveBenefitFramework({draft:cloneBenefit(unused),expectedRevision:unused.revision,requestId:'resurrect'})).ok)
 pass('module reset protects all framework revisions; queued concurrent framework edits accept one revision only; operator price/history imports rejected; deleted creation receipts cannot resurrect framework')
-writeFileSync(`${out}/checks.json`,JSON.stringify({passed:checks.length,checks},null,2));s.$dispose()
+if (artifacts) writeFileSync(`${out}/checks.json`,JSON.stringify({passed:checks.length,checks},null,2));s.$dispose()
+console.log('PASS R03 framework: '+checks.length+' groups')

@@ -23,6 +23,13 @@ export function useProductListManualOrder(actions: ManualOrderActions) {
   const dragId = ref('')
   const busy = ref(false), dropTargetId = ref(''), dropPlace = ref<'before' | 'after'>('before'), dropMessage = ref('')
   const stageContext = ref('')
+  function captureManualState() { return { pickedIds: [...pickedIds.value], stageIds: [...stageIds.value], context: stageContext.value } }
+  function restoreManualState(state: { pickedIds: string[]; stageIds: string[]; context: string }) {
+    if (busy.value) return
+    pickedIds.value = [...new Set(state.pickedIds)]
+    stageIds.value = [...new Set(state.stageIds)]
+    stageContext.value = state.context
+  }
   let dragContext: string | undefined
   const stageContextValid = computed(() => !stageIds.value.length || !actions.context || stageContext.value === actions.context())
   const stageGroupLabel = computed(() => stageIds.value.length ? actions.groupLabel?.(stageIds.value[0]!) || '当前匹配范围' : '')
@@ -149,5 +156,5 @@ export function useProductListManualOrder(actions: ManualOrderActions) {
     finally { busy.value = false }
   }
 
-  return { pickedIds, stageIds, busy, stageContextValid, stageGroupLabel, dropTargetId, dropPlace, dropMessage, confirmStage, onRowDrag, onRowOver, onRowDrop, endDrag, rowDropClass, togglePick, addStage, clearStage, removeStaged, askInsert, askBoundary }
+  return { pickedIds, stageIds, busy, stageContextValid, stageGroupLabel, dropTargetId, dropPlace, dropMessage, confirmStage, onRowDrag, onRowOver, onRowDrop, endDrag, rowDropClass, togglePick, addStage, clearStage, removeStaged, askInsert, askBoundary, captureManualState, restoreManualState }
 }

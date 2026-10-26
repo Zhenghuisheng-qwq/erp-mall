@@ -8,10 +8,11 @@ import { legalPlanningCombinations } from '../src/domain/planning'
 import { resolveDeviceSku } from '../src/domain/deviceResolution'
 import type { ProductSpecNode } from '../src/domain/types'
 
+const artifacts = process.argv.includes('--artifacts')
 const output = resolve(process.env.BENEFIT_DOMAIN_OUTPUT_DIR || 'work/benefit-package/domain')
-mkdirSync(output, { recursive: true })
+if (artifacts) mkdirSync(output, { recursive: true })
 const checks: { name: string; result: string }[] = []
-function check(name: string, run: () => void) { run(); checks.push({ name, result: 'PASS' }); console.log(`PASS benefit domain ${name}`) }
+function check(name: string, run: () => void) { run(); checks.push({ name, result: 'PASS' }); if (artifacts) console.log(`PASS benefit domain ${name}`) }
 const saved = (draft: BenefitPackageDraft): BenefitPackageDraft => ({ ...cloneBenefit(draft), id: 'bp-independent-1', code: 'BPK-000001', revision: 1, status: 'available', createdAt: now, updatedAt: now })
 const service = (id: string, measurement: BenefitServiceLine['measurement'] = 'per-package'): BenefitServiceLine => ({ id, name: '【独立测试】会员服务', quantity: 1, unit: '份', measurement, validity: '3 个月会员（按每份约定）', description: '未激活，仅为服务约定' })
 function modelFixture() {
@@ -51,7 +52,7 @@ check('phone explicitly included once, removed deliberately, and model is not a 
   assert.equal(next.goods.find(line => line.skuId === 'phone-a')?.quantity, 1)
   assert.equal(next.goods.length, 3); assert.equal(draft.goods.length, 2)
   next = setBenefitIncludedPhone(data, next, false); assert.equal(next.goods.length, 2)
-  assert.throws(() => setBenefitIncludedPhone(data, { ...draft, device: { kind: 'model', host: hosts.a } }, true), /具体销售手机/)
+  assert.throws(() => setBenefitIncludedPhone(data, { ...draft, device: { kind: 'model', host: hosts.a } }, true), /具体销售(?:手机|主机)/)
 })
 check('switch context retains selected goods and old phone; explicit combined replacement preserves count', () => {
   const { data, draft } = createBenefitPackageFixture(), withPhone = setBenefitIncludedPhone(data, draft, true)
@@ -67,7 +68,12 @@ check('same stable SKU merges; equal names, SPU and specifications never merge d
   second.skuName = first.skuName
   const merged = addBenefitSku(data, draft, 'film-sku', 2); assert.equal(merged.goods.find(item => item.skuId === 'film-sku')?.quantity, 3)
   const distinct = addBenefitSku(data, merged, 'copy-sku'); assert.equal(distinct.goods.length, 3)
-  const replaced = replaceBenefitSku(data, distinct, distinct.goods.find(line => line.skuId === 'copy-sku')!.id, 'film-sku')
+  const unchanged = cloneBenefit(distinct)
+  assert.throws(() => replaceBenefitSku(data, distinct, distinct.goods.find(line => line.skuId === 'copy-sku')!.id, 'film-sku'), /已有该 SKU 位置/)
+  assert.deepEqual(distinct, unchanged, 'New positions never merge a replacement into an existing differently priced position')
+  const legacy = cloneBenefit(distinct); delete legacy.compositionVersion
+  for (const line of legacy.goods) { delete line.groupId; delete line.role }
+  const replaced = replaceBenefitSku(data, legacy, legacy.goods.find(line => line.skuId === 'copy-sku')!.id, 'film-sku')
   assert.equal(replaced.goods.length, 2); assert.equal(replaced.goods.find(line => line.skuId === 'film-sku')?.quantity, 4)
 })
 check('MAT, PLN, SPU and nonexistent records cannot masquerade as sales goods', () => {
@@ -116,7 +122,10 @@ check('directly selected phones freeze actual delivered hosts without choosing a
 check('conditional manual acknowledgement records exact basis and never edits global declarations', () => {
   const { data, draft } = createBenefitPackageFixture(), globalBefore = cloneBenefit(data.compatibilities)
   const conditional = addBenefitSku(data, draft, 'cable-sku'), validation = validateBenefitPackage(data, conditional)
-  assert.equal(validation.canSaveAvailable, true); assert.equal(validation.canDeliver, false)
+  assert.equal(validation.canSaveAvailable, false); assert.equal(validation.canDeliver, false)
+  const legacy = cloneBenefit(conditional); delete legacy.compositionVersion
+  for (const line of legacy.goods) { delete line.groupId; delete line.role }
+  assert.equal(validateBenefitPackage(data, legacy).canSaveAvailable, true, 'Legacy conditional available status retains its original meaning before delivery confirmation')
   const acknowledged = confirmBenefitCondition(data, conditional, 'cable-sku', '本次按指定转换器条件交付', now)
   assert.equal(validateBenefitPackage(data, acknowledged).canDeliver, true)
   assert.equal(acknowledged.confirmations[0]?.capability, 'basic'); assert.deepEqual(acknowledged.confirmations[0]?.declarationIds, ['decl-cable-a']); assert.deepEqual(data.compatibilities, globalBefore)
@@ -134,7 +143,15 @@ check('acknowledgement expires on quantity, service, device, rule or relevant de
 })
 check('pending and explicit incompatibility cannot be promoted by manual package acknowledgement', () => {
   const { data, draft } = createBenefitPackageFixture()
-  for (const id of ['pending-sku', 'blocked-sku']) { const next = addBenefitSku(data, draft, id); assert.equal(validateBenefitPackage(data, next).canSaveAvailable, false); assert.throws(() => confirmBenefitCondition(data, next, id, '不能覆盖全局事实', now), /待确认或不适用/) }
+  for (const id of ['pending-sku', 'blocked-sku']) {
+    if (id === 'blocked-sku') assert.throws(() => addBenefitSku(data, draft, id), /明确不适用|条件不满足/)
+    // A previously selected ordinary item remains present after choosing a
+    // device; retaining it must never turn exclusion into an acknowledgement.
+    const next = setBenefitDevice(data, addBenefitSku(data, { ...draft, device: null }, id), draft.device)
+    assert.equal(next.goods.some(line => line.skuId === id), true)
+    assert.equal(validateBenefitPackage(data, next).canSaveAvailable, false)
+    assert.throws(() => confirmBenefitCondition(data, next, id, '不能覆盖全局事实', now), /待确认或不适用/)
+  }
 })
 check('basic charge does not imply fast charge; only explicit fast requirement adds its prerequisite', () => {
   const { data, draft } = createBenefitPackageFixture(), charger = addBenefitSku(data, draft, 'charger-sku')
@@ -170,7 +187,7 @@ check('unquoted, zero and two decimals are distinct; invalid money and total ove
 })
 check('composition change keeps manual quote as review reference, without pretending a calculated price', () => {
   const { data, draft } = createBenefitPackageFixture(); draft.quote.amountCents = 1000
-  const reviewed = reviewBenefitQuote(draft); assert.equal(validateBenefitPackage(data, reviewed).quoteNeedsReview, false)
+  const reviewed = reviewBenefitQuote(draft, data); assert.equal(validateBenefitPackage(data, reviewed).quoteNeedsReview, false)
   const changed = addBenefitSku(data, reviewed, 'film-sku'); assert.equal(changed.quote.amountCents, 1000); assert.equal(validateBenefitPackage(data, changed).quoteNeedsReview, true)
   assert.equal(previewBenefitDelivery(data, saved(changed), 2).quote.totalCents, 2000)
 })
@@ -236,7 +253,7 @@ check('delivery freezes complete SKU, services, abilities, quote, source revisio
   source.name = '后来修改'; source.goods[0]!.quantity = 9; source.services[0]!.validity = '后来修改'; source.quote.amountCents = 0
   source.rulesEnabled = true; source.groups = [{ id: 'later-group', name: '后来新增规则', enabled: true, candidateSkuIds: ['film-sku'], required: true, minKinds: 1, maxKinds: 1, defaultQuantity: 8, adjustable: false, minQuantity: 8, maxQuantity: 8 }]
   data.skus[0]!.skuName = '后来商品名称'; data.families[0]!.commonAttrs['品牌'] = '后来公共规格'; data.compatibilities = []; preview.goods[0]!.name = '预览对象被修改'
-  assert.deepEqual(snapshot, frozen); assert.equal(snapshot.goods[0]?.totalQuantity, 3); assert.equal(snapshot.quote.totalCents, 3702); assert.equal(snapshot.sourceRevision, 1); assert.equal(snapshot.snapshotVersion, 1)
+  assert.deepEqual(snapshot, frozen); assert.equal(snapshot.goods[0]?.totalQuantity, 3); assert.equal(snapshot.quote.totalCents, 3702); assert.equal(snapshot.sourceRevision, 1); assert.equal(snapshot.snapshotVersion, 2)
 })
 check('old data absence and repeated serialization preserve optional arrays and independently readable snapshots', () => {
   const { data, draft } = createBenefitPackageFixture(); delete data.benefitPackages; delete data.benefitDeliveries; assert.deepEqual(benefitPackageImportProblems(data), [])
@@ -263,5 +280,5 @@ check('query, validation, candidate filtering, preview and copy preserve all ori
   assert.deepEqual(data, before); assert.deepEqual(draft, draftBefore)
 })
 
-writeFileSync(resolve(output, 'result.json'), JSON.stringify({ result: 'PASS', fixedTime: now, checks, total: checks.length }, null, 2))
+if (artifacts) writeFileSync(resolve(output, 'result.json'), JSON.stringify({ result: 'PASS', fixedTime: now, checks, total: checks.length }, null, 2))
 console.log(`PASS ${checks.length} benefit package domain groups`)

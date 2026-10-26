@@ -8,7 +8,8 @@ import { legalPlanningCombinations } from '../src/domain/planning'
 import type { CompatibilityHost, CompatibilityLink, ProductSpecNode, Sku } from '../src/domain/types'
 
 const output = resolve(process.env.ACCESSORY_OUTPUT_DIR || 'work/accessory-compatibility')
-mkdirSync(output, { recursive: true })
+const artifacts = process.argv.includes('--artifacts')
+if (artifacts) mkdirSync(output, { recursive: true })
 const checks: { name: string; result: string }[] = []
 function check(name: string, run: () => void) { run(); checks.push({ name, result: 'PASS' }); console.log(`PASS accessory query ${name}`) }
 const ids = (items: { target: { id: string } }[]) => items.map(item => item.target.id).sort()
@@ -193,7 +194,9 @@ check('conditions use actual attributes; unknown equipment/protocol/power never 
   const actual = queryDeviceAccessories(data, 'phone-a')
   assert.equal(actual.sales.find(match => match.target.id === 'case-sku')?.conditions[0]?.state, 'met')
   assert.equal(actual.sales.find(match => match.target.id === 'film-sku')?.status, 'conditional', '128G is not silently parsed into a numeric power/capacity')
-  assert.equal(actual.sales.find(match => match.target.id === 'charger-sku')?.status, 'conditional')
+  assert.equal(actual.sales.some(match => match.target.id === 'charger-sku'), false, 'Specialty ability cannot establish basic-use recommendation')
+  assert.equal(actual.pending.find(match => match.target.id === 'charger-sku')?.basic.status, 'pending')
+  assert.equal(actual.pending.find(match => match.target.id === 'charger-sku')?.status, 'conditional', 'Management capability summary remains visible')
   assert.equal(actual.excluded.find(match => match.target.id === 'cable-sku')?.conditions[0]?.state, 'unmet')
   assert.equal(queryAccessoryDevices(data, { kind: 'sku', id: 'charger-sku' }).hosts[0]?.devices[0]?.status, 'conditional')
 })
@@ -220,7 +223,9 @@ check('no-basic multiple specific abilities aggregate conservatively and never d
       const forward = queryDeviceAccessories(data, 'phone-a'), reverse = queryAccessoryDevices(data, { kind: 'sku', id: 'charger-sku' })
       const matches = [...forward.sales, ...forward.pending, ...forward.excluded], match = matches[0]
       assert.equal(match?.status, item.expected); assert.match(match?.reasons.join('；') || '', /基本使用能力尚未单独维护/)
-      assert.equal(forward.sales.length, item.expected === 'conditional' ? 1 : 0)
+      assert.equal(forward.sales.length, 0, 'Missing basic use is never promoted by specialty abilities')
+      assert.equal(forward.pending.length, 1)
+      assert.equal(match?.basic.status, 'pending')
       assert.equal(reverse.hosts[0]?.devices.find(device => device.skuId === 'phone-a')?.status, item.expected)
       assert.equal(reverse.hosts[0]?.status, item.expected); assert.match(reverse.hosts[0]?.scopeSummary || '', /基本使用能力尚未单独维护/)
       return { forward: { sales: ids(forward.sales), pending: ids(forward.pending), excluded: ids(forward.excluded), status: match?.status, recommendable: match?.recommendable, abilities: match?.capabilities.map(capability => [capability.capability, capability.status]) }, reverse: reverse.hosts.map(host => ({ status: host.status, devices: host.devices, abilities: host.capabilities.map(capability => [capability.capability, capability.status]), scope: host.scopeSummary })) }
@@ -274,5 +279,5 @@ check('query and reverse are fully read-only; no node rule becomes a formal stat
   assert.deepEqual(ids(filtered.sales), ['case-sku']); assert.equal(filtered.counts.sales, 1)
 })
 
-writeFileSync(resolve(output, 'query-result.json'), JSON.stringify({ result: 'PASS', fixedTime: now, checks, total: checks.length }, null, 2))
+if (artifacts) writeFileSync(resolve(output, 'query-result.json'), JSON.stringify({ result: 'PASS', fixedTime: now, checks, total: checks.length }, null, 2))
 console.log(`PASS ${checks.length} accessory compatibility query groups`)

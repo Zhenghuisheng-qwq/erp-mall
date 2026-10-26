@@ -219,16 +219,21 @@ export function persistSkuPage(data: AppData, next: ProductListPageState, write:
 
 export function addScopeCondition(config: SkuViewConfig, scopeId: string): SkuViewConfig {
   const next = cloneSku(config)
+  if (!scopeId) return next
   const root: SkuConditionGroup = next.conditions
+  const activeChildren = root.children.filter(isSkuConditionActive)
   const exactScope = (node: SkuCondition | SkuConditionGroup) => node.kind === 'rule' && node.active !== false && node.field === 'familyId' && (node.operator === 'eq' && node.value === scopeId || node.operator === 'in' && Array.isArray(node.value) && node.value.length === 1 && node.value[0] === scopeId)
-  if (root.logic === 'all' && root.children.some(exactScope) || root.logic === 'any' && root.children.length && root.children.every(child => child.kind === 'group' && child.logic === 'all' && child.children.some(exactScope))) return next
+  if (root.logic === 'all' && activeChildren.some(exactScope) || root.logic === 'any' && activeChildren.length && activeChildren.every(child => exactScope(child) || child.kind === 'group' && child.logic === 'all' && child.children.some(exactScope))) return next
   const usedIds = new Set<string>()
   function collect(node: SkuCondition | SkuConditionGroup) { usedIds.add(node.id); if (node.kind === 'group') node.children.forEach(collect) }
   collect(root)
   let serial = 0
   function newId(prefix: string) { let id: string; do { id = `${prefix}-${serial++}` } while (usedIds.has(id)); usedIds.add(id); return id }
   const scope = () => ({ kind: 'rule' as const, id: newId('saved-spu-scope'), field: 'familyId', operator: 'eq' as const, value: scopeId })
-  if (root.logic === 'all' || !root.children.length) next.conditions = { ...root, logic: 'all', children: [...root.children, scope()] }
+  // Inactive rules remain editable/exposed, but are absent from the effective
+  // expression. An OR containing only those rules is the same empty query as
+  // an empty AND, so its saved scope must become a real conjunction.
+  if (root.logic === 'all' || !activeChildren.length) next.conditions = { ...root, logic: 'all', children: [...root.children, scope()] }
   else next.conditions = { ...root, children: root.children.flatMap(child => !isSkuConditionActive(child) ? [child] : child.kind === 'group' && child.logic === 'any'
     ? child.children.map(rule => !isSkuConditionActive(rule) ? rule : ({ kind: 'group' as const, id: newId('saved-spu-group'), logic: 'all' as const, children: [rule, scope()] }))
     : [{ kind: 'group' as const, id: newId('saved-spu-group'), logic: 'all' as const, children: [...(child.kind === 'group' ? child.children : [child]), scope()] }]) }

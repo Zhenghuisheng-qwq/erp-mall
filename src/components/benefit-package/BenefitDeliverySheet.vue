@@ -11,15 +11,17 @@
       <div><dt>每包报价</dt><dd>{{ formatBenefitCents(delivery.quote.amountCents) }}<span v-if="delivery.quote.needsReview"> · 人工参考报价，需核对</span></dd></div>
       <div v-if="'generatedAt' in delivery"><dt>生成时间</dt><dd>{{ delivery.generatedAt }}</dd></div>
     </dl>
-    <p>{{ delivery.goods.length }} 种商品 · {{ delivery.goods.reduce((n,l)=>n+l.totalQuantity,0) }} 件 · {{ delivery.services.length }} 项服务</p><p v-if="delivery.framework">框架：{{ delivery.framework.name }} · 修订 {{ delivery.framework.revision }}</p><BenefitReferenceSummary :totals="delivery.referenceTotals"/><p v-if="delivery.issues.length">{{ delivery.issues.map(i=>i.message).join('；') }}</p>
+    <p>{{goodsSummary.length}} 种商品 · {{delivery.goods.length}} 个位置 · {{ delivery.goods.reduce((n,l)=>n+l.totalQuantity,0) }} 件 · {{ delivery.services.length }} 项服务</p><p v-if="delivery.framework">框架：{{ delivery.framework.name }} · 修订 {{ delivery.framework.revision }}</p><BenefitReferenceSummary :totals="delivery.referenceTotals"/><p v-if="delivery.issues.length">{{ delivery.issues.map(i=>i.message).join('；') }}</p>
     <div v-show="membersOpen" class="delivery-members">
     <section class="sheet-section">
-      <h2>实物商品 <span>{{ delivery.goods.length }} 种</span></h2>
+      <h2>组成位置明细 <span>{{delivery.goods.length}} 个位置</span></h2>
       <div class="sheet-table-wrap"><table data-delivery-goods><thead><tr><th>商品与规格</th><th>每包</th><th>本次总量</th><th>人工参考单价／行金额</th><th>适配结论</th></tr></thead><tbody>
-        <tr v-for="item in delivery.goods" :key="item.lineId" :data-delivery-sku="item.skuId"><td><strong>{{ item.name }}</strong><p>{{ item.code }} · {{ item.typeName }}</p><p>{{ item.spec }}</p><p class="fine">所属 SPU：{{ item.familyName }}</p></td><td>{{ item.perPackageQuantity }} 件</td><td>{{ item.totalQuantity }} 件</td><td>{{ referenceMoney(item.referencePrice?.amountCents) }} / {{ referenceMoney(item.referenceLineCents) }}<p>本次 {{ referenceMoney(item.referenceTotalCents) }}</p><p>来源：{{ item.referencePrice ? '本次人工输入' : '未记录' }}</p></td><td>{{ compatibilityLabels[item.compatibility.basicStatus] }}<p>快充：{{ compatibilityLabels[item.compatibility.fastChargeStatus] }}</p></td></tr>
+        <tr v-for="item in delivery.goods" :key="item.lineId" :data-delivery-sku="item.skuId" :data-delivery-position="item.lineId"><td><el-tag size="small" effect="plain">{{item.role==='host'?'主机实物':item.groupName||(!item.groupId?'未分组':item.groupId)}}</el-tag><p class="fine">来源位置：{{item.lineId}}</p><strong>{{ item.name }}</strong><p>{{ item.code }} · {{ item.typeName }}</p><p>{{ item.spec }}</p><p class="fine">所属 SPU：{{ item.familyName }}</p></td><td>{{ item.perPackageQuantity }} 件</td><td>{{ item.totalQuantity }} 件</td><td>{{ referenceMoney(item.referencePrice?.amountCents) }} / {{ referenceMoney(item.referenceLineCents) }}<p>本次 {{ referenceMoney(item.referenceTotalCents) }}</p><p>来源：{{ item.referencePrice ? '本次人工输入' : '未记录' }}</p></td><td>{{ compatibilityLabels[item.compatibility.basicStatus] }}<p>快充：{{ compatibilityLabels[item.compatibility.fastChargeStatus] }}</p></td></tr>
         <tr v-if="!delivery.goods.length"><td colspan="4">本清单没有实物商品。</td></tr>
       </tbody></table></div>
     </section>
+    <section class="sheet-section" data-delivery-sku-summary><h2>按 SKU 汇总核对</h2><p class="sheet-note">仅汇总实物数量；各位置独立价格与来源保留在上表，服务另列。</p><div class="sheet-table-wrap"><table><thead><tr><th>销售 SKU</th><th>每包合计</th><th>本次总量</th><th>来源位置</th></tr></thead><tbody><tr v-for="item in goodsSummary" :key="item.skuId" :data-aggregate-sku="item.skuId"><td>{{item.name}} · {{item.code}}</td><td>{{item.perPackageQuantity}} 件</td><td>{{item.totalQuantity}} 件</td><td>{{item.positionIds.join('、')}}</td></tr></tbody></table></div></section>
+    <section v-if="delivery.framework?.rules?.length" class="sheet-section" data-delivery-group-rules><h2>冻结框架组间规则</h2><p v-for="rule in delivery.framework.rules" :key="rule.id">{{rule.id}} · {{delivery.framework.groups.find(group=>group.id===rule.sourceGroupId)?.name||rule.sourceGroupId}} {{rule.kind==='requires'?'有选配时需要':rule.kind==='excludes'?'不能同时选':'不支持的历史规则'}} {{delivery.framework.groups.find(group=>group.id===rule.targetGroupId)?.name||rule.targetGroupId}} · {{rule.enabled?'启用':'停用'}} · {{rule.note}}</p></section>
     <section class="sheet-section">
       <h2>服务权益 <span>{{ delivery.services.length }} 项</span></h2>
       <div class="sheet-table-wrap"><table data-delivery-services><thead><tr><th>服务约定</th><th>计量方式</th><th>约定数量</th><th>本次总量</th><th>人工参考单价／本次金额</th></tr></thead><tbody>
@@ -47,9 +49,10 @@ import BenefitReferenceSummary from './BenefitReferenceSummary.vue'
 import {formatBenefitAmount} from '../../domain/benefitPackages'
 const membersOpen=ref(true)
 const referenceMoney=(n:number|null|undefined)=>n===null||n===undefined?'未记录':formatBenefitAmount(n)+' 元'
-import type { BenefitDeliveryPreview, BenefitDeliverySnapshot } from '../../domain/benefitPackageTypes'
+import type { BenefitDeliveryPreview, BenefitDeliverySnapshot,BenefitDeliverySkuTotal } from '../../domain/benefitPackageTypes'
 import { capabilityLabels, compatibilityLabels, formatBenefitCents } from './benefitPackagePresentation'
 const props = defineProps<{ delivery: BenefitDeliveryPreview | BenefitDeliverySnapshot }>()
+const goodsSummary=computed(()=>{if(props.delivery.goodsSummary)return props.delivery.goodsSummary;const map=new Map<string,BenefitDeliverySkuTotal>();for(const line of props.delivery.goods){const current=map.get(line.skuId);if(current){current.perPackageQuantity+=line.perPackageQuantity;current.totalQuantity+=line.totalQuantity;current.positionIds.push(line.lineId)}else map.set(line.skuId,{skuId:line.skuId,name:line.name,code:line.code,perPackageQuantity:line.perPackageQuantity,totalQuantity:line.totalQuantity,positionIds:[line.lineId]})}return [...map.values()]})
 const includedHostText = computed(() => props.delivery.hostSkuIds.map(id => {
   const item = props.delivery.goods.find(row => row.skuId === id)
   return item ? `${item.name}（${item.code}）` : id

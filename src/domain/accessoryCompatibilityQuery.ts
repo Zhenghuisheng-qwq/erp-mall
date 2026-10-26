@@ -3,7 +3,7 @@ import { roleOfType } from './compatibility'
 import { compatibilityFamilyTypeId, compatibilityRecordRole, createDeviceResolutionContext, deviceHostKey, resolveDeviceSku, sameDeviceHost, validateCompatibilityHost } from './deviceResolution'
 import type { DeviceResolutionContext } from './deviceResolution'
 import type { AppData, CompatibilityLink } from './types'
-import type { AccessoryMatch, AccessoryQueryResult, AccessoryTarget, CapabilityEvaluation, CompatibilityCapability, CompatibilityCondition, ConditionEvaluation, DeviceResolution, ReverseCompatibilityResult } from './accessoryCompatibilityTypes'
+import type { AccessoryMatch, AccessoryQueryResult, AccessoryTarget, AccessoryUseEvaluation, CapabilityEvaluation, CompatibilityCapability, CompatibilityCondition, ConditionEvaluation, DeviceResolution, ReverseCompatibilityResult } from './accessoryCompatibilityTypes'
 
 export function compatibilityTarget(link: CompatibilityLink): AccessoryTarget { return { kind: link?.targetKind || 'material', id: link?.targetId || link?.accessorySkuId || '' } }
 export function declarationDefaults(link: CompatibilityLink) {
@@ -71,6 +71,18 @@ function overallCapabilityStatus(capabilities: CapabilityEvaluation[]): Accessor
   if (capabilities.some(item => item.status === 'incompatible')) return 'pending'
   return 'conditional'
 }
+function missingCapability(capability: CompatibilityCapability): CapabilityEvaluation {
+  return { capability, status: 'pending', conflict: false, conditions: [], declarations: [] }
+}
+/** Consume a single host query's evaluated facts; never infer basic use from
+ * a specialty ability or rescan/replace the actual SKU and PLN context. */
+export function accessoryUseEvaluation(match: AccessoryMatch | undefined, options: { requireFastCharge?: boolean } = {}): AccessoryUseEvaluation {
+  const basic = match?.basic || match?.capabilities.find(item => item.capability === 'basic') || missingCapability('basic')
+  const fastCharge = match?.capabilities.find(item => item.capability === 'fast-charge') || missingCapability('fast-charge')
+  const required = options.requireFastCharge ? [basic, fastCharge] : [basic]
+  const status = required.some(item => item.status === 'incompatible') ? 'incompatible' : required.some(item => item.status === 'pending') ? 'pending' : required.some(item => item.status === 'conditional') ? 'conditional' : 'compatible'
+  return { status, conflict: required.some(item => item.conflict), conditions: required.flatMap(item => item.conditions), declarations: [...new Map(required.flatMap(item => item.declarations).map(link => [link.id, link])).values()], basic, fastCharge, missingBasic: !basic.declarations.length, requiresFastCharge: Boolean(options.requireFastCharge) }
+}
 function declarationProblem(data: AppData, link: CompatibilityLink, context: DeviceResolutionContext, hostOptions: Map<string, DeviceResolutionContext['hostOptions'][number]>) {
   if (link.provenance?.template?.state === 'stale') return '规格已改变，模板兼容来源待重新确认。'
   if (link.targetId !== undefined && link.targetKind === undefined) return '配件对象类型缺失，请明确销售 SKU 或物料。'
@@ -115,17 +127,20 @@ function queryResolvedDevice(data: AppData, device: DeviceResolution, options: {
     const spec = Object.entries(projectAttrs(family, sku)).filter(([, value]) => value.trim()).map(([key, value]) => `${key} ${value}`).join(' · ')
     if ((options.productTypeId && options.productTypeId !== productTypeId) || (text && !`${name} ${code} ${spec} ${productTypeName}`.toLocaleLowerCase().includes(text))) continue
     const capabilities = evaluateCapabilities(data, declarations, device)
-    const basic = capabilities.find(item => item.capability === 'basic'), status = overallCapabilityStatus(capabilities)
+    const basic = capabilities.find(item => item.capability === 'basic') || missingCapability('basic'), status = overallCapabilityStatus(capabilities)
     const conditions = capabilities.flatMap(item => item.conditions)
     const reasons = [...new Set(declarations.flatMap(link => {
       const rule = declarationDefaults(link)
       return [link.host.scope === 'planning' ? `仅适用于当前规划规格 ${link.host.planningId}` : '适用于当前设备型号；型号级声明不限定容量和颜色', rule.provenance.kind === 'material-copy' ? `从物料 ${rule.provenance.materialSnapshot?.code || rule.provenance.materialId || '历史来源'} 的适用关系确认复制` : target.kind === 'sku' ? '来自销售 SKU 声明' : '来自物料 MAT 声明', rule.source]
     }))]
-    if (!basic) reasons.push('此处为特定能力结论，基本使用能力尚未单独维护。')
+    if (!basic.declarations.length) reasons.push('此处为特定能力结论，基本使用能力尚未单独维护。')
     if (conditions.some(item => item.state === 'unmet')) reasons.push('部分声明的设备属性条件不满足；请查看各条匹配依据。')
-    const match: AccessoryMatch = { target, sku, name, code, spec, productTypeId, productTypeName, status, recommendable: (status === 'compatible' || status === 'conditional') && (target.kind === 'material' || (sku.status === 'on_sale' && shelfOf(family) === 'online')), conflict: capabilities.some(item => item.conflict), reasons, conditions, declarations, capabilities }
-    if (status === 'pending') result.pending.push(match)
-    else if (status === 'incompatible') result.excluded.push(match)
+    const bucketStatus = target.kind === 'material' ? status : basic.status
+    const match: AccessoryMatch = { target, sku, name, code, spec, productTypeId, productTypeName, status, recommendable: (bucketStatus === 'compatible' || bucketStatus === 'conditional') && (target.kind === 'material' || (sku.status === 'on_sale' && shelfOf(family) === 'online')), conflict: capabilities.some(item => item.conflict), reasons, conditions, declarations, capabilities, basic }
+    // Management keeps every capability and its conservative summary. Ordinary
+    // sales recommendations, however, need their own basic-use declaration.
+    if (bucketStatus === 'pending') result.pending.push(match)
+    else if (bucketStatus === 'incompatible') result.excluded.push(match)
     else if (target.kind === 'material') result.materials.push(match)
     else if (match.recommendable) result.sales.push(match)
     else result.unavailable.push(match)

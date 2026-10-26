@@ -7,8 +7,10 @@ const r = (id:string,condition:string,effect:string,resolution:string,flags:Pick
 function packageFeatures(prefix:string):GuideFeatureRow[] { return [
   f(`${prefix}-device`,'选择适配设备','用具体主机 SKU 或已确认型号判断配件适用性，也可不指定设备。','在“适配设备”选择对象；包内已有手机时，明确选择“仅更换适配对象”或“同时替换包内手机”。','选择型号不加入实物；只有“包含这台手机”等明确操作才加入手机商品。',{primary:true}),
   f(`${prefix}-framework`,'应用选配框架','使用独立框架的类型范围、必选、种类数与件数规则。','在“选配框架”选择可用修订，点击“预览并应用框架变更”核对影响。','当前包保存所用框架修订；改用新框架不会静默替换已有成员。'),
-  f(`${prefix}-candidates`,'搜索并选配商品','按实际在售销售 SKU 选配，候选随商品和正式适用关系变化。','在“适用销售配件／其他商品”切换，配合关键词和类型筛选，点击具体商品的添加按钮。','推荐同时满足框架范围与正式基本适用；其他商品保留允许范围并显示真实适配状态。',{primary:true,actionIds:['action-benefit-select']}),
-  f(`${prefix}-members`,'调整、替换和折叠成员','维护每包数量、移除成员或替换具体 SKU。','在“包内清单”调整数量，选择“替换”后明确确认；用“收起全部成员／展开全部成员”切换。','同一 SKU 会合并数量；替换保留原每包数量并重新核对规则和适配。'),
+  f(`${prefix}-candidates`,'搜索并选配商品','按实际在售销售 SKU 选配，候选随商品和正式适用关系变化。','先选具体设备 SKU 或明确型号，在“适用销售配件／其他商品”查看状态，选目标组后加入；用搜索和分页定位商品。','推荐必须有正式基本适用；仅快充资料不能替代。附条件和待核验项目可作为待处理草稿，明确排除、停售或失效不允许新加入。',{primary:true,actionIds:['action-benefit-select']}),
+  f(`${prefix}-members`,'调整、替换和折叠成员','维护每包数量、移除成员或替换具体 SKU。','在“包内清单”调整数量，选择“替换”后明确确认；用“收起全部成员／展开全部成员”切换。','旧组合仍按原 SKU 明细读取；新位置组合只在同组重复加入时增量，不同组的同 SKU 分别保留数量、价格和位置 ID。'),
+  f(`${prefix}-group-relations`,'处理组间依赖和互斥','在冻结的新位置框架中按组 ID 校验规则。','点击“已选 A，需要补选 B”等问题定位目标组；互斥时明确移除或替换其中一组商品。','不自动加件或删件。缺依赖可先保留草稿，可用配置与正式交付必须通过有效规则。'),
+  f(`${prefix}-position-counts`,'核对位置与 SKU 汇总','同 SKU 不同位置分别记录实际件数及参考单价。','在包内清单按组改数量、价格或替换具体位置；预览核对位置明细与 SKU 汇总。','汇总数量是所有位置相加，服务单独计量；未填参考价与 0 元不同，不取第一条位置价格统一计价。'),
   f(`${prefix}-conditions`,'确认附带条件','为当前设备和具体商品记录已核对的使用前提。','在成员的条件确认区域填写说明并确认；有问题时点击问题项定位输入。','只确认当前包的条件，不改写全局声明；待确认或不适用不能冒充正常适用。'),
   f(`${prefix}-services`,'添加服务约定','填写服务名称、数量、单位、有效期和说明。','打开添加服务弹窗，选择“每包”或“本次一次性”计量并确认加入。','每包服务随包数相乘；本次一次性服务整次只计一次，填写弹窗不等于已加入包。'),
   f(`${prefix}-reference`,'记录人工参考价','分别记录实物或服务的参考单价及行金额。','在对应成员或服务的“本次人工参考单价”填写金额。','空白是未记录，0 元是免费；参考合计不改全局售价，也不自动成为整包报价。'),
@@ -18,9 +20,10 @@ function packageFeatures(prefix:string):GuideFeatureRow[] { return [
 ] }
 function packageRestrictions(prefix:string):GuideRestrictionRow[] { return [
   r(`${prefix}-identity`,'选择 SPU、PLN、MAT，或已失效／非在售的 SKU。','包内实物必须是实际销售 SKU；失效原条目保留，但不能将受影响配置保存为可用或生成新清单。','选择有效销售 SKU，修正缺失引用；不要把物料声明自动当作 SKU 声明。',{ruleIds:['rule-benefit-validation','rule-identity-separation'],warning:true}),
-  r(`${prefix}-range`,'成员在框架组外，必选、种类数或每种件数不满足。','可用保存与交付被阻止；同一 SKU 不能同时充当两个启用组的成员。','点击问题定位到对应成员或框架组，调整真实商品与数量，再保存。',{ruleIds:['rule-framework-members','rule-benefit-validation']}),
+  r(`${prefix}-range`,'成员在框架组外，必选、种类数或每种件数不满足。','不满足范围时不能保存为可用或交付。旧框架仍唯一归组；新位置框架必须明确目标组，一件商品不重复抵扣两个组。','点击问题定位到对应成员或框架组，调整真实商品与数量，再保存。',{ruleIds:['rule-framework-members','rule-benefit-validation']}),
   r(`${prefix}-compatibility`,'基本适用证据不足，或商品只有快充等单项能力声明。','不能作为普通基本适用推荐；附条件、待确认与不适用分别显示。','补齐正式基本声明；附条件按当前依据确认，不能用包内确认覆盖明确不适用。',{ruleIds:['rule-compatibility-binding','rule-benefit-validation']}),
   r(`${prefix}-price`,'参考价、成员、数量、设备或适配依据改变。','旧报价复核和交付预览可能失效；输入的报价仍保留为待复核参考。','先保存当前配置并明确复核报价，再重新预览本次交付。',{ruleIds:['rule-benefit-quote','rule-benefit-preview']}),
+  r(`${prefix}-flat-scope`,'需要多台独立主机的配件分配、组合递归或生产执行。','本轮只有一个主适配对象和平面选配，不执行生产、支付、库存或服务激活。','把当前结果作为前端 Mock 的组成与交付约定，不当作完整生产 BOM。'),
   r(`${prefix}-save-failure`,'本机写入失败，或当前包已有更新的修订。','不能显示保存成功，也不能按旧修订继续生成；当前输入和请求保留。','写入恢复后重试当前请求；修订变化时先保留草稿，再明确读取并核对最新配置。',{ruleIds:['rule-persistence','rule-conflict']}),
 ] }
 
@@ -196,7 +199,7 @@ export const salesManuals:Record<string,GuideManualContent> = {
     purpose:'分别管理类型选配框架、已保存权益包配置和独立冻结的交付清单。',
     features:[
       f('benefits-create','新建权益包','从自由组包或类型框架开始实际选配。','点击右上角“新建权益包”，在组包页选择设备、商品和服务。','列表不直接创建成员；实际保存后得到独立权益包编号。',{primary:true}),
-      f('benefits-framework','新建或修改类型框架','先保存不含具体商品的类型范围和选配规则。','切换“选配框架”，点击“新建选配框架”或“查看／修改”，填写分组后“保存框架”。','保存类型范围、必选、种类数、件数等规则，不预先挑选 SKU；使用时动态查实际商品。',{primary:true,actionIds:['action-framework-save']}),
+      f('benefits-framework','新建或修改类型框架','先保存不含具体商品的类型范围和选配规则。','切换“选配框架”，点击“新建选配框架”或“查看／修改”，填写分组后“保存框架”。','保存类型范围与数量规则，不预选 SKU。新位置框架允许多组使用同一类型，并维护依赖／互斥；旧框架不自动升级。',{primary:true,actionIds:['action-framework-save']}),
       f('benefits-framework-copy','复制或删除框架','维护独立框架副本或移除允许删除的框架。','框架行“复制框架”后保存；“删除”需确认。','复制有独立身份；被引用框架受删除保护，已有包冻结修订不被新版覆盖。',{risk:true}),
       f('benefits-query','搜索和筛选包配置','按名称、编号、状态和常用标记查找已保存包。','在“权益包配置”搜索，选草稿／可用／停用／需处理，或勾选“只看常用包”。','常用包优先展示；“需处理”来自当前有效性校验，不是独立保存状态。',{actionIds:['action-benefit-query']}),
       f('benefits-edit-copy','打开或复制组包','继续编辑配置，或将其作为独立新包草稿。','点击包名、“打开权益包／查看权益包”或“复制组包”。','复制不继承旧请求、确认与交付身份；仍需重新核对当前成员、条件及报价。',{primary:true,actionIds:['action-benefit-copy']}),
@@ -209,7 +212,7 @@ export const salesManuals:Record<string,GuideManualContent> = {
     ],
   },
   'page-benefit-create':{
-    purpose:'运行时选择真实销售商品与服务，形成独立权益包配置，参考价与人工报价分别核对。',
+    purpose:'在现有权益包入口完成自由组合，明确主适配对象、选配位置及服务；人工参考价与整包报价分别核对。',
     features:packageFeatures('benefit-create'),restrictions:packageRestrictions('benefit-create'),
     details:[{id:'benefit-create-price-example',title:'参考价与报价怎样分别计算',sections:[{id:'example',title:'一个具体对照',paragraphs:['同一商品每包 2 件、人工参考单价 10 元，参考小计为 20 元；另填整包报价 25 元时，报价仍为 25 元，参考合计减报价显示 -5 元差额。','一次性上门服务按本次交付只计一次，不随包数重复；未填参考价会提示不完整，0 元则明确计为免费。']}]}],
   },

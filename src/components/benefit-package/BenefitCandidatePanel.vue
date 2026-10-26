@@ -1,0 +1,30 @@
+<template>
+  <section class="candidate-workspace" data-composition-candidates>
+    <div class="candidate-tools"><el-input :model-value="keyword" clearable placeholder="搜索名称、SKU 编号或完整规格" aria-label="搜索组包商品" @update:model-value="emit('update:keyword',String($event))"/><el-select :model-value="productTypeId" filterable clearable placeholder="全部类型" aria-label="组包商品类型" @update:model-value="emit('update:productTypeId',String($event||''))"><el-option v-for="type in types" :key="type.id" :value="type.id" :label="`${type.name} · ${type.id}`"/></el-select></div>
+    <div class="candidate-buckets" role="group" aria-label="候选状态分区"><el-button v-for="bucket in buckets" :key="bucket.key" :type="active===bucket.key?'primary':'default'" plain size="small" @click="active=bucket.key">{{bucket.label}} {{count(bucket.key)}}</el-button></div>
+    <p class="candidate-note">{{filtered.length}} 条真实销售 SKU；仅明确归组的位置计入该组选配。<span v-if="!hasDevice">未指定适配设备，不承诺商品间已完成设备适配。</span></p>
+    <el-empty v-if="!filtered.length" :description="emptyText"/>
+    <div class="candidate-list"><article v-for="row in paged" :key="row.summary.skuId" class="candidate-card" :data-benefit-candidate="row.summary.skuId">
+      <div class="candidate-main"><div class="candidate-heading"><strong>{{row.summary.name}}</strong><el-tag size="small" effect="plain">{{row.summary.typeName||'未指定类型'}}</el-tag></div><p>{{row.summary.code}} · {{row.summary.familyName}}</p><p class="sku-spec">{{row.summary.spec}}</p><p><el-tag size="small" :type="compatibilityTag(row.basicStatus)">基本适用：{{compatibilityLabels[row.basicStatus]}}</el-tag><span class="fast">快充：{{compatibilityLabels[row.fastChargeStatus]}}</span></p><p v-if="row.reason" class="reason">{{row.reason}}</p><details><summary>查看真实身份、适配依据与前提</summary><p>{{row.summary.skuId}} · 类型 ID {{row.summary.productTypeId||'未关联'}}</p><p v-for="reason in row.reasons" :key="reason">{{reason}}</p><div v-for="capability in row.capabilities" :key="capability.capability"><strong>{{capabilityLabels[capability.capability]}}：{{compatibilityLabels[capability.status]}}</strong><p v-for="condition in capability.conditions" :key="condition.label">{{{met:'已满足',unmet:'不满足',unknown:'待核验'}[condition.state]}} · {{condition.label}}</p><p v-for="source in capability.sources" :key="source">依据：{{source}}</p></div></details></div>
+      <el-button v-if="canEdit" type="primary" plain :disabled="busy||!row.canAdd" :title="row.reason" :data-benefit-add-sku="row.summary.skuId" @click="emit('add',row.summary.skuId)">{{row.basicStatus==='pending'&&hasDevice?'加入待处理':'加入选配'}}</el-button>
+    </article></div>
+    <el-pagination v-if="filtered.length>pageSize" v-model:current-page="page" :page-size="pageSize" :total="filtered.length" layout="total,prev,pager,next"/>
+  </section>
+</template>
+<script setup lang="ts">
+import {computed,ref,watch} from 'vue'
+import type {BenefitCompatibilityStatus,BenefitCapabilitySummary,BenefitSkuSummary} from '../../domain/benefitPackageTypes'
+import {capabilityLabels,compatibilityLabels,compatibilityTag} from './benefitPackagePresentation'
+export interface CompositionCandidate {summary:BenefitSkuSummary;basicStatus:BenefitCompatibilityStatus;fastChargeStatus:BenefitCompatibilityStatus;capabilities:BenefitCapabilitySummary[];reasons:string[];reason:string;canAdd:boolean;recommended:boolean;bucket:'confirmed'|'conditional'|'pending'|'blocked';groupIds:string[]}
+const props=defineProps<{rows:CompositionCandidate[];keyword:string;productTypeId:string;types:{id:string;name:string}[];emptyReasons:string[];hasDevice:boolean;canEdit:boolean;busy:boolean;recommended:boolean}>()
+const emit=defineEmits<{'update:keyword':[value:string];'update:productTypeId':[value:string];add:[skuId:string]}>()
+const page=ref(1),pageSize=20,active=ref('all'),buckets=[{key:'all',label:'全部状态'},{key:'confirmed',label:'已确认基本适用'},{key:'conditional',label:'附条件'},{key:'pending',label:'待核验／未校验／能力资料'},{key:'blocked',label:'不适用／停售'}]
+const searched=computed(()=>{const key=props.keyword.trim().toLocaleLowerCase();return props.rows.filter(row=>(!props.productTypeId||row.summary.productTypeId===props.productTypeId)&&(!key||`${row.summary.name} ${row.summary.code} ${row.summary.spec} ${row.summary.skuId}`.toLocaleLowerCase().includes(key))&&(!props.recommended||row.recommended&&['confirmed','conditional'].includes(row.bucket)))})
+const filtered=computed(()=>searched.value.filter(row=>active.value==='all'||row.bucket===active.value)),paged=computed(()=>filtered.value.slice((page.value-1)*pageSize,page.value*pageSize))
+const count=(key:string)=>key==='all'?searched.value.length:searched.value.filter(row=>row.bucket===key).length
+const emptyText=computed(()=>props.keyword||props.productTypeId?'当前搜索或类型下没有匹配商品。':props.emptyReasons[0]||(!props.hasDevice&&props.recommended?'尚未选择适配设备；可到其他商品自由选配。':'此状态分区暂无商品，请核对设备、组范围及适用声明。'))
+watch(()=>[props.keyword,props.productTypeId,props.recommended,active.value,props.rows],()=>{page.value=1})
+</script>
+<style scoped>
+.candidate-tools{display:flex;gap:8px}.candidate-tools>.el-select{width:180px;flex-shrink:0}.candidate-buckets{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}.candidate-buckets .el-button{margin:0}.candidate-note,.candidate-main p,.candidate-main details{font-size:12px;line-height:1.7;color:var(--el-text-color-secondary)}.candidate-list{max-height:690px;overflow:auto}.candidate-card{display:flex;gap:12px;align-items:center;padding:16px 0;border-top:1px solid var(--el-border-color)}.candidate-main{flex:1;min-width:0}.candidate-heading{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.candidate-main strong,.sku-spec,.reason{overflow-wrap:anywhere}.candidate-main p{margin-top:7px}.candidate-main details summary{cursor:pointer;color:var(--el-color-primary)}.fast{margin-left:8px}.el-pagination{margin-top:12px;max-width:100%;overflow:auto}@media(max-width:650px){.candidate-tools{flex-direction:column}.candidate-tools>.el-select{width:100%}.candidate-card{flex-wrap:wrap}.candidate-card>.el-button{margin-left:auto}}
+</style>

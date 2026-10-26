@@ -11,7 +11,7 @@ const props = withDefaults(defineProps<{ modelValue: number; label: string; disa
 const emit = defineEmits<{ 'update:modelValue': [value: number] }>()
 const text = ref(Number.isNaN(props.modelValue) ? '' : String(props.modelValue))
 const minimum = computed(() => props.zeroAllowed ? 0 : 1)
-const valid = computed(() => Number.isSafeInteger(props.modelValue) && props.modelValue >= minimum.value)
+const valid=computed(()=>{const value=parseInput(text.value);return Number.isSafeInteger(value)&&value>=minimum.value})
 function parseInput(value: string) { return /^[+-]?\d+(?:\.\d*)?$/.test(value.trim()) ? Number(value) : NaN }
 watch(() => props.modelValue, value => { if (!Object.is(parseInput(text.value), value)) text.value = Number.isNaN(value) ? '' : String(value) })
 function input(value: string | number) { text.value = String(value); emit('update:modelValue', parseInput(text.value)) }

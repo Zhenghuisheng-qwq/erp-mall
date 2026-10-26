@@ -13,8 +13,9 @@ import { ensureProductListPages } from '../src/domain/productListPages'
 import { DATA_VERSION, STORAGE_KEY, type AppData } from '../src/domain/types'
 import { normalizeStored, useCatalogStore } from '../src/stores/catalog'
 
+const artifacts = process.argv.includes('--artifacts')
 const output = resolve(process.env.BENEFIT_STATE_OUTPUT_DIR || 'work/benefit-package/state')
-mkdirSync(output, { recursive: true })
+if (artifacts) mkdirSync(output, { recursive: true })
 const fixed = '2026-10-23T04:00:00.000Z', epoch = Date.parse(fixed), NativeDate = Date
 const oldStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
 globalThis.Date = class extends NativeDate { constructor(value?: string | number) { super(value === undefined ? epoch : value) } static now() { return epoch } } as DateConstructor
@@ -26,7 +27,7 @@ Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
   removeItem: (key: string) => disk.delete(key), clear: () => disk.clear(),
 } })
 const stored = () => disk.get(STORAGE_KEY)
-const mark = (name: string, detail: string) => { checks.push({ name, result: 'PASS', detail }); console.log(`PASS benefit state ${name}: ${detail}`) }
+const mark = (name: string, detail: string) => { checks.push({ name, result: 'PASS', detail }); if (artifacts) console.log(`PASS benefit state ${name}: ${detail}`) }
 function fixture() { const { data } = createAccessoryCompatibilityFixture(); ensureProductListPages(data); return data }
 function mount(data?: AppData) {
   active?.$dispose()
@@ -42,7 +43,7 @@ function draft(data: AppData): BenefitPackageDraft {
   result.rulesEnabled = true
   result.groups = [{ id: 'group-case', name: '【隔离测试】保护壳选配', enabled: true, candidateSkuIds: ['case-sku'], required: true, minKinds: 1, maxKinds: 1, defaultQuantity: 2, adjustable: true, minQuantity: 1, maxQuantity: 10 }]
   result.quote.amountCents = 0
-  return reviewBenefitQuote(result)
+  return reviewBenefitQuote(result, data)
 }
 try {
   let store = mount(fixture()); await nextTick(); await active?.waitForPersistence()
@@ -102,8 +103,14 @@ try {
   await nextTick(); await active?.waitForPersistence(); assert.equal(confirmed.ok, true); assert.ok(confirmed.delivery)
   assert.equal(confirmed.delivery.code, 'BDL-000001'); assert.equal(writes - beforeGenerateWrites, 1)
   const snapshot = cloneBenefit(confirmed.delivery), duplicateDeliveryWrites = writes
-  const repeated = (await store.generateBenefitDelivery({ ...generate, packageCount: 99 }))
+  assert.equal(snapshot.snapshotVersion, 2)
+  const repeated = (await store.generateBenefitDelivery(generate))
   await nextTick(); await active?.waitForPersistence(); assert.deepEqual(repeated.delivery, snapshot); assert.equal(writes, duplicateDeliveryWrites); assert.equal(store.data.benefitDeliveries?.length, 1)
+  for (const change of [{ packageCount: 99 }, { expectedRevision: generate.expectedRevision + 1 }, { expectedBasis: generate.expectedBasis + '-changed' }]) {
+    const memory = JSON.stringify(store.data), raw = stored()
+    assert.equal((await store.generateBenefitDelivery({ ...generate, ...change })).ok, false)
+    await nextTick(); await active?.waitForPersistence(); assert.equal(JSON.stringify(store.data), memory); assert.equal(stored(), raw); assert.equal(writes, duplicateDeliveryWrites)
+  }
   confirmed.delivery.goods[0]!.name = '返回值修改不得改存储'
   assert.deepEqual(store.data.benefitDeliveries?.[0], snapshot)
   assert.equal(business(store.data), frozenBusiness)
@@ -214,12 +221,36 @@ try {
     mark('permission-at-write-and-import-boundary','default unified mode permits actual save/favorite/status/import and receipt retry; historical deliveries remain unchanged')
   }
 
+  store = mount(fixture()); await nextTick(); await active?.waitForPersistence()
+  const legacyInput = newBenefitPackageDraft({ kind: 'sku', skuId: 'phone-a' }); delete legacyInput.compositionVersion
+  legacyInput.name = '【隔离测试】原扁平结构回执'
+  const legacyGoods = addBenefitSku(store.data, legacyInput, 'case-sku', 2)
+  assert.equal(legacyGoods.goods[0]?.groupId, undefined); assert.equal(legacyGoods.goods[0]?.role, undefined)
+  const legacySaved = await store.saveBenefitPackage({ draft: legacyGoods, status: 'available', requestId: 'legacy-flat-save' }); assert.ok(legacySaved.ok && legacySaved.package)
+  const legacyPreview = previewBenefitDelivery(store.data, legacySaved.package, 3)
+  const legacyRequest = { packageId: legacySaved.package.id, expectedRevision: legacySaved.package.revision, packageCount: 3, expectedBasis: legacyPreview.basis, requestId: 'legacy-flat-delivery' }
+  const legacyDelivered = await store.generateBenefitDelivery(legacyRequest); assert.ok(legacyDelivered.ok && legacyDelivered.delivery)
+  const legacySnapshot = cloneBenefit(legacyDelivered.delivery)
+  assert.equal(legacySnapshot.snapshotVersion, 1); assert.equal(legacySnapshot.compositionVersion, undefined); assert.equal(legacySnapshot.goodsSummary, undefined)
+  assert.equal(legacySnapshot.goods[0]?.groupId, undefined); assert.equal(legacySnapshot.goods[0]?.role, undefined)
+  const legacyMemory = JSON.stringify(store.data), legacyDisk = stored(), legacyWrites = writes
+  assert.deepEqual((await store.generateBenefitDelivery({ ...legacyRequest, packageCount: 99 })).delivery, legacySnapshot)
+  assert.equal((await store.generateBenefitDelivery({ ...legacyRequest, packageId: 'another-package' })).ok, false)
+  await nextTick(); await active?.waitForPersistence()
+  assert.equal(JSON.stringify(store.data), legacyMemory); assert.equal(stored(), legacyDisk); assert.equal(writes, legacyWrites)
+  mark('explicit-legacy-flat-receipt-compatibility', 'genuine legacy flat goods generate snapshot 1; historical weak-count receipt returns original frozen result without writes; another package cannot reuse it')
+
   const collisionData = fixture(), p1 = cloneBenefit(originalSaved), p2 = cloneBenefit(originalSaved), d1 = cloneBenefit(snapshot), d2 = cloneBenefit(snapshot)
   Object.assign(p1, { id: 'imported-package-100', code: 'BPK-000100', creationRequestId: 'import-package-100', revision: Number.MAX_SAFE_INTEGER })
   Object.assign(p2, { id: 'benefit-package-000101', code: 'BPK-000090', creationRequestId: 'import-package-101' })
   Object.assign(d1, { id: 'imported-delivery-100', code: 'BDL-000100', requestId: 'import-delivery-100' })
   Object.assign(d2, { id: 'benefit-delivery-000101', code: 'BDL-000090', requestId: 'import-delivery-101' })
   collisionData.benefitPackages = [p1, p2]; collisionData.benefitDeliveries = [d1, d2]
+  assert.ok(benefitPackageImportProblems(collisionData).some(problem => /已受理请求身份|跨组合复用/.test(problem)), 'Cloning a saved package into another identity must not clone its accepted request receipts')
+  // These independently imported numbering fixtures have no known execution
+  // receipts. Keep that legacy absence explicit instead of inventing historical
+  // requests or copying another package's successful command identities.
+  for (const imported of [p1, p2]) { delete imported.saveReceipt; delete imported.saveReceipts; delete imported.creationIntent }
   assert.deepEqual(benefitPackageImportProblems(collisionData), [])
   store = mount(collisionData); await nextTick(); await active?.waitForPersistence()
   const overflowMemory = JSON.stringify(store.data), overflowDisk = stored(), overflowWrites = writes
@@ -234,10 +265,10 @@ try {
   await nextTick(); await active?.waitForPersistence(); assert.ok(collisionDelivery.delivery); assert.equal(collisionDelivery.delivery.code, 'BDL-000102'); assert.equal(collisionDelivery.delivery.id, 'benefit-delivery-000102')
   mark('separate-number-spaces-import-collision-avoidance', 'BPK/BDL allocate above imported maxima and skip used IDs even under fixed time; no PLN/MAT numbers allocated')
 
-  writeFileSync(resolve(output, 'result.json'), JSON.stringify({ result: 'PASS', environment: { fixedTime: fixed, node: process.version, dataVersion: DATA_VERSION }, checks, attempts, writes }, null, 2) + '\n')
+  if (artifacts) writeFileSync(resolve(output, 'result.json'), JSON.stringify({ result: 'PASS', environment: { fixedTime: fixed, node: process.version, dataVersion: DATA_VERSION }, checks, attempts, writes }, null, 2) + '\n')
   console.log(`PASS ${checks.length} benefit package state groups`)
 } catch (error) {
-  writeFileSync(resolve(output, 'failure.json'), JSON.stringify({ result: 'FAIL', error: String(error), checks, attempts, writes }, null, 2) + '\n')
+  if (artifacts) writeFileSync(resolve(output, 'failure.json'), JSON.stringify({ result: 'FAIL', error: String(error), checks, attempts, writes }, null, 2) + '\n')
   throw error
 } finally {
   active?.$dispose(); restoreTestLocks(); globalThis.Date = NativeDate

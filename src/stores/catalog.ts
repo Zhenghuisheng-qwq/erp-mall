@@ -45,7 +45,7 @@ import { applyCompatibilityChanges, cloneCompatibility, compatibilityImportProbl
 import type { CompatibilityChange, CompatibilityCommandResult } from '../domain/accessoryCompatibilityCommands'
 import { compatibilityFamilyTypeId, compatibilityRecordRole, deviceSourceStamp, sameDeviceHost, validateCompatibilityHost } from '../domain/deviceResolution'
 import type { DeviceModel } from '../domain/accessoryCompatibilityTypes'
-import { benefitPackageImportProblems, benefitPackageReferenceProblem, cloneBenefit, createBenefitDeliverySnapshot, previewBenefitDelivery, validateBenefitPackage } from '../domain/benefitPackages'
+import { benefitPackageImportProblems, benefitPackageReferenceProblem, benefitDraftStructureIssues, cloneBenefit, createBenefitDeliverySnapshot, previewBenefitDelivery, validateBenefitPackage } from '../domain/benefitPackages'
 import type { BenefitCommandResult, BenefitPackageDraft, BenefitPackageStatus } from '../domain/benefitPackageTypes'
 import type { CompatibilityHost } from '../domain/types'
 import { appendSkuBatch, editSku, previewSkuAppend, saveSpu, spuRemovalBlock, type SkuDraft, type SkuGeneration } from '../domain/spuSku'
@@ -530,10 +530,12 @@ export const useCatalogStore = defineStore('catalog', () => {
     return { id: `${idPrefix}-${String(number).padStart(6, '0')}`, code: `${codePrefix}-${String(number).padStart(6, '0')}` }
   }
 
-  function saveBenefitFramework(input:{draft:BenefitFramework;expectedRevision:number;requestId:string}) {
+  function saveBenefitFramework(input:{draft:BenefitFramework;expectedRevision:number;requestId:string}, isCurrent: () => boolean = () => true) {
     const denied=benefitPermission();if(denied)return denied
+    if (typeof isCurrent !== 'function' || !isCurrent()) return { ok: false, message: '框架编辑上下文已变化，当前规则与输入未提交。' }
     const next=cloneCompatibility(data)
     const result=frameworkCommand(next,input,()=>uid('benefit-framework'))
+    if (!isCurrent()) return { ok: false, message: '框架编辑上下文已变化，当前规则与输入未提交。' }
     return commitBenefitState(next,result)
   }
   function removeBenefitFramework(id:string,revision:number){
@@ -545,16 +547,46 @@ export const useCatalogStore = defineStore('catalog', () => {
     removed.deletedAt=new Date().toISOString();removed.status='disabled';removed.updatedAt=removed.deletedAt
     return commitBenefitState(next,{ok:true})
   }
-  function saveBenefitPackage(input: { draft: BenefitPackageDraft; status: 'draft' | 'available'; expectedRevision?: number; requestId: string }): BenefitCommandResult {
+  function benefitSaveIntent(draft: BenefitPackageDraft, status: string) {
+    const { id: _id, code: _code, revision: _revision, createdAt: _createdAt, updatedAt: _updatedAt, issues: _issues, creationRequestId: _request, creationIntent: _creation, saveReceipt: _receipt, saveReceipts: _receipts, ...content } = draft
+    return frameworkSignature({ ...content, status })
+  }
+  function nonfiniteBenefitInput(value: unknown): boolean {
+    if (typeof value === 'number') return !Number.isFinite(value)
+    return !!value && typeof value === 'object' && Object.values(value).some(nonfiniteBenefitInput)
+  }
+  function saveBenefitPackage(input: { draft: BenefitPackageDraft; status: 'draft' | 'available'; expectedRevision?: number; requestId: string }, isCurrent: () => boolean = () => true): BenefitCommandResult {
     const denied = benefitPermission()
     if (denied) return denied
+    if (typeof isCurrent !== 'function' || !isCurrent()) return { ok: false, message: '选配会话或输入已变化，本次未保存；完整草稿保留。' }
+    if (!input || !input.draft || typeof input.draft !== 'object' || Array.isArray(input.draft)) return { ok: false, message: '组合草稿结构无效，本次没有保存。' }
+    const structural = benefitDraftStructureIssues(input.draft)
+    if (structural.length) return { ok: false, message: structural.map(issue => issue.message).join('；') }
+    // JSON maps NaN/Infinity to null; reject before comparing an accepted request's intent.
+    if (nonfiniteBenefitInput(input.draft)) return { ok: false, message: '组合数量或金额含无效数字，本次未保存，原输入保留。' }
     if (typeof input.requestId !== 'string' || !input.requestId.trim()) return { ok: false, message: '保存请求缺少标识，请重新打开权益包后重试。' }
     if (!['draft', 'available'].includes(input.status)) return { ok: false, message: '请选择保存草稿或保存为可用权益包。' }
+    const intent = benefitSaveIntent(input.draft, input.status)
     const previous = input.draft.id ? data.benefitPackages?.find(item => item.id === input.draft.id) : undefined
+    const used = data.benefitPackages?.find(item => item.id !== input.draft.id && (item.creationRequestId === input.requestId || item.saveReceipt?.requestId === input.requestId || item.saveReceipts?.some(receipt => receipt.requestId === input.requestId)))
+    if (input.draft.id && used) return { ok: false, message: '该保存请求已用于另一份组合，请明确发起新的保存操作。' }
     if (!input.draft.id) {
       const receipt = data.benefitPackages?.find(item => item.creationRequestId === input.requestId)
-      if (receipt) return { ok: true, id: receipt.id, package: cloneCompatibility(receipt) }
+      if (receipt) return (receipt.creationIntent ? receipt.creationIntent === intent : benefitSaveIntent(receipt, receipt.status) === intent)
+        ? { ok: true, id: receipt.id, package: cloneBenefit(receipt) }
+        : { ok: false, message: '该创建请求已经成功用于不同的组合内容；原组合保留，请明确发起新操作。' }
+      if (used) return { ok: false, message: '该请求已经成功保存过另一份组合，不能再次用于新建；请明确发起新操作。' }
     } else if (!previous) return { ok: false, message: '权益包已不存在，未重新创建已删除的配置。' }
+    if (previous?.creationRequestId === input.requestId) return (previous.creationIntent ? previous.creationIntent === intent : benefitSaveIntent(previous, previous.status) === intent)
+      ? { ok: true, id: previous.id, package: cloneBenefit(previous) }
+      : { ok: false, message: '该请求已经用于创建此组合，不能用不同内容重复执行保存；请发起新操作。' }
+    const previousReceipt = previous?.saveReceipts?.find(receipt => receipt.requestId === input.requestId) ?? (previous?.saveReceipt?.requestId === input.requestId ? previous.saveReceipt : undefined)
+    if (previous && previousReceipt) {
+      const receipt = previousReceipt
+      return receipt.intent === intent && receipt.sourceRevision === (input.expectedRevision ?? input.draft.revision) && receipt.resultRevision === previous.revision
+        ? { ok: true, id: previous.id, package: cloneBenefit(previous) }
+        : { ok: false, message: '该保存请求已成功受理，但意图或修订已变化；请重新核对后发起新操作。' }
+    }
     if (previous && (input.expectedRevision ?? input.draft.revision) !== previous.revision) return rejectGuide('benefit.save.revision', '权益包已被更新，请重新打开并核对最新配置；当前草稿保留。', {savedState:'unchanged',recovery:['repreview','edit-input']})
     if (previous && !Number.isSafeInteger(previous.revision + 1)) return { ok: false, message: '权益包修订版本已超出安全范围，当前配置未改变。' }
     if (previous && !previous.creationRequestId && data.benefitPackages?.some(item => item.id !== previous.id && item.creationRequestId === input.requestId)) return { ok: false, message: '保存请求已属于另一权益包，请重新发起当前保存操作。' }
@@ -572,12 +604,16 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (!validation.canSaveDraft || input.status === 'available' && !validation.canSaveAvailable) return withFailure({ ok: false, message: validation.issues.filter(issue => issue.structural || input.status === 'available' && issue.severity === 'error').map(issue => issue.message).join(' ') || '当前配置需要处理，请保存草稿或完善内容。', validation }, branchFailure(validation.issues.some(issue=>issue.code==='quote')?'benefit.quote.invalid':'benefit.save.validation',validation.issues.filter(issue=>issue.structural||input.status==='available'&&issue.severity==='error').map(issue=>issue.message).join(' ')||'当前配置需要处理，请保存草稿或完善内容。',{savedState:'unchanged',fields:validation.issues.flatMap(issue=>issue.field?[issue.field]:[]),context:{packageId:input.draft.id||''},recovery:['edit-input']}))
     try {
       const next = cloneCompatibility(data), now = new Date().toISOString(), identity = previous ? { id: previous.id, code: previous.code } : nextBenefitIdentity('package')
-      const record: BenefitPackageDraft = { ...draft, ...identity, goods: validation.goods.map(item => ({ ...cloneBenefit(item.line), snapshot: cloneBenefit(item.summary) })), revision: (previous?.revision || 0) + 1, createdAt: previous?.createdAt || now, updatedAt: now, issues: validation.issues.map(issue => issue.message), creationRequestId: previous?.creationRequestId || input.requestId }
+      const record: BenefitPackageDraft = { ...draft, ...identity, goods: validation.goods.map(item => ({ ...cloneBenefit(item.line), snapshot: cloneBenefit(item.summary) })), revision: (previous?.revision || 0) + 1, createdAt: previous?.createdAt || now, updatedAt: now, issues: validation.issues.map(issue => issue.message), creationRequestId: previous?.creationRequestId || input.requestId,
+        creationIntent: previous ? previous.creationIntent : intent,
+        saveReceipts: [...(previous?.saveReceipts ?? (previous?.saveReceipt ? [cloneBenefit(previous.saveReceipt)] : [])), { requestId: input.requestId, intent, sourceRevision: previous?.revision || 0, resultRevision: (previous?.revision || 0) + 1 }] }
+      delete record.saveReceipt
       next.benefitPackages = [...(next.benefitPackages || [])]
       const index = next.benefitPackages.findIndex(item => item.id === identity.id)
       if (index >= 0) next.benefitPackages[index] = record
       else next.benefitPackages.push(record)
-      return commitBenefitState(next, { ok: true, id: record.id, package: cloneCompatibility(record), validation })
+      if (!isCurrent()) return { ok: false, message: '选配会话或输入已变化，本次未保存；完整草稿保留。' }
+      return commitBenefitState(next, { ok: true, id: record.id, package: cloneBenefit(record), validation })
     } catch (error) { return { ok: false, message: error instanceof Error ? error.message : String(error), validation } }
   }
 
@@ -610,12 +646,13 @@ export const useCatalogStore = defineStore('catalog', () => {
     return commitBenefitState(next, { ok: true, id, package: cloneCompatibility(record) })
   }
 
-  function generateBenefitDelivery(input: { packageId: string; expectedRevision: number; requestId: string; packageCount: number; expectedBasis: string }): BenefitCommandResult {
+  function generateBenefitDelivery(input: { packageId: string; expectedRevision: number; requestId: string; packageCount: number; expectedBasis: string }, isCurrent: () => boolean = () => true): BenefitCommandResult {
     const denied = benefitPermission()
     if (denied) return denied
+    if (typeof isCurrent !== 'function' || !isCurrent()) return { ok: false, message: '交付预览或选配会话已变化，本次没有生成清单。' }
     if (typeof input.requestId !== 'string' || !input.requestId.trim()) return { ok: false, message: '本次生成请求缺少标识，请重新预览。' }
     const receipt = data.benefitDeliveries?.find(item => item.requestId === input.requestId)
-    if (receipt) return receipt.packageId === input.packageId && (!(receipt.framework || receipt.goods.some(l=>l.referencePrice) || receipt.services.some(l=>l.referencePrice)) || receipt.packageCount === input.packageCount && receipt.sourceRevision === input.expectedRevision && receipt.basis === input.expectedBasis) ? { ok: true, id: receipt.id, delivery: cloneCompatibility(receipt) } : { ok: false, message: '本次请求已用于其他权益包或不同交付依据，请发起新的生成操作。' }
+    if (receipt) return receipt.packageId === input.packageId && (!(receipt.snapshotVersion !== 1 || receipt.framework || receipt.goods.some(l=>l.referencePrice) || receipt.services.some(l=>l.referencePrice)) || receipt.packageCount === input.packageCount && receipt.sourceRevision === input.expectedRevision && receipt.basis === input.expectedBasis) ? { ok: true, id: receipt.id, delivery: cloneCompatibility(receipt) } : { ok: false, message: '本次请求已用于其他权益包或不同交付依据，请发起新的生成操作。' }
     const source = data.benefitPackages?.find(item => item.id === input.packageId)
     if (!source || source.revision !== input.expectedRevision) return rejectGuide('benefit.deliver.revision', '权益包已更新或不存在，请重新预览完整组成和报价。', {savedState:'unchanged',recovery:['repreview','edit-input']})
     const preview = previewBenefitDelivery(data, source, input.packageCount)
@@ -626,6 +663,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       const delivery = createBenefitDeliverySnapshot(preview, { ...identity, requestId: input.requestId, generatedAt: new Date().toISOString() })
       const next = cloneCompatibility(data)
       next.benefitDeliveries = [...(next.benefitDeliveries || []), delivery]
+      if (!isCurrent()) return { ok: false, message: '交付预览或选配会话已变化，本次没有生成清单。' }
       return commitBenefitState(next, { ok: true, id: delivery.id, delivery: cloneCompatibility(delivery) })
     } catch (error) { return { ok: false, message: error instanceof Error ? error.message : String(error) } }
   }
@@ -1600,12 +1638,12 @@ export const useCatalogStore = defineStore('catalog', () => {
       const copied = cloneCompatibility(next), copiedGuard = manualGuard && cloneCompatibility(manualGuard)
       return command(() => commitListPage('sku', copied, expectedPage, isCurrent, copiedGuard))
     },
-    saveBenefitFramework: (...args: Parameters<typeof saveBenefitFramework>) => command(() => saveBenefitFramework(...args)),
+    saveBenefitFramework: (input: Parameters<typeof saveBenefitFramework>[0], isCurrent: () => boolean = () => true) => { const copied = cloneBenefit(input); return command(() => saveBenefitFramework(copied, isCurrent)) },
     removeBenefitFramework: (...args: Parameters<typeof removeBenefitFramework>) => command(() => removeBenefitFramework(...args)),
-    saveBenefitPackage: (...args: Parameters<typeof saveBenefitPackage>) => command<BenefitCommandResult>(() => saveBenefitPackage(...args)),
+    saveBenefitPackage: (input: Parameters<typeof saveBenefitPackage>[0], isCurrent: () => boolean = () => true) => { const copied = cloneBenefit(input); return command<BenefitCommandResult>(() => saveBenefitPackage(copied, isCurrent)) },
     setBenefitPackageStatus: (...args: Parameters<typeof setBenefitPackageStatus>) => command<BenefitCommandResult>(() => setBenefitPackageStatus(...args)),
     setBenefitPackageFavorite: (...args: Parameters<typeof setBenefitPackageFavorite>) => command<BenefitCommandResult>(() => setBenefitPackageFavorite(...args)),
-    generateBenefitDelivery: (...args: Parameters<typeof generateBenefitDelivery>) => command<BenefitCommandResult>(() => generateBenefitDelivery(...args)),
+    generateBenefitDelivery: (input: Parameters<typeof generateBenefitDelivery>[0], isCurrent: () => boolean = () => true) => { const copied = cloneBenefit(input); return command<BenefitCommandResult>(() => generateBenefitDelivery(copied, isCurrent)) },
     commitCompatibilityChanges: (...args: Parameters<typeof commitCompatibilityChanges>) => command<CompatibilityCommandResult>(() => commitCompatibilityChanges(...args)),
     commitDeviceBinding: (...args: Parameters<typeof commitDeviceBinding>) => command<CompatibilityCommandResult>(() => commitDeviceBinding(...args)),
     clearDeviceBinding: (...args: Parameters<typeof clearDeviceBinding>) => command<CompatibilityCommandResult>(() => clearDeviceBinding(...args)),

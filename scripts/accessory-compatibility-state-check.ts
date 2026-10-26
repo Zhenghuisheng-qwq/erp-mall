@@ -13,13 +13,19 @@ import { deviceSourceStamp, listDeviceModels, resolveDeviceSku } from '../src/do
 import { queryDeviceAccessories } from '../src/domain/accessoryCompatibilityQuery'
 import { DATA_VERSION, STORAGE_KEY, type AppData, type ProductFamily } from '../src/domain/types'
 import { catalogMigrationError, normalizeStored, useCatalogStore } from '../src/stores/catalog'
+import { ensureRbac } from '../src/domain/rbac'
+import { RBAC_ENFORCEMENT_ENABLED } from '../src/domain/accessMode'
 
 const output = resolve(process.env.ACCESSORY_STATE_OUTPUT_DIR || 'work/accessory-compatibility/state')
-mkdirSync(output, { recursive: true })
+const artifacts = process.argv.includes('--artifacts')
+if (artifacts) mkdirSync(output, { recursive: true })
 const fixed = '2026-10-23T04:00:00.000Z', epoch = Date.parse(fixed), NativeDate = Date
 const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+const originalSession = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage')
 globalThis.Date = class extends NativeDate { constructor(value?: string | number) { super(value === undefined ? epoch : value) } static now() { return epoch } } as DateConstructor
 const disk = new Map<string, string>(), records: { name: string; result: 'PASS'; detail: string }[] = []
+const session = new Map<string, string>()
+Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: (key: string) => session.get(key) ?? null, setItem: (key: string, value: string) => session.set(key, value), removeItem: (key: string) => session.delete(key) } })
 let failNext = false, attempts = 0, writes = 0
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
   getItem: (key: string) => disk.get(key) ?? null,
@@ -29,9 +35,10 @@ Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
 let active: ReturnType<typeof useCatalogStore> | undefined
 const mark = (name: string, detail: string) => { records.push({ name, result: 'PASS', detail }); console.log(`PASS accessory state ${name}: ${detail}`) }
 const stored = () => disk.get(STORAGE_KEY)
-function mount(data?: AppData) {
+function mount(data?: AppData, actor = 'u-admin') {
   active?.$dispose()
   if (data) disk.set(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data }))
+  session.set('iyge-rbac-simulated-user', actor)
   setActivePinia(createPinia())
   active = useCatalogStore()
   return active
@@ -203,19 +210,34 @@ try {
   assert.deepEqual(normalizeStored({ version: DATA_VERSION, data: cloneCompatibility(normalized) }), normalized)
   mark('legacy-import-and-dangling-reference', 'old MAT records retain exact id/range/note/time; repeated normalization stable; dangling declaration retained as issue; wrong object kind rejected before write')
 
-  store = mount(fixture()); await nextTick(); await store.waitForPersistence()
-  store.data.activeRole = 'operator'; await nextTick(); await store.waitForPersistence()
+  const readerData = fixture(); ensureRbac(readerData)
+  readerData.rbac!.roles.push({ id: 'accessory-state-reader', code: 'accessory-state-reader', name: '适配只读检查', description: '隔离测试', enabled: true, permissionCodes: ['product:compatibility:read', 'product:import:read', 'product:export:execute', 'product:import:execute'] })
+  readerData.users.push({ id: 'accessory-state-reader', username: 'accessory-state-reader', displayName: '适配只读检查', role: 'operator', enabled: true, roleIds: ['accessory-state-reader'] })
+  store = mount(readerData, 'accessory-state-reader'); await nextTick(); await store.waitForPersistence()
   const readOnlyBefore = JSON.stringify(store.data), readOnlyDisk = stored(), readOnlyWrites = writes
-  assert.equal((await store.commitCompatibilityChanges(add)).ok, false)
-  assert.equal((await store.commitDeviceBinding({ skuId: 'state-phone', host })).ok, false)
-  assert.equal((await store.clearDeviceBinding('state-phone')).ok, false)
-  assert.equal((await store.saveDeviceModel(input)).ok, false)
-  assert.equal((await store.removeDeviceModel('state-model-a')).ok, false)
   const readOnlyImport = JSON.parse(store.exportJson()) as { version: number; data: AppData }
   readOnlyImport.data.compatibilities[0]!.note = '运营角色不应通过导入维护关系'
-  await assert.rejects(async () => (await store.importJson(JSON.stringify(readOnlyImport))), /不能通过导入修改/)
-  assert.equal(JSON.stringify(store.data), readOnlyBefore); assert.equal(stored(), readOnlyDisk); assert.equal(writes, readOnlyWrites)
-  mark('maintenance-permission-at-store-boundary', 'operator may query but all five maintenance commands reject without writes')
+  if (RBAC_ENFORCEMENT_ENABLED) {
+    for (const command of [() => store.commitCompatibilityChanges(add), () => store.commitDeviceBinding({ skuId: 'state-phone', host }), () => store.clearDeviceBinding('state-phone'), () => store.saveDeviceModel(input), () => store.removeDeviceModel('state-model-a')]) {
+      let rejected = false, reason = ''
+      try { const result = await command(); rejected = result.ok === false; reason = result.message || '' } catch (error) { rejected = true; reason = String(error) }
+      assert.equal(rejected, true)
+      assert.match(reason, /未授权|无权|权限|不允许|没有/)
+      assert.equal(JSON.stringify(store.data), readOnlyBefore); assert.equal(stored(), readOnlyDisk); assert.equal(writes, readOnlyWrites)
+    }
+    await assert.rejects(async () => (await store.importJson(JSON.stringify(readOnlyImport))), /不能通过导入修改|未授权|没有|权限/)
+    assert.equal(JSON.stringify(store.data), readOnlyBefore); assert.equal(stored(), readOnlyDisk); assert.equal(writes, readOnlyWrites)
+    mark('maintenance-permission-at-store-boundary', 'strict read-only identity may query; all five real maintenance commands and import reject without writes')
+  } else {
+    assert.equal((await store.commitCompatibilityChanges(add)).ok, true)
+    assert.equal((await store.commitDeviceBinding({ skuId: 'state-phone', host })).ok, true)
+    assert.equal((await store.clearDeviceBinding('state-phone')).ok, true)
+    assert.equal((await store.saveDeviceModel(input)).ok, true)
+    assert.equal((await store.removeDeviceModel('state-model-b')).ok, true)
+    const allowedImport = JSON.parse(store.exportJson()) as { version: number; data: AppData }; allowedImport.data.compatibilities[0]!.note = '默认统一管理员允许显式维护'
+    await store.importJson(JSON.stringify(allowedImport)); assert.equal(store.data.compatibilities[0]!.note, '默认统一管理员允许显式维护')
+    mark('maintenance-permission-at-store-boundary', 'default unified administrator keeps explicit maintenance and import available; legacy activeRole is not an authorization switch')
+  }
 
   // Loading readable historical data must not replace it with seed if a later
   // compatibility/category migration persistence step hits storage quota.
@@ -225,7 +247,7 @@ try {
   store = mount(); await nextTick(); await store.waitForPersistence()
   assert.ok(store.data.skus.some(sku => sku.id === 'state-material'))
   assert.ok(store.data.compatibilities.some(link => link.id === 'state-legacy-material'))
-  assert.match(catalogMigrationError(), /无法写入本机/)
+  assert.match(catalogMigrationError(), /无法(?:写入|保存到)本机/)
   mark('migration-storage-failure-retains-history', 'readable V14 history remains in memory with explicit failure message; original disk is not cleared or seeded')
 
   for (const damaged of [
@@ -243,13 +265,15 @@ try {
   }
   mark('unreadable-existing-storage-never-seeds', 'bad JSON, existing empty payload, missing base array and unsupported version throw a recoverable error; original disk bytes remain, zero writes')
 
-  writeFileSync(resolve(output, 'result.json'), JSON.stringify({ result: 'PASS', environment: { node: process.version, fixedTime: fixed, dataVersion: DATA_VERSION }, checks: records, attempts, writes }, null, 2))
+  if (artifacts) writeFileSync(resolve(output, 'result.json'), JSON.stringify({ result: 'PASS', environment: { node: process.version, fixedTime: fixed, dataVersion: DATA_VERSION }, checks: records, attempts, writes }, null, 2))
 } catch (error) {
-  writeFileSync(resolve(output, 'failure.json'), JSON.stringify({ result: 'FAIL', error: String(error), checks: records, attempts, writes }, null, 2))
+  if (artifacts) writeFileSync(resolve(output, 'failure.json'), JSON.stringify({ result: 'FAIL', error: String(error), checks: records, attempts, writes }, null, 2))
   throw error
 } finally {
   active?.$dispose()
   globalThis.Date = NativeDate
   if (originalStorage) Object.defineProperty(globalThis, 'localStorage', originalStorage)
   else Reflect.deleteProperty(globalThis, 'localStorage')
+  if (originalSession) Object.defineProperty(globalThis, 'sessionStorage', originalSession)
+  else Reflect.deleteProperty(globalThis, 'sessionStorage')
 }

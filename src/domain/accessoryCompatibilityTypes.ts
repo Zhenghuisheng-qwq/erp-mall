@@ -91,6 +91,18 @@ export interface AccessoryMatch {
   conditions: ConditionEvaluation[]
   declarations: CompatibilityLink[]
   capabilities: CapabilityEvaluation[]
+  /** Basic use is independent from management's aggregate ability status. */
+  basic: CapabilityEvaluation
+}
+export interface AccessoryUseEvaluation {
+  status: CapabilityEvaluation['status']
+  conflict: boolean
+  conditions: ConditionEvaluation[]
+  declarations: CompatibilityLink[]
+  basic: CapabilityEvaluation
+  fastCharge: CapabilityEvaluation
+  missingBasic: boolean
+  requiresFastCharge: boolean
 }
 export interface CompatibilityIssue { declarationId?: string; message: string }
 export interface AccessoryQueryResult {

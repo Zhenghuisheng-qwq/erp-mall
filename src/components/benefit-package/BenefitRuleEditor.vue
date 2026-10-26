@@ -4,11 +4,11 @@
     <p v-if="!enabled && modelValue.length" class="muted retained-note">已保留 {{ modelValue.length }} 个停用规则组。结构错误仍需修正才能保存。<el-button link type="primary" @click="showRetained = !showRetained">{{ showRetained ? '收起保留规则' : '查看保留规则' }}</el-button></p>
     <template v-if="enabled || showRetained">
       <div v-for="(group, index) in modelValue" :key="group.id" class="selection-group" :data-benefit-rule="group.id">
-        <div class="section-head"><el-input :model-value="group.name" data-rule-field="name" :disabled="disabled" placeholder="选配组名称，例如保护壳组" aria-label="选配组名称" @update:model-value="update(index, 'name', String($event))" /><el-button :disabled="disabled" text type="danger" @click="emit('update:modelValue', modelValue.filter(item => item.id !== group.id))">移除规则组</el-button></div>
+        <div class="section-head"><el-input :model-value="group.name" data-rule-field="name" :disabled="disabled" placeholder="选配组名称，例如保护壳组" aria-label="选配组名称" @update:model-value="update(index, 'name', String($event))" /><el-button :disabled="disabled||index===0" :aria-label="`上移选配组 ${group.name}`" @click="move(index,-1)">↑</el-button><el-button :disabled="disabled||index===modelValue.length-1" :aria-label="`下移选配组 ${group.name}`" @click="move(index,1)">↓</el-button><el-button :disabled="disabled" text type="danger" @click="emit('update:modelValue', modelValue.filter(item => item.id !== group.id))">移除规则组</el-button></div>
         <p v-for="issue in issues.filter(item => item.groupId === group.id)" :key="`${issue.code}:${issue.field}`" class="rule-error" role="alert"><button type="button" @click="focusIssue(issue)">{{ issue.message }}</button></p>
         <el-checkbox :model-value="group.enabled" :disabled="disabled" @update:model-value="update(index, 'enabled', $event === true)">启用此组</el-checkbox>
         <el-form label-position="top" class="rule-form">
-          <template v-if="typeMode"><el-form-item label="真实产品类型范围"><el-select :model-value="group.scope?.productTypeIds||[]" multiple filterable aria-label="框架产品类型" :disabled="disabled" @update:model-value="update(index,'scope',{kind:'product-types',productTypeIds:$event,compatibleOnly:group.scope?.compatibleOnly??true})"><el-option v-for="t in store.data.productTypes" :key="t.id" :value="t.id" :label="t.name" /></el-select></el-form-item><el-checkbox :model-value="group.scope?.compatibleOnly" :disabled="disabled" @update:model-value="update(index,'scope',{kind:'product-types',productTypeIds:group.scope?.productTypeIds||[],compatibleOnly:$event===true})">按本次主机正式兼容关系过滤</el-checkbox></template>
+          <template v-if="typeMode"><el-form-item label="真实产品类型范围"><el-select :model-value="group.scope?.productTypeIds||[]" multiple filterable aria-label="框架产品类型" :disabled="disabled" @update:model-value="update(index,'scope',{kind:'product-types',productTypeIds:$event,compatibleOnly:group.scope?.compatibleOnly??true})"><el-option v-for="t in store.data.productTypes" :key="t.id" :value="t.id" :label="`${t.name} · ${t.id}`" /></el-select></el-form-item><el-checkbox :model-value="group.scope?.compatibleOnly" :disabled="disabled" @update:model-value="update(index,'scope',{kind:'product-types',productTypeIds:group.scope?.productTypeIds||[],compatibleOnly:$event===true})">按本次主机正式兼容关系过滤</el-checkbox></template>
           <el-form-item v-else label="候选销售 SKU"><el-select :model-value="group.candidateSkuIds" data-rule-field="candidateSkuIds" :disabled="disabled" multiple filterable placeholder="明确选择候选 SKU，不会自动加入清单" style="width:100%" :data-rule-candidates="group.id" @update:model-value="update(index, 'candidateSkuIds', $event)"><el-option v-for="sku in candidates" :key="sku.skuId" :label="`${sku.code} · ${sku.name} · ${sku.spec}`" :value="sku.skuId" /></el-select></el-form-item>
           <div class="fields-grid"><el-form-item label="是否必须选择"><el-checkbox :model-value="group.required" :disabled="disabled" @update:model-value="update(index, 'required', $event === true)">必选组</el-checkbox></el-form-item><el-form-item label="选择种类数（最少可为 0，最多至少 1）"><div class="range"><BenefitIntegerInput :model-value="group.minKinds" data-rule-field="minKinds" zero-allowed label="最少选择种数" :disabled="disabled" @update:model-value="update(index, 'minKinds', $event)" /><span>至</span><BenefitIntegerInput :model-value="group.maxKinds" data-rule-field="maxKinds" label="最多选择种数" :disabled="disabled" @update:model-value="update(index, 'maxKinds', $event)" /></div></el-form-item></div>
           <div class="fields-grid"><el-form-item label="每种商品默认件数"><BenefitIntegerInput :model-value="group.defaultQuantity" data-rule-field="defaultQuantity" label="每种默认数量" :disabled="disabled" @update:model-value="update(index, 'defaultQuantity', $event)" /></el-form-item><el-form-item label="每种商品数量"><el-checkbox :model-value="group.adjustable" :disabled="disabled" @update:model-value="update(index, 'adjustable', $event === true)">允许调整件数</el-checkbox></el-form-item></div>
@@ -17,7 +17,7 @@
         <p class="rule-summary">{{ group.name || '未命名组' }}：{{ group.required ? '必选' : '可选' }} {{ group.minKinds }}～{{ group.maxKinds }} 种；每种{{ group.adjustable ? `${group.minQuantity}～${group.maxQuantity}` : group.defaultQuantity }} 件。</p>
       </div>
       <el-button v-if="!disabled" @click="add" data-add-benefit-rule>添加选配组</el-button>
-      <p class="muted footnote">同一 SKU 不能重复归属到多个启用组。关闭规则不会自动移除已选商品。</p>
+      <p class="muted footnote">{{version2?'同一类型可以属于多个组；加入商品时须明确选定一个位置所属组。不同组的相同 SKU 独立计件。':'旧版规则维持唯一归组语义。'}}关闭规则不会自动移除已选商品。</p>
     </template>
   </section>
 </template>
@@ -27,7 +27,7 @@ import { nextTick, ref } from 'vue'
 import type { BenefitIssue, BenefitSelectionGroup, BenefitSkuSummary } from '../../domain/benefitPackageTypes'
 import BenefitIntegerInput from './BenefitIntegerInput.vue'
 import { localBenefitRequest } from './benefitPackagePresentation'
-const props = withDefaults(defineProps<{ modelValue: BenefitSelectionGroup[]; enabled: boolean; candidates: BenefitSkuSummary[]; disabled?: boolean; typeMode?: boolean; issues?: BenefitIssue[] }>(), { issues: () => [] })
+const props = withDefaults(defineProps<{ modelValue: BenefitSelectionGroup[]; enabled: boolean; candidates: BenefitSkuSummary[]; disabled?: boolean; typeMode?: boolean;version2?:boolean; issues?: BenefitIssue[] }>(), { issues: () => [] })
 const emit = defineEmits<{ 'update:modelValue': [value: BenefitSelectionGroup[]]; 'update:enabled': [value: boolean] }>()
 const store=useCatalogStore()
 const showRetained = ref(false)
@@ -49,6 +49,7 @@ function update<K extends keyof BenefitSelectionGroup>(index: number, key: K, va
     return next
   }))
 }
+function move(index:number,delta:number){if(props.disabled)return;const target=index+delta;if(target<0||target>=props.modelValue.length)return;const next=[...props.modelValue],item=next.splice(index,1)[0];if(item){next.splice(target,0,item);emit('update:modelValue',next)}}
 function add() { emit('update:modelValue', [...props.modelValue, { id: localBenefitRequest('group'), name: '', enabled: true, ...(props.typeMode?{scope:{kind:'product-types',productTypeIds:[],compatibleOnly:true}}:{}), candidateSkuIds: [], required: false, minKinds: 0, maxKinds: 1, defaultQuantity: 1, adjustable: false, minQuantity: 1, maxQuantity: 1 }]) }
 </script>
 <style scoped>

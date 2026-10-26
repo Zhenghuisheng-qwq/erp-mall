@@ -9,6 +9,7 @@ export interface BenefitSkuReturnState {
   selectedIds: string[]
   collapsed: Record<string, boolean>
   focusSkuId: string
+  manual?: { pickedIds: string[]; stageIds: string[]; context: string }
   scroll: { selector: string; index: number; top: number; left: number }[]
   windowX: number
   windowY: number
@@ -17,10 +18,13 @@ let pending: BenefitSkuReturnState | undefined
 export function rememberBenefitSkuReturn(state: Omit<BenefitSkuReturnState, 'scroll' | 'windowX' | 'windowY'>) {
   pending = {
     ...state, selectedIds: [...state.selectedIds], collapsed: { ...state.collapsed },
+    ...(state.manual ? { manual: { pickedIds: [...state.manual.pickedIds], stageIds: [...state.manual.stageIds], context: state.manual.context } } : {}),
     windowX: window.scrollX, windowY: window.scrollY,
     scroll: ['.main', '.content', '.sku-table .el-scrollbar__wrap'].flatMap(selector => [...document.querySelectorAll<HTMLElement>(selector)].map((element, index) => ({ selector, index, top: element.scrollTop, left: element.scrollLeft }))),
   }
 }
+export function hasBenefitSkuReturn(path: string) { return pending?.path === path }
+export function clearBenefitSkuReturn(path: string) { if (pending?.path === path) pending = undefined }
 export function takeBenefitSkuReturn(path: string) {
   const state = pending
   pending = undefined
