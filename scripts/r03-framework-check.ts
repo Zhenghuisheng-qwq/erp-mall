@@ -13,7 +13,7 @@ import {deviceSourceStamp} from '../src/domain/deviceResolution'
 import type {BenefitFramework,BenefitSelectionGroup,BenefitReferencePrice} from '../src/domain/benefitPackageTypes'
 import {RBAC_ENFORCEMENT_ENABLED} from '../src/domain/accessMode'
 const artifacts = process.argv.includes('--artifacts')
-installCatalogTestLocks();const out=process.env.R03_OUTPUT||'work/r03-20261025/domain';if(artifacts)mkdirSync(out,{recursive:true});const checks:string[]=[],pass=(s:string)=>{checks.push(s);if(artifacts)console.log('PASS R03 '+s)}
+installCatalogTestLocks();const out=process.env.R03_OUTPUT||'work/r03-20261025/domain';if(artifacts)mkdirSync(out,{recursive:true});const checks:string[]=[],pass=(s:string)=>{checks.push(s);console.log('PASS R03 '+s)}
 const f=createAccessoryCompatibilityFixture(),disk=new Map<string,string>();let fail=false
 Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(k:string)=>disk.get(k)??null,setItem:(k:string,v:string)=>{if(fail){fail=false;throw Error('quota')};disk.set(k,v)},removeItem:(k:string)=>disk.delete(k)}})
 f.data.activeRole='admin';disk.set(STORAGE_KEY,JSON.stringify({version:DATA_VERSION,data:f.data}));setActivePinia(createPinia());const s=useCatalogStore();await s.waitForPersistence()
@@ -77,7 +77,7 @@ if(RBAC_ENFORCEMENT_ENABLED){
  await s.importJson(operator);assert.equal(s.exportJson(),operator)
 }
 pass('backup restores framework/price/history; malformed records rejected; strict operator writes and role-spoof imports atomic while default unified administrator stays authorized')
-s.stopPermissionPreview();await s.waitForPersistence();let free=addBenefitSku(s.data,newBenefitPackageDraft(),'charger-sku');free.name='旧自由包';assert(validateBenefitPackage(s.data,free).canSaveAvailable);assert.equal(copyBenefitPackageDraft(pkg.package).goods.length,pkg.package.goods.length)
+s.stopPermissionPreview();await s.waitForPersistence();let free=addBenefitSku(s.data,newBenefitPackageDraft(),'charger-sku');free.name='旧自由包';delete free.compositionVersion;for(const line of free.goods){delete line.groupId;delete line.role};assert(validateBenefitPackage(s.data,free).canSaveAvailable);assert.equal(copyBenefitPackageDraft(pkg.package).goods.length,pkg.package.goods.length)
 free.groups=[{...group('旧组','type-charger'),scope:undefined,candidateSkuIds:['charger-sku'],maxKinds:1}];free.rulesEnabled=true;free.goods[0]!.quantity=2;assert(validateBenefitPackage(s.data,free).canSaveAvailable)
 let conditional=applyBenefitFramework(newBenefitPackageDraft({kind:'sku',skuId:'phone-a'}),{...framework,groups:[group('线缆','type-cable')]});conditional.name='条件包';conditional=addBenefitSku(s.data,conditional,'cable-sku');assert(validateBenefitPackage(s.data,conditional).issues.some(i=>i.severity==='condition'));conditional=confirmBenefitCondition(s.data,conditional,'cable-sku','确认使用转换器',new Date().toISOString());assert(validateBenefitPackage(s.data,conditional).canDeliver);assert.throws(()=>confirmBenefitCondition(s.data,conditional,'pending-sku','不能升级',new Date().toISOString()))
 pass('free packages, legacy SKU whitelist and common-package copy retained; conditional confirmation remains scoped and never upgrades pending')

@@ -12,7 +12,7 @@ const artifacts = process.argv.includes('--artifacts')
 const output = resolve(process.env.BENEFIT_DOMAIN_OUTPUT_DIR || 'work/benefit-package/domain')
 if (artifacts) mkdirSync(output, { recursive: true })
 const checks: { name: string; result: string }[] = []
-function check(name: string, run: () => void) { run(); checks.push({ name, result: 'PASS' }); if (artifacts) console.log(`PASS benefit domain ${name}`) }
+function check(name: string, run: () => void) { try { run() } catch(error) { console.error(`FAIL ${name}`); throw error }; checks.push({ name, result: 'PASS' }); if (artifacts) console.log(`PASS benefit domain ${name}`) }
 const saved = (draft: BenefitPackageDraft): BenefitPackageDraft => ({ ...cloneBenefit(draft), id: 'bp-independent-1', code: 'BPK-000001', revision: 1, status: 'available', createdAt: now, updatedAt: now })
 const service = (id: string, measurement: BenefitServiceLine['measurement'] = 'per-package'): BenefitServiceLine => ({ id, name: '【独立测试】会员服务', quantity: 1, unit: '份', measurement, validity: '3 个月会员（按每份约定）', description: '未激活，仅为服务约定' })
 function modelFixture() {
@@ -199,15 +199,15 @@ check('optional rules disabled preserve free composition; candidates are never a
   draft.goods = []; assert.equal(validateBenefitPackage(data, draft).issues.some(issue => issue.code === 'group-selection'), true); assert.equal(draft.goods.length, 0)
 })
 check('kind-count and per-kind quantities have independent constraints; optional zero selection allowed', () => {
-  const { data, draft } = createBenefitPackageFixture(); draft.goods = draft.goods.filter(line => line.skuId === 'case-sku'); draft.rulesEnabled = true
+  const { data, draft } = createBenefitPackageFixture(); draft.goods.find(line=>line.skuId==='case-sku')!.groupId='group-case'; draft.goods = draft.goods.filter(line => line.skuId === 'case-sku'); draft.rulesEnabled = true
   draft.groups = [{ id: 'group-case', name: '保护壳组', enabled: true, candidateSkuIds: ['case-sku', 'film-sku'], required: true, minKinds: 1, maxKinds: 1, defaultQuantity: 1, adjustable: false, minQuantity: 1, maxQuantity: 1 }]
   assert.equal(validateBenefitPackage(data, draft).canSaveAvailable, true)
   draft.goods[0]!.quantity = 2; assert.equal(validateBenefitPackage(data, draft).issues.some(issue => issue.code === 'group-selected-quantity'), true)
   draft.groups[0]!.adjustable = true; draft.groups[0]!.maxQuantity = 3; assert.equal(validateBenefitPackage(data, draft).canSaveAvailable, true)
   draft.groups[0]!.required = false; draft.goods = []; draft.services = [service('service-only')]; assert.equal(validateBenefitPackage(data, draft).canSaveAvailable, true)
 })
-check('SKU cannot satisfy two enabled groups; stale candidate references remain explicit problems', () => {
-  const { data, draft } = createBenefitPackageFixture(); draft.rulesEnabled = true
+check('V1 SKU cannot satisfy two enabled groups; stale candidate references remain explicit problems', () => {
+  const { data, draft } = createBenefitPackageFixture(); delete draft.compositionVersion;for(const line of draft.goods){delete line.groupId;delete line.role}; draft.rulesEnabled = true
   const group = { id: 'group-a', name: '第一组', enabled: true, candidateSkuIds: ['case-sku'], required: true, minKinds: 1, maxKinds: 1, defaultQuantity: 1, adjustable: false, minQuantity: 1, maxQuantity: 1 }
   draft.groups = [group, { ...cloneBenefit(group), id: 'group-b', name: '第二组' }]
   assert.equal(validateBenefitPackage(data, draft).issues.some(issue => issue.code === 'group-overlap'), true)
@@ -249,7 +249,7 @@ check('fresh preview revalidates changed declarations and conditions, never trus
 })
 check('delivery freezes complete SKU, services, abilities, quote, source revision and conditions independently', () => {
   const { data, draft } = createBenefitPackageFixture(); draft.services = [service('freeze-service')]; draft.quote.amountCents = 1234
-  const source = saved(draft), preview = previewBenefitDelivery(data, source, 3), snapshot = createBenefitDeliverySnapshot(preview, { id: 'delivery-test', code: 'BDL-000001', requestId: 'request-test', generatedAt: now }), frozen = cloneBenefit(snapshot)
+  const source = saved(reviewBenefitQuote(draft,data)), preview = previewBenefitDelivery(data, source, 3), snapshot = createBenefitDeliverySnapshot(preview, { id: 'delivery-test', code: 'BDL-000001', requestId: 'request-test', generatedAt: now }), frozen = cloneBenefit(snapshot)
   source.name = '后来修改'; source.goods[0]!.quantity = 9; source.services[0]!.validity = '后来修改'; source.quote.amountCents = 0
   source.rulesEnabled = true; source.groups = [{ id: 'later-group', name: '后来新增规则', enabled: true, candidateSkuIds: ['film-sku'], required: true, minKinds: 1, maxKinds: 1, defaultQuantity: 8, adjustable: false, minQuantity: 8, maxQuantity: 8 }]
   data.skus[0]!.skuName = '后来商品名称'; data.families[0]!.commonAttrs['品牌'] = '后来公共规格'; data.compatibilities = []; preview.goods[0]!.name = '预览对象被修改'

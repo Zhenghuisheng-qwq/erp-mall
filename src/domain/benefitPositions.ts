@@ -1,6 +1,11 @@
 import type { BenefitGoodsLine, BenefitGroupRule, BenefitIssue, BenefitPackageDraft, BenefitSelectionGroup } from './benefitPackageTypes'
 
 export const benefitCompositionVersion = (draft: Pick<BenefitPackageDraft, 'compositionVersion'>) => draft.compositionVersion ?? 1
+/** Membership permits a SKU; V2 ownership requires an explicit item position in that group. */
+export function benefitGroupSelection(draft: BenefitPackageDraft, group: BenefitSelectionGroup, permits: (skuId: string) => boolean) {
+  const lines = group.enabled ? draft.goods.filter(line => permits(line.skuId) && (benefitCompositionVersion(draft) === 2 ? line.role === 'item' && line.groupId === group.id : true)) : []
+  return { lines, kinds: new Set(lines.map(line => line.skuId)).size, quantity: lines.reduce((sum, line) => sum + line.quantity, 0) }
+}
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
 const text = (value: unknown): value is string => typeof value === 'string' && !!value.trim()
 export function benefitPositionStructureIssues(draft: BenefitPackageDraft): BenefitIssue[] {

@@ -20,21 +20,22 @@
       <aside v-if="showSidebar" class="category-side" data-category-side>
         <div class="category-side-head"><strong>商品分类</strong><el-button link @click="closeSidebar">收起分类栏</el-button></div>
         <template v-if="!categoryQuick.simple"><p class="muted">分类使用高级条件，请在更多筛选中管理。</p><el-button @click="filterOpen = true">管理分类条件</el-button><el-button @click="clearCategory">清除分类</el-button></template>
-        <CategoryFilterTree v-else :categories="store.data.categories" :selected-ids="selectedCategoryIds" @toggle="toggleCategory" @clear="clearCategory" />
+        <CategoryFilterTree v-else :categories="store.data.categories" :selected-ids="selectedCategoryIds" :key="`ProductListView.vue:${activeView.id}:${scopeId}`" :state-key="`ProductListView.vue:${activeView.id}:${scopeId}`" @toggle="toggleCategory" @clear="clearCategory" />
       </aside>
       <div class="list-main">
-      <div class="filters">
+      <div class="list-toolbar"><div class="filters">
         <el-select v-if="mode === 'sku'" :model-value="scopeId" filterable clearable placeholder="筛选所属 SPU" style="width: 220px" data-list-spu @change="(id: string) => router.push({ path: '/skus', query: id ? { spu: id } : {} })"><el-option v-for="item in store.data.families" :key="item.id" :value="item.id" :label="`${item.name} · ${item.oaProductId || item.id}`" /></el-select>
         <el-input :model-value="activeQuery.keyword" placeholder="名称、分类、属性、SKU、OA 编号" clearable style="width: 260px" data-filter="keyword" @update:model-value="onKeyword" />
-        <el-button v-if="!showSidebar" data-category-trigger :title="categoryButtonText" @click="openCategory">商品分类<span v-if="!categoryQuick.simple"> · 高级条件</span><span v-else-if="selectedCategoryIds.length"> {{selectedCategoryIds.length}}</span></el-button>
-        <el-button data-filter-count @click="filterOpen = true">更多筛选<span v-if="filterCount"> {{ filterCount }}</span></el-button>
+        <el-button v-if="!showSidebar" data-category-trigger :title="categoryCaption.title" :class="{'is-filter-active':categoryCaption.active}" :aria-expanded="categoryOpen" @click="openCategory"><span class="category-caption">{{categoryCaption.label}}</span></el-button>
+        <el-button data-filter-count :class="{'is-filter-active':filterCount>0}" @click="filterOpen = true">筛选<span v-if="filterCount"> {{ filterCount }}</span></el-button>
       </div>
       <div class="list-configuration">
         <el-button data-group-control @click="openToolsSection('group')">{{groupStatusLabel?`分组：${groupStatusLabel}`:'分组'}}</el-button><el-button data-sort-control @click="openToolsSection('sort')">{{sortStatusLabel?`排序：${sortStatusLabel}`:'排序'}}</el-button>
         <ProductListViewTools v-model:visible="columnOpen" :section="toolsSection" @open="toolsSection='columns'" :category-sidebar="categoryLayout === 'sidebar'" @category-sidebar="setCategorySidebar" :columns="modeColumns" :group-options="groupOptions" :sort-options="sortOptions" :grouping="activeQuery.grouping" :sorting="activeQuery.sorting" :sort-mode="sortMode" @column-visible="toggleColumn" @column-move="moveColumn" @reset-columns="resetColumns" @group-change="setViewGrouping(listData,$event)" @sort-change="setViewSorting(listData,$event)" @sort-mode="onSortMode" @manage="manageView"/>
         <span class="muted" data-result-count>{{listMode==='spu'?`商品 ${presentation.total} 款`:`SKU ${presentation.total} 条`}}</span>
       </div>
-      <ProductListExposedFilters :rows="exposedRows" :busy="pageSaving || manualBusy" @value="setExposedTypedValue" @clear="clearExposedField" @clear-all="clearExposedValues" @unexpose="unexposeField" @unexpose-all="unexposeAll" @advanced="filterOpen=true"/>
+      </div>
+      <ProductListExposedFilters :key="activeView.id" :fields="filterFields" :error="saveError" @retry="retryPageSave" @pin="field=>setViewExposed(listData,field,true)" @move="moveExposed" :rows="exposedRows" :busy="pageSaving || manualBusy" @value="setExposedTypedValue" @clear="clearExposedField" @clear-all="clearExposedValues" @unexpose="unexposeField" @unexpose-all="unexposeAll" @advanced="filterOpen=true"/>
       <div v-if="summaries.length" class="active-filters" data-active-filters aria-label="已生效筛选">
         <span class="muted">已筛选（条件同时满足）：</span>
         <el-tag v-for="item in summaries" :key="item.id" closable :data-filter-summary="item.id" @close="removeSummary(item.id)">{{ item.label }}</el-tag>
@@ -218,7 +219,7 @@
       </ul>
       <el-button @click="clearStage" :disabled="!(store.can('product:view:update'))">清空暂存</el-button>
     </el-drawer>
-    <el-drawer v-if="narrowScreen" v-model="categoryOpen" title="商品分类" size="min(340px,96vw)"><template v-if="!categoryQuick.simple"><p>分类使用复杂条件，请到更多筛选管理。</p><el-button @click="categoryOpen=false;filterOpen=true">管理分类条件</el-button></template><CategoryFilterTree v-else :categories="store.data.categories" :selected-ids="selectedCategoryIds" @toggle="toggleCategory" @clear="clearCategory"/></el-drawer>
+    <el-drawer v-if="narrowScreen" v-model="categoryOpen" title="商品分类" size="min(340px,96vw)"><template v-if="!categoryQuick.simple"><p>分类使用复杂条件，请到更多筛选管理。</p><el-button @click="categoryOpen=false;filterOpen=true">管理分类条件</el-button></template><CategoryFilterTree v-else :categories="store.data.categories" :selected-ids="selectedCategoryIds" :key="`ProductListView.vue:${activeView.id}:${scopeId}`" :state-key="`ProductListView.vue:${activeView.id}:${scopeId}`" @toggle="toggleCategory" @clear="clearCategory"/></el-drawer>
     <ProductListFilterDialog
       v-model:visible="filterOpen" :rows="filterRows" :fields="filterFields"
       :categories="store.data.categories" :exposed="activeQuery.exposed"
@@ -231,6 +232,7 @@
 </template>
 
 <script setup lang="ts">
+import { categoryFilterCaption } from '../domain/categoryTree'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
@@ -282,7 +284,7 @@ watch(scopeId, id => {
 const clonePage = (value: ProductListPageState): ProductListPageState => JSON.parse(JSON.stringify(value))
 const pageDraft = ref<ProductListPageState>(clonePage(store.data.productListPages![mode]))
 const savedPageStamp = ref(JSON.stringify(store.data.productListPages![mode])), pageSaving = ref(false), saveError = ref(''), manualSaveError = ref('')
-let pendingClearRetry:{ids:string[];stamp:string}|undefined
+let pendingClearRetry:{ids:string[];stamp:string;keyword?:boolean}|undefined
 let pendingManualRetry: {ids:string[];targetId?:string;place:'before'|'after'|'top'|'bottom';context:string}|undefined
 const canSaveView = computed(() => store.can('product:view:update'))
 let alive = true, savingOwnPage = false, saveTimer: ReturnType<typeof setTimeout> | undefined, savePromise: Promise<boolean> | undefined
@@ -309,7 +311,7 @@ async function persistPage() : Promise<boolean> {
   if (result && captured !== JSON.stringify(pageDraft.value)) return persistPage()
   return result
 }
-async function retryPageSave() { if(pendingClearRetry){if(pendingClearRetry.stamp!==JSON.stringify(pageDraft.value)){saveError.value='输入已变化，请重新点击清除外露值确认当前范围。';return}await commitClearFilterValues(pendingClearRetry.ids);return}saveError.value='';if(!await persistPage())return;const pending=pendingManualRetry;if(!pending)return;if(pending.context!==manualContext()){manualSaveError.value='排序范围已变化，请重新选择目标；暂存仍保留。';return}const result=await commitManual(pending.ids,pending.targetId,pending.place);if(result.ok){for(const id of pending.ids)removeStaged(id)}}
+async function retryPageSave() { if(pendingClearRetry){if(pendingClearRetry.stamp!==JSON.stringify(pageDraft.value)){saveError.value='输入已变化，请重新点击清除常用筛选值确认当前范围。';return}await commitClearFilterValues(pendingClearRetry.ids,pendingClearRetry.keyword);return}saveError.value='';if(!await persistPage())return;const pending=pendingManualRetry;if(!pending)return;if(pending.context!==manualContext()){manualSaveError.value='排序范围已变化，请重新选择目标；暂存仍保留。';return}const result=await commitManual(pending.ids,pending.targetId,pending.place);if(result.ok){for(const id of pending.ids)removeStaged(id)}}
 watch(pageDraft, () => { clearTimeout(saveTimer); if (canSaveView.value && !saveError.value) saveTimer = setTimeout(() => { void persistPage() }, 180) }, {deep:true})
 watch(() => JSON.stringify(store.data.productListPages?.[mode]), stamp => {
   if (!stamp || savingOwnPage || stamp === savedPageStamp.value) return
@@ -369,11 +371,11 @@ const filterCount = computed(() => summaries.value.length)
 const filterFields = computed(() => knownFilterFields(store.data, listMode.value).map(field => ({ ...field, label: field.field === 'brand' ? '商品品牌汇总' : field.field.startsWith('attr:') ? `规格属性 · ${field.label}` : field.label })))
 const exposedFields = computed(() => activeQuery.value.exposed.flatMap((field) => {
   const found = filterFields.value.find((item) => item.field === field)
-  return found && found.field !== 'category' ? [found] : []
+  return field === 'category' ? [] : [found || {field,label:`失效字段：${field}`,kind:'text' as const}]
 }))
 // Convert saved conditions to editor values without duplicating editable state.
 const filterRows = computed<FilterEditorRow[]>(() => activeQuery.value.filters.map((filter) => ({
-  id: filter.id, field: filter.field, operator: filter.operator,
+  id: filter.id, field: filter.field, operator: filter.operator, active: summaries.value.some(item=>item.id===filter.id),
   kind: kindOf(filter.field), operators: operatorsFor(filter.field), options: fieldOptions(filter.field),
   text: textValue(filter), values: Array.isArray(filter.value) ? filter.value : [], range: conditionRange(filter),
   categoryId: filter.field === 'category' ? categoryConditionId(filter) : '',
@@ -382,7 +384,7 @@ const filterRows = computed<FilterEditorRow[]>(() => activeQuery.value.filters.m
 })))
 const exposedRows = computed(() => exposedFields.value.map(field => {
   const state=quickState(field),operator=state.filter?.operator || (field.kind==='date'?'between':field.kind==='text'?'contains':'in'),filter=state.filter || {id:`quick:${field.field}`,field:field.field,operator,value:operator==='between'?{from:'',to:''}:operator==='in'?[]:''}
-  return {id:filter.id,field:field.field,label:field.label,simple:state.simple,operator,kind:field.kind,options:fieldOptions(field.field),operators:filterOperators(field.kind,field.field),text:typeof filter.value==='string'?filter.value:'',values:Array.isArray(filter.value)?filter.value:[],range:conditionRange(filter),categoryId:'',categoryIds:[]}
+  return {id:filter.id,field:field.field,label:field.label,simple:state.simple,active:summaries.value.some(item=>item.id===filter.id),invalid:filterFields.value.some(item=>item.field===field.field)?undefined:'字段已失效',operator,kind:field.kind,options:fieldOptions(field.field),operators:filterOperators(field.kind,field.field),text:typeof filter.value==='string'?filter.value:'',values:Array.isArray(filter.value)?filter.value:[],range:conditionRange(filter),categoryId:'',categoryIds:[]}
 }))
 const groupOptions = computed(() => groupFields(store.data, listMode.value))
 const sortOptions = computed(() => sortFields(listMode.value))
@@ -440,11 +442,7 @@ const sortStatusLabel = computed(() => {
 const categoryState = computed(() => productCategorySelection(store.data,activeQuery.value))
 const categoryQuick = computed(() => ({simple:categoryState.value.supported}))
 const selectedCategoryIds = computed(() => categoryState.value.ids)
-const categorySummary = computed(() => {
-  const names = selectedCategoryIds.value.map(id => categoryPath(store.data, id)).filter(Boolean)
-  return [...names, ...categoryState.value.missing.map(value => `分类已不存在：${value}`)].join('、')
-})
-const categoryButtonText = computed(() => !categoryQuick.value.simple ? '商品分类：高级条件' : categorySummary.value ? `商品分类：${categorySummary.value}` : '商品分类：全部分类')
+const categoryCaption=computed(()=>categoryFilterCaption(store.data.categories,selectedCategoryIds.value,categoryQuick.value.simple))
 const spuEmpty = computed(() => (store.data.families.length === 0 ? '当前没有商品。' : filterCount.value ? '没有符合条件的商品。' : '当前没有商品。'))
 const skuEmpty = computed(() => (store.data.skus.some((item) => isRealSku(store.data, item)) ? (filterCount.value ? '没有符合条件的真实 SKU。' : '当前没有真实 SKU。') : '当前没有真实 SKU。已有商品、规划组合和物料不会显示成 SKU。'))
 
@@ -484,8 +482,8 @@ function onKeyword(value: string) {
   setViewKeyword(listData.value, value)
 }
 function quickState(field: FilterField) { return quickFilterState(activeQuery.value, field) }
-function toggleCategory(id:string) {
-  const ids=selectedCategoryIds.value.includes(id)?selectedCategoryIds.value.filter(value=>value!==id):[...selectedCategoryIds.value,id]
+function toggleCategory(id:string,multiple=false) {
+  const ids=multiple?(selectedCategoryIds.value.includes(id)?selectedCategoryIds.value.filter(value=>value!==id):[...selectedCategoryIds.value,id]):[id]
   const next=updateProductCategorySelection(store.data,liveQuery(),ids)
   if(!next){filterOpen.value=true;return}Object.assign(liveQuery(),next);touchFilters()
 }
@@ -502,32 +500,29 @@ function setExposedTypedValue(fieldName:string,value:ProductListViewFilter['valu
   if(!filter){const operator=field.kind==='date'?'between':field.kind==='text'?'contains':'in';filter={id:uid('filter'),field:fieldName,operator,value:operator==='between'?{from:'',to:''}:operator==='in'?[]:'',active:false};queryState.filters.push(filter)}
   Object.assign(queryState,hasFilterValue(value)?setProductListFilterValue(queryState,filter.id,value):clearProductListFilterValue(queryState,filter.id));touchFilters()
 }
-async function commitClearFilterValues(ids:string[]) {
-  if(pageSaving.value || manualBusy.value || !ids.length)return
+async function commitClearFilterValues(ids:string[],keyword=false) {
+  if(pageSaving.value || manualBusy.value || (!ids.length&&!keyword))return
   clearTimeout(saveTimer)
   const stamp=JSON.stringify(pageDraft.value),next=clonePage(pageDraft.value),data=productListPageData(store.data,mode,next),view=activeProductListView(data),queryState=currentModeQuery(view)
-  let cleared=queryState;for(const id of ids)cleared=clearProductListFilterValue(cleared,id)
+  let cleared=queryState;for(const id of ids)cleared=clearProductListFilterValue(cleared,id);if(keyword)cleared.keyword=''
   if(view.mode==='spu')view.spuQuery=cleared;else view.skuQuery=cleared
   view.updatedAt=new Date().toISOString();next.query.page=1
   if(!canSaveView.value){pageDraft.value=next;return}
   const actor=store.activeUserId,preview=store.previewUserId;savingOwnPage=true;pageSaving.value=true
-  try {const result=await store.commitSpuPage(next,savedPageStamp.value,()=>alive&&JSON.stringify(pageDraft.value)===stamp&&actor===store.activeUserId&&preview===store.previewUserId);if(!result.ok){saveError.value=result.message||'外露值没有清除，原输入已保留。';pendingClearRetry={ids:[...ids],stamp};return}savedPageStamp.value=JSON.stringify(store.data.productListPages![mode]);if(JSON.stringify(pageDraft.value)===stamp)pageDraft.value=next;saveError.value='';pendingClearRetry=undefined}
-  catch(error){saveError.value=error instanceof Error?error.message:'外露值没有清除，原输入已保留。';pendingClearRetry={ids:[...ids],stamp}}
+  try {const result=await store.commitSpuPage(next,savedPageStamp.value,()=>alive&&JSON.stringify(pageDraft.value)===stamp&&actor===store.activeUserId&&preview===store.previewUserId);if(!result.ok){saveError.value=result.message||'常用筛选值没有清除，原输入已保留。';pendingClearRetry={ids:[...ids],stamp,keyword};return}savedPageStamp.value=JSON.stringify(store.data.productListPages![mode]);if(JSON.stringify(pageDraft.value)===stamp)pageDraft.value=next;saveError.value='';pendingClearRetry=undefined}
+  catch(error){saveError.value=error instanceof Error?error.message:'常用筛选值没有清除，原输入已保留。';pendingClearRetry={ids:[...ids],stamp,keyword}}
   finally{pageSaving.value=false;savingOwnPage=false}
 }
 async function clearExposedField(fieldName:string) {const field=filterFields.value.find(field=>field.field===fieldName);if(!field)return;const state=quickState(field);if(!state.simple||!state.filter)return;await commitClearFilterValues([state.filter.id])}
-async function clearExposedValues() {const ids=exposedFields.value.flatMap(field=>{const state=quickState(field);return state.simple&&state.filter?[state.filter.id]:[]});await commitClearFilterValues(ids);if(exposedFields.value.some(field=>!quickState(field).simple))ElMessage.info('复杂条件已保留，请在更多筛选中管理。')}
+async function clearExposedValues() {await commitClearFilterValues(liveQuery().filters.filter(filter=>exposedFields.value.some(field=>field.field===filter.field)).map(filter=>filter.id))}
+function moveExposed(field:string,delta:number){const values=liveQuery().exposed,index=values.indexOf(field),target=index+delta;if(index<0||target<0||target>=values.length)return;const [item]=values.splice(index,1);values.splice(target,0,item!);touchFilters()}
 function unexposeField(field:string) {setViewExposed(listData.value,field,false)}
 function unexposeAll() {for(const field of [...exposedFields.value])setViewExposed(listData.value,field.field,false)}
 function removeSummary(id: string) {
   if (id === '$keyword') onKeyword('')
   else removeCondition(id)
 }
-function clearFilters() {
-  liveQuery().keyword = ''
-  liveQuery().filters = []
-  touchFilters()
-}
+function clearFilters() {void commitClearFilterValues(liveQuery().filters.map(filter=>filter.id),true)}
 function kindOf(field: string) {
   return filterFields.value.find((item) => item.field === field)?.kind || 'text'
 }
@@ -839,4 +834,12 @@ watch(
 
 <style>
 .product-category-pop { max-width: calc(100vw - 24px); max-height: calc(100vh - 24px); overflow: auto; box-sizing: border-box; }
+</style>
+
+<style scoped>
+.category-caption{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.is-filter-active{color:var(--el-color-primary);border-color:var(--el-color-primary-light-5);background:var(--el-color-primary-light-9)}
+</style>
+
+<style scoped>
+.list-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.list-toolbar>.filters,.list-toolbar>.list-configuration{display:contents}.list-toolbar [data-result-count]{margin-left:auto;font-size:12px}.list-toolbar :deep(.el-button+.el-button){margin-left:0}
 </style>

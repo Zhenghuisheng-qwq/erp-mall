@@ -1,6 +1,6 @@
 import { resolveBenefitRange, frameworkSelectionIssues, frameworkImportProblems, frameworkSnapshotProblem, frameworkReference } from './benefitFrameworks'
 import type { BenefitSelectionIndex } from './benefitFrameworks'
-import { benefitCompositionVersion, benefitPositionStructureIssues } from './benefitPositions'
+import { benefitCompositionVersion, benefitPositionStructureIssues, benefitGroupSelection } from './benefitPositions'
 import { referencePriceProblem, referenceLine, benefitReferenceTotals } from './benefitPricing'
 import { isRealSku } from './catalogIdentity'
 import { compatibilityRecordRole } from './deviceResolution'
@@ -236,15 +236,18 @@ export function validateBenefitPackage(data: AppData, draft: BenefitPackageDraft
         const summary = benefitSkuSummary(data, skuId), family = summary && data.families.find(item => item.id === summary.familyId)
         if (!summary || summary.status !== 'on_sale' || !family || shelfOf(family) !== 'online') add('group-reference', `选配组「${group.name}」的候选 ${summary?.name || skuId}已停售或引用失效。`, false, { ...extra, skuId })
         const owner = owners.get(skuId)
-        if (owner) add('group-overlap', `SKU ${summary?.code || skuId}同时属于「${owner}」和「${group.name}」，不能重复归属启用组。`, false, { ...extra, skuId })
+        if (owner && benefitCompositionVersion(draft) === 1) add('group-overlap', `SKU ${summary?.code || skuId}同时属于「${owner}」和「${group.name}」，不能重复归属启用组。`, false, { ...extra, skuId })
         owners.set(skuId, group.name)
       }
-      const selected = draft.goods.filter(line => group.candidateSkuIds.includes(line.skuId)), effectiveMin = group.required || selected.length ? group.minKinds : 0
-      if (selected.length < effectiveMin || selected.length > group.maxKinds) add('group-selection', `选配组「${group.name}」须选择 ${effectiveMin}～${group.maxKinds} 种商品，当前 ${selected.length} 种。`, false, extra)
+      const { lines: selected, kinds } = benefitGroupSelection(draft, group, skuId => group.candidateSkuIds.includes(skuId)), effectiveMin = group.required || kinds ? group.minKinds : 0
+      if (kinds < effectiveMin || kinds > group.maxKinds) add('group-selection', `选配组「${group.name}」须选择 ${effectiveMin}～${group.maxKinds} 种商品，当前 ${kinds} 种。`, false, extra)
       for (const line of selected) if (!group.adjustable ? line.quantity !== group.defaultQuantity : line.quantity < group.minQuantity || line.quantity > group.maxQuantity) add('group-selected-quantity', `选配组「${group.name}」中每种商品的数量不符合 ${group.adjustable ? `${group.minQuantity}～${group.maxQuantity}` : group.defaultQuantity} 件约定。`, false, { ...extra, skuId: line.skuId })
     }
   }
   if(draft.framework&&frameworkSnapshotProblem(draft.framework))add('framework-structure',frameworkSnapshotProblem(draft.framework),true)
+  if (!draft.framework && benefitCompositionVersion(draft) === 2) for (const line of draft.goods) {
+    if (line.role === 'item' && line.groupId !== null && !range.membership(line.skuId).some(group => group.id === line.groupId)) add('group-member', '商品位置不属于所指定的启用选配组，请重新指定组。', false, { positionId: line.id, skuId: line.skuId, groupId: line.groupId || undefined })
+  }
   else issues.push(...frameworkSelectionIssues(data,draft,range))
   for(const line of draft.goods)try{referenceLine(line.referencePrice,line.quantity)}catch(e){add('reference-price',String(e),true,{skuId:line.skuId})}
   for(const line of draft.services)try{referenceLine(line.referencePrice,line.quantity)}catch(e){add('reference-price',String(e),true,{serviceId:line.id})}
@@ -269,8 +272,8 @@ export function validateBenefitPackage(data: AppData, draft: BenefitPackageDraft
     }
   } else if (draft.requireFastCharge && !draft.device) add('fast-charge-device', '要求快充能力时，请先选择并确认适配设备。')
   const quoteNeedsReview = draft.quote.amountCents !== null && draft.quote.reviewedBasis !== (benefitCompositionVersion(draft)===2?`selection:${basis}`:benefitCompositionBasis(draft))
-  if (quoteNeedsReview) issues.push({ code: 'quote-review', message: '组成或数量已变化，当前报价保留为待复核参考；正式交付须确认完整组成和报价。', severity: 'warning' })
-  return { issues, goods, deviceLabel, deviceValid, canSaveDraft: !issues.some(issue => issue.structural), canSaveAvailable: !issues.some(issue => issue.severity === 'error'||benefitCompositionVersion(draft)===2&&issue.severity==='condition'), canDeliver: !issues.some(issue => issue.severity === 'error' || issue.severity === 'condition'), basis, physicalCount, serviceCount, quoteNeedsReview }
+  if (quoteNeedsReview) issues.push({ code: 'quote-review', message: '报价依据已变化，请重新复核报价。当前报价及草稿保留。', severity: 'warning' })
+  return { issues, goods, deviceLabel, deviceValid, canSaveDraft: !issues.some(issue => issue.structural), canSaveAvailable: !issues.some(issue => issue.severity === 'error'||benefitCompositionVersion(draft)===2&&issue.severity==='condition'), canDeliver: !(requiresBenefitQuoteReview(draft) && quoteNeedsReview) && !issues.some(issue => issue.severity === 'error' || issue.severity === 'condition'), basis, physicalCount, serviceCount, quoteNeedsReview }
 }
 export function confirmBenefitCondition(data: AppData, draft: BenefitPackageDraft, skuId: string, note: string, now: string, capability: 'basic' | 'fast-charge' = 'basic'): BenefitPackageDraft {
   if (!note.trim() || !Number.isFinite(Date.parse(now))) throw new Error('请填写本次条件确认说明和有效时间。')
@@ -298,8 +301,7 @@ export function previewBenefitDelivery(data: AppData, saved: BenefitPackage, pac
   if (totalCents !== null && !validBenefitCents(totalCents)) issues.push({ code: 'delivery-quote', message: '本次总报价无效或超出安全范围。', severity: 'error' })
   let referenceTotals:ReturnType<typeof benefitReferenceTotals>|undefined
   try{referenceTotals=benefitReferenceTotals(saved,packageCount)}catch(e){issues.push({code:'reference-price',message:String(e),severity:'error'})}
-  if(saved.framework&&validation.quoteNeedsReview)issues.push({code:'quote-review',message:'组成或参考价格已变，请明确复核整包报价。',severity:'error'})
-  else if(saved.goods.some(l=>l.referencePrice)||saved.services.some(l=>l.referencePrice)){if(validation.quoteNeedsReview)issues.push({code:'quote-review',message:'参考价格或成员已变，请明确复核整包报价。',severity:'error'})}
+  if (requiresBenefitQuoteReview(saved) && validation.quoteNeedsReview) issues.push({code:'quote-review',message:'报价依据已变化，请重新复核报价。',severity:'error'})
   const basis = stable({ validation: validation.basis, packageId: saved.id, sourceRevision: saved.revision, name: saved.name, packageCount, quote: saved.quote, confirmations: saved.confirmations })
   let goodsSummary:BenefitDeliverySkuTotal[]|undefined
   if(benefitCompositionVersion(saved)===2)try{goodsSummary=summarizeBenefitDeliveryGoods(goods)}catch(error){issues.push({code:'delivery-summary',message:error instanceof Error?error.message:String(error),severity:'error'})}
@@ -310,7 +312,12 @@ export function createBenefitDeliverySnapshot(preview: BenefitDeliveryPreview, i
   if('snapshotVersion' in preview&&preview.snapshotVersion!==1&&preview.snapshotVersion!==2)throw Error('不支持的历史清单版本，不能降级执行。')
   if (!preview.canConfirm || !identity.id || !identity.code || !identity.requestId || !Number.isFinite(Date.parse(identity.generatedAt))) throw new Error('交付清单尚未通过确认校验。')
   if(preview.compositionVersion!==undefined&&preview.compositionVersion!==1&&preview.compositionVersion!==2)throw Error('不支持的组成版本，不能生成新清单。')
+  if (requiresBenefitQuoteReview(preview) && preview.quote.amountCents !== null && preview.quote.needsReview) throw Error('报价依据已变化，请重新复核报价。')
   return { ...cloneBenefit(preview), ...identity, snapshotVersion: preview.compositionVersion===2?2:1 }
+}
+
+function requiresBenefitQuoteReview(value: Pick<BenefitPackageDraft, 'compositionVersion' | 'framework'> & { goods: {referencePrice?: BenefitReferencePrice}[]; services: {referencePrice?: BenefitReferencePrice}[] }) {
+  return benefitCompositionVersion(value) === 2 || Boolean(value.framework) || value.goods.some(line => line.referencePrice) || value.services.some(line => line.referencePrice)
 }
 
 function object(value: unknown): value is Record<string, unknown> { return Boolean(value) && typeof value === 'object' && !Array.isArray(value) }
@@ -394,7 +401,7 @@ export function benefitPackageImportProblems(data: unknown): string[] {
     if(value.snapshotVersion!==1&&value.snapshotVersion!==2){if(!Array.isArray(value.goods)||!Array.isArray(value.services)||value.goods.some(line=>!object(line))||value.services.some(line=>!object(line)))problems.push('未知清单版本的明细容器损坏。');continue}
     if (!Array.isArray(value.goods) || value.goods.some(line => !summaryShape(line) || !object(line) || !line.skuId || !string(line.lineId) || !line.lineId || !validBenefitQuantity(line.perPackageQuantity) || !validBenefitQuantity(line.totalQuantity) || !Number.isSafeInteger(Number(line.perPackageQuantity) * Number(value.packageCount)) || line.totalQuantity !== Number(line.perPackageQuantity) * Number(value.packageCount) || !compatibilityShape(line.compatibility) || !object(line.compatibility) || line.compatibility.skuId !== line.skuId) || value.snapshotVersion===1&&new Set(value.goods.map(line => line.skuId)).size !== value.goods.length || new Set(value.goods.map(line => line.lineId)).size !== value.goods.length || value.includedPhoneSkuId && !value.goods.some(line => line.skuId === value.includedPhoneSkuId)) problems.push('交付商品身份、明细或总数量无效。')
     if(value.snapshotVersion===2){
-      if(value.compositionVersion!==2||!Array.isArray(value.goods)||value.goods.some(line=>!object(line)||!(line.groupId===null||string(line.groupId)&&!!line.groupId)||!['host','item'].includes(String(line.role))||!string(line.groupName)||line.role==='host'&&line.groupId!==null))problems.push('新版交付位置归组或角色结构无效。')
+      if(value.compositionVersion!==2||!Array.isArray(value.goods)||value.goods.some(line=>!object(line)||!(line.groupId===null||string(line.groupId)&&!!line.groupId)||!['host','item'].includes(String(line.role))||line.groupName!==undefined&&!string(line.groupName)||line.role==='host'&&line.groupId!==null))problems.push('新版交付位置归组或角色结构无效。')
       else try{if(!Array.isArray(value.goodsSummary)||stable(summarizeBenefitDeliveryGoods(value.goods as unknown as BenefitDeliveryGoods[]))!==stable(value.goodsSummary))problems.push('新版交付按 SKU 汇总与冻结位置不一致。')}catch{problems.push('新版交付按 SKU 汇总数量无效。')}
       if(Array.isArray(value.goods)){const hosts=value.goods.filter(line=>object(line)&&line.role==='host');if(hosts.length===1?value.includedPhoneSkuId!==hosts[0].skuId:!!value.includedPhoneSkuId)problems.push('冻结主机位置与包含主机标识不一致。')}
       if(Array.isArray(value.goods)&&new Set(value.goods.map(line=>object(line)?stable([line.groupId,line.role,line.skuId]):undefined)).size!==value.goods.length)problems.push('新版交付同组 SKU 位置身份重复。')

@@ -6,6 +6,7 @@ type OperatorOption = { value: ProductListFilterOperator; label: string }
 
 /** Read-only editor values; these are never stored in the business database. */
 export interface FilterEditorRow {
+  active?: boolean
   id: string
   field: string
   operator: ProductListFilterOperator

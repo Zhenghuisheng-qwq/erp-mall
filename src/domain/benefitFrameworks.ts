@@ -5,7 +5,7 @@ import { createCatalogIdentityContext, isMaterialArchive } from './catalogIdenti
 import { savedSkuCode, savedSkuName, savedSkuSpec } from './productList'
 import { shelfOf } from './logic'
 import { roleOfType } from './compatibility'
-import { benefitCompositionVersion, benefitGroupRuleIssues, benefitGroupRuleStructureIssues } from './benefitPositions'
+import { benefitCompositionVersion, benefitGroupSelection, benefitGroupRuleIssues, benefitGroupRuleStructureIssues } from './benefitPositions'
 import type { AppData } from './types'
 import type { BenefitFramework, BenefitFrameworkSnapshot, BenefitPackageDraft, BenefitSelectionGroup, BenefitIssue, BenefitGroupRule, BenefitSkuSummary } from './benefitPackageTypes'
 import type { AccessoryQueryResult } from './accessoryCompatibilityTypes'
@@ -61,7 +61,7 @@ export function previewBenefitFrameworkAdoption(data:AppData,draft:BenefitPackag
 }
 
 export interface BenefitSelectionIndex { stamp:string; summaries:Map<string,BenefitSkuSummary>; saleIds:Set<string>; roles:Map<string,string>; queryCache:Map<string,AccessoryQueryResult> }
-export function benefitSelectionCatalogStamp(data:AppData){return frameworkSignature([data.skus,data.families,data.productTypes,data.specCanvases,data.specModelVersions,data.planningRecords,data.materialReceipts,data.compatibilities,data.deviceModels,data.deviceBindings,data.params,data.templateParams])}
+export function benefitSelectionCatalogStamp(data:AppData){return frameworkSignature([data.skus,data.families,data.productTypes,data.specCanvases,data.specModelVersions,data.planningRecords,data.materialReceipts,data.compatibilities,data.deviceModels,data.deviceBindings,data.params,data.templateParams,data.templates,data.productPlans])}
 export function createBenefitSelectionIndex(data:AppData):BenefitSelectionIndex{
  const families=new Map(data.families.map(f=>[f.id,f])),types=new Map(data.productTypes.map(t=>[t.id,t])),canvases=new Map(data.specCanvases.map(c=>[c.templateId,c])),identity=createCatalogIdentityContext(data),summaries=new Map<string,BenefitSkuSummary>(),saleIds=new Set<string>(),roles=new Map(data.productTypes.map(t=>[t.id,roleOfType(data,t.id)]))
  for(const sku of data.skus){const family=families.get(sku.familyId);if(!family||!identity.isRealSku(sku))continue;const productTypeId=family.productTypeId||canvases.get(family.productModelId||family.templateId)?.productTypeId||'';summaries.set(sku.id,{skuId:sku.id,code:savedSkuCode(sku),name:savedSkuName(sku),familyId:family.id,familyName:family.name,spec:savedSkuSpec(family,sku),productTypeId,typeName:types.get(productTypeId)?.name||'未分类',status:sku.status});if(sku.status==='on_sale'&&shelfOf(family)==='online')saleIds.add(sku.id)}
@@ -86,7 +86,7 @@ export function resolveBenefitRange(data:AppData,draft:BenefitPackageDraft,suppl
   if(draft.device&&query?.device.status!=='resolved')return query?.device.message||'当前主机尚未唯一确认。'
   if(draft.framework&&(role==='host'||skuId===draft.includedPhoneSkuId&&benefitCompositionVersion(draft)===1)&&index.roles.get(index.summaries.get(skuId)?.productTypeId||'')==='host')return ''
   const hits=membership(skuId)
-  if(draft.framework?.kind!=='type-v2'&&hits.length>1)return `商品同时属于 ${hits.map(g=>g.name).join('、')}，请调整重叠范围。`
+  if(benefitCompositionVersion(draft)===1&&hits.length>1)return `商品同时属于 ${hits.map(g=>g.name).join('、')}，请调整重叠范围。`
   if(!previewOnly&&draft.framework?.kind==='type-v2'&&(groupId===null||groupId===undefined&&hits.length>1))return '该商品需要明确选择目标选配组。'
   if(groupId!==undefined&&groupId!==null&&!hits.some(g=>g.id===groupId))return '商品不在所选组的真实类型范围内。'
   if(draft.framework&&!hits.length)return '商品不在本次框架的任何启用类型组内。'
@@ -97,7 +97,7 @@ export function resolveBenefitRange(data:AppData,draft:BenefitPackageDraft,suppl
   return ''
  }
  const rows=[...index.summaries.values()].map(summary=>{const match=matches.get(summary.skuId),compatibility=benefitCompatibilitySummary(summary.skuId,match,index.roles.get(summary.productTypeId)==='accessory',!!draft.device),basic=compatibility.basicStatus,fastCharge=compatibility.fastChargeStatus,allowedGroups=membership(summary.skuId),block=reason(summary.skuId,undefined,undefined,true),use=accessoryUseEvaluation(match,{requireFastCharge:draft.requireFastCharge&&!!match?.capabilities.some(capability=>capability.capability==='fast-charge')});const bucket: 'recommended'|'conditional'|'pending'|'blocked'=problems.length||block||!!draft.device&&query?.device.status!=='resolved'?'blocked':draft.device&&index.roles.get(summary.productTypeId)==='accessory'?use.status==='compatible'?'recommended':use.status==='conditional'?'conditional':use.status==='incompatible'?'blocked':'pending':'recommended';return {summary,allowedGroups,compatibility,basic,fastCharge,bucket,canAdd:bucket!=='blocked',reason:problems.join(' ')||block||(draft.framework?.kind==='type-v2'&&allowedGroups.length>1?'多个组均可选，请明确指定目标组；不会自动取第一组。':bucket==='pending'?'缺少基本适用或所要求能力的明确依据，可留草稿，正式可用前须处理。':bucket==='conditional'?'存在明确使用前提，正式交付前须按当前依据确认。':'')}})
- const candidates=rows.filter(row=>row.canAdd&&(draft.framework?.kind==='type-v2'||!reason(row.summary.skuId))).map(row=>row.summary)
+ const candidates=rows.filter(row=>row.canAdd&&(benefitCompositionVersion(draft)===2||!reason(row.summary.skuId))).map(row=>row.summary)
  const emptyReasons=groups.filter(g=>g.enabled&&!candidates.some(s=>membership(s.skuId).some(m=>m.id===g.id))).map(g=>{
    const typed=sale.filter(s=>membership(s.skuId).some(m=>m.id===g.id))
    return `「${g.name}」：${!typed.length?'类型范围内没有当前在售的真实销售 SKU。':g.scope?.compatibleOnly&&!draft.device?'尚未选择适配主机。':'在售商品没有匹配本次主机的正式基本适用结论，需检查精确规划、待确认或不适用声明。'}`
@@ -112,7 +112,7 @@ export function frameworkSelectionIssues(data:AppData,draft:BenefitPackageDraft,
  for(const line of draft.goods){const message=range.reason(line.skuId,benefitCompositionVersion(draft)===2?line.groupId:undefined,line.role);if(message)issues.push({code:'framework-member',message:`${line.snapshot.name}：${message}`,skuId:line.skuId,positionId:line.id,groupId:line.groupId||undefined,severity:'error'})}
  const selectedCounts=new Map<string,number>()
  for(const g of range.groups.filter(g=>g.enabled)){
-  const selected=draft.goods.filter(l=>(benefitCompositionVersion(draft)===2?l.role!=='host'&&l.groupId===g.id:l.skuId!==draft.includedPhoneSkuId)&&range.membership(l.skuId).some(m=>m.id===g.id)),kinds=new Set(selected.map(line=>line.skuId)).size,min=g.required||kinds?g.minKinds:0
+  const {lines:selected,kinds}=benefitGroupSelection(draft,g,skuId=>(benefitCompositionVersion(draft)===2||skuId!==draft.includedPhoneSkuId)&&range.membership(skuId).some(m=>m.id===g.id)),min=g.required||kinds?g.minKinds:0
   selectedCounts.set(g.id,new Set(selected.filter(line=>range.index.saleIds.has(line.skuId)&&Number.isSafeInteger(line.quantity)&&line.quantity>0).map(line=>line.skuId)).size)
   if(kinds<min||kinds>g.maxKinds)issues.push({code:'framework-selection',message:`「${g.name}」须选 ${min}～${g.maxKinds} 种，当前 ${kinds} 种。`,groupId:g.id,severity:'error'})
   for(const l of selected){if(g.adjustable?l.quantity<g.minQuantity||l.quantity>g.maxQuantity:l.quantity!==g.defaultQuantity)issues.push({code:'framework-quantity',message:`「${g.name}」件数不符合规则。`,skuId:l.skuId,positionId:l.id,groupId:g.id,severity:'error'});if(g.scope?.compatibleOnly&&!range.recommendedSkuIds.has(l.skuId))issues.push({code:'framework-compatibility',message:`「${g.name}」要求当前主机正式基本适用，请补齐主机及销售 SKU 依据。`,skuId:l.skuId,positionId:l.id,groupId:g.id,severity:'error'})}

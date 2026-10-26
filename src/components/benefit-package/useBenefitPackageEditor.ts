@@ -1,3 +1,4 @@
+import { benefitGroupSelection } from '../../domain/benefitPositions'
 import { getFailure } from '../../domain/guide/failure'
 import type { GuideFailure } from '../../domain/guide/types'
 import { resolveBenefitSelection,createBenefitSelectionIndex,previewBenefitFrameworkAdoption } from '../../domain/benefitFrameworks'
@@ -61,7 +62,7 @@ export function useBenefitPackageEditor() {
   const selectionGroups=computed(()=>frameworkRange.value.groups)
   const pendingAddGroups=computed(()=>frameworkRange.value.membership(pendingAddSkuId.value))
   function positionGroupName(id:string){const line=draft.value.goods.find(line=>line.id===id);return line?.role==='host'?'主机实物':line?.groupId?selectionGroups.value.find(group=>group.id===line.groupId)?.name||`失效组 ${line.groupId}`:draft.value.compositionVersion===2?'未分组／待指定':'旧版唯一归组'}
-  const groupCounts=computed(()=>new Map(selectionGroups.value.map(group=>{const lines=draft.value.goods.filter(line=>line.role!=='host'&&(draft.value.compositionVersion===2?line.groupId===group.id:frameworkRange.value.membership(line.skuId).some(hit=>hit.id===group.id)));return [group.id,{kinds:new Set(lines.map(line=>line.skuId)).size,quantity:lines.reduce((n,line)=>n+line.quantity,0)}]})))
+  const groupCounts=computed(()=>new Map(selectionGroups.value.map(group=>[group.id,benefitGroupSelection(draft.value,group,skuId=>(draft.value.compositionVersion===2||skuId!==draft.value.includedPhoneSkuId)&&frameworkRange.value.membership(skuId).some(hit=>hit.id===group.id))])))
   const contentGroups=computed(()=>{const result=new Map<string,{key:string;name:string;rows:typeof validation.value.goods}>();for(const row of validation.value.goods){const host=row.line.role==='host'||draft.value.compositionVersion!==2&&row.line.skuId===draft.value.includedPhoneSkuId;const hits=host?[]:frameworkRange.value.membership(row.line.skuId),key=host?'$host':row.line.groupId||(draft.value.compositionVersion!==2&&hits.length===1?hits[0]!.id:'$ungrouped');const name=host?'主机实物':key==='$ungrouped'?'未分组／待指定':selectionGroups.value.find(group=>group.id===key)?.name||`失效组 ${key}`;if(!result.has(key))result.set(key,{key,name,rows:[]});result.get(key)!.rows.push(row)}const order=new Map(selectionGroups.value.map((group,index)=>[group.id,index]));const rank=(key:string)=>key==='$host'?-1:order.get(key)??Number.MAX_SAFE_INTEGER;return [...result.values()].sort((a,b)=>rank(a.key)-rank(b.key))})
   const currentPhone = computed(() => draft.value.device?.kind === 'sku' ? benefitSkuSummary(store.data, draft.value.device.skuId) : undefined)
   const includedPhone = computed(() => draft.value.goods.find(line => line.skuId === draft.value.includedPhoneSkuId&&(draft.value.compositionVersion!==2||line.role==='host'))?.snapshot)
@@ -113,7 +114,17 @@ export function useBenefitPackageEditor() {
   watch(deliveryCount, () => { deliveryPreview.value = undefined; deliveryConfirmed.value = false; generationRequest.value = '' })
   function change(operation: () => BenefitPackageDraft) {
     if (!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || saving.value || generating.value) return
-    try { draft.value = operation(); error.value = '' }
+    try {
+      const previous = draft.value, next = operation()
+      draft.value = next
+      // Clear only positions actually removed by a successful command (including host switches).
+      const retained = new Set(next.goods.map(line => line.id))
+      for (const line of previous.goods) if (!retained.has(line.id)) {
+        delete quantityErrors.value[line.id]; delete referenceErrors.value[line.id]
+        delete conditionNotes.value[`${line.id}:basic`]; delete conditionNotes.value[`${line.id}:fast-charge`]
+      }
+      error.value = ''
+    }
     catch (problem) { guideFailure.value=getFailure(problem);error.value = problem instanceof Error ? problem.message : String(problem) }
   }
   async function useFramework(){
@@ -137,7 +148,7 @@ export function useBenefitPackageEditor() {
     const line = draft.value.goods.find(item => item.id === lineId)
     if (!line || !store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || busy.value) return
     if (line.skuId === draft.value.includedPhoneSkuId&&(draft.value.compositionVersion!==2||line.role==='host')) { await includePhone(false); return }
-    change(()=>removeBenefitPosition(draft.value,lineId));delete quantityErrors.value[lineId];delete referenceErrors.value[lineId]
+    change(()=>removeBenefitPosition(draft.value,lineId))
   }
   function chooseReplacement(lineId: string) {if(referenceErrors.value[lineId]||quantityErrors.value[lineId]){error.value='请先修正此位置的数量或参考价，原输入保留。';return} if (!store.can(draft.value.id ? 'product:benefit:update' : 'product:benefit:create') || saving.value || generating.value) return; replaceLineId.value = lineId; replaceSkuId.value = ''; replaceOpen.value = true }
   function replace() {

@@ -1,33 +1,33 @@
 <template>
-  <section v-if="entries.length" class="quick-filters" aria-label="常用筛选" data-quick-filters>
-    <div class="quick-title"><strong>常用筛选</strong><small>{{entries.length}} 项外露 · {{entries.filter(entry=>entry.rule&&entry.field&&entry.rule.active!==false).length}} 项启用</small><el-button link :disabled="busy" data-clear-exposed-values @click="clearExposed">清除外露值</el-button><el-button link :disabled="busy" data-cancel-all-exposure @click="cancelExposure">取消全部外露</el-button><el-button v-if="entries.length > 4" link @click="expanded = !expanded">{{ expanded ? '收起' : `展开全部 ${entries.length} 项` }}</el-button></div>
+  <section class="quick-filters" aria-label="常用筛选" data-quick-filters>
+    <div class="quick-title"><strong>常用筛选</strong><CommonFilterPicker :items="pinOptions" :busy="busy" @add="pin"/><el-button v-if="entries.length>4" link @click="expanded=!expanded">{{expanded?'收起':`展开其余 ${entries.length-4} 项`}}</el-button><el-dropdown v-if="entries.length" trigger="click"><el-button link :disabled="busy" aria-label="常用筛选管理">更多</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item data-clear-exposed-values @click="clearExposed">清除常用筛选值</el-dropdown-item><el-dropdown-item data-cancel-all-exposure @click="cancelExposure">移出全部</el-dropdown-item><el-dropdown-item @click="emit('edit')">高级筛选</el-dropdown-item></el-dropdown-menu></template></el-dropdown></div><p v-if="pinError" role="alert" class="pin-error">{{pinError}}</p>
     <div class="quick-grid">
-      <article v-for="(entry,index) in entries" v-show="expanded||index<4" :key="entry.key" :data-quick-key="entry.key" class="quick-item" @keydown.esc.stop.prevent="reset(entry.key)">
-        <header><span>{{entry.field?.label||entry.rule?.field||'历史条件'}} · {{operatorLabel(entry)}}</span><el-button link :disabled="busy||index===0" :aria-label="`前移常用筛选 ${index+1}`" @click="move(entry.key,-1)">↑</el-button><el-button link :disabled="busy||index===entries.length-1" :aria-label="`后移常用筛选 ${index+1}`" @click="move(entry.key,1)">↓</el-button><el-button link :disabled="busy" :aria-label="`隐藏常用筛选 ${entry.field?.label||entry.key}`" @click="hide(entry.key)">取消外露</el-button></header>
-        <small>{{entry.context}}<span v-if="entry.rule?.active===false"> · 未设置，不参与筛选</span></small>
+      <article v-for="(entry,index) in entries" v-show="expanded||index<4" :key="entry.key" :data-quick-key="entry.key" class="quick-item" :class="{'is-active':effective(entry),'has-error':!!errors[entry.key]||!!invalid(entry)}" @keydown.esc.stop.prevent="reset(entry.key)">
+        <header><span>{{entry.field?.label||entry.rule?.field||'历史条件'}}</span><small :title="`${entry.context} · ${operatorLabel(entry)}`">{{errors[entry.key]||invalid(entry)?'需修复':drafts[entry.key]?'待应用':effective(entry)?'已生效':'✓ 已固定'}}</small><el-dropdown trigger="click"><el-button link :disabled="busy" :aria-label="`${entry.field?.label||'历史条件'}筛选操作`">更多</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item :disabled="index===0" @click="move(entry.key,-1)">上移</el-dropdown-item><el-dropdown-item :disabled="index===entries.length-1" @click="move(entry.key,1)">下移</el-dropdown-item><el-dropdown-item @click="hide(entry.key)">移出常用筛选</el-dropdown-item><el-dropdown-item @click="emit('edit')">{{operatorLabel(entry)}} · {{entry.context}} · 编辑</el-dropdown-item></el-dropdown-menu></template></el-dropdown></header>
         <template v-if="entry.rule&&entry.field">
-          <span v-if="['empty','notEmpty'].includes(entry.rule.operator)">无需填写取值 <el-button v-if="entry.rule.active===false" link :disabled="busy" @click="choose(entry,entry.rule.value,true)">启用此条件</el-button><el-button link @click="emit('edit')">编辑条件</el-button></span>
+          <span v-if="['empty','notEmpty'].includes(entry.rule.operator)">无需填写取值 <el-button v-if="entry.rule.active===false" link :disabled="busy" @click="choose(entry,entry.rule.value,true)">启用此条件</el-button><el-button link @click="clearValue(entry)">清除当前项</el-button></span>
           <el-select v-else-if="entry.rule.operator==='relative'" :model-value="draft(entry).value" :disabled="busy" clearable aria-label="常用相对日期" @change="(value:SkuValue)=>choose(entry,value)"><el-option v-for="(label,value) in relative" :key="value" :value="value" :label="label"/></el-select>
           <el-date-picker v-else-if="entry.field.type==='date'&&entry.rule.operator==='between'" :model-value="dateRange(entry)" :disabled="busy" type="daterange" value-format="YYYY-MM-DD" start-placeholder="开始日期" end-placeholder="结束日期" aria-label="常用日期范围" unlink-panels @update:model-value="(value:[string,string]|null)=>choose(entry,value?{from:value[0],to:value[1]}:null)"/>
           <el-date-picker v-else-if="entry.field.type==='date'" :model-value="text(entry)" :disabled="busy" type="date" value-format="YYYY-MM-DD" placeholder="选择日期" aria-label="常用日期" @update:model-value="(value:string|null)=>choose(entry,value)"/>
           <div v-else-if="entry.rule.operator==='between'" class="range" @focusout="rangeBlur(entry,$event)"><el-input-number :model-value="rangeNumber(entry,'from')" :disabled="busy" controls-position="right" placeholder="最小值" aria-label="常用范围开始" @update:model-value="(value:number|undefined)=>changeRange(entry,'from',value===undefined?'':String(value))" @keydown.enter="enter(entry,$event)"/><span>至</span><el-input-number :model-value="rangeNumber(entry,'to')" :disabled="busy" controls-position="right" placeholder="最大值" aria-label="常用范围结束" @update:model-value="(value:number|undefined)=>changeRange(entry,'to',value===undefined?'':String(value))" @keydown.enter="enter(entry,$event)"/></div>
-          <el-input-number v-else-if="entry.field.type==='number'" :model-value="numeric(entry)" :disabled="busy" controls-position="right" aria-label="常用条件数值" @update:model-value="(value:number|undefined)=>change(entry,value??null)" @change="()=>commitOne(entry)" @blur="commitOne(entry)"/>
-          <el-select v-else-if="['enum','multi','spu','category','boolean'].includes(entry.field.type)" :model-value="isMulti(entry)&&typeof draft(entry).value==='string'?[draft(entry).value]:draft(entry).value" :multiple="isMulti(entry)" :disabled="busy" filterable collapse-tags clearable aria-label="常用条件取值" @change="(value:SkuValue)=>choose(entry,value)"><el-option v-for="option in entry.field.type==='boolean'?[{value:true,label:'是'},{value:false,label:'否'}]:entry.field.options" :key="String(option.value)" :value="option.value" :label="option.label"/></el-select>
-          <el-input v-else :model-value="text(entry)" :disabled="busy" clearable placeholder="输入取值" aria-label="常用条件取值" @update:model-value="(value:string)=>change(entry,value)" @compositionstart="composing.add(entry.key)" @compositionend="composing.delete(entry.key)" @keydown.enter="enter(entry,$event)" @blur="commitOne(entry)"/>
-          <div class="quick-value-actions"><el-button link :disabled="busy||entry.rule.active===false&&!drafts[entry.key]" :aria-label="`清空常用筛选值 ${entry.field.label}`" @click="clearValue(entry)">清空值</el-button><el-button v-if="drafts[entry.key]&&!busy" link @click="commitOne(entry)">应用输入</el-button></div>
+          <el-input-number v-else-if="entry.field.type==='number'" :model-value="numeric(entry)" :disabled="busy" controls-position="right" aria-label="常用条件数值" @update:model-value="(value:number|undefined)=>change(entry,value??null)" @change="()=>commitOne(entry)" @blur="commitOne(entry)" @clear="clearValue(entry)"/>
+          <el-select v-else-if="['enum','multi','spu','category','boolean'].includes(entry.field.type)" :model-value="isMulti(entry)&&typeof draft(entry).value==='string'?[draft(entry).value]:draft(entry).value" :multiple="isMulti(entry)" :allow-create="entry.field.allowCustom" default-first-option :disabled="busy" filterable collapse-tags clearable aria-label="常用条件取值" @change="(value:SkuValue)=>choose(entry,value)"><el-option v-for="option in entry.field.type==='boolean'?[{value:true,label:'是'},{value:false,label:'否'}]:entry.field.options" :key="String(option.value)" :value="option.value" :label="option.label"/></el-select>
+          <el-input v-else :model-value="text(entry)" :disabled="busy" clearable placeholder="输入取值" aria-label="常用条件取值" @update:model-value="(value:string)=>change(entry,value)" @input.capture="captureText(entry,$event)" @compositionstart="composing.add(entry.key)" @compositionend="endComposition(entry,$event)" @keydown.enter="enter(entry,$event)" @blur="commitOne(entry)" @clear="clearValue(entry)"/>
+          <div v-if="drafts[entry.key]&&!busy" class="quick-value-actions"><el-button link @click="commitOne(entry)">{{errors[entry.key]?'重试应用':'应用输入'}}</el-button><el-button link @click="reset(entry.key)">撤销输入</el-button></div>
         </template>
         <div v-else>{{entry.ref.source==='condition'?'字段已失效，原条件保留，请进入高级筛选修复。':'此历史条件保留原查询，请进入高级筛选维护。'}}<el-button link @click="emit('edit')">高级筛选</el-button></div>
-        <p v-if="errors[entry.key]" role="alert">{{errors[entry.key]}}</p>
+        <p v-if="errors[entry.key]||invalid(entry)" role="alert">{{errors[entry.key]||invalid(entry)}}<el-button v-if="invalid(entry)" link @click="emit('edit')">修复</el-button></p>
       </article>
     </div>
   </section>
 </template>
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import CommonFilterPicker from '../CommonFilterPicker.vue'
 import type { AppData } from '../../../domain/types'
 import type { SkuCondition, SkuField, SkuQuickFilterRef, SkuValue, SkuViewConfig } from '../../../domain/skuWorkbenchTypes'
 import { cloneSku, defaultSkuConfig } from '../../../domain/skuWorkbenchState'
-import { conditionEntries, quickFilterKey, repairQuickFilters,clearSkuQuickFilterValue,setSkuQuickFilterValue } from '../../../domain/skuQuickFilters'
+import { conditionEntries, quickFilterKey, repairQuickFilters,pinSkuField,setQuickFilter,clearSkuQuickFilterValue,setSkuQuickFilterValue } from '../../../domain/skuQuickFilters'
 import { skuFields, skuOperators } from '../../../domain/skuWorkbenchFields'
 import { validateSkuConfig } from '../../../domain/skuWorkbenchQuery'
 const props = defineProps<{ data: AppData; config: SkuViewConfig; apply: (config: SkuViewConfig) => Promise<{ok: boolean; message?: string}>; busy: boolean;hideCategory?:boolean }>()
@@ -51,6 +51,14 @@ const entries = computed<Entry[]>(() => {
     return { ref, key: quickFilterKey(ref), rule, field, context: '历史条件 · 与新条件同时满足（日期沿用 SPU 日期）' }
   }).filter(entry=>!props.hideCategory||entry.field?.type!=='category')
 })
+const pinError=ref('')
+const pinOptions=computed(()=>{
+ const fields=skuFields(props.data),rules=conditionEntries(props.config.conditions),refs=repairQuickFilters(props.config)
+ return [...fields.filter(field=>field.type!=='category').map(field=>({id:`field:${field.id}`,label:field.label,group:field.source,pinned:rules.some(({rule})=>rule.field===field.id&&refs.some(ref=>ref.source==='condition'&&ref.ruleId===rule.id))})),...rules.filter(({rule})=>rule.field!=='category').map(({rule,context})=>({id:`rule:${rule.id}`,label:`${fields.find(f=>f.id===rule.field)?.label||rule.field} · ${rule.id}`,group:`已有条件 · ${context}`,pinned:refs.some(ref=>ref.source==='condition'&&ref.ruleId===rule.id)}))]
+})
+async function pin(id:string){if(props.busy)return;let next=cloneSku(props.config);if(id.startsWith('rule:'))setQuickFilter(next,{source:'condition',ruleId:id.slice(5)},true);else{const field=skuFields(props.data).find(f=>f.id===id.slice(6));if(!field)return;next=pinSkuField(next,field)}try{const result=await props.apply(next);pinError.value=result.ok?'':result.message||'固定失败，请重试。'}catch(error){pinError.value=String(error)}}
+function invalid(entry:Entry){if(!entry.rule||!entry.field)return '字段或条件已失效';const sample=defaultSkuConfig();sample.conditions.children=[entry.rule];return validateSkuConfig(props.data,sample).join('；')}
+function effective(entry:Entry){return !!entry.rule&&entry.rule.active!==false&&!invalid(entry)}
 function draft(entry: Entry) { return drafts[entry.key] || entry.rule! }
 function text(entry:Entry){return typeof draft(entry).value==='string'?String(draft(entry).value):''}
 function numeric(entry:Entry){const value=draft(entry).value;return typeof value==='number'?value:undefined}
@@ -59,6 +67,8 @@ function rangeNumber(entry:Entry,key:'from'|'to'){const value=range(entry)[key];
 function range(entry: Entry) { const value = draft(entry).value; return value && typeof value === 'object' && !Array.isArray(value) ? value : {from: '', to: ''} }
 function isMulti(entry: Entry) { return ['in', 'notIn', 'hasAny', 'hasAll', 'descendants'].includes(entry.rule!.operator) }
 function operatorLabel(entry: Entry) { return skuOperators(entry.field?.type || 'text').find(item => item.value === entry.rule?.operator)?.label || '原语义' }
+function captureText(entry:Entry,event:Event){if(composing.has(entry.key))change(entry,(event.target as HTMLInputElement).value)}
+function endComposition(entry:Entry,event:CompositionEvent){composing.delete(entry.key);change(entry,(event.target as HTMLInputElement).value)}
 function change(entry: Entry, value: SkuValue) { drafts[entry.key] = { ...cloneSku(draft(entry)), value,active:true }; delete errors[entry.key] }
 function changeRange(entry: Entry, key: 'from' | 'to', value: string) { change(entry, { ...range(entry), [key]: value }) }
 function reset(key: string) { delete drafts[key]; delete errors[key]; composing.delete(key) }
@@ -100,9 +110,10 @@ async function commitEntries(selected: Entry[]): Promise<boolean> {
 function commitOne(entry: Entry) { return commitEntries([entry]) }
 function flush() { return commitEntries(entries.value) }
 async function clearExposed(){if(props.busy)return;let next=cloneSku(props.config);for(const entry of entries.value)next=clearSkuQuickFilterValue(next,entry.ref);try{const result=await props.apply(next);if(result.ok)entries.value.forEach(entry=>reset(entry.key));else for(const entry of entries.value)errors[entry.key]=result.message||'未保存，请重试。'}catch(error){for(const entry of entries.value)errors[entry.key]=error instanceof Error?error.message:'未保存，请重试。'}}
-async function cancelExposure(){if(props.busy||!await flush())return;const next=cloneSku(props.config);next.quickFilters=[];try{const result=await props.apply(next);if(!result.ok)for(const entry of entries.value)errors[entry.key]=result.message||'未保存，请重试。'}catch(error){for(const entry of entries.value)errors[entry.key]=error instanceof Error?error.message:'未保存，请重试。'}}
+async function cancelExposure(){if(props.busy)return;if(Object.keys(drafts).length){pinError.value='请先应用或撤销待提交输入。';return;}const next=cloneSku(props.config);next.quickFilters=[];try{const result=await props.apply(next);if(!result.ok)for(const entry of entries.value)errors[entry.key]=result.message||'未保存，请重试。'}catch(error){for(const entry of entries.value)errors[entry.key]=error instanceof Error?error.message:'未保存，请重试。'}}
 async function hide(key: string) {
-  if (!(await flush())) return
+  if (props.busy) return
+  if(drafts[key]){errors[key]='请先应用或撤销此项输入。';return}
   const next = cloneSku(props.config); next.quickFilters = repairQuickFilters(next).filter(ref => quickFilterKey(ref) !== key)
   const result = await props.apply(next); if (!result.ok) errors[key] = result.message || '保存失败，请重试。'
 }
@@ -113,14 +124,15 @@ async function move(key: string, delta: number) {
   const [ref] = refs.splice(index, 1); refs.splice(target, 0, ref!); next.quickFilters = refs
   const result = await props.apply(next); if (!result.ok) errors[key] = result.message || '保存失败，请重试。'
 }
-defineExpose({ flush })
+function discardInputs(){for(const key of Object.keys(drafts))reset(key);pinError.value=''}
+defineExpose({ flush, discardInputs })
 </script>
 <style scoped>
 .quick-filters { margin-top: 12px; padding: 10px 0; border-block: 1px solid var(--el-border-color-lighter); }
 .quick-title,.quick-item header { display:flex; align-items:center; gap:6px; }
 .quick-title { margin-bottom:8px;flex-wrap:wrap; }.quick-title small{color:var(--el-text-color-secondary);margin-right:auto}.quick-title strong { font-size:13px; }
-.quick-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(245px,1fr)); gap:10px; }
-.quick-item { min-width:0; }.quick-item header { font-size:12px; }.quick-item header span { flex:1; overflow-wrap:anywhere; }
+.quick-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px; }
+.quick-item { min-width:0;padding:8px;border:1px solid var(--el-border-color-lighter);border-radius:6px; }.quick-item.is-active{border-color:var(--el-color-primary-light-5);background:var(--el-color-primary-light-9)}.quick-item.has-error{border-color:var(--el-color-danger)}.pin-error{color:var(--el-color-danger);font-size:12px}.quick-item header { font-size:12px; }.quick-item header span { flex:1; overflow-wrap:anywhere; }
 .quick-item small { display:block; color:var(--el-text-color-secondary); margin:3px 0 6px; }.quick-item p { color:var(--el-color-danger); margin:4px 0; font-size:12px; }
 .range { display:flex; align-items:center; gap:5px; }.range .el-input { min-width:0; }.quick-item .el-select,.quick-item .el-date-editor { width:100%;max-width:100%; }.quick-value-actions{display:flex;gap:8px}.range .el-input-number{width:100%;min-width:0}
 @media(max-width:640px) { .quick-grid { grid-template-columns:minmax(0,1fr); } }

@@ -35,6 +35,7 @@ export interface SkuWorkbenchState {
 }
 export type SkuFieldType = 'text' | 'enum' | 'multi' | 'number' | 'date' | 'boolean' | 'spu' | 'category'
 export interface SkuField {
+  allowCustom?: boolean
   id: string
   label: string
   source: string

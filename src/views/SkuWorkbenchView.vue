@@ -16,9 +16,9 @@
         <ProductListViewTabs :views="views" :active-id="activeId" :tab-ids="viewTabIds" :busy="workbench.pending.value" :can-create="store.can('product:sku:read')" @select="selectView" @create="openName('新建视图')">
           <template #actions>
             <span v-if="workbench.pending.value" class="view-state" data-view-saving role="status">正在保存</span><span v-else-if="error" class="dirty-mark" data-view-save-error role="status">保存失败，草稿保留</span><span v-else-if="dirty" class="dirty-mark" data-unsaved>未保存</span><span v-else class="muted view-state">{{activeId===SYSTEM_SKU_VIEW_ID?'系统视图':'已保存'}}</span>
-            <div class="view-actions"><el-button :disabled="(!dirty&&activeId!==SYSTEM_SKU_VIEW_ID)||!store.can('product:sku:read')" @click="saveCurrent">保存视图</el-button><el-button @click="openName('另存为')">另存为</el-button><el-button :disabled="!dirty" @click="restoreView">恢复已保存</el-button></div>
-            <el-popover v-model:visible="moreOpen" trigger="click" placement="bottom-end" :width="230"><template #reference><el-button data-manage-current-view>管理当前视图</el-button></template><div class="more-menu" :inert="workbench.pending.value"><strong>{{currentView.name}}</strong><el-button @click="result(workbench.favorite(activeId))">{{state.favorites.includes(activeId)?'取消收藏':'收藏视图'}}</el-button><el-button @click="result(workbench.setDefault(activeId))">设为默认视图</el-button><el-button :disabled="activeId===SYSTEM_SKU_VIEW_ID||!state.favorites.includes(activeId)" @click="result(workbench.moveFavorite(activeId,-1))">常用视图前移</el-button><el-button :disabled="activeId===SYSTEM_SKU_VIEW_ID||!state.favorites.includes(activeId)" @click="result(workbench.moveFavorite(activeId,1))">常用视图后移</el-button><el-button :disabled="activeId===SYSTEM_SKU_VIEW_ID" @click="moreOpen=false;openName('重命名视图')">重命名</el-button><el-button @click="copyView">复制视图</el-button><el-button type="danger" :disabled="activeId===SYSTEM_SKU_VIEW_ID" @click="deleteView">删除视图</el-button><el-button @click="router.push('/import')">导入导出</el-button></div></el-popover>
-            <el-button data-list-settings data-fields-button @click="openDisplay('fields')">列表设置</el-button>
+            <div class="view-actions"><el-button :disabled="(!dirty&&activeId!==SYSTEM_SKU_VIEW_ID)||!store.can('product:sku:read')" @click="saveCurrent">保存视图</el-button></div>
+            <el-popover v-model:visible="moreOpen" trigger="click" placement="bottom-end" :width="230"><template #reference><el-button data-manage-current-view>管理当前视图</el-button></template><div class="more-menu" :inert="workbench.pending.value"><strong>{{currentView.name}}</strong><el-button @click="moreOpen=false;openName('另存为')">另存为</el-button><el-button :disabled="!dirty" @click="restoreView">恢复已保存</el-button><el-button @click="result(workbench.favorite(activeId))">{{state.favorites.includes(activeId)?'取消收藏':'收藏视图'}}</el-button><el-button @click="result(workbench.setDefault(activeId))">设为默认视图</el-button><el-button :disabled="activeId===SYSTEM_SKU_VIEW_ID||!state.favorites.includes(activeId)" @click="result(workbench.moveFavorite(activeId,-1))">常用视图前移</el-button><el-button :disabled="activeId===SYSTEM_SKU_VIEW_ID||!state.favorites.includes(activeId)" @click="result(workbench.moveFavorite(activeId,1))">常用视图后移</el-button><el-button :disabled="activeId===SYSTEM_SKU_VIEW_ID" @click="moreOpen=false;openName('重命名视图')">重命名</el-button><el-button @click="copyView">复制视图</el-button><el-button type="danger" :disabled="activeId===SYSTEM_SKU_VIEW_ID" @click="deleteView">删除视图</el-button><el-button @click="router.push('/import')">导入导出</el-button></div></el-popover>
+
           </template>
         </ProductListViewTabs>
       </div>
@@ -27,25 +27,25 @@
         <aside v-if="showSidebar" class="category-side" data-category-side>
           <div class="side-title"><strong>商品分类</strong><el-button link @click="closeSidebar">收起分类栏</el-button></div>
           <small v-if="simpleCategory">{{ categorySelection.rule && categorySelection.rule.operator !== 'descendants' ? '当前精确匹配；重新选择包含下级分类' : '包含下级分类' }}</small>
-          <CategoryFilterTree v-if="simpleCategory" :categories="store.data.categories" :selected-ids="categoryIds" @toggle="toggleCategory" @clear="clearCategory" />
+          <CategoryFilterTree v-if="simpleCategory" :categories="store.data.categories" :selected-ids="categoryIds" :key="`SkuWorkbenchView.vue:${activeId}:${scopeId}`" :state-key="`SkuWorkbenchView.vue:${activeId}:${scopeId}`" @toggle="toggleCategory" @clear="clearCategory" />
           <template v-else><p class="muted">分类属于历史或组合条件。</p><el-button @click="openFilters">管理分类条件</el-button></template>
         </aside>
         <div class="table-area">
           <div class="workbench-tools">
             <el-input v-model="search" placeholder="名称、分类、属性、SKU、OA 编号" clearable data-filter="keyword" aria-label="在当前视图中搜索" />
-            <el-button data-filter-count @click="openFilters">筛选<span v-if="conditionCount"> {{ conditionCount }}</span></el-button>
-            <el-button v-if="!showSidebar" data-category-trigger @click="openCategory">商品分类{{categoryIds.length?` ${categoryIds.length}`:''}}</el-button>
-            <div class="list-structure-actions"><el-button data-group-button @click="openDisplay('group')">{{config.groups.length?`分组 ${config.groups.length}`:'未分组'}}</el-button><el-button data-sort-button @click="openDisplay('sort')">排序：{{config.sortMode==='manual'?(config.groups.length?'组内手工':'手工'):config.sortMode==='field'?`字段 ${config.sorts.length}`:'默认'}}</el-button></div>
+            <el-button v-if="!showSidebar" data-category-trigger :title="categoryCaption.title" :class="{'is-filter-active':categoryCaption.active}" :aria-expanded="categoryOpen" @click="openCategory"><span class="category-caption">{{categoryCaption.label}}</span></el-button>
+            <el-button data-filter-count :class="{'is-filter-active':conditionCount>0}" @click="openFilters">筛选<span v-if="conditionCount"> {{ conditionCount }}</span></el-button>
+            <div class="list-structure-actions"><el-button data-group-button @click="openDisplay('group')">{{config.groups.length?`分组 ${config.groups.length}`:'分组'}}</el-button><el-button data-sort-button @click="openDisplay('sort')">排序：{{config.sortMode==='manual'?(config.groups.length?'组内手工':'手工'):config.sortMode==='field'?`字段 ${config.sorts.length}`:'默认'}}</el-button></div><el-button data-list-settings data-fields-button @click="openDisplay('fields')">列表设置</el-button>
             <el-select :model-value="scopeId" filterable clearable placeholder="筛选所属 SPU" data-list-spu @change="changeScope"><el-option v-for="family in store.data.families" :key="family.id" :value="family.id" :label="`${family.name} · ${family.oaProductId || family.id}`" /></el-select>
           </div>
           <SkuQuickFilters ref="quickFiltersRef" :key="`${activeId}:${scopeId}`" :data="store.data" :config="config" :apply="applyQuickConfig" :busy="workbench.pending.value" hide-category @edit="openFilters" />
           <div v-if="hasFilters || search" class="query-summary" data-active-filters>
-            <el-button link @click="openFilters" aria-label="编辑条件摘要">{{ expandedSummary ? summary : summary.slice(0, 180) }}{{ !expandedSummary && summary.length > 180 ? '…' : '' }}</el-button>
-            <el-button v-if="summary.length > 180" link @click="expandedSummary = !expandedSummary">{{ expandedSummary ? '折叠' : '完整条件' }}</el-button>
+            <el-button v-if="expandedSummary" link @click="openFilters" aria-label="编辑条件摘要">{{ expandedSummary ? summary : summary.slice(0, 180) }}{{ !expandedSummary && summary.length > 180 ? '…' : '' }}</el-button>
+            <el-button v-if="conditionCount>1" link @click="expandedSummary = !expandedSummary">{{ expandedSummary ? '收起逻辑' : '查看条件逻辑' }}</el-button>
             <span v-if="search" class="muted">当前搜索：{{ search }}（不保存到视图）</span>
-            <el-button link type="primary" @click="clearFilters">清空全部筛选</el-button>
+            <el-button link type="primary" @click="clearFilters">清空筛选</el-button>
             <div class="summary-tags">
-              <el-tag v-for="node in activeConfig.conditions.children" :key="node.id" closable :title="nodeSummary(node.id)" @click="openFilters" @close="removeSummary(node.id)">{{ nodeSummary(node.id) }}</el-tag>
+              <el-tag v-for="node in activeConfig.conditions.children.filter(isSkuConditionActive)" :key="node.id" closable :title="nodeSummary(node.id)" @click="openFilters" @close="removeSummary(node.id)">{{ nodeSummary(node.id) }}</el-tag>
               <el-tag v-if="activeConfig.legacy && (activeConfig.legacy.keyword || activeConfig.legacy.filters.length)" closable @click="openFilters" @close="removeSummary('$legacy')">历史条件（原语义）</el-tag>
             </div>
           </div>
@@ -82,7 +82,7 @@
     </div>
     <SkuFilterDialog v-model="filterOpen" :data="store.data" :config="config" :view-name="currentView.name" :scope-id="scopeId" :now="now" :apply-config="applyQuickConfig" />
     <SkuDisplayDialog v-model="displayOpen" :data="store.data" :config="config" :tab="displayTab" :apply-config="applyQuickConfig"/>
-    <el-drawer v-if="narrowScreen" v-model="categoryOpen" title="商品分类" size="min(330px, calc(100vw - 20px))"><CategoryFilterTree v-if="simpleCategory" :categories="store.data.categories" :selected-ids="categoryIds" @toggle="toggleCategory" @clear="clearCategory"/><template v-else><p>分类属于历史或组合条件。</p><el-button @click="categoryOpen=false;openFilters()">管理分类条件</el-button></template></el-drawer>
+    <el-drawer v-if="narrowScreen" v-model="categoryOpen" title="商品分类" size="min(330px, calc(100vw - 20px))"><CategoryFilterTree v-if="simpleCategory" :categories="store.data.categories" :selected-ids="categoryIds" :key="`SkuWorkbenchView.vue:${activeId}:${scopeId}`" :state-key="`SkuWorkbenchView.vue:${activeId}:${scopeId}`" @toggle="toggleCategory" @clear="clearCategory"/><template v-else><p>分类属于历史或组合条件。</p><el-button @click="categoryOpen=false;openFilters()">管理分类条件</el-button></template></el-drawer>
     <AccessoryCompatibilityDrawer v-model="compatibilityOpen" :sku-id="compatibilitySkuId" @prepare-benefit-package="rememberPackageReturn" />
     <el-dialog v-model="nameOpen" :show-close="!workbench.pending.value" :close-on-press-escape="!workbench.pending.value" :title="nameAction" width="420px" :close-on-click-modal="false" @closed="nameError = ''">
       <el-input :disabled="workbench.pending.value" v-model="draftName" placeholder="视图名称" maxlength="80" @keyup.enter="submitName" />
@@ -95,6 +95,8 @@
 </template>
 
 <script setup lang="ts">
+import { clearSkuFilterValues } from '../domain/skuQuickFilters'
+import { categoryFilterCaption } from '../domain/categoryTree'
 import RuleExplanation from '../components/guide/RuleExplanation.vue'
 import { skuCategorySelection, updateSkuCategorySelection } from '../domain/skuCategoryFilter'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
@@ -118,7 +120,7 @@ import { presentTableGroups, type ProductListSkuRow } from '../components/produc
 import { isRealSku } from '../domain/catalogIdentity'
 import { compatibilitySkuBlock } from '../domain/compatibility'
 import { skuFields, skuFieldValue } from '../domain/skuWorkbenchFields'
-import { querySkuWorkbench, describeSkuConditions, type SkuGroup } from '../domain/skuWorkbenchQuery'
+import { querySkuWorkbench, validateSkuConfig, describeSkuConditions, type SkuGroup } from '../domain/skuWorkbenchQuery'
 import { SYSTEM_SKU_VIEW_ID, defaultSkuConfig } from '../domain/skuWorkbenchState'
 import { planScopedManualOrder, resolveManualOrder } from '../domain/productListManual'
 import SkuQuickFilters from '../components/product-list/sku/SkuQuickFilters.vue'
@@ -153,7 +155,8 @@ const visibleColumns = computed(() => config.value.columns.filter(column => colu
 function activeConditions(group:SkuConditionGroup):SkuConditionGroup{return {...group,children:group.children.filter(isSkuConditionActive).map(node=>node.kind==='group'?activeConditions(node):node)}}
 const activeConfig=computed(()=>({...config.value,conditions:activeConditions(config.value.conditions),...(config.value.legacy?{legacy:{...config.value.legacy,filters:config.value.legacy.filters.filter(rule=>rule.active!==false)}}:{})}))
 const summary = computed(() => describeSkuConditions(store.data,activeConfig.value))
-const conditionCount = computed(() => conditionEntries(config.value.conditions).filter(entry=>entry.rule.active!==false).length + (config.value.legacy?.filters.filter(filter=>filter.active!==false).length || 0) + (config.value.legacy?.keyword ? 1 : 0))
+const conditionCount = computed(() => conditionEntries(config.value.conditions).filter(({rule})=>{if(rule.active===false)return false;const sample=defaultSkuConfig();sample.conditions.children=[rule];return !validateSkuConfig(store.data,sample).length}).length + (config.value.legacy?.filters.filter(filter=>filter.active!==false).length || 0) + (config.value.legacy?.keyword ? 1 : 0))
+const categoryCaption=computed(()=>categoryFilterCaption(store.data.categories,categoryIds.value,simpleCategory.value))
 const hasFilters = computed(() => conditionCount.value > 0)
 const viewTabIds=computed(()=>[SYSTEM_SKU_VIEW_ID,...state.value.order.filter(id=>state.value.favorites.includes(id)),activeId.value])
 const layoutView = computed(() => ({ id: activeId.value, categoryFilterLayout: config.value.categoryLayout }))
@@ -238,7 +241,7 @@ async function openDisplay(tab:'fields'|'group'|'sort'|'display'|'more') { if (!
 async function selectView(id: string) {if(id===activeId.value)return; if (!(await flushQuick()) || (id !== activeId.value && !(await confirmStage(false)))) return; if (await result(workbench.select(id))) { clearStage();pickedIds.value=[];page.value = 1 } }
 async function restoreView() { if (!(await flushQuick())) return; if (await result(workbench.restore())) page.value = 1 }
 async function rebuildInvalid() { try { await ElMessageBox.confirm('将当前工作配置重建为全部 SKU 的默认规则？原保存视图保留，只有再次保存才会覆盖。当前 SPU 范围仍保留。', '重建工作配置') } catch { return }; applyConfig(defaultSkuConfig()) }
-async function clearFilters(){const next=JSON.parse(JSON.stringify(config.value)) as SkuViewConfig;next.conditions.children=[];next.quickFilters=[];if(next.legacy){next.legacy.keyword='';next.legacy.filters=[]};const outcome=await applyConfig(next);if(outcome.ok)search.value=''}
+async function clearFilters(){const next=clearSkuFilterValues(config.value);const outcome=await applyConfig(next);if(outcome.ok){search.value='';quickFiltersRef.value?.discardInputs()}}
 function nodeSummary(id: string) { return describeSkuConditions(store.data, { ...activeConfig.value, legacy: undefined, conditions: { ...activeConfig.value.conditions, children: activeConfig.value.conditions.children.filter(node => node.id === id) } }) }
 function removeSummary(id: string) { const next = JSON.parse(JSON.stringify(config.value)) as SkuViewConfig; if (id === '$legacy' && next.legacy) { next.legacy.keyword = ''; next.legacy.filters = [] }; if (id !== '$legacy') next.conditions.children = next.conditions.children.filter(node => node.id !== id); applyConfig(next) }
 function clearCategory() {
@@ -246,8 +249,8 @@ function clearCategory() {
   if (!next) { filterOpen.value = true; return }
   applyConfig(next)
 }
-function toggleCategory(id: string) {
-  const ids = categoryIds.value.includes(id) ? categoryIds.value.filter(item => item !== id) : [...categoryIds.value, id]
+function toggleCategory(id: string,multiple=false) {
+  const ids = multiple ? (categoryIds.value.includes(id) ? categoryIds.value.filter(item => item !== id) : [...categoryIds.value, id]) : [id]
   const next = updateSkuCategorySelection(config.value, ids)
   if (!next) { filterOpen.value = true; return }
   applyConfig(next)
@@ -313,4 +316,8 @@ onBeforeUnmount(() => { benefitReturnActive = false; if (benefitReturnFrame !== 
 .result-line,.batch-actions,.manual-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0; }.group-heading { background: var(--el-fill-color-light); }.group-heading:empty { display:none; }.sku-table { width: 100%; }.sku-table.compact :deep(.el-table__cell) { padding-top: 5px; padding-bottom: 5px; }.sku-table.comfortable :deep(.el-table__cell) { padding-top: 10px; padding-bottom: 10px; }.empty-state { padding: 24px 10px; line-height: 1.8; }.drag-handle { cursor: grab;border:0;background:none;color:var(--el-text-color-secondary);padding:4px }.sku-table :deep(.manual-drop-before td){box-shadow:inset 0 3px var(--el-color-primary)}.sku-table :deep(.manual-drop-after td){box-shadow:inset 0 -3px var(--el-color-primary)}.sku-table :deep(.manual-drop-blocked td){background:var(--el-color-danger-light-9)}.el-pagination { margin-top: 16px; justify-content: flex-end; }
 @media(max-width:1100px) { .view-tabs { max-width: 100%; }.view-actions { margin-left: 0; }.workbench-body.has-sidebar { grid-template-columns: var(--product-category-width,240px) minmax(0,1fr); } }
 @media(max-width:640px) { .view-bar,.workbench-body { padding: 12px; }.view-tabs { width: 100%; }.view-actions { flex-wrap: wrap; }.workbench-tools>.el-input { width: 100%; }.workbench-tools>.el-select { width: 100%; }.el-pagination { overflow-x: auto; justify-content: flex-start; } }
+</style>
+
+<style scoped>
+.category-caption{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.is-filter-active{color:var(--el-color-primary);border-color:var(--el-color-primary-light-5);background:var(--el-color-primary-light-9)}
 </style>

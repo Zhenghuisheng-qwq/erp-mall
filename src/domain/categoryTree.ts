@@ -413,3 +413,9 @@ export function planCategoryCopy(categories: Category[], mappings: CategoryMappi
   const mappingClones = mappings.filter((item) => idMap.has(item.categoryId)).map((item) => ({ categoryId: idMap.get(item.categoryId)!, templateId: item.templateId }))
   return { categories: clones, mappings: mappingClones, rootId: idMap.get(id)! }
 }
+
+export function categoryFilterCaption(categories: Category[], ids: string[], supported = true) {
+  if (!supported) return { label: '分类：组合条件', title: '分类：组合条件，请打开高级筛选管理', active: true }
+  const first=categories.find(item=>item.id===ids[0])
+  return { label: !ids.length ? '分类' : `分类：${first?.name || '分类已失效'}${ids.length>1?` 等 ${ids.length} 项`:''}`, title: ids.map(id=>categoryPathLabel(categories,id)||`分类已失效：${id}`).join('；') || '全部分类', active: ids.length>0 }
+}

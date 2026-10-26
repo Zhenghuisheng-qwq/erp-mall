@@ -42,7 +42,7 @@ export function skuFields(data: AppData): SkuField[] {
     field('brand', '品牌（历史字段）', '历史 SPU'), field('productType', '产品类型（历史字段）', '历史 SPU'),
     field('template', '属性方案（历史字段）', '历史 SPU'), field('shelf', '商品状态（历史字段）', '历史 SPU'),
     field('group', 'SPU 分组（历史字段）', '历史 SPU'),
-    ...data.params.map(param => field(`attr:${param.id}`, param.name, `动态属性 · ${param.id}`, param.values.length ? 'enum' : 'text', param.values.map(value => ({ value, label: value })))),
+    ...data.params.map(param => ({...field(`attr:${param.id}`, param.name, `动态属性 · ${param.id}`, param.values.length ? 'enum' : 'text', param.values.map(value => ({ value, label: value }))),allowCustom:true})),
   ]
 }
 

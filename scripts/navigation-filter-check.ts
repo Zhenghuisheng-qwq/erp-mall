@@ -58,3 +58,31 @@ assert.equal(quickFilterState({ ...query, filters: [conditions[4]!] }, created).
 assert.equal(quickFilterState({ ...query, filters: [{ id: 'text', field: 'name', operator: 'contains', value: 'phone' }] }, name).simple, true)
 assert.deepEqual(filterSummaries(emptyModeQuery('sku'), [category], value => value), [])
 console.log('PASS filter AND/OR/exclusion/range/empty date/hidden fields/immutability')
+
+// List polishing uses the same query contracts; presentation changes never migrate history.
+const {createAccessoryCompatibilityFixture}=await import('./accessory-compatibility-fixtures')
+const {defaultSkuConfig}=await import('../src/domain/skuWorkbenchState')
+const {pinSkuField,clearSkuFilterValues,conditionEntries,setSkuQuickFilterValue,clearSkuQuickFilterValue}=await import('../src/domain/skuQuickFilters')
+const {skuFields}=await import('../src/domain/skuWorkbenchFields')
+const {querySkuWorkbench}=await import('../src/domain/skuWorkbenchQuery')
+const {updateSkuCategorySelection,skuCategorySelection}=await import('../src/domain/skuCategoryFilter')
+const {updateProductCategorySelection,productCategorySelection}=await import('../src/domain/productListQuery')
+const {categoryFilterCaption,categoryChain}=await import('../src/domain/categoryTree')
+const fixture=createAccessoryCompatibilityFixture(),data=fixture.data
+ data.categories.push({id:'parent',name:'主机',parentId:null,enabled:true,sort:0});data.categories[0]!.parentId='parent';data.categories[0]!.name='手机'
+let config=defaultSkuConfig(),businessBefore=JSON.stringify(data),beforeIds=querySkuWorkbench(data,config).allIds
+config=pinSkuField(config,skuFields(data).find(f=>f.id==='attr:attr-color')!)
+assert.deepEqual(querySkuWorkbench(data,config).allIds,beforeIds);assert.equal(conditionEntries(config.conditions)[0]!.rule.active,false)
+config.conditions.logic='any';config=pinSkuField(config,skuFields(data).find(f=>f.id==='status')!);const refs=JSON.stringify(config.quickFilters)
+config=setSkuQuickFilterValue(config,config.quickFilters![1]!, 'on_sale');config=clearSkuFilterValues(config);assert.deepEqual(querySkuWorkbench(data,config).allIds,beforeIds);assert.equal(JSON.stringify(config.quickFilters),refs);assert.equal(config.conditions.logic,'any')
+assert.deepEqual(querySkuWorkbench(data,config,{scopeId:'family-device'}).allIds,['phone-a','phone-b'])
+const empty=defaultSkuConfig(),parent=updateSkuCategorySelection(empty,['parent'])!,child=updateSkuCategorySelection(parent,['cat-device-test'])!
+assert.deepEqual(skuCategorySelection(child).ids,['cat-device-test']);assert.equal(querySkuWorkbench(data,child).total,3);assert.equal(querySkuWorkbench(data,parent).total,3)
+const multiple=updateSkuCategorySelection(child,['cat-device-test','cat-accessory-test'])!;assert(querySkuWorkbench(data,multiple).total>3);assert.equal(categoryFilterCaption(data.categories,skuCategorySelection(multiple).ids).label,'分类：手机 等 2 项');assert.deepEqual(categoryChain(data.categories,'cat-device-test').map(c=>c.id),['parent','cat-device-test'])
+const precise=defaultSkuConfig();precise.conditions.children=[{kind:'rule',id:'historical',field:'category',operator:'eq',value:'cat-device-test'}];const preciseRaw=JSON.stringify(precise);skuCategorySelection(precise);assert.equal(JSON.stringify(precise),preciseRaw)
+precise.conditions.logic='any';assert(!skuCategorySelection(precise).supported);assert.equal(updateSkuCategorySelection(precise,['parent']),undefined)
+let spu=updateProductCategorySelection(data,emptyModeQuery(),['parent'])!;spu=updateProductCategorySelection(data,spu,['cat-device-test'])!;assert.deepEqual(productCategorySelection(data,spu).ids,['cat-device-test'])
+assert.equal(JSON.stringify(data),businessBefore)
+data.skus.find(s=>s.id==='phone-a')!.variantAttrs['颜色']='历史紫色';businessBefore=JSON.stringify(data);let custom=pinSkuField(defaultSkuConfig(),skuFields(data).find(f=>f.id==='attr:attr-color')!);custom=setSkuQuickFilterValue(custom,custom.quickFilters![0]!, '历史紫色');assert.deepEqual(querySkuWorkbench(data,custom).allIds,['phone-a']);assert.equal(JSON.stringify(data),businessBefore);assert(!data.params.find(p=>p.id==='attr-color')!.values.includes('历史紫色'));assert.equal(skuFields(data).find(f=>f.id==='status')!.allowCustom,undefined)
+const cleared=clearSkuQuickFilterValue(custom,custom.quickFilters![0]!);assert.equal(conditionEntries(cleared.conditions)[0]!.rule.id,conditionEntries(custom.conditions)[0]!.rule.id);assert.equal(conditionEntries(cleared.conditions)[0]!.rule.operator,conditionEntries(custom.conditions)[0]!.rule.operator)
+console.log('PASS list polish: inactive pin, OR clear, scope, category selection, legacy semantics and ID-bound historical attribute queries')

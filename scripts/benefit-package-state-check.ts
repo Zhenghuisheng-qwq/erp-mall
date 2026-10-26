@@ -42,6 +42,7 @@ function draft(data: AppData): BenefitPackageDraft {
   result.services = [{ id: 'service-per-package', name: '【隔离测试】贴膜约定', quantity: 1, unit: '次', measurement: 'per-package', validity: '3 个月内预约，不代表已激活', description: '独立测试服务' }, { id: 'service-per-delivery', name: '【隔离测试】本次上门', quantity: 1, unit: '次', measurement: 'per-delivery', validity: '', description: '整次交付一次' }]
   result.rulesEnabled = true
   result.groups = [{ id: 'group-case', name: '【隔离测试】保护壳选配', enabled: true, candidateSkuIds: ['case-sku'], required: true, minKinds: 1, maxKinds: 1, defaultQuantity: 2, adjustable: true, minQuantity: 1, maxQuantity: 10 }]
+  result.goods[0]!.groupId='group-case'
   result.quote.amountCents = 0
   return reviewBenefitQuote(result, data)
 }

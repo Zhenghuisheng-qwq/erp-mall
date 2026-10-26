@@ -45,12 +45,12 @@ try {
       await page.goto(base + '/skus?spu=family-device', { waitUntil: 'networkidle' }); await mountStore()
       assert.equal(await page.evaluate(() => window.__store.rbacEnforced), strict)
       const originalBusiness = business(await read())
-      await page.locator('[data-clear-exposed-values]').click(); await settle()
+      await page.getByRole('button',{name:'常用筛选管理',exact:true}).click(); await page.locator('[data-clear-exposed-values]:visible').click(); await settle()
       const cleared = (await read()).productListPages.sku.skuWorkbench.working[`${SYSTEM_SKU_VIEW_ID}@spu:family-device`]
       assert.deepEqual(allRuleEntries(cleared.conditions).map(rule => ({ id: rule.id, operator: rule.operator, active: rule.active, value: rule.value })), rules.map(rule => ({ id: rule.id, operator: rule.operator, active: false, value: null })))
       assert.deepEqual(cleared.quickFilters, config.quickFilters); assert.deepEqual(await visibleIds(), ['phone-a', 'phone-b'])
       mark(`${strict ? 'strict' : 'default'} ${shape}: actual exposed clear keeps rule IDs/operators/exposure and temporary SPU result`)
-      await page.getByRole('button', { name: '另存为', exact: true }).click()
+      await page.locator('[data-manage-current-view]').click(); await page.getByRole('button', { name: '另存为', exact: true }).click()
       const dialog = page.getByRole('dialog', { name: '另存为', exact: true })
       await dialog.getByPlaceholder('视图名称').fill('明确保存范围')
       await dialog.getByRole('checkbox', { name: '将当前 SPU 范围保存为条件', exact: true }).locator('xpath=ancestor::label').click()
@@ -80,7 +80,7 @@ try {
       if (shape === 'OR') {
         // Omitting the checkbox deliberately keeps this a temporary range.
         await page.goto(base + '/skus?spu=family-device', { waitUntil: 'networkidle' }); await mountStore(); await settle()
-        await page.getByRole('button', { name: '另存为', exact: true }).click(); const unscopedDialog = page.getByRole('dialog', { name: '另存为', exact: true })
+        await page.locator('[data-manage-current-view]').click(); await page.getByRole('button', { name: '另存为', exact: true }).click(); const unscopedDialog = page.getByRole('dialog', { name: '另存为', exact: true })
         await unscopedDialog.getByPlaceholder('视图名称').fill('不保存临时范围'); assert.equal(await unscopedDialog.getByRole('checkbox').isChecked(), false)
         await unscopedDialog.getByRole('button', { name: '创建', exact: true }).click(); await unscopedDialog.waitFor({ state: 'hidden' }); await settle()
         const loose = (await read()).productListPages.sku.views.find(view => view.name === '不保存临时范围'); assert(loose)

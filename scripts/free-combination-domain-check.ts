@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import * as XLSX from 'xlsx'
+import { buildBenefitDeliveryWorkbook } from '../src/domain/benefitPackageExport'
 import { performance } from 'node:perf_hooks'
 import { createFreeCombinationFixture, freeCombinationGroup } from './free-combination-fixture'
 import { ACCESSORY_TEST_TIME as now } from './accessory-compatibility-fixtures'
@@ -40,4 +42,46 @@ f=createFreeCombinationFixture();draft=addBenefitSku(f.data,f.createDraft(),'cas
 f=createFreeCombinationFixture();draft=addBenefitSku(f.data,f.createDraft(),'case-sku',1,{groupId:'buy'});draft=addBenefitSku(f.data,draft,'case-sku',2,{groupId:'gift'});draft=setBenefitPositionPrice(draft,draft.goods[0].id,{amountCents:100,source:'manual',enteredAt:now});draft=setBenefitPositionPrice(draft,draft.goods[1].id,{amountCents:0,source:'manual',enteredAt:now});const conflictBefore=JSON.stringify(draft);assert.throws(()=>previewBenefitFrameworkAdoption(f.data,draft),/先明确处理这些位置/);assert.throws(()=>applyBenefitFramework(draft),/不会自动合并/);assert.equal(JSON.stringify(draft),conflictBefore);groups++
 f=createFreeCombinationFixture();draft=addBenefitSku(f.data,f.createDraft(),'case-sku',1,{groupId:'buy'});const removedGroup=cloneBenefit(f.framework);removedGroup.groups=removedGroup.groups.filter(group=>group.id!=='buy');const obsoleteGroup=previewBenefitFrameworkAdoption(f.data,draft,removedGroup);assert.deepEqual(obsoleteGroup.unassignedPositionIds,[draft.goods[0].id]);assert.equal(obsoleteGroup.draft.goods[0].groupId,'buy');const changedRange=cloneBenefit(f.framework);changedRange.groups.find(group=>group.id==='buy')!.scope!.productTypeIds=['type-film'];assert.deepEqual(previewBenefitFrameworkAdoption(f.data,draft,changedRange).unassignedPositionIds,[draft.goods[0].id]);groups++
 f=createFreeCombinationFixture();draft=addBenefitSku(f.data,f.createDraft(),'case-sku',1,{groupId:'buy'});draft.rulesEnabled=true;const legacyGroup={...freeCombinationGroup('legacy-only','type-case'),scope:undefined,candidateSkuIds:['case-sku']};draft.groups=[legacyGroup];const legacyRelease=previewBenefitFrameworkAdoption(f.data,draft);assert.equal(legacyRelease.draft.goods[0].groupId,'legacy-only');assert.deepEqual(legacyRelease.unassignedPositionIds,[]);assert.deepEqual(legacyRelease.draft.goods[0],{...draft.goods[0],groupId:'legacy-only'});draft.groups.push({...cloneBenefit(legacyGroup),id:'legacy-ambiguous'});const ambiguousRelease=previewBenefitFrameworkAdoption(f.data,draft);assert.equal(ambiguousRelease.draft.goods[0].groupId,null);assert.deepEqual(ambiguousRelease.unassignedPositionIds,[draft.goods[0].id]);groups++
-console.log(`PASS free combination domain ${groups} groups`)
+const repairFailures: string[] = []
+function repair(name: string, check: () => void) { try { check(); console.log(`PASS repair ${name}`) } catch (error) { repairFailures.push(`${name}: ${error}`) } }
+repair('ordinary V2 explicit groups and V1 ownership', () => {
+ const f=createFreeCombinationFixture();let d=newBenefitPackageDraft();d.name='普通分组';d.rulesEnabled=true
+ const group={...freeCombinationGroup('a','type-case'),scope:undefined,candidateSkuIds:['case-sku'],required:true,maxKinds:1}
+ d.groups=[group];d=addBenefitSku(f.data,d,'case-sku',1,{groupId:'a'});d=assignBenefitPositionGroup(f.data,d,d.goods[0].id,null)
+ assert(validateBenefitPackage(f.data,d).issues.some(i=>i.code==='group-selection'&&i.groupId==='a'),'unassigned must not satisfy required group')
+ assert(validateBenefitPackage(f.data,d).canSaveDraft);assert(!previewBenefitDelivery(f.data,saved(d),1).canConfirm)
+ d=assignBenefitPositionGroup(f.data,d,d.goods[0].id,'a');assert(validateBenefitPackage(f.data,d).canSaveAvailable)
+ d.groups.push({...cloneBenefit(group),id:'b'});d=addBenefitSku(f.data,d,'case-sku',2,{groupId:'b'});assert(validateBenefitPackage(f.data,d).canSaveAvailable)
+ d=assignBenefitPositionGroup(f.data,d,d.goods[0].id,null);assert.deepEqual(validateBenefitPackage(f.data,d).issues.filter(i=>i.code==='group-selection').map(i=>i.groupId),['a'])
+ for(const id of ['deleted','b']){const bad=cloneBenefit(d);bad.goods[0].groupId=id;if(id==='b')bad.goods[0].skuId='film-sku';assert(!validateBenefitPackage(f.data,bad).canSaveAvailable)}
+ d=assignBenefitPositionGroup(f.data,d,d.goods[0].id,'a');d.goods[0].quantity=6;assert(validateBenefitPackage(f.data,d).issues.some(i=>i.code==='group-selected-quantity'));d.goods[0].quantity=2;d.groups[0].minKinds=2;d.groups[0].maxKinds=2;d.groups[0].candidateSkuIds.push('film-sku');assert(validateBenefitPackage(f.data,d).issues.some(i=>i.code==='group-selection'&&i.groupId==='a'))
+ const old=cloneBenefit(d);delete old.compositionVersion;old.goods=[old.goods[0]];delete old.goods[0].groupId;delete old.goods[0].role;assert(validateBenefitPackage(f.data,old).issues.some(i=>i.code==='group-overlap'))
+ old.groups=[{...group}];assert(validateBenefitPackage(f.data,old).canSaveAvailable)
+})
+repair('ordinary V2 quote invalidation and snapshot guard',()=>{
+ const f=createFreeCombinationFixture();let d=addBenefitSku(f.data,newBenefitPackageDraft(),'case-sku');d.name='普通报价';d.quote.amountCents=100;d=reviewBenefitQuote(d,f.data)
+ assert(previewBenefitDelivery(f.data,saved(d),1).canConfirm);d=setBenefitPositionQuantity(f.data,d,d.goods[0].id,2)
+ const p=previewBenefitDelivery(f.data,saved(d),1);assert(p.quote.needsReview);assert(!p.canConfirm);assert(validateBenefitPackage(f.data,d).canSaveDraft)
+ assert.throws(()=>createBenefitDeliverySnapshot({...p,canConfirm:true},{id:'x',code:'x',requestId:'x',generatedAt:now}),/复核/)
+ d=reviewBenefitQuote(d,f.data);assert(previewBenefitDelivery(f.data,saved(d),1).canConfirm)
+ d.quote.amountCents=null;assert(previewBenefitDelivery(f.data,saved(d),1).canConfirm)
+ delete d.compositionVersion;delete d.goods[0].groupId;delete d.goods[0].role;d.quote.amountCents=100;d.quote.reviewedBasis='old';assert(previewBenefitDelivery(f.data,saved(d),1).canConfirm)
+})
+repair('reused candidate context observes template changes',()=>{
+ const f=createFreeCombinationFixture(),d=f.createDraft(),index=createBenefitSelectionIndex(f.data)
+ assert.equal(resolveBenefitSelection(f.data,d,index).rows.find(r=>r.summary.skuId==='case-sku')!.bucket,'recommended')
+ const family=f.data.families.find(x=>x.id===f.data.skus.find(s=>s.id==='phone-a')!.familyId)!
+ f.data.templates.find(t=>t.id===family.templateId)!.enabled=false
+ assert.deepEqual(resolveBenefitSelection(f.data,d,index).rows,resolveBenefitSelection(f.data,d).rows)
+})
+repair('conditional export retains two exact frozen position identities',()=>{
+ const f=createFreeCombinationFixture();f.framework.groups.push(freeCombinationGroup('cable-gift','type-cable'));f.framework.history=[frameworkSnapshot(f.framework)]
+ let d=addBenefitSku(f.data,f.createDraft(),'cable-sku',1,{groupId:'cable'});d=addBenefitSku(f.data,d,'cable-sku',1,{groupId:'cable-gift'})
+ d=confirmBenefitCondition(f.data,d,d.goods[0].id,'第一位置备注',now);d=confirmBenefitCondition(f.data,d,d.goods[1].id,'第二位置备注',now)
+ const snap=createBenefitDeliverySnapshot(previewBenefitDelivery(f.data,saved(d),1),{id:'two',code:'two',requestId:'two',generatedAt:now}),before=JSON.stringify(snap)
+ const historical=cloneBenefit(snap);for(const line of historical.goods)delete line.groupName;assert.deepEqual(benefitPackageImportProblems({...f.data,benefitPackages:[],benefitDeliveries:[historical]}),[]);assert(JSON.stringify(buildBenefitDeliveryWorkbook(historical).Sheets).includes('组名未记录'))
+ const workbook=XLSX.read(XLSX.write(buildBenefitDeliveryWorkbook(snap),{bookType:'xlsx',type:'buffer'}),{type:'buffer'}),rows=XLSX.utils.sheet_to_json<any[]>(workbook.Sheets['条件及确认说明']!,{header:1}),head=rows[0],pos=head.indexOf('来源位置 ID'),group=head.indexOf('选配组 ID')
+ assert(pos>=0&&group>=0);const confirmations=rows.filter(r=>r[0]==='本包人工确认');assert.deepEqual(confirmations.map(r=>[r[pos],r[group]]),d.goods.map(l=>[l.id,l.groupId]));f.framework.groups=[];assert.equal(JSON.stringify(snap),before);assert.deepEqual(XLSX.utils.sheet_to_json(buildBenefitDeliveryWorkbook(snap).Sheets['条件及确认说明']!,{header:1}),rows)
+})
+assert.deepEqual(repairFailures,[])
+console.log(`PASS free combination domain ${groups} groups + 4 repair groups`)

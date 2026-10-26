@@ -1,3 +1,5 @@
+import { skuOperators } from './skuWorkbenchFields'
+import type { SkuField } from './skuWorkbenchTypes'
 import type { SkuCondition, SkuConditionGroup, SkuQuickFilterRef, SkuViewConfig, SkuValue } from './skuWorkbenchTypes'
 
 export function isSkuConditionActive(node: SkuCondition | SkuConditionGroup): boolean {
@@ -55,4 +57,22 @@ export function repairQuickFilters(config: SkuViewConfig, raw: unknown = config.
 export function setQuickFilter(config: SkuViewConfig, ref: SkuQuickFilterRef, shown: boolean) {
   const refs = repairQuickFilters(config).filter(item => quickFilterKey(item) !== quickFilterKey(ref))
   config.quickFilters = shown ? [...refs, ref] : refs
+}
+
+/** Clearing values preserves the condition tree, operators and presentation references. */
+export function clearSkuFilterValues(config: SkuViewConfig): SkuViewConfig {
+  let next=JSON.parse(JSON.stringify(config)) as SkuViewConfig
+  for(const {rule} of conditionEntries(config.conditions)) next=clearSkuQuickFilterValue(next,{source:'condition',ruleId:rule.id})
+  for(const rule of config.legacy?.filters||[]) next=clearSkuQuickFilterValue(next,{source:'legacy',filterId:rule.id})
+  if(next.legacy)next.legacy.keyword=''
+  return next
+}
+export function pinSkuField(config:SkuViewConfig,field:SkuField):SkuViewConfig {
+  const next=JSON.parse(JSON.stringify(config)) as SkuViewConfig
+  const ids=new Set<string>();const collect=(node:SkuCondition|SkuConditionGroup)=>{ids.add(node.id);if(node.kind==='group')node.children.forEach(collect)};collect(next.conditions)
+  let id=`quick:${field.id}`,suffix=1;while(ids.has(id))id=`quick:${field.id}:${suffix++}`
+  const operator=skuOperators(field.type)[0]!.value
+  next.conditions.children.push({kind:'rule',id,field:field.id,operator,value:null,active:false})
+  setQuickFilter(next,{source:'condition',ruleId:id},true)
+  return next
 }

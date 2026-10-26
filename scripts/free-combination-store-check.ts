@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import * as XLSX from 'xlsx'
 import { createPinia, setActivePinia } from 'pinia'
 import { installCatalogTestLocks } from './catalog-storage-test-env'
-import { createFreeCombinationFixture } from './free-combination-fixture'
-import { addBenefitSku, cloneBenefit, copyBenefitPackageDraft, previewBenefitDelivery, reviewBenefitQuote, setBenefitPositionPrice, validateBenefitPackage } from '../src/domain/benefitPackages'
+import { createFreeCombinationFixture, freeCombinationGroup } from './free-combination-fixture'
+import { addBenefitSku, newBenefitPackageDraft, setBenefitPositionQuantity, cloneBenefit, copyBenefitPackageDraft, previewBenefitDelivery, reviewBenefitQuote, setBenefitPositionPrice, validateBenefitPackage } from '../src/domain/benefitPackages'
 import { buildBenefitDeliveryWorkbook } from '../src/domain/benefitPackageExport'
 import { RBAC_ENFORCEMENT_ENABLED } from '../src/domain/accessMode'
 import { ensureRbac } from '../src/domain/rbac'
@@ -143,6 +143,19 @@ try {
     assert.equal((await save(invalid, 'finite-number-receipt')).ok, false, 'nonfinite numbers must not collide with a successful null-quote receipt'); unchanged(before)
   }; groups++
 
+  await mount();let unassigned=addBenefitSku(store!.data,newBenefitPackageDraft(),'case-sku');unassigned.name='普通必选组';unassigned.rulesEnabled=true;unassigned.groups=[{...freeCombinationGroup('required','type-case'),scope:undefined,candidateSkuIds:['case-sku'],required:true,maxKinds:1}]
+  before=snapshot();assert.equal((await save(unassigned,'required-create')).ok,false);unchanged(before);unassigned.goods[0].groupId='required';assert((await save(unassigned,'required-create')).ok);groups++
+  await mount(); let ordinary=addBenefitSku(store!.data,newBenefitPackageDraft(),'case-sku');ordinary.name='普通 V2 报价回归';ordinary.quote.amountCents=100;ordinary=reviewBenefitQuote(ordinary,store!.data)
+  const ordinarySaved=await save(ordinary,'ordinary-create');assert(ordinarySaved.package)
+  const originalPreview=previewBenefitDelivery(store!.data,ordinarySaved.package,1)
+  const changedOrdinary=setBenefitPositionQuantity(store!.data,ordinarySaved.package,ordinarySaved.package.goods[0].id,2)
+  const updatedOrdinary=await save(changedOrdinary,'ordinary-change');assert(updatedOrdinary.package)
+  before=snapshot();const staleResult=await store!.generateBenefitDelivery({packageId:updatedOrdinary.package.id,expectedRevision:updatedOrdinary.package.revision,requestId:'ordinary-deliver',packageCount:1,expectedBasis:originalPreview.basis});assert(!staleResult.ok);assert.match(staleResult.message||'',/复核报价/);unchanged(before)
+  const reviewedOrdinary=await save(reviewBenefitQuote(updatedOrdinary.package,store!.data),'ordinary-review');assert(reviewedOrdinary.package)
+  const reviewedPreview=previewBenefitDelivery(store!.data,reviewedOrdinary.package,1);assert(reviewedPreview.canConfirm)
+  const deliveredOrdinary=await store!.generateBenefitDelivery({packageId:reviewedOrdinary.package.id,expectedRevision:reviewedOrdinary.package.revision,requestId:'ordinary-deliver',packageCount:1,expectedBasis:reviewedPreview.basis});assert(deliveredOrdinary.ok);assert.equal(deliveredOrdinary.delivery!.goods[0].totalQuantity,2);groups++
+  const futureImport=JSON.parse(store!.exportJson()),opaque={id:'opaque',code:'OPAQUE',requestId:'opaque',packageId:'future-package',packageCode:'FUTURE-PKG',packageName:'未来结构',sourceRevision:1,packageCount:1,snapshotVersion:77,generatedAt:'2026-10-26T03:00:00Z',device:null,deviceLabel:'',includedPhoneSkuId:'',basis:'future-opaque',canConfirm:true,goods:[{future:{opaque:true}}],services:[{futureService:true}]}
+  futureImport.data.benefitDeliveries.push(opaque);await store!.importJson(JSON.stringify(futureImport));await store!.waitForPersistence();assert.deepEqual(JSON.parse(store!.exportJson()).data.benefitDeliveries.find((x:any)=>x.id==='opaque'),opaque);groups++
   await mount('free-read'); before = snapshot()
   if (RBAC_ENFORCEMENT_ENABLED) {
     await assert.rejects(async () => save(draft(), 'readonly-direct'), /未授权/)

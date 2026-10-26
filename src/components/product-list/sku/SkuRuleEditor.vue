@@ -1,5 +1,5 @@
 <template>
-  <div class="rule" :data-rule-id="rule.id" :data-rule-active="rule.active!==false">
+  <div class="rule" :class="{'is-active':effective===true,'is-pinned':exposed}" :data-rule-id="rule.id" :data-rule-active="rule.active!==false">
     <el-select :model-value="rule.field" filterable placeholder="选择字段" aria-label="条件字段" data-rule-field @change="changeField">
       <el-option-group v-for="group in fieldGroups" :key="group.source" :label="group.source">
         <el-option v-for="field in group.fields" :key="field.id" :value="field.id" :label="`${field.label} · ${field.source}`" />
@@ -23,15 +23,15 @@
     <el-select v-else-if="field?.type === 'boolean'" :model-value="booleanValue" placeholder="选择是或否" aria-label="布尔值" @change="(value: boolean) => setValue(value)">
       <el-option :value="true" label="是" /><el-option :value="false" label="否" />
     </el-select>
-    <el-select v-else-if="choiceField" :model-value="multiple ? arrayValue : textValue" :multiple="multiple" filterable clearable collapse-tags placeholder="选择取值" aria-label="条件取值" data-rule-value @change="(value: string | string[]) => setValue(value)">
+    <el-select v-else-if="choiceField" :model-value="multiple ? arrayValue : textValue" :multiple="multiple" :allow-create="field?.allowCustom" default-first-option filterable clearable collapse-tags placeholder="选择或输入取值" aria-label="条件取值" data-rule-value @change="(value: string | string[]) => setValue(value)">
       <el-option v-for="item in field?.options || []" :key="item.value" :value="item.value" :label="item.label" />
     </el-select>
     <el-input v-else :model-value="textValue" placeholder="填写条件值" aria-label="条件取值" data-rule-value @update:model-value="(value: string) => setValue(value)" />
     <el-button link aria-label="复制条件" @click="emit('copy')">复制</el-button>
     <el-button link type="danger" aria-label="删除条件" @click="emit('remove')">删除</el-button>
-    <el-checkbox v-if="exposed !== undefined" :model-value="exposed" class="expose" @change="(value: boolean | string | number) => emit('expose', Boolean(value))">显示在常用筛选</el-checkbox>
+    <el-checkbox v-if="exposed !== undefined" :model-value="exposed" class="expose" @change="(value: boolean | string | number) => emit('expose', Boolean(value))">固定到常用筛选</el-checkbox>
     <el-checkbox :model-value="rule.active!==false" class="expose" @change="(value:boolean|string|number)=>emit('update',{...rule,active:Boolean(value)})">启用此条件<span v-if="rule.active===false">（未设置，不参与匹配）</span></el-checkbox>
-    <p v-if="!field" class="invalid">该字段已失效，请更换或删除条件。</p>
+    <small v-if="exposed" class="filter-state">✓ 已固定</small><small v-if="effective===true" class="filter-state">已生效</small><p v-if="!field" class="invalid">该字段已失效，请更换或删除条件。</p>
   </div>
 </template>
 
@@ -40,7 +40,7 @@ import { computed } from 'vue'
 import { skuOperators } from '../../../domain/skuWorkbenchFields'
 import type { SkuCondition, SkuField, SkuOperator, SkuValue } from '../../../domain/skuWorkbenchTypes'
 
-const props = defineProps<{ rule: SkuCondition; fields: SkuField[]; exposed?: boolean }>()
+const props = defineProps<{ rule: SkuCondition; fields: SkuField[]; effective?:boolean; exposed?: boolean }>()
 const emit = defineEmits<{ update: [rule: SkuCondition]; remove: []; copy: []; expose: [shown: boolean] }>()
 const field = computed(() => props.fields.find(item => item.id === props.rule.field))
 const fieldGroups = computed(() => [...new Set(props.fields.map(item => item.source))].map(source => ({ source, fields: props.fields.filter(item => item.source === source) })))
@@ -74,6 +74,7 @@ function updateRange(key: 'from' | 'to', value: string) { setValue({ ...rangeVal
 </script>
 
 <style scoped>
+.rule.is-active{border-left:2px solid var(--el-color-primary);padding-left:8px}.filter-state{color:var(--el-text-color-secondary)}
 .rule { display: grid; grid-template-columns: minmax(150px, 1fr) 124px minmax(175px, 1.2fr) 40px 40px; gap: 8px; align-items: center; margin: 10px 0; }
 .rule > * { min-width: 0; max-width: 100%; }
 .rule .el-date-editor { width: 100%; }

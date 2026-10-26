@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import * as XLSX from 'xlsx'
 import { createAccessoryCompatibilityFixture } from './accessory-compatibility-fixtures'
-import { addBenefitSku, cloneBenefit, confirmBenefitCondition, createBenefitDeliverySnapshot, newBenefitPackageDraft, previewBenefitDelivery } from '../src/domain/benefitPackages'
+import { addBenefitSku, cloneBenefit, confirmBenefitCondition, createBenefitDeliverySnapshot, newBenefitPackageDraft, reviewBenefitQuote, previewBenefitDelivery } from '../src/domain/benefitPackages'
 import { benefitDeliveryFilename, buildBenefitDeliveryWorkbook } from '../src/domain/benefitPackageExport'
 
 const artifacts = process.argv.includes('--artifacts')
@@ -19,6 +19,7 @@ draft.services = [
 ]
 draft.quote.amountCents = 0
 draft = confirmBenefitCondition(data, draft, 'cable-sku', '【独立测试】按指定转换器前提交付', '2026-10-23T08:00:00.000Z')
+draft = reviewBenefitQuote(draft,data)
 const preview = previewBenefitDelivery(data, draft, 3)
 assert.equal(preview.canConfirm, true, JSON.stringify(preview.issues))
 const snapshot = createBenefitDeliverySnapshot(preview, { id: 'delivery-export', code: 'BDL-000001', requestId: 'export-request', generatedAt: '2026-10-23T08:00:00.000Z' })
