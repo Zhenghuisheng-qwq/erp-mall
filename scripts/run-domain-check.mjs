@@ -1,13 +1,15 @@
 import { createServer } from 'vite'
 
 const entry = process.argv[2]
-if (!entry) throw new Error('Usage: node scripts/run-domain-check.mjs scripts/<check>.ts [--baseline]')
+if (!entry) throw new Error('Usage: node scripts/run-domain-check.mjs scripts/<check>.ts [--baseline] [--strict]')
 const baseline = process.argv.includes('--baseline')
   ? (await import('./planning-performance-fixtures.mjs')).baselineSources()
   : undefined
+const strict = process.argv.includes('--strict')
 const server = await createServer({
   configFile: false,
   ...(process.env.DOMAIN_CHECK_CACHE_DIR ? { cacheDir: process.env.DOMAIN_CHECK_CACHE_DIR } : {}),
+  ...(strict ? { define: { 'import.meta.env.VITE_RBAC_ENFORCEMENT': JSON.stringify('true') } } : {}),
   server: { middlewareMode: true, hmr: false, ws: false },
   appType: 'custom',
   plugins: baseline ? [{

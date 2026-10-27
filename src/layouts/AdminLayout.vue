@@ -56,7 +56,7 @@ import { isSuperAdmin } from '../domain/rbac'
 import PageAssist from '../components/PageAssist.vue'
 import RailNav from './RailNav.vue'
 import { applyTheme, readTheme, type AppTheme } from '../theme'
-import { catalogReturnLocation } from '../domain/catalogWorkspaceNavigation'
+import { catalogReturnLocation, firstReadableCatalogView } from '../domain/catalogWorkspaceNavigation'
 
 const ICONS: Record<string, Component> = { product: Goods, tools: SetUp, system: Setting, guide: Notebook }
 
@@ -104,7 +104,13 @@ const currentPlace = computed(() => {
 
 function onUser(id:string){const result=store.simulateUser(id);if(!result.ok)ElMessage.error(result.message||'切换被拒绝')}
 watch(()=>[store.persistenceState.external,store.activeUserId,store.previewUserId,JSON.stringify(store.data.rbac),JSON.stringify(store.data.users)],()=>{
-  if(!store.canRoute({path:route.path,query:route.query})&&route.path!=='/forbidden'){ElMessage.warning('当前用户的访问授权已失效，请选择有权限的入口。');void router.replace({path:'/forbidden',query:{from:route.fullPath}})}
+  if(route.path==='/forbidden'||store.canRoute({path:route.path,query:route.query}))return
+  if(route.path==='/catalog'){
+    const next=firstReadableCatalogView(code=>store.can(code))
+    if(next){void router.replace({path:'/catalog',query:{view:next}});return}
+  }
+  ElMessage.warning('当前用户的访问授权已失效，请选择有权限的入口。')
+  void router.replace({path:'/forbidden',query:{from:route.fullPath}})
 })
 
 const moduleOf = computed(() => {
