@@ -1,10 +1,10 @@
 <template>
   <el-dialog :model-value="open" title="物料命名规则" width="780px" @close="emit('close')">
-    <p class="source">这条规则属于{{ editingPlace }}。保存只写入当前草稿的这个节点。</p>
+    <p class="source">这条规则属于{{ editingPlace }}。{{ versionId ? `读取 ${selectedVersion?.versionName || versionId} 发布快照，只读保留。` : '保存只写入当前草稿的这个节点。' }}</p><el-alert v-if="versionProblem" :title="versionProblem" type="error" :closable="false"/>
     <p class="source">{{ sourceText }}</p>
     <p class="muted">自有规则会整段覆盖祖先规则，不会把两段拼在一起。预览只读合法组合，不会创建物料或改发布快照。</p>
-    <div class="editor" :class="{ 'is-readonly': readonly }">
-      <div v-if="!readonly" class="palette">
+    <div class="editor" :class="{ 'is-readonly': readOnly }">
+      <div v-if="!readOnly" class="palette">
         <p class="col-title">可用字段</p>
         <button
           v-for="item in fields"
@@ -20,14 +20,14 @@
       </div>
       <div class="sheet" :class="{ 'is-over': overSheet }" @dragover.prevent="overSheet = true" @dragleave="overSheet = false" @drop="dropOnSheet">
         <p class="col-title">命名模板</p>
-        <p v-if="!parts.length" class="empty">把左侧字段拖到这里。顺序就是名称顺序，和模型树上的位置无关。</p>
+        <p v-if="!parts.length" class="empty">{{ readOnly ? '本节点未配置自有命名规则，生效规则见下方来源与预览。' : '把左侧字段拖到这里。顺序就是名称顺序，和模型树上的位置无关。' }}</p>
         <ol class="parts">
           <li v-for="(part, index) in parts" :key="part.uid" class="token" :class="{ 'is-over': overIndex === index }" :data-token="tokenMark(part)" @dragover.prevent="overIndex = index" @drop.stop="dropOnPart(index)">
-            <span v-if="!readonly" class="grip" draggable="true" title="拖动调整顺序" @dragstart.stop="onPartDrag($event, index)" @dragend="onDragEnd">⋮⋮</span>
+            <span v-if="!readOnly" class="grip" draggable="true" title="拖动调整顺序" @dragstart.stop="onPartDrag($event, index)" @dragend="onDragEnd">⋮⋮</span>
             <em class="kind">{{ part.kind === 'text' ? '文字' : '属性' }}</em>
-            <el-input v-if="part.kind === 'text' && !readonly" v-model="part.text" />
+            <el-input v-if="part.kind === 'text' && !readOnly" v-model="part.text" />
             <span v-else class="token-text">{{ partLabel(part) }}</span>
-            <span v-if="!readonly" class="token-ops">
+            <span v-if="!readOnly" class="token-ops">
               <el-button size="small" :disabled="index === 0" @click="move(index, -1)">上移</el-button>
               <el-button size="small" :disabled="index === parts.length - 1" @click="move(index, 1)">下移</el-button>
               <el-button size="small" @click="insertText(index)">此后插入文字</el-button>
@@ -35,10 +35,10 @@
             </span>
           </li>
         </ol>
-        <div v-if="parts.length && !readonly" class="tail" @dragover.prevent @drop.stop="dropOnSheet">拖到这里，接到模板末尾</div>
+        <div v-if="parts.length && !readOnly" class="tail" @dragover.prevent @drop.stop="dropOnSheet">拖到这里，接到模板末尾</div>
       </div>
     </div>
-    <div v-if="!readonly" class="row-actions">
+    <div v-if="!readOnly" class="row-actions">
       <el-input v-model="fixedText" placeholder="固定文字，空格会原样保存" style="width: 240px" />
       <el-button @click="addText">加入文字</el-button>
     </div>
@@ -47,15 +47,15 @@
       <el-option v-for="item in comboOptions" :key="item.identityKey" :label="item.label" :value="item.identityKey" />
     </el-select>
     <p v-if="combos.length > comboOptions.length" class="muted">只列出前 {{ comboOptions.length }} 条合法组合。</p>
-    <p class="preview">草稿预览：{{ previewText }}</p>
-    <p class="muted">这是正在编辑的草稿，不会改已发布快照，也不会直接用于已发布版本的建档。</p>
+    <p class="preview" data-naming-preview>{{ versionId ? '发布版本预览' : '草稿预览' }}：{{ previewText }}</p>
+    <p class="muted">{{ versionId ? '当前预览使用指定发布版本的节点与命名规则，不使用最新草稿替代。' : '这是正在编辑的草稿，不会改已发布快照，也不会直接用于已发布版本的建档。' }}</p>
     <p v-if="publishedFilingText" class="muted">{{ publishedFilingText }}</p>
     <p v-if="previewReason" class="muted">{{ previewReason }}</p>
     <p v-for="item in previewGaps" :key="item.key + item.reason" class="warn">{{ item.reason }}</p>
     <template #footer>
-      <el-button v-if="hasOwn && !readonly" @click="clearOwn">删除本节点规则</el-button>
-      <el-button @click="emit('close')">{{ readonly ? '关闭' : '取消' }}</el-button>
-      <el-button v-if="!readonly" type="primary" @click="save">保存规则</el-button>
+      <el-button v-if="hasOwn && !readOnly" @click="clearOwn">删除本节点规则</el-button>
+      <el-button @click="emit('close')">{{ readOnly ? '关闭' : '取消' }}</el-button>
+      <el-button v-if="!readOnly" type="primary" @click="save">保存规则</el-button>
     </template>
   </el-dialog>
 </template>
@@ -63,15 +63,21 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { legalPlanningCombinations } from '../domain/planning'
+import { salesBindingContext } from '../domain/salesConfiguration'
 import { nearestNamingRule, PRODUCT_TYPE, renderNamingRule, suggestMaterialName } from '../domain/naming'
 import type { NamingPart } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
 
 interface DraftPart extends NamingPart { uid: string }
 
-const props = defineProps<{ open: boolean; nodeId: string; templateId: string; readonly?: boolean }>()
+const props = defineProps<{ open: boolean; nodeId: string; templateId: string; readonly?: boolean; versionId?: string }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const store = useCatalogStore()
+const selectedVersion=computed(()=>props.versionId?store.data.specModelVersions.find(item=>item.id===props.versionId&&item.templateId===props.templateId):undefined)
+const versionProblem=computed(()=>props.versionId&&!selectedVersion.value?'指定发布版本不存在或不属于此模型；未使用当前草稿替代。':'')
+const readOnly=computed(()=>props.readonly||Boolean(props.versionId))
+const frozenNames=computed(()=>new Map(selectedVersion.value?.templateCompatibilitySnapshot?.attributeNames.map(item=>[item.attributeId,item.name])||[]))
+const historicalContext=computed(()=>props.versionId&&selectedVersion.value?salesBindingContext(store.data,props.templateId,props.versionId):undefined)
 const parts = ref<DraftPart[]>([])
 const fixedText = ref('')
 const comboKey = ref('')
@@ -85,15 +91,15 @@ let partSeq = 0
 const fields = computed(() => {
   const rows = [{ key: PRODUCT_TYPE, label: '产品类型' }]
   const seen = new Set<string>()
-  store.data.productSpecNodes.filter((item) => item.templateId === props.templateId && item.nodeType === 'ATTRIBUTE').forEach((item) => {
+  modelNodes.value.filter((item) => item.nodeType === 'ATTRIBUTE').forEach((item) => {
     if (!item.attributeId || seen.has(item.attributeId)) return
     seen.add(item.attributeId)
-    rows.push({ key: item.attributeId, label: store.data.params.find((param) => param.id === item.attributeId)?.name || '未命名属性' })
+    rows.push({ key: item.attributeId, label: attributeLabel(item.attributeId) })
   })
   return rows
 })
-const modelNodes = computed(() => store.data.productSpecNodes.filter((item) => item.templateId === props.templateId))
-const combos = computed(() => legalPlanningCombinations(store.data, props.templateId, modelNodes.value))
+const modelNodes = computed(() => props.versionId ? selectedVersion.value?.nodesSnapshot || [] : store.data.productSpecNodes.filter((item) => item.templateId === props.templateId))
+const combos = computed(() => props.versionId ? historicalContext.value?.combinations || [] : legalPlanningCombinations(store.data, props.templateId, modelNodes.value))
 const comboOptions = computed(() => combos.value.slice(0, 40))
 const hasOwn = computed(() => Boolean(modelNodes.value.find((item) => item.id === props.nodeId)?.namingRule?.length))
 const previewNodes = computed(() => modelNodes.value.map((item) => item.id === props.nodeId ? { ...item, namingRule: storedParts(parts.value) } : item))
@@ -137,7 +143,7 @@ const previewReason = computed(() => {
   return `规则来自祖先「${place}」。原因：当前路径上没有更近的自有规则，不使用兄弟分支的规则。`
 })
 const previewGaps = computed(() => [...(previewBody.value?.missing || []), ...(previewBody.value?.ambiguous || [])])
-const latestPublished = computed(() => store.data.specModelVersions
+const latestPublished = computed(() => props.versionId ? selectedVersion.value : store.data.specModelVersions
   .filter((item) => item.templateId === props.templateId && item.status === 'published')
   .slice()
   .sort((left, right) => left.version - right.version)
@@ -145,9 +151,9 @@ const latestPublished = computed(() => store.data.specModelVersions
 const publishedFilingText = computed(() => {
   const version = latestPublished.value
   const combo = activeCombo.value
-  if (!version) return '还没有已发布版本。发布之后，建档才读取快照里的命名规则。'
+  if (!version) return props.versionId?'':'还没有已发布版本。发布之后，建档才读取快照里的命名规则。'
   if (!combo) return ''
-  const publishedCombos = legalPlanningCombinations(store.data, props.templateId, version.nodesSnapshot)
+  const publishedCombos = props.versionId ? combos.value : legalPlanningCombinations(store.data, props.templateId, version.nodesSnapshot)
   const match = publishedCombos.find((item) => item.identityKey === combo.identityKey)
   if (!match) return `已发布 ${version.versionName} 里还没有这条规格。`
   const suggestion = suggestMaterialName(store.data, {
@@ -159,18 +165,18 @@ const publishedFilingText = computed(() => {
   const basis = suggestion.status === 'rule' ? '已发布规则生成' : suggestion.status === 'default' ? '默认名称生成' : '需要手工填写'
   const name = suggestion.name || '没有自动名称'
   const aligned = suggestion.status === 'rule' && previewBody.value?.name === suggestion.name
-  const draftNote = aligned ? '草稿预览和这一版一致。' : '当前草稿规则尚未进入已发布快照。'
+  const draftNote = props.versionId ? '这是当前选定发布版本的建档依据。' : aligned ? '草稿预览和这一版一致。' : '当前草稿规则尚未进入已发布快照。'
   return `基于已发布 ${version.versionName}：${name}。来源是${basis}。${draftNote}`
 })
 
-watch(() => props.open, (open) => {
-  if (!open) return
-  const node = store.data.productSpecNodes.find((item) => item.id === props.nodeId)
+watch(() => [props.open,props.nodeId,props.templateId,props.versionId], () => {
+  if (!props.open) return
+  const node = modelNodes.value.find((item) => item.id === props.nodeId)
   parts.value = (node?.namingRule || []).map((item) => ({ uid: nextUid(), kind: item.kind, key: item.key, text: item.text }))
   fixedText.value = ''
   comboKey.value = combos.value[0]?.identityKey || ''
   clearDrag()
-})
+},{immediate:true})
 
 function nextUid() {
   partSeq += 1
@@ -184,9 +190,11 @@ function nodeLabel(nodeId: string) {
   const node = modelNodes.value.find((item) => item.id === nodeId)
   if (!node) return '未命名节点'
   if (node.nodeType === 'VALUE') return node.valueId || '取值'
-  return store.data.params.find((item) => item.id === node.attributeId)?.name || '属性'
+  return attributeLabel(node.attributeId)
 }
+function attributeLabel(id:string){return props.versionId?frozenNames.value.get(id)||id:store.data.params.find(item=>item.id===id)?.name||id}
 function productTypeName() {
+  if(props.versionId)return '' // The publication format does not freeze a product type label; do not substitute a later name.
   const canvas = store.data.specCanvases.find((item) => item.templateId === props.templateId)
   return store.data.productTypes.find((item) => item.id === canvas?.productTypeId)?.name || ''
 }
@@ -204,7 +212,7 @@ function makeText(text: string): DraftPart {
   return { uid: nextUid(), kind: 'text', text }
 }
 function addField(key: string) {
-  if (props.readonly) return
+  if (readOnly.value) return
   if (skipClick) {
     skipClick = false
     return
@@ -212,17 +220,17 @@ function addField(key: string) {
   parts.value.push(makeField(key))
 }
 function addText() {
-  if (props.readonly || fixedText.value === '') return
+  if (readOnly.value || fixedText.value === '') return
   parts.value.push(makeText(fixedText.value))
   fixedText.value = ''
 }
 function insertText(index: number) {
-  if (props.readonly || fixedText.value === '') return
+  if (readOnly.value || fixedText.value === '') return
   parts.value.splice(index + 1, 0, makeText(fixedText.value))
   fixedText.value = ''
 }
 function move(index: number, direction: -1 | 1) {
-  if (props.readonly) return
+  if (readOnly.value) return
   const next = index + direction
   const current = parts.value[index]
   parts.value[index] = parts.value[next]
@@ -255,7 +263,7 @@ function dropOnPart(index: number) {
   const field = dragField.value
   const from = dragFrom.value
   clearDrag()
-  if (props.readonly) return
+  if (readOnly.value) return
   if (field) {
     parts.value.splice(index, 0, makeField(field))
     return
@@ -269,7 +277,7 @@ function dropOnSheet() {
   const field = dragField.value
   const from = dragFrom.value
   clearDrag()
-  if (props.readonly) return
+  if (readOnly.value) return
   if (field) {
     parts.value.push(makeField(field))
     return
@@ -279,7 +287,7 @@ function dropOnSheet() {
   parts.value.push(item)
 }
 function save() {
-  if (!props.open || props.readonly) return
+  if (!props.open || readOnly.value) return
   const node = store.data.productSpecNodes.find((item) => item.id === props.nodeId && item.templateId === props.templateId)
   if (!node) return
   node.namingRule = storedParts(parts.value)

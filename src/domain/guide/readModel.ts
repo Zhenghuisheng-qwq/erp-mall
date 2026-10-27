@@ -19,9 +19,10 @@ export interface GuideDirectoryCenter extends GuideDirectoryGroup { groups: Guid
 // Only registered, object-independent destinations. Detail pages fall back to their real
 // list/workspace entrance; an explanation never invents an object ID or selects a record.
 const targets: Record<string, GuideLocation> = {
+  'page-catalog':{path:'/catalog'},
   'page-sales-shopping':{path:'/sales-shopping'}, 'page-sales-configurations':{path:'/sales-configurations'},
-  'page-home':{path:'/'}, 'page-categories':{path:'/categories'}, 'page-product-types':{path:'/product-types'},
-  'page-params':{path:'/params'}, 'page-templates':{path:'/templates'}, 'page-models':{path:'/models'},
+  'page-home':{path:'/'}, 'page-categories':{path:'/categories',query:{mode:'organize'}}, 'page-product-types':{path:'/catalog',query:{view:'types'}},
+  'page-params':{path:'/params'}, 'page-templates':{path:'/templates'}, 'page-models':{path:'/catalog',query:{view:'models'}},
   'page-specs':{path:'/specs'}, 'page-plans':{path:'/plans'}, 'page-tree':{path:'/tree'},
   'page-spus':{path:'/spus'}, 'page-spu-create':{path:'/spus/new'}, 'page-spu-edit':{path:'/spus'},
   'page-skus':{path:'/skus'}, 'page-sku-create':{path:'/skus'}, 'page-sku-edit':{path:'/skus'},

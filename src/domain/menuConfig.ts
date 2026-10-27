@@ -19,7 +19,8 @@ export interface MenuNode {
   custom?: boolean
 }
 
-type StoredMenu = { version: 1; guideCenterVersion?: 1; nodes: MenuNode[] }
+type StoredMenu = { version: 1; guideCenterVersion?: 1; catalogWorkspaceVersion?: 1; nodes: MenuNode[] }
+const catalogTaskRoutes = new Set(['/categories', '/product-types', '/models', '/specs'])
 
 const BOTH: UserRole[] = ['admin', 'operator']
 const ADMIN: UserRole[] = ['admin']
@@ -45,11 +46,12 @@ export function defaultMenuNodes(): MenuNode[] {
     page('/skus', 'SKU 管理', 'manage', 1.5, BOTH),
     page('/benefit-packages', '常用组合', 'sales-config', 3, BOTH),
     page('/compatibility', '商品关联与适用关系', 'sales-config', 2, BOTH),
-    page('/categories', '商品分类中心', 'manage', 3, BOTH),
-    page('/product-types', '产品类型', 'manage', 4, BOTH),
+    page('/catalog', '商品资料管理', 'manage', 3, BOTH),
+    {...page('/categories', '整理分类（旧入口）', 'manage', 3, BOTH), hidden: true},
+    {...page('/product-types', '产品类型（旧入口）', 'manage', 4, BOTH), hidden: true},
     page('/templates', '属性方案', 'model', 1, ADMIN),
-    page('/models', '商品模型', 'model', 2, ADMIN),
-    page('/specs', '商品模型设计', 'model', 3, ADMIN),
+    {...page('/models', '商品模型（旧入口）', 'model', 2, ADMIN), hidden: true},
+    {...page('/specs', '商品模型设计', 'model', 3, ADMIN), hidden: true},
     page('/params', '属性词典', 'model', 4, ADMIN),
     page('/rules', '规格约束', 'model', 5, ADMIN),
     page('/brands', '品牌中心', 'operate', 1, BOTH),
@@ -98,6 +100,13 @@ function rolesOf(value: unknown, fallback: UserRole[]): UserRole[] {
 }
 
 export function sanitizeMenu(nodes: MenuNode[]): MenuNode[] {
+  // Carry the existing entrance's placement into the new daily entrance once. Keep the
+  // original nodes (including hidden/sort/custom-container preferences) for compatibility.
+  if (!nodes.some(item => item?.id === 'page:/catalog')) {
+    const old = ['/categories', '/product-types', '/models'].map(route => nodes.find(item => item?.id === `page:${route}`)).filter((item): item is MenuNode => Boolean(item))
+    const source = old.find(item => !item.hidden) || old[0]
+    if (source) nodes = [...nodes, {...source, id: 'page:/catalog', route: '/catalog', title: '商品资料管理', hidden: old.every(item => item.hidden), roles: [...BOTH], permissionCode: undefined}]
+  }
   // Inherit customized placement and access from the old product page, once per missing page.
   const legacy = nodes.find(item => item.id === 'page:/products')
   if (legacy) nodes = [...nodes, ...(['/spus', '/skus'] as const).filter(route => !nodes.some(item => item.id === `page:${route}`)).map((route, index) => ({ ...legacy, id: `page:${route}`, route, title: route === '/spus' ? 'SPU 管理' : 'SKU 管理', sort: legacy.sort + index * 0.5, roles: [...legacy.roles] }))]
@@ -175,8 +184,8 @@ export function loadMenu(): MenuNode[] {
   const clean = sanitizeMenu(stored.nodes)
   const previous = stored.nodes.find(node => node.id === 'page:/guide')
   const next = clean.find(node => node.id === 'page:/guide')!
-  if (stored.guideCenterVersion !== 1 || previous?.parentId !== 'guide' || previous.title !== next.title || !stored.nodes.some(node => node.id === 'guide' && node.kind === 'center')) {
-    try { localStorage.setItem(MENU_KEY, JSON.stringify({ version: 1, guideCenterVersion: 1, nodes: clean } satisfies StoredMenu)) }
+  if (stored.catalogWorkspaceVersion !== 1 || stored.guideCenterVersion !== 1 || previous?.parentId !== 'guide' || previous.title !== next.title || !stored.nodes.some(node => node.id === 'guide' && node.kind === 'center')) {
+    try { localStorage.setItem(MENU_KEY, JSON.stringify({ version: 1, guideCenterVersion: 1, catalogWorkspaceVersion: 1, nodes: clean } satisfies StoredMenu)) }
     catch { /* Read the migrated navigation safely; retain the old stored payload if writing is unavailable. */ }
   }
   return clean
@@ -186,7 +195,7 @@ export function saveMenu(nodes: MenuNode[]) {
   const message = validateMenu(nodes)
   if (message) throw new Error(message)
   const clean = sanitizeMenu(nodes)
-  localStorage.setItem(MENU_KEY, JSON.stringify({ version: 1, guideCenterVersion: 1, nodes: clean } satisfies StoredMenu))
+  localStorage.setItem(MENU_KEY, JSON.stringify({ version: 1, guideCenterVersion: 1, catalogWorkspaceVersion: 1, nodes: clean } satisfies StoredMenu))
   menuRevision.value += 1
   return clean
 }
@@ -261,6 +270,7 @@ function allowed(node: MenuNode, role: UserRole) {
 export function railModel(role: UserRole | ((location: {path:string;query?:Record<string,string>})=>boolean), nodes = loadMenu()) {
   const visible = (node: MenuNode) => {
     if (node.hidden) return false
+    if (catalogTaskRoutes.has(node.route) && nodes.some(item => item.id === 'page:/catalog')) return false
     if (typeof role !== 'function') return allowed(node, role)
     if (node.kind !== 'page') return true
     const [path, search] = node.route.split('?')
@@ -280,6 +290,7 @@ export function railModel(role: UserRole | ((location: {path:string;query?:Recor
 }
 
 export function menuRouteForLocation(path: string, query: { panel?: unknown } = {}) {
+  if(path==='/catalog'||catalogTaskRoutes.has(path))return '/catalog'
   if (/^\/guide\/articles\/[^/]+\/?$/.test(path)) return '/guide'
   if (['/products','/spus','/skus'].includes(path) && query.panel === 'columns') return '/products?panel=columns'
   if (/^\/(products|spus|materials)(\/|$)/.test(path)) return '/spus'

@@ -297,6 +297,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   const can=(code:string)=>authorizationReady.value&&(!RBAC_ENFORCEMENT_ENABLED||authorizationFresh())&&canPermission(data,effectiveUserId.value,code)
   function canRoute(location:{path:string;query?:Record<string,unknown>}){
     let path=location.path
+    if(path==='/catalog'&&(location.query?.view===undefined||location.query.view===''))return ['product:category:read','product:type:read','product:model:read'].some(can)
     const legacy=/^\/products\/([^/]+)$/.exec(path)
     if(legacy&&legacy[1]!=='new'&&location.query?.sku){const sku=data.skus.find(s=>s.id===location.query!.sku&&s.familyId===legacy[1]);path=sku?(isMaterialArchive(data,sku)?`/materials/${sku.familyId}`:`/skus/${sku.id}`):`/spus/${legacy[1]}`}
     const permissions=routePermissions(path,location.query);return permissions!==null&&permissions.every(can)
@@ -1170,27 +1171,52 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function saveProductType(input: { id: string; name: string; categoryId: string; description: string; sort: number; status: ProductType['status'] }) {
+    return saveProductTypeInto(data,input)
+  }
+  function saveProductTypeInto(target: AppData,input: Parameters<typeof saveProductType>[0]) {
     const name = input.name.trim()
     if (!name) return '请填写产品类型名称。'
-    const category = data.categories.find((item) => item.id === input.categoryId)
+    const category = target.categories.find((item) => item.id === input.categoryId)
     if (!category) return '目标分类不存在或已经删除。'
     if (category.enabled === false) return '目标分类已停用，不能关联。'
-    const leafBlock = blockTypeOnNonLeaf(data.categories, input.categoryId)
+    const leafBlock = blockTypeOnNonLeaf(target.categories, input.categoryId)
     if (leafBlock) return leafBlock
-    const duplicated = data.productTypes.some((item) => item.categoryId === input.categoryId && item.name === name && item.id !== input.id)
+    const duplicated = target.productTypes.some((item) => item.categoryId === input.categoryId && item.name === name && item.id !== input.id)
     if (duplicated) return '这个分类下已经有同名产品类型。'
     const description = input.description.trim()
     const sort = Number.isFinite(input.sort) ? input.sort : 1
     if (input.id) {
-      const row = data.productTypes.find((item) => item.id === input.id)
+      const row = target.productTypes.find((item) => item.id === input.id)
       if (!row) return '产品类型不存在。'
-      const blocked = productTypeCategoryMoveMessage(data, input.id, input.categoryId, categoryPath(data, input.categoryId))
+      const blocked = productTypeCategoryMoveMessage(target, input.id, input.categoryId, categoryPath(target, input.categoryId))
       if (blocked) return blocked
       Object.assign(row, { name, categoryId: input.categoryId, description, sort, status: input.status })
       return ''
     }
-    data.productTypes.push({ id: uid('pt'), name, categoryId: input.categoryId, description, sort, status: input.status })
+    target.productTypes.push({ id: uid('pt'), name, categoryId: input.categoryId, description, sort, status: input.status })
     return ''
+  }
+
+  function commitProductType(input: Parameters<typeof saveProductType>[0], expectedRecord: string, isCurrent: () => boolean) {
+    if (!isCurrent()) return { ok:false, message:'产品类型编辑上下文已变化，本次修改未保存。', id:'' }
+    const current=data.productTypes.find(item=>item.id===input.id)
+    if (input.id && (!current || JSON.stringify(current)!==expectedRecord)) return {ok:false,message:'产品类型已变化或被删除，请重新核对；当前输入已保留。',id:''}
+    const next=cloneCompatibility(data),before=new Set(next.productTypes.map(item=>item.id)),message=saveProductTypeInto(next,input)
+    if(message)return {ok:false,message,id:''}
+    const id=input.id||next.productTypes.find(item=>!before.has(item.id))!.id
+    return commitCandidate(next,{ok:true,message:'产品类型已保存',id},['productTypes'])
+  }
+
+  function commitProductTypeAction(id: string, action: 'delete'|'enabled'|'disabled', expectedRecord: string, isCurrent: () => boolean) {
+    if(!isCurrent())return {ok:false,message:'产品类型操作上下文已变化，本次修改未保存。'}
+    const current=data.productTypes.find(item=>item.id===id)
+    if(!current||JSON.stringify(current)!==expectedRecord)return {ok:false,message:'产品类型已变化或被删除，请重新核对后操作。'}
+    if(action==='delete'){const message=productTypeRemovalBlock(id);if(message)return {ok:false,message}}
+    else if(action!=='enabled'&&action!=='disabled')return {ok:false,message:'不支持的产品类型操作。'}
+    const next=cloneCompatibility(data)
+    if(action==='delete')next.productTypes=next.productTypes.filter(item=>item.id!==id)
+    else next.productTypes.find(item=>item.id===id)!.status=action
+    return commitCandidate(next,{ok:true,message:action==='delete'?'产品类型已删除':'产品类型状态已保存'},['productTypes'])
   }
 
   function removeProductType(id: string) {
@@ -1218,6 +1244,19 @@ export const useCatalogStore = defineStore('catalog', () => {
   function setProductTypeStatus(id: string, status: ProductType['status']) {
     const row = data.productTypes.find((item) => item.id === id)
     if (row) row.status = status
+  }
+
+  function setProductModelStatus(id: string, status: 'offline', expectedUpdatedAt: string, isCurrent: () => boolean) {
+    if (!isCurrent()) return { ok: false, message: '模型操作上下文已变化，本次修改未保存。' }
+    const current = data.specCanvases.find(item => item.templateId === id)
+    if (!current) return { ok: false, message: '模型工作资料不存在，请先在详情中核对；未自动补建模型。' }
+    if ((current.updatedAt || '') !== expectedUpdatedAt) return { ok: false, message: '模型已被其他操作更新，请重新核对后再下线。' }
+    if (status !== 'offline') return { ok: false, message: '不支持的模型状态操作。' }
+    if (current.status === status) return { ok: true, message: '模型已经下线。' }
+    const next = cloneCompatibility(data), canvas = next.specCanvases.find(item => item.templateId === id)!
+    canvas.status = status
+    canvas.updatedAt = new Date().toISOString()
+    return commitCandidate(next, { ok: true, message: '模型已下线，历史商品及发布快照保持原样。' }, ['specCanvases'])
   }
 
   function createProductModel(input: { productTypeId: string; name: string }) {
@@ -1783,8 +1822,20 @@ export const useCatalogStore = defineStore('catalog', () => {
     removeCategory,
     productTypesOf,
     saveProductType,
+    commitProductType: (input: Parameters<typeof saveProductType>[0], expectedRecord = '', isCurrent: () => boolean = () => true) => {
+      const value=cloneCompatibility(input),owner=activeUserId.value,preview=previewUserId.value
+      return command(()=>commitProductType(value,expectedRecord,()=>owner===activeUserId.value&&preview===previewUserId.value&&isCurrent()))
+    },
+    commitProductTypeAction: (id: string, action: 'delete'|'enabled'|'disabled', expectedRecord: string, isCurrent: () => boolean = () => true) => {
+      const owner=activeUserId.value,preview=previewUserId.value
+      return command(()=>commitProductTypeAction(id,action,expectedRecord,()=>owner===activeUserId.value&&preview===previewUserId.value&&isCurrent()))
+    },
     removeProductType,
     setProductTypeStatus,
+    setProductModelStatus: (id: string, status: 'offline', expectedUpdatedAt: string, isCurrent: () => boolean = () => true) => {
+      const owner=activeUserId.value,preview=previewUserId.value
+      return command(() => setProductModelStatus(id,status,expectedUpdatedAt,()=>owner===activeUserId.value&&preview===previewUserId.value&&isCurrent()))
+    },
     createProductModel: (...args: Parameters<typeof createProductModel>) => command(() => createProductModel(...args)),
     addCategory,
     moveCategory,

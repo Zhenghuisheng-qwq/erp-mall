@@ -2,11 +2,14 @@
   <div class="designer" :aria-busy="modelSaving || copying || publishing">
     <RuleExplanation v-if="publishFailure" :failure="publishFailure" :supported-recovery="['edit-input']" @recover="recoverPublish" />
     <div class="studio-switch">
+      <el-button v-if="catalogReturn" data-model-back-catalog @click="router.push(catalogReturn)">返回商品资料管理</el-button>
       <el-radio-group :model-value="surface" :disabled="composerBusy" size="small" @change="setSurface">
         <el-radio-button value="overview">全局总览</el-radio-button>
         <el-radio-button value="design">单模型设计</el-radio-button>
       </el-radio-group>
     </div>
+    <el-alert v-if="requestedVersionId && !requestedVersion" title="指定发布版本不存在或不属于当前模型，未切换到最新版本。" type="error" :closable="false" data-model-invalid-version />
+    <el-alert v-if="templateId && !modelTemplateExists" title="模型基础资料已失效，未自动补建模型或归属。请返回资料管理核对。" type="error" :closable="false" data-model-invalid-template />
     <div class="workbench" :inert="composerBusy" :class="{ 'is-cat-fold': treeFold, 'is-rail-fold': railFold, 'is-overview': surface === 'overview' }">
       <CategoryCatalog
         :rows="categoryRows"
@@ -67,7 +70,7 @@
           </div>
           <div class="studio-actions">
             <el-button v-if="fromOverview" @click="backToOverview">返回总览</el-button>
-            <el-button v-if="viewing" type="primary" @click="enterEdit" :disabled="!(store.can('product:model:update'))">进入编辑</el-button>
+            <el-button v-if="viewing" type="primary" @click="enterEdit" :disabled="!(store.can('product:model:update'))">{{ requestedVersionId ? '进入当前草稿' : '进入编辑' }}</el-button>
             <el-button v-if="!viewing" :disabled="(modelSaving || publishing || copying || !store.can('product:model:update')) || !(store.can('product:model:update'))" :loading="modelSaving" @click="saveModel">保存模型</el-button>
             <el-button v-if="!viewing" :disabled="modelSaving || publishing || copying || !store.can('product:model:publish')" :loading="publishing" type="primary" @click="publish">发布模型</el-button>
           </div>
@@ -169,7 +172,8 @@
         <section v-if="templateId" class="insight">
           <div class="insight-summary">
             <div class="summary-stats">
-              <strong v-if="publishedComboVersions.length">已发布组合 {{ comboRows.length }} 条</strong>
+              <strong v-if="requestedVersionId">{{ requestedVersion?.versionName || '指定版本' }} · 组合 {{ comboRows.length }} 条</strong>
+              <strong v-else-if="publishedComboVersions.length">已发布组合 {{ comboRows.length }} 条</strong>
               <strong v-else>尚未发布</strong>
               <span>已选 {{ checkedIds.length }} 条</span>
               <span>{{ comboNumbered }} 条已有规划编号<span v-if="comboRows.length > comboNumbered"> · 其余发布后自动编号</span></span>
@@ -416,9 +420,9 @@
         </p>
       </section>
     </el-drawer>
-    <NodeBusinessDialog :open="businessOpen" :nodes="nodes" :node-id="businessNodeId" :readonly="!canEditStructure" :busy="businessBusy" :save="saveBusiness" @close="businessOpen = false" @pending="businessBusy = $event" @naming="businessOpen = false; selected = businessNodeId; namingOpen = true" @locate="locateBusiness" />
+    <NodeBusinessDialog :open="businessOpen" :nodes="nodes" :model-id="templateId" :initial-version-id="requestedVersionId" :node-id="businessNodeId" :readonly="!canEditStructure" :busy="businessBusy" :save="saveBusiness" @close="businessOpen = false" @pending="businessBusy = $event" @naming="businessOpen = false; selected = businessNodeId; namingOpen = true" @locate="locateBusiness" />
     <MaterialRelationDialog :open="relationOpen" :source="{kind:'node',modelId:templateId,versionId:comboVersionId,anchorNodeId:selected,scope:'current'}" @close="relationOpen=false" />
-    <NamingRuleDialog :open="namingOpen" :readonly="!canEditStructure" :node-id="selected" :template-id="templateId" @close="namingOpen = false" @saved="markWorkingDraft" />
+    <NamingRuleDialog :open="namingOpen" :version-id="requestedVersionId" :readonly="!canEditStructure" :node-id="selected" :template-id="templateId" @close="namingOpen = false" @saved="markWorkingDraft" />
     <NodeAddPanel v-model="attributeOpen" :title="attributeBindId ? '更换属性引用' : '添加属性'" :anchor="addAnchor" :busy="composerBusy" @closed="resetAttrComposer">
       <p class="composer-context">位置：{{ composerPath(attributeBindId || attachParent || '') }}</p>
       <p v-if="boundParam" class="composer-context">当前属性：<strong>{{ boundParam.name }}</strong> · {{ boundParam.id }}</p>
@@ -459,7 +463,7 @@
         <el-button type="primary" @click="confirmNodeDraft">确认</el-button>
       </template>
     </el-dialog>
-    <TemplateSalesWorkspace v-model="salesBindingOpen" :model-id="templateId" :node-id="salesNodeId||undefined" :initial-tab="workspaceTab" :readonly="viewing"/>
+    <TemplateSalesWorkspace v-if="!requestedVersionId || requestedVersion" v-model="salesBindingOpen" :model-id="templateId" :version-id="requestedVersionId || null" :node-id="salesNodeId||undefined" :initial-tab="workspaceTab" :readonly="viewing"/>
 
     <el-dialog v-model="copyOpen" title="复制模型" width="440px" :show-close="!copying" :close-on-click-modal="!copying" :close-on-press-escape="!copying">
       <p class="copy-label">原模型</p>
@@ -501,6 +505,7 @@ import { useComboSelection } from '../components/model-editor/useComboSelection'
 import TemplateSalesWorkspace from '../components/sales-configuration/TemplateSalesWorkspace.vue'
 import TypeModelRail from '../components/model-editor/TypeModelRail.vue'
 import { categoryChain, visibleCategoryRows } from '../domain/categoryTree'
+import { catalogReturnLocation } from '../domain/catalogWorkspaceNavigation'
 import { nearestNamingRule } from '../domain/naming'
 import { arrangeSpecPositions, categoryPath, latestPublishedVersion, layoutSpecTree, modelVersionsOf, sameSpecSnapshot, specNodeSize, specTreeAdvance, SPEC_LINK_GAP, SPEC_TREE_GAP, SPEC_TREE_ORIGIN_Y, SPEC_VALUE_TO_VALUE } from '../domain/logic'
 import { defaultOverviewCategoryId, overviewRootId as graphRootId } from '../domain/overviewGraph'
@@ -561,7 +566,11 @@ function setRailFold(value: boolean) {
 }
 const zoomRatio = ref(1)
 const zoomLabel = computed(() => `${Math.round(zoomRatio.value * 100)}%`)
-const viewing = computed(() => route.query.mode === 'view')
+const requestedVersionId = computed(() => typeof route.query.version === 'string' ? route.query.version : typeof route.query.versionId === 'string' ? route.query.versionId : '')
+const requestedVersion = computed(() => requestedVersionId.value ? store.data.specModelVersions.find(item => item.id === requestedVersionId.value && item.templateId === templateId.value) : undefined)
+const catalogReturn = computed(() => catalogReturnLocation(route.query.returnTo))
+const modelTemplateExists = computed(() => store.data.templates.some(item=>item.id===templateId.value))
+const viewing = computed(() => route.query.mode === 'view' || !!requestedVersionId.value || !!templateId.value && !modelTemplateExists.value)
 const surface = computed(() => (route.query.panel === 'overview' ? 'overview' : 'design'))
 const fromOverview = computed(() => route.query.from === 'overview')
 const overviewCategoryId = computed(() => (typeof route.query.category === 'string' ? route.query.category : ''))
@@ -626,7 +635,7 @@ function toggleCategory(id: string) {
 }
 function clearOpenModel() {
   templateId.value = ''
-  router.replace({ path: '/specs', query: viewing.value ? { mode: 'view' } : {} })
+  router.replace({ path: '/specs', query: { ...(viewing.value ? { mode: 'view' } : {}), ...(catalogReturn.value ? {returnTo:catalogReturn.value} : {}) } })
 }
 function belongsToLeaf(id: string) {
   return typeGroups.value.some((group) => group.models.some((item) => item.templateId === id))
@@ -646,7 +655,7 @@ function focusType(typeId: string) {
 function openModel(id: string) {
   if(composerBusy.value)return
   templateId.value = id
-  router.replace({ path: '/specs', query: viewing.value ? { template: id, mode: 'view' } : { template: id } })
+  router.replace({ path: '/specs', query: {template:id,...(viewing.value ? {mode:'view'} : {}),...(catalogReturn.value ? {returnTo:catalogReturn.value} : {})} })
 }
 async function createModelFor(typeId: string) {
   const type = store.data.productTypes.find((item) => item.id === typeId)
@@ -757,7 +766,7 @@ function onDictEsc(event: KeyboardEvent) {
 const copyOpen = ref(false)
 const copying = ref(false), modelSaving = ref(false)
 const salesBindingOpen=ref(false),salesNodeId=ref(''),workspaceTab=ref('sales')
-const salesBindings=computed(()=>(store.data.salesOptionBindings||[]).filter(binding=>binding.schemaVersion===1&&binding.scope?.kind==='model'&&binding.scope.modelId===templateId.value&&binding.scope.versionId===null))
+const salesBindings=computed(()=>(store.data.salesOptionBindings||[]).filter(binding=>binding.schemaVersion===1&&binding.scope?.kind==='model'&&binding.scope.modelId===templateId.value&&binding.scope.versionId===(requestedVersionId.value||null)))
 function salesBindingText(nodeId:string){const matches=salesBindings.value.filter(binding=>binding.scope.kind==='model'&&(nodeId?binding.scope.nodeId===nodeId:binding.mode==='default'));if(!matches.length)return nodeId?'':'选配：尚未配置';const names=[...new Set(matches.map(binding=>{const plan=store.data.salesOptionPlans?.find(plan=>plan.schemaVersion===1&&plan.id===binding.planId),name=binding.mode==='none'?'不使用方案':plan?.name||'引用失效';return `${name}${!binding.enabled?'（待启用）':plan?.status==='disabled'?'（方案已停用）':''}`}))];return `选配：${names.slice(0,2).join('、')}${names.length>2?' 等':''}`}
 const salesModelSummary=computed(()=>salesBindingText(''))
 const salesNodeSummary=computed(()=>salesBindingText(selected.value===rootId?'':selected.value))
@@ -817,7 +826,7 @@ const flowNodes = ref<{ id: string; type: string; position: { x: number; y: numb
 const flowEdges = ref<{ id: string; source: string; target: string; type: string; data: { childIds: string[]; hot: boolean } }[]>([])
 const mapForced = ref<boolean | null>(null)
 
-const nodes = computed(() => store.data.productSpecNodes.filter((item) => item.templateId === templateId.value))
+const nodes = computed(() => requestedVersionId.value ? requestedVersion.value?.nodesSnapshot || [] : store.data.productSpecNodes.filter((item) => item.templateId === templateId.value))
 const comboSelection = useComboSelection()
 const { checkedIds, toggle: toggleCheck, clear: clearComboSelection } = comboSelection
 const comboManageOpen = ref(false)
@@ -835,7 +844,7 @@ const publishedComboVersions = computed(() => modelVersionsOf(store.data, templa
 watch(
   () => `${templateId.value}#${publishedComboVersions.value.map((item) => item.id).join('|')}`,
   () => {
-    comboVersionId.value = publishedComboVersions.value[publishedComboVersions.value.length - 1]?.id || ''
+    comboVersionId.value = requestedVersionId.value || publishedComboVersions.value[publishedComboVersions.value.length - 1]?.id || ''
   },
   { immediate: true },
 )
@@ -859,8 +868,9 @@ const comboSummaryText = computed(() => {
 })
 const draftPreview = computed(() => previewDraftCombinations(store.data, templateId.value, nodes.value))
 const publishImpact = computed(() => publishImpactText(draftPreview.value))
-const compatibilityConfig = computed(() => readTemplateCompatibilityConfig(store.data, templateId.value))
+const compatibilityConfig = computed(() => requestedVersionId.value ? requestedVersion.value?.templateCompatibilitySnapshot?.config : readTemplateCompatibilityConfig(store.data, templateId.value))
 const compatibilityUnpublished = computed(() => {
+  if(requestedVersionId.value)return false
   const latest = latestPublishedVersion(store.data, templateId.value)
   return templateCompatibilityContentSignature(compatibilityConfig.value) !== templateCompatibilityContentSignature(latest?.templateCompatibilitySnapshot)
 })
@@ -874,8 +884,9 @@ const compatibilitySummary = computed(() => {
 })
 function openTemplateCompatibility(nodeId = '') {salesNodeId.value=nodeId;workspaceTab.value='compatibility';salesBindingOpen.value=true}
 
-const showDraftList = computed(() => draftPreview.value.problems.length > 0 || canvas.value.status !== 'published' || draftPreview.value.rows.length !== comboRows.value.length)
+const showDraftList = computed(() => !requestedVersionId.value && (draftPreview.value.problems.length > 0 || canvas.value.status !== 'published' || draftPreview.value.rows.length !== comboRows.value.length))
 const draftPreviewLine = computed(() => {
+  if(requestedVersionId.value)return ''
   const preview = draftPreview.value
   if (preview.problems.length) return `草稿预览暂时无法生成：${preview.problems[0]}`
   if (!showDraftList.value) return ''
@@ -975,6 +986,7 @@ const shortcutGroups = computed(() => {
 })
 const canvas = computed(() => store.data.specCanvases.find((item) => item.templateId === templateId.value) || { templateId: templateId.value, zoom: 1, panX: 0, panY: 0, status: 'draft' as const, version: 1, versionName: 'V1' })
 const versionBadge = computed(() => {
+  if(requestedVersionId.value)return {text:requestedVersion.value ? `版本 ${requestedVersion.value.versionName} · 只读` : '指定版本失效',type:requestedVersion.value ? 'info' as const : 'danger' as const,note:'读取指定版本快照，不使用当前草稿替代。'}
   const published = modelVersionsOf(store.data, templateId.value).filter((item) => item.status === 'published')
   const latest = published[published.length - 1]
   if (canvas.value.status === 'published' && latest) return { text: `已发布 ${latest.versionName}`, type: 'success' as const, note: '当前内容与最近发布快照一致。查看不会改写这份快照。' }
@@ -1101,7 +1113,7 @@ watch(() => [canEditStructure.value, nodes.value.map(n => n.id).join('|')], () =
     if (open.value && !validDialog(kind)) composerError.value='操作上下文已变化，待选内容保留，请核对节点或取消。'
   }
 })
-watch(comboVersionId, () => { dragStart = undefined })
+watch(comboVersionId, value => { dragStart = undefined; if(requestedVersionId.value && value && value!==requestedVersionId.value)void router.replace({path:'/specs',query:{...route.query,version:value,mode:'view'}}) })
 function invalidateEditorDialogs() {
   interaction += 1
   dragStart = undefined
@@ -1148,7 +1160,7 @@ watch(viewMode, () => {
   frameCanvas()
 })
 watch(()=>[showStructureMaterials.value,comboVersionId.value,JSON.stringify(store.data.materialRelations),store.data.skus.map(s=>`${s.id}:${s.skuName}:${s.materialCode}`).join('|')],()=>{paint();nextTick(frameCanvas)})
-watch(()=>route.fullPath,()=>{if(typeof route.query.materialVersion==='string')comboVersionId.value=route.query.materialVersion;if(typeof route.query.materialNode==='string')nextTick(()=>{selected.value=String(route.query.materialNode);revealNode(selected.value)})},{immediate:true})
+watch(()=>route.fullPath,()=>{if(requestedVersionId.value)comboVersionId.value=requestedVersionId.value;else if(typeof route.query.materialVersion==='string')comboVersionId.value=route.query.materialVersion;if(typeof route.query.materialNode==='string')nextTick(()=>{selected.value=String(route.query.materialNode);revealNode(selected.value)})},{immediate:true})
 watch(
   () => `${templateId.value}#${nodes.value.map((item) => `${item.id}:${item.parentId}:${item.nodeType}:${item.attributeId}:${item.valueId}:${item.role || ''}:${item.sort}`).join('|')}`,
   (_next, prev) => {
@@ -1268,6 +1280,7 @@ function ruleMark(node: ProductSpecNode) {
 }
 function nodeTitle(node: ProductSpecNode) {
   if (node.nodeType === 'VALUE') return node.valueId || '未命名取值'
+  if(requestedVersionId.value)return requestedVersion.value?.templateCompatibilitySnapshot?.attributeNames.find(item=>item.attributeId===node.attributeId)?.name || store.data.params.find(item=>item.id===node.attributeId)?.name || node.attributeId || '属性未记录'
   return attributeHint(node).bound ? store.data.params.find((item) => item.id === node.attributeId)?.name || '未绑定属性' : '未绑定属性'
 }
 function valueOptions(node: ProductSpecNode): FlowOption[] {
@@ -2014,6 +2027,7 @@ function sessionValue(key: string) {
 function carriedOverview() {
   const root = queryText(route.query.root) || sessionValue(OVERVIEW_ROOT_KEY)
   const carried: Record<string, string> = { view: overviewView.value }
+  if (catalogReturn.value) carried.returnTo = catalogReturn.value
   if (root) carried.root = root
   return carried
 }
@@ -2091,8 +2105,11 @@ function backToOverview() {
   })
 }
 function enterEdit() {
+  if(!store.can('product:model:update')||!modelTemplateExists.value)return
   const next = { ...route.query }
   delete next.mode
+  delete next.version
+  delete next.versionId
   router.replace({ path: '/specs', query: next })
 }
 async function saveModel() {

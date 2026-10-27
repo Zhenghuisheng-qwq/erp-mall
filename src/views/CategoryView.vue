@@ -1,6 +1,7 @@
 <template>
   <div data-category-workspace>
-    <PageHead title="商品分类中心" desc="勾选分类后加入右侧待移动区，再选择左侧目标父级并确认。">
+    <PageHead title="整理分类" desc="勾选分类后加入右侧待移动区，再选择左侧目标父级并确认。">
+      <el-button data-category-back-catalog @click="backToCatalog">返回商品资料管理</el-button>
       <el-button v-if="panels.length === 1" data-open-category-panel @click="openPanel">打开待移动区</el-button>
     </PageHead>
     <div class="workspace-toolbar">
@@ -53,7 +54,7 @@
             <button type="button" class="linkish" @click="openProduct(item.id)">{{ item.name }}</button>
             <span v-if="shelfOf(item) === 'online'">已发布</span>
           </p>
-          <button v-if="ownedFamilies.length" type="button" class="linkish" @click="openProducts">在商品列表中查看</button>
+          <button v-if="ownedFamilies.length && store.can('product:spu:read')" type="button" class="linkish" @click="openProducts">查看商品主体明细</button>
         </div>
         <div class="info-card">
           <h3>属性方案</h3>
@@ -114,7 +115,7 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
-import { onBeforeRouteLeave, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import RuleExplanation from '../components/guide/RuleExplanation.vue'
 import { getFailure } from '../domain/guide/failure'
 import type { GuideFailure } from '../domain/guide/types'
@@ -123,12 +124,14 @@ import CategoryBrowsePanel from '../components/category/CategoryBrowsePanel.vue'
 import { categoryChain, subtreeCounts, type DropPosition } from '../domain/categoryTree'
 import { categoryStructureStamp, normalizeCategoryMoveSources, previewCategoryMoves, previewCategoryMove, type CategoryMoveRequest } from '../domain/categoryMovement'
 import { shelfOf, templateById } from '../domain/logic'
-import { applyPresetToActiveView } from '../domain/productListViews'
+import { catalogReturnLocation } from '../domain/catalogWorkspaceNavigation'
 import { useCatalogStore } from '../stores/catalog'
 
-const store = useCatalogStore(), router = useRouter()
-const treeMode = ref<'view' | 'edit'>('view'), editing = computed(() => treeMode.value === 'edit' && store.can('product:category:update'))
-const initialId = store.data.categories.some(item => item.id === 'c-phone') ? 'c-phone' : store.data.categories[0]?.id || ''
+const store = useCatalogStore(), router = useRouter(), route = useRoute()
+const treeMode = ref<'view' | 'edit'>(store.can('product:category:update') && (route.query.mode === 'organize' || route.query.mode === 'edit') ? 'edit' : 'view'), editing = computed(() => treeMode.value === 'edit' && store.can('product:category:update'))
+const requestedCategory = typeof route.query.categoryId === 'string' ? route.query.categoryId : typeof route.query.category === 'string' ? route.query.category : typeof route.query.id === 'string' ? route.query.id : ''
+const initialId = requestedCategory || (store.data.categories.some(item => item.id === 'c-phone') ? 'c-phone' : store.data.categories[0]?.id || '')
+function backToCatalog(){void router.push(catalogReturnLocation(route.query.returnTo)||{path:'/catalog',query:{view:'categories',...(selected.value?{categoryId:selected.value}:{})}})}
 const selected = ref(initialId), activePanel = ref('panel-1'), detailsOpen = ref(false)
 const panels = ref([{id:'panel-1',title:'分类栏 A',initialId}])
 const panelRefs = new Map<string, InstanceType<typeof CategoryBrowsePanel>>()
@@ -434,10 +437,7 @@ function openProduct(id: string) {
 }
 function openProducts() {
   if (!current.value) return
-  applyPresetToActiveView(store.data, {
-    query: { ...store.data.listQuery, keyword: '', categoryId: current.value.id, brand: '', status: '', templateId: '', productGroupId: '', attrFilters: {}, createdFrom: '', createdTo: '', shelf: '', page: 1 },
-  })
-  router.push('/products')
+  router.push({path:'/catalog',query:{view:'categories',categoryId:current.value.id,scope:'current',metric:'spus'}})
 }
 async function remove(id: string) {
   if (!canMutate()) return

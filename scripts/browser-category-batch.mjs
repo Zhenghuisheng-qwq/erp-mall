@@ -24,7 +24,7 @@ try{
   const context=async(user='u-admin')=>{
    const ctx=await browser.newContext({viewport:{width:1600,height:1000},locale:'zh-CN',reducedMotion:'reduce'})
    await ctx.addInitScript(({data,version,user})=>{if(location.protocol!=='http:')return;const native=Storage.prototype.setItem;if(!localStorage.getItem('iyge-v2-mock-db'))native.call(localStorage,'iyge-v2-mock-db',JSON.stringify({version,data}));native.call(sessionStorage,'iyge-rbac-simulated-user',user);window.__batchWrites=0;Storage.prototype.setItem=function(key,value){if(key==='iyge-v2-mock-db'){if(window.__batchFailWrite)throw new DOMException('整批分类配额失败','QuotaExceededError');window.__batchWrites++}return native.call(this,key,value)}},{data,version:DATA_VERSION,user})
-   const page=await ctx.newPage();page.setDefaultTimeout(12000);page.on('pageerror',error=>errors.push(`${label}: ${String(error)}`));await page.goto(base+'/categories',{waitUntil:'networkidle'});await page.evaluate(async()=>await(await import('/src/stores/catalog.ts')).useCatalogStore().waitForPersistence());return {ctx,page}
+   const page=await ctx.newPage();page.setDefaultTimeout(12000);page.on('pageerror',error=>errors.push(`${label}: ${String(error)}`));await page.goto(base+'/categories?mode=maintain',{waitUntil:'networkidle'});await page.evaluate(async()=>await(await import('/src/stores/catalog.ts')).useCatalogStore().waitForPersistence());return {ctx,page}
   }
   let {ctx,page}=await context()
   const left=()=>page.locator('[data-category-panel="panel-1"]'),right=()=>page.locator('[data-category-panel]').nth(1),row=(panel,id)=>panel.locator(`.cat-row[data-id="${id}"]`),search=async value=>left().getByPlaceholder('搜索并定位分类').fill(value)

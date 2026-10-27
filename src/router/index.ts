@@ -5,6 +5,7 @@ import { useCatalogStore } from '../stores/catalog'
 import {routePermissions} from '../domain/rbac'
 import {createFailure} from '../domain/guide/failure'
 import {guideRouteFailure} from '../domain/guide/routeFailure'
+import { legacyCatalogLocation } from '../domain/catalogWorkspaceNavigation'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -45,7 +46,8 @@ const router = createRouter({
         } },
         { path: 'check', name: 'check', component: () => import('../views/CheckView.vue'), meta: { title: '商品质量检查', group: '商品分析', mode: 'daily' } },
         { path: 'overview', name: 'overview', component: () => import('../views/OverviewView.vue'), meta: { title: '商品总览', group: '商品工作台', mode: 'daily' } },
-        { path: 'categories', name: 'categories', component: () => import('../views/CategoryView.vue'), meta: { title: '商品分类中心', group: '商品中心', mode: 'advanced' } },
+        { path: 'catalog', name: 'catalog', component: () => import('../views/CatalogWorkspaceView.vue'), meta: { title: '商品资料管理', group: '商品中心', mode: 'daily' } },
+        { path: 'categories', name: 'categories', component: () => import('../views/CategoryView.vue'), meta: { title: '整理分类', group: '商品中心', mode: 'advanced' } },
         { path: 'product-types', name: 'product-types', component: () => import('../views/ProductTypeView.vue'), meta: { title: '产品类型', group: '商品中心', mode: 'advanced' } },
         { path: 'templates', name: 'templates', component: () => import('../views/TemplateView.vue'), meta: { title: '属性方案', group: '商品中心', mode: 'advanced' } },
         { path: 'models', name: 'models', component: () => import('../views/ModelListView.vue'), meta: { title: '商品模型', group: '商品中心', mode: 'advanced' } },
@@ -75,8 +77,10 @@ router.beforeEach(async (to, from) => {
   // Changing the temporary SKU scope is local navigation. Its working drafts
   // already have isolated keys; an ordinary config write must not hold it up.
   // Initial authorization migration and all route permission checks still apply.
-  const skuScopeNavigation = to.name === 'skus' && from.name === 'skus' && store.authorizationReady
-  if (!skuScopeNavigation) await store.waitForPersistence()
+  const localBrowseNavigation = to.name === from.name && ['skus','catalog'].includes(String(to.name)) && store.authorizationReady
+  if (!localBrowseNavigation) await store.waitForPersistence()
+  const legacyCatalog = legacyCatalogLocation(to.path, to.query)
+  if(legacyCatalog)return {path:legacyCatalog.path,query:legacyCatalog.query as typeof to.query,hash:to.hash,replace:true}
   if(store.canRoute({path:to.path,query:to.query}))return true
   guideRouteFailure.value=createFailure({kind:'permission',ruleId:'rule-permission',actionId:'action-rbac-authorize',message:store.rbacEnforced?'当前身份没有此页面的有效访问授权。':'此地址不是已登记的正式页面；当前统一管理员模式仍保留路由登记保护。',savedState:'unchanged',context:{requiredPermissions:(routePermissions(to.path,to.query)||[]).join('、'),mode:store.rbacEnforced?'严格授权':'统一管理员'},recovery:['feedback']})
   return {path:'/forbidden',query:{from:to.fullPath}}

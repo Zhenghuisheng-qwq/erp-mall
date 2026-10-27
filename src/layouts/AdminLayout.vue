@@ -5,6 +5,7 @@
       <RuleExplanation v-if="importFailure" :failure="importFailure" :supported-recovery="[]" />
       <header class="topbar">
         <div class="topbar-left">
+          <el-button v-if="catalogReturn" size="small" data-catalog-return @click="router.push(catalogReturn)">返回商品资料管理</el-button>
           <div class="crumb">{{ title }}</div>
         </div>
         <div class="row-actions">
@@ -55,11 +56,13 @@ import { isSuperAdmin } from '../domain/rbac'
 import PageAssist from '../components/PageAssist.vue'
 import RailNav from './RailNav.vue'
 import { applyTheme, readTheme, type AppTheme } from '../theme'
+import { catalogReturnLocation } from '../domain/catalogWorkspaceNavigation'
 
 const ICONS: Record<string, Component> = { product: Goods, tools: SetUp, system: Setting, guide: Notebook }
 
 const store = useCatalogStore()
 const route = useRoute(), router = useRouter()
+const catalogReturn = computed(() => !['/catalog','/categories','/specs'].includes(route.path) ? catalogReturnLocation(route.query.returnTo) : undefined)
 const canSwitchUser=computed(()=>isSuperAdmin(store.data,store.activeUserId))
 const dataBusy = ref(false)
 const importFailure=ref<GuideFailure>()
@@ -107,8 +110,8 @@ watch(()=>[store.persistenceState.external,store.activeUserId,store.previewUserI
 const moduleOf = computed(() => {
   const path = route.path
   if (path.startsWith('/products') || path.startsWith('/spus') || path.startsWith('/skus') || path.startsWith('/materials') || path.startsWith('/import') || path.startsWith('/compatibility') || path === '/' || path.startsWith('/check') || path.startsWith('/overview')) return 'products' as const
-  if (path.startsWith('/categories') || path.startsWith('/mappings')) return 'categories' as const
-  if (path.startsWith('/templates') || path.startsWith('/specs') || path.startsWith('/models')) return 'templates' as const
+  if (path.startsWith('/categories') || path.startsWith('/mappings') || path === '/catalog' && (!route.query.view || route.query.view === 'categories' || route.query.view === 'types')) return 'categories' as const
+  if (path.startsWith('/templates') || path.startsWith('/specs') || path.startsWith('/models') || path === '/catalog') return 'templates' as const
   if (path.startsWith('/params')) return 'params' as const
   if (path.startsWith('/rules')) return 'rules' as const
   if (path.startsWith('/groups')) return 'groups' as const

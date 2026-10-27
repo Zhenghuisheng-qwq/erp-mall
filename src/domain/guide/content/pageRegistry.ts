@@ -1,7 +1,9 @@
 import type { GuidePage } from '../types'
 import { salesOptionPages } from './manuals-sales-options'
+import { catalogPages } from './manuals-catalog'
 
 export const guidePages: GuidePage[] = [
+  ...catalogPages,
   ...salesOptionPages,
   {
     "id": "page-home",
@@ -18,7 +20,7 @@ export const guidePages: GuidePage[] = [
   },
   {
     "id": "page-categories",
-    "title": "商品分类中心",
+    "title": "整理分类",
     "patterns": [
       "/categories"
     ],

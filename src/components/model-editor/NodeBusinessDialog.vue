@@ -1,11 +1,12 @@
 <template>
   <el-dialog :model-value="open" title="节点业务配置" width="760px" class="node-business-dialog" :close-on-click-modal="false" :close-on-press-escape="!busy" :show-close="!busy" @close="emit('close')">
     <div :inert="busy" data-business-panel>
-      <p><strong>{{ node?.valueId || '公共配置目录' }}</strong> <span class="muted">{{ node?.id }} · {{ readOnly ? '发布投影 / 只读' : '模型草稿' }}</span></p>
+      <p><strong>{{ node?.valueId || (nodeId?'当前版本未记录此节点':'公共配置目录') }}</strong> <span class="muted">{{ node?.id }} · {{ versionId ? `${selectedVersion?.versionName||versionId} / 只读快照` : readOnly ? '当前草稿 / 只读' : '模型草稿' }}</span></p>
       <el-alert v-if="error" :title="error" type="error" :closable="false" />
+      <el-alert v-if="versionProblem" :title="versionProblem" type="error" :closable="false" />
       <el-alert v-if="structureProblems.length" :title="structureProblems.join('；')" type="error" :closable="false" />
       <details v-if="structureProblems.length"><summary>结构损坏，已停止编辑；查看保留的原文</summary><pre>{{ JSON.stringify({businessDefinitions:store.data.businessDefinitions,businessConfigs:node?.businessConfigs},null,2) }}</pre></details>
-      <el-select v-if="node" v-model="versionId" placeholder="当前草稿" aria-label="业务配置版本" @change="editing=false; error=''">
+      <el-select v-if="modelId" v-model="versionId" placeholder="当前草稿" aria-label="业务配置版本" @change="editing=false; error=''">
         <el-option label="当前草稿" value="" /><el-option v-for="v in versions" :key="v.id" :label="`${v.versionName}（只读快照）`" :value="v.id" />
       </el-select>
       <el-tabs v-model="tab">
@@ -18,7 +19,7 @@
           </section>
           <p class="muted">共用策略不指定具体物料。请通过物料建档／关联入口明确选择 MAT，预览并确认作用范围。</p>
           <section v-if="restriction.hits.length" class="business-result"><strong>当前路径允许值：</strong>{{ restriction.message || (restriction.parameters?.values as string[] || []).join('、') }}<div v-for="source in restriction.sources" :key="source" class="muted">来源：{{ source }}</div></section>
-          <p>命名规则：{{ namingSource }} <el-button v-if="!versionId" link type="primary" @click="emit('naming')">{{ readOnly ? '查看原命名规则' : '打开原命名编辑器' }}</el-button></p>
+          <p>命名规则：{{ namingSource }} <el-button v-if="!versionId&&!initialVersionId" link type="primary" @click="emit('naming')">{{ readOnly ? '查看原命名规则' : '打开原命名编辑器' }}</el-button></p>
           <div v-for="config in records" :key="config.id" class="business-record">
             <div><strong>{{ businessDefinition(store.data,config)?.name || '不支持的配置' }}</strong> · {{ config.enabled ? '启用' : '停用' }} · {{ config.scope === 'current' ? '仅当前值' : config.scope === 'subtree' ? '当前值及其下级' : '范围无效' }}</div>
             <small>{{ configText(config) }}</small>
@@ -64,13 +65,16 @@ import { businessDefinition, businessDefinitions, businessIssues, businessLabel,
 import { nearestNamingRule } from '../../domain/naming'
 import { businessRecordProblems, safeBusinessConfigs } from '../../domain/nodeBusinessStructure'
 import type { ProductSpecNode } from '../../domain/types'
-const props=defineProps<{open:boolean;nodes:ProductSpecNode[];nodeId:string;readonly:boolean;busy:boolean;save:(records:NodeBusinessConfig[],expected:string)=>Promise<{ok:boolean;message?:string}>}>()
+const props=defineProps<{open:boolean;nodes:ProductSpecNode[];nodeId:string;modelId?:string;initialVersionId?:string;readonly:boolean;busy:boolean;save:(records:NodeBusinessConfig[],expected:string)=>Promise<{ok:boolean;message?:string}>}>()
 const emit=defineEmits<{close:[];naming:[];locate:[id:string];pending:[value:boolean]}>()
 const store=useCatalogStore(), tab=ref('node'), error=ref(''), editing=ref(false), editingId=ref(''), expected=ref('')
 const form=ref({definitionId:'business:sales',scope:'subtree',enabled:true}),value=ref('hot'),attributeId=ref(''),values=ref<string[]>([]),definitionDraft=ref<BusinessDefinition>()
 const versionId=ref('')
-const versions=computed(()=>store.data.specModelVersions.filter(v=>v.templateId===props.nodes[0]?.templateId))
-const displayNodes=computed(()=>versions.value.find(v=>v.id===versionId.value)?.nodesSnapshot || props.nodes)
+const modelId=computed(()=>props.modelId||props.nodes[0]?.templateId||'')
+const versions=computed(()=>store.data.specModelVersions.filter(v=>v.templateId===modelId.value))
+const selectedVersion=computed(()=>versions.value.find(v=>v.id===versionId.value))
+const versionProblem=computed(()=>versionId.value&&!selectedVersion.value?'指定发布版本不存在，未使用当前草稿或其他快照替代。':'')
+const displayNodes=computed(()=>versionId.value?selectedVersion.value?.nodesSnapshot||[]:props.initialVersionId?store.data.productSpecNodes.filter(node=>node.templateId===modelId.value):props.nodes)
 const structureProblems=computed(()=>businessRecordProblems(store.data,displayNodes.value,businessDefinitions(store.data)))
 const readOnly=computed(()=>props.readonly || Boolean(versionId.value) || Boolean(structureProblems.value.length))
 const node=computed(()=>displayNodes.value.find(n=>n.id===props.nodeId)), records=computed(()=>safeBusinessConfigs(node.value?.businessConfigs)),definitions=computed(()=>businessDefinitions(store.data))
@@ -82,15 +86,15 @@ const namingSource=computed(()=>{const own=node.value?.namingRule?.length;const 
 const effective=(kind:string)=>resolveNodeBusiness(store.data,displayNodes.value,props.nodeId,kind)
 const restriction=computed(()=>resolveNodeBusiness(store.data,displayNodes.value,props.nodeId,'allowed-values',node.value?.attributeId))
 function configText(c:NodeBusinessConfig){return businessDefinition(store.data,c)?.kind==='allowed-values'?`${c.dictionarySnapshot?.name||store.data.params.find(p=>p.id===c.parameters?.attributeId)?.name||'目标属性失效'}：${Array.isArray(c.parameters?.values)?c.parameters.values.join('、'):'参数无效'}`:businessLabel(c.parameters?.value)}
-watch(()=>[props.open,props.nodeId],()=>{if(props.open){versionId.value='';editing.value=false;error.value='';definitionDraft.value=undefined;tab.value=node.value?'node':'catalog';expected.value=JSON.stringify(node.value)}})
+watch(()=>[props.open,props.nodeId,props.modelId,props.initialVersionId],()=>{if(props.open){versionId.value=props.initialVersionId||'';editing.value=false;error.value='';definitionDraft.value=undefined;tab.value=node.value?'node':'catalog';expected.value=JSON.stringify(node.value)}},{immediate:true})
 watch(formKind,kind=>{if(!editingId.value){value.value=kind==='material-policy'?'independent':'hot';if(kind==='allowed-values')form.value.scope='subtree'}})
 function start(){expected.value=JSON.stringify(node.value);editingId.value='';form.value={definitionId:definitions.value.find(d=>d.enabled&&d.kind!=='naming'&&!records.value.some(c=>c.definitionId===d.id))?.id||'',scope:'subtree',enabled:true};value.value=formKind.value==='material-policy'?'independent':'hot';values.value=[];attributeId.value='';editing.value=true;error.value=''}
 function edit(c:NodeBusinessConfig){expected.value=JSON.stringify(node.value);editingId.value=c.id;form.value={definitionId:c.definitionId,scope:c.scope,enabled:c.enabled};value.value=String(c.parameters?.value||'');attributeId.value=String(c.parameters?.attributeId||'');values.value=Array.isArray(c.parameters?.values)?[...c.parameters.values] as string[]:[];editing.value=true;error.value=''}
-async function commit(next:NodeBusinessConfig[]){const result=await props.save(next,expected.value);if(result.ok){editing.value=false;expected.value=JSON.stringify(node.value);error.value=''}else error.value=result.message||'保存失败，输入保留。'}
+async function commit(next:NodeBusinessConfig[]){if(readOnly.value||props.busy)return;const result=await props.save(next,expected.value);if(result.ok){editing.value=false;expected.value=JSON.stringify(node.value);error.value=''}else error.value=result.message||'保存失败，输入保留。'}
 async function saveForm(){if(!node.value)return;const record:NodeBusinessConfig={id:editingId.value||uid('bc'),definitionId:form.value.definitionId,modelId:node.value.templateId,nodeId:node.value.id,enabled:form.value.enabled,scope:form.value.scope,parameters:formKind.value==='allowed-values'?{attributeId:attributeId.value,values:[...values.value]}:{value:value.value}};const problem=configProblem(store.data,props.nodes,node.value,record);if(problem){error.value=problem;return}await commit([...records.value.filter(c=>c.id!==record.id),record])}
 async function toggle(c:NodeBusinessConfig){expected.value=JSON.stringify(node.value);await commit(records.value.map(r=>r.id===c.id?{...r,enabled:!r.enabled}:r))}
 async function remove(id:string){expected.value=JSON.stringify(node.value);await commit(records.value.filter(c=>c.id!==id))}
-async function saveDefinition(remove:boolean){if(!definitionDraft.value)return;emit('pending',true);try{const result=await store.saveBusinessDefinition(definitionDraft.value,remove);if(result.ok){definitionDraft.value=undefined;error.value=''}else error.value=result.message}finally{emit('pending',false)}}
+async function saveDefinition(remove:boolean){if(!definitionDraft.value||readOnly.value||props.busy)return;emit('pending',true);try{const result=await store.saveBusinessDefinition(definitionDraft.value,remove);if(result.ok){definitionDraft.value=undefined;error.value=''}else error.value=result.message}finally{emit('pending',false)}}
 </script>
 <style>
 .node-business-dialog { max-width:calc(100vw - 24px); }

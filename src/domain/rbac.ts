@@ -3,6 +3,7 @@ import type { AppData, Sku } from './types'
 import { modelDictionaryPermissions, type ModelDictionaryBatchInput } from './modelDictionaryCommands'
 import { isMaterialArchive } from './catalogIdentity'
 import { adminPage, defaultMenuNodes, type MenuNode } from './menuConfig'
+import { catalogViewPermissions, isCatalogView } from './catalogWorkspaceNavigation'
 
 export interface RbacPermission {
   code: string
@@ -91,6 +92,8 @@ export function routePermissions(path: string, query: Record<string,unknown> = {
   if(clean==='/guide/manage'||clean==='/guide/learn')return ['system:guide:read']
   if(clean==='/guide'||/^\/guide\/(articles|learn)\/[^/]+$/.test(clean))return ['system:guide:read']
   if (clean === '/forbidden') return []
+  // No new role grants: the landing route uses an any-readable-view check in Store.canRoute.
+  if (clean === '/catalog') return query.view === undefined || query.view === '' ? Object.values(catalogViewPermissions) : isCatalogView(query.view) ? [catalogViewPermissions[query.view]] : null
   if (clean === '/sales-shopping') return ['product:sales:read']
   if (clean === '/sales-configurations') return ['product:sales-config:read']
   if (clean === '/columns' || (['/products','/spus','/skus'].includes(clean) && query.panel === 'columns')) return ['product:view:read', clean === '/skus' ? 'product:sku:read' : 'product:spu:read']
@@ -317,7 +320,8 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
     const ids=[data?.mappings.find(item=>item.categoryId===args[0])?.templateId,String(args[1]||'')].filter(Boolean) as string[]
     return [...new Set((ids.length?ids:['']).map(id=>`product:${data?templateAccessResource(data,id):'template'}:update`))]
   }
-  if (name === 'saveProductType') return save('type',Boolean(data?.productTypes.some(item => item.id === first?.id)))
+  if (name === 'saveProductType' || name === 'commitProductType') return save('type',Boolean(data?.productTypes.some(item => item.id === first?.id)))
+  if (name === 'commitProductTypeAction') return [`product:type:${args[1]==='delete'?'delete':'update'}`]
   if (name === 'saveDeviceModel') return save('compatibility',Boolean(data?.deviceModels?.some(item => item.id === first?.id)))
   if (name === 'saveBenefitPackage') return save('benefit',Boolean((first?.draft as {id?:string})?.id && data?.benefitPackages?.some(item => item.id === (first?.draft as {id?:string}).id)))
   if (name === 'saveBenefitFramework') return save('framework',Boolean((first?.draft as {id?:string})?.id && data?.benefitFrameworks?.some(item => item.id === (first?.draft as {id?:string}).id)))
@@ -329,7 +333,7 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
     appendSkus:['product:sku:create'],editSku:['product:sku:update'],patchSku:['product:sku:update'],setSkuStatus:['product:sku:update'],removeSku:['product:sku:delete'],removeFamily:['product:spu:delete'],
     removeBenefitFramework:['product:framework:delete'],setBenefitPackageStatus:['product:benefit:update'],setBenefitPackageFavorite:['product:benefit:update'],generateBenefitDelivery:['product:delivery:create'],
     commitDeviceBinding:['product:compatibility:update'],clearDeviceBinding:['product:compatibility:update'],removeDeviceModel:['product:compatibility:delete'],
-    addParamValue:['product:dictionary:update'],appendDictionaryValues:['product:dictionary:update'],removeParam:['product:dictionary:delete'],removeParamValue:['product:dictionary:update'],removeProductType:['product:type:delete'],setProductTypeStatus:['product:type:update'],
+    addParamValue:['product:dictionary:update'],appendDictionaryValues:['product:dictionary:update'],removeParam:['product:dictionary:delete'],removeParamValue:['product:dictionary:update'],removeProductType:['product:type:delete'],setProductTypeStatus:['product:type:update'],setProductModelStatus:['product:model:update'],
     commitCategoryMove:['product:category:update'],commitCategoryMoves:['product:category:update'],renameCategoryName:['product:category:update'],
     addCategory:['product:category:create'],copyCategory:['product:category:create'],moveCategory:['product:category:update'],shiftCategory:['product:category:update'],relocateCategory:['product:category:update'],updateCategory:['product:category:update'],removeCategory:['product:category:delete'],setCategoryMapping:['product:template:update'],removeGroup:['product:group:delete'],
     commitSpuPage:['product:view:update'],commitSkuPage:['product:sku:read'],saveView:['product:view:update'],applyView:['product:spu:read'],removeView:['product:view:update'],

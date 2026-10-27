@@ -77,7 +77,7 @@ export const guidePageArticles: GuideArticle[] = [
   },
   {
     "id": "manual-categories",
-    "title": "商品分类中心操作手册",
+    "title": "整理分类操作手册",
     "kind": "page",
     "summary": "先在左侧勾选分类并连续加入右侧待移动区，再选左侧目标，一次确认整批移动；原位改名与移动暂存分别保留。",
     "aliases": [

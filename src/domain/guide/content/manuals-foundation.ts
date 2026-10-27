@@ -16,7 +16,7 @@ export const foundationManuals: Record<string, GuideManualContent> = {
     restrictions:[restriction('home-count-scope','工作台未列出某项问题','这里只展示有限条错误，非完整发布验收结果。','到质量检查切换“必须处理／规则未覆盖／全部”核对。'),restriction('home-create-access','新建按钮不可用或目标页无权访问','搜索和查看说明不会授予商品新建或详情权限。','使用当前可访问入口，必要时请有授权权限的用户调整角色。',['rule-permission'])]
   },
   'page-categories': {
-    purpose:'维护真实分类树，并把多个完整分类子树一次移动到明确的父级。',
+    purpose:'从商品资料管理明确进入“整理分类”，维护真实分类树，并把多个完整分类子树一次移动到明确的父级。',
     features:[
       feature('categories-browse','查看分类和引用','浏览层级、搜索名称、查看所选分类及挂载商品。','在左侧搜索、展开或点分类；用“查看详情”显示详情区。','详情显示父级、启停、商品/SKU统计和本级方案；搜索不清空移动批次。'),
       feature('categories-add','新增根分类或子分类','在根目录或选中分类下增加分类。','切“编辑模式”，点“新增根分类”，或详情/更多中的“新增子分类”，填名保存。','创建独立分类 ID；有产品类型的末级分类不能再接收子分类。',{actionIds:['action-category-create']}),
@@ -41,8 +41,8 @@ export const foundationManuals: Record<string, GuideManualContent> = {
       feature('types-scope','按分类查类型','区分当前分类与下级分类的类型。','选左侧分类，切“仅当前分类／包含下级分类”。','只切换读取范围，不移动分类或类型。'),
       feature('types-create','新增产品类型','为当前分类创建类型。','选分类后点“新增产品类型”，填写名称、说明、排序并保存。','类型作为独立记录挂在分类下，不是分类子节点。',{primary:true,actionIds:['action-type-save']}),
       feature('types-edit','编辑类型及归属','修改名称、说明、排序或目标分类。','行“编辑”，在分类选择器中选有效末级分类，核对迁移提示后保存。','被引用类型的归属迁移受保护，不把模型或历史商品偷偷换分类。',{primary:true,actionIds:['action-type-save']}),
-      feature('types-status','启停类型','调整该类型的启用状态。','使用对应行“状态”开关。','更新类型状态，不删除模型和历史来源。'),
-      feature('types-models','查找商品模型','查看关联分类路径和模型清单。','展开行；点“查看模型”，唯一模型且有权限时直接打开，多模型时展开清单。','模型以查看模式打开；无模型页权限时仍可在本页读清单。',{actionIds:['action-type-models']}),
+      feature('types-status','启停类型','调整该类型的启用状态。','在对应行“更多”中启用或停用并确认。','原子更新类型状态；失败保留原状态并可重试，不删除模型和历史来源。'),
+      feature('types-models','查找商品模型','查看关联分类路径和模型清单。','从商品资料管理的产品类型台账点名称查看详情，再点模型名称。','模型详情与设计权限分开；缺少模型读取权限时显示不可查看，不泄漏模型清单。',{actionIds:['action-type-models']}),
       feature('types-delete','删除未引用类型','移除不再需要的空类型。','行“删除”，确认名称。','模型、版本、规划、商品、设备或权益框架等引用会阻止删除。',{risk:true,actionIds:['action-type-delete']})
     ],
     restrictions:[restriction('types-leaf','目标不存在、停用、非末级或同分类已有同名类型','新增或编辑被拒绝。','选启用的末级分类并填写不重复名称。',['rule-type-category']),restriction('types-reference','类型被模型或其他受保护数据引用','不能直接删除，部分归属迁移也会被阻止。','根据迁移/删除提示核对具体下游，保留原类型身份。',['rule-type-reference']),restriction('types-save','保存表单后本机写盘失败','表单保留，不能视为持久化成功。','处理存储提示后在原表单重试保存。',['rule-persistence'])]
@@ -76,20 +76,20 @@ export const foundationManuals: Record<string, GuideManualContent> = {
   'page-models': {
     purpose:'按分类与产品类型管理模型草稿、发布版本、适用设备配置和使用数量。',
     features:[
-      feature('models-create','新建模型','在明确产品类型下建立新模型草稿。','点“新建模型”，依次选分类/产品类型并填模型名，点“创建”。','成功进入设计器，不复制其他模型商品。',{primary:true,actionIds:['action-model-create']}),
-      feature('models-open','查看或编辑模型','进入同一模型设计器的不同模式。','行“查看模型”只读打开；有修改权限时点“编辑模型”。','查看模式不改结构；进入编辑继续维护当前草稿。',{primary:true,actionIds:['action-model-edit']}),
-      feature('models-publish','发布模型','验证草稿并保存新的冻结版本。','行“发布模型”，阅读成功/失败提示与规则卡。','通过词典、结构、业务配置和适用规则检查后创建发布快照。',{primary:true,actionIds:['action-model-publish']}),
-      feature('models-compatibility','维护适用设备配置','设置模型默认声明及分支例外。','行“适用设备配置”打开配置对话框；无修改权限时只读。','草稿配置需发布才成为新版本依据，不能直接当销售 SKU 声明。'),
-      feature('models-copy','复制模型','复制当前草稿结构和适用配置。','行“复制模型”。','新模型从草稿开始，不复制商品或历史发布记录。',{actionIds:['action-model-copy']}),
-      feature('models-offline','下线模型','停止新商品继续使用该模型。','行“下线模型”。','历史商品继续读取创建时版本；下线不删除冻结快照。',{actionIds:['action-model-offline']}),
-      feature('models-sku','创建销售 SKU','从选定模型进入规格创建。','行“创建 SKU”。','只带模型上下文，仍需选择合法发布路径和所属 SPU。')
+      feature('models-create','新建模型','在明确产品类型下建立新模型草稿。','点“新建模型”，依次选分类/产品类型并填模型名，点“创建模型”。','成功打开新模型资料，再明确进入设计；不复制其他模型商品。',{primary:true,actionIds:['action-model-create']}),
+      feature('models-open','查看或编辑模型','先查看模型资料，再明确进入设计。','商品资料管理切“商品模型”，点名称打开详情；选择准确版本查看设计，或明确进入当前草稿编辑。','模型读取即可看台账和详情；设计入口另需设计权限。版本失效不会换成最新版本。',{primary:true,actionIds:['action-model-edit']}),
+      feature('models-publish','发布模型','验证草稿并保存新的冻结版本。','通过“更多”或详情操作区明确发布，阅读成功/失败提示与规则卡。','通过词典、结构、业务配置和适用规则检查后创建发布快照。',{primary:true,actionIds:['action-model-publish']}),
+      feature('models-compatibility','查看搭配与适用','沿用准确模型、版本和范围打开已有工作区。','模型详情选择版本后进入“搭配与适用”；手机查看适配配件，配件查看适用机型，未知身份不按名称猜测。','工作草稿保持范围身份、私有存储和修订检查；来源版本不因新入口变化。'),
+      feature('models-copy','复制模型','复制当前草稿结构和适用配置。','在“更多”或详情操作区选择“复制模型”并确认。','新模型从草稿开始，不复制商品或历史发布记录。',{actionIds:['action-model-copy']}),
+      feature('models-offline','下线模型','停止新商品继续使用该模型。','在“更多”或详情操作区选择“下线模型”并确认。','原子保存失败时原状态保留；历史商品继续读取创建时版本，下线不删除冻结快照。',{actionIds:['action-model-offline']}),
+      feature('models-sku','查看关联商品','核对明确模型关联及已记录来源的 SPU、销售 SKU 与 MAT。','点台账或模型详情中的商品数量，在只读明细中按权限进入完整管理页面。','数量与明细使用相同 ID 集合；旧商品来源未记录时明确提示，不覆盖用户的商品保存视图。')
     ],
     restrictions:[restriction('models-publish-invalid','词典引用、结构、命名/配置或适用配置有问题','发布被拒绝，不能把未通过的草稿当正式版本。','按规则卡定位设计器节点或配置，修正后发布。',['rule-model-dictionary','rule-model-structure','rule-node-config'],true),restriction('models-history','修改、复制或下线模型','已有版本和由它创建的商品保留原来源，不自动回填新规则。','新变更发布为新版本；查看老来源时读取对应快照。',['rule-model-history']),restriction('models-write','创建/复制/发布或状态落盘失败','成功提示未出现前不能当作完成，状态修改可能仍在内存。','依据保存提示处理；保留当前页并重试对应动作。',['rule-persistence'])]
   },
   'page-specs': {
     purpose:'用画布、清单或幕布编辑真实模型分支，并发布可追溯的合法组合与建档依据。',
     features:[
-      feature('specs-context','定位分类、类型和模型','从全局总览或单模型设计打开明确模型。','左侧选分类/产品类型/模型，或切“全局总览／单模型设计”；查看模式可点“进入编辑”。','进入编辑需模型修改权限，不按名称自动合并模型。'),
+      feature('specs-context','定位分类、类型和模型','日常从商品资料管理的模型详情进入，旧设计和全局总览地址仍保留。','选择明确模型与版本；发布版本只读查看，“进入当前草稿”明确切换编辑，返回资料管理恢复原范围和位置。','进入设计、编辑和发布分别鉴权；指定版本失效时提示，不按名称补模型或自动选最新版本。'),
       feature('specs-structure','区分添加节点与更换引用','在明确位置新增节点，或只更换当前节点引用。','用“添加属性／添加属性值”增加节点；点击已有节点进入“更换属性引用／更换属性值引用”，核对后确认。','添加可多选，更换保持单选；不把替换做成新建同级节点，也不以更换引用改全局名称。',{primary:true,actionIds:['action-model-edit']}),
       feature('specs-attribute-batch','混选已有属性与新属性','已有多选和本次新属性一起暂存，按真实 ID 区分同名项。','按名称或 ID 搜索已有属性；输入新名称“加入待添加”，可连续追加并移除，最后“确认添加”。','确认前不写词典或插节点；同名歧义须明确选择 ID。更换属性仍检查已有子节点和业务配置，编辑全局名称是独立操作。',{primary:true,actionIds:['action-model-edit']}),
       feature('specs-value-batch','一次添加多个属性值','在明确的所属属性下混选已有值，并输入多个新值。','核对属性名、ID和路径；多选已有值，每行补充一个新值，检查预览并移除不需要的项，再“确认添加”。','末尾有效输入也纳入本次；当前父节点已有值明确跳过。整批合法并保存成功才关闭，一次确认对应一次撤销；取消不落盘。',{primary:true,actionIds:['action-model-edit']}),
