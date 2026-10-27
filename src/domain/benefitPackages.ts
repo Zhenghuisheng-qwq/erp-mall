@@ -7,6 +7,7 @@ import { compatibilityRecordRole } from './deviceResolution'
 import { queryDeviceAccessories, queryModelAccessories } from './accessoryCompatibilityQuery'
 import { savedSkuCode, savedSkuName, savedSkuSpec } from './productList'
 import { shelfOf } from './logic'
+import { salesDeviceAdmission } from './salesCatalog'
 import { salesMetadataProblems, salesPositionIdentityProblems, salesPositionCompatibility, salesSelectionEvidence, salesSelectionIssues, synchronizeSalesGroupIds, pruneSalesContexts } from './salesSelection'
 import type { AppData, CompatibilityHost } from './types'
 import type { AccessoryMatch, AccessoryQueryResult } from './accessoryCompatibilityTypes'
@@ -147,6 +148,7 @@ export function setBenefitPositionQuantity(data:AppData,draft:BenefitPackageDraf
 export function setBenefitPositionPrice(draft:BenefitPackageDraft,lineId:string,price:BenefitReferencePrice|undefined):BenefitPackageDraft{const problem=referencePriceProblem(price);if(problem)throw Error(problem);const next=cloneBenefit(draft),line=next.goods.find(item=>item.id===lineId);if(!line)throw Error('商品位置已不存在。');if(price===undefined)delete line.referencePrice;else line.referencePrice=cloneBenefit(price);return touchComposition(next)}
 export function assignBenefitPositionGroup(data:AppData,draft:BenefitPackageDraft,lineId:string,groupId:string|null,index?:BenefitSelectionIndex):BenefitPackageDraft{if(benefitCompositionVersion(draft)!==2)throw Error('请先明确采用新版组成结构。');const next=cloneBenefit(draft),line=next.goods.find(item=>item.id===lineId);if(!line)throw Error('商品位置已不存在。');if(line.role==='host'&&groupId!==null)throw Error('主机实物位置不计入配件组选配。');const range=resolveBenefitRange(data,next,index);if(groupId!==null&&!range.membership(line.skuId).some(group=>group.id===groupId))throw Error('商品不在该启用组的真实类型范围内。');if(next.goods.some(other=>other.id!==line.id&&other.groupId===groupId&&other.role===line.role&&other.skuId===line.skuId))throw Error('目标组已有同一 SKU，请明确调整位置，不会合并不同参考价格。');line.groupId=groupId;return touchComposition(next)}
 export function setBenefitDevice(data: AppData, draft: BenefitPackageDraft, device: BenefitDeviceContext, replaceIncludedPhone = false): BenefitPackageDraft {
+  if(device?.kind==='sku'){const admission=salesDeviceAdmission(data,device.skuId);if(!admission.allowed)throw Error(admission.reason)}
   const next = cloneBenefit(draft), previous = next.includedPhoneSkuId
   next.device = cloneBenefit(device)
   if(benefitCompositionVersion(next)===2&&replaceIncludedPhone&&previous){if(device?.kind!=='sku'||compatibilityRecordRole(data,device.skuId)!=='host')throw Error('替换主机须选择具体销售主机 SKU。');const line=next.goods.find(item=>item.role==='host');if(line){const removed=removeBenefitPosition(next,line.id);return addBenefitSku(data,removed,device.skuId,line.quantity,{role:'host',groupId:null,positionId:line.id})}}
@@ -201,9 +203,9 @@ export function validateBenefitPackage(data: AppData, draft: BenefitPackageDraft
   if (!['draft', 'available', 'disabled'].includes(draft.status)) add('status', '权益包状态无效。', true)
   if (!Number.isSafeInteger(draft.revision) || draft.revision < 0) add('revision', '权益包修订版本无效。', true)
   if (draft.quote.currency !== 'CNY' || draft.quote.amountCents !== null && !validBenefitCents(draft.quote.amountCents)) add('quote', '报价必须为空或安全范围内的非负整数分。', true)
-  const range=resolveBenefitRange(data,draft,suppliedIndex),query=range.query, deviceValid = !draft.device || query?.device.status === 'resolved'
+  const range=resolveBenefitRange(data,draft,suppliedIndex),query=range.query,deviceAdmission=draft.device?.kind==='sku'?salesDeviceAdmission(data,draft.device.skuId):undefined,deviceValid = !draft.device || query?.device.status === 'resolved'&&deviceAdmission?.allowed!==false
   const deviceLabel = !draft.device ? '普通组合包 · 未做设备适配校验' : draft.device.kind === 'sku' ? [benefitSkuSummary(data, draft.device.skuId)?.name || draft.device.skuId, query?.device.host?.steps.map(step => step.valueId).join(' · ')].filter(Boolean).join(' · ') : draft.device.host.steps.map(step => step.valueId).join(' · ')
-  if (!deviceValid) add('device', query?.device.message || '适配设备尚未唯一确认，请处理型号或引用。')
+  if (!deviceValid) add('device', deviceAdmission?.reason || query?.device.message || '适配设备尚未唯一确认，请处理型号或引用。')
   const matches = range.matches
   const lineIds = new Set<string>(), skuIds = new Set<string>()
   if(benefitCompositionVersion(draft)===2){const hosts=draft.goods.filter(line=>line.role==='host');if(hosts.length===1?draft.includedPhoneSkuId!==hosts[0].skuId:!!draft.includedPhoneSkuId)add('position-host-identity','主机实物位置与包含主机标识不一致。',true,{positionId:hosts[0]?.id})}

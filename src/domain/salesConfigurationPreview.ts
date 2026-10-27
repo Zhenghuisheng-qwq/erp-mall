@@ -2,7 +2,7 @@ import {cloneBenefit,newBenefitPackageDraft,validateBenefitPackage} from './bene
 import {compatibilityRecordRole} from './deviceResolution'
 import {planProblems,previewSalesBinding,salesSignature} from './salesConfiguration'
 import {addSalesCandidate,querySalesCandidates,removeSalesPosition} from './salesSelection'
-import {salesSkuAdmission} from './salesCatalog'
+import {salesContextAdmission,salesDeviceAdmission} from './salesCatalog'
 import type {AppData} from './types'
 import type {BenefitPackageDraft} from './benefitPackageTypes'
 import type {SalesCandidate,SalesOptionBinding,SalesOptionPlan,SalesOptionPlanVersion} from './salesConfigurationTypes'
@@ -10,6 +10,14 @@ import type {SalesCandidate,SalesOptionBinding,SalesOptionPlan,SalesOptionPlanVe
 export interface SalesConfigurationPreviewInput {
   planDraft?: SalesOptionPlan
   bindings: SalesOptionBinding[]
+  operation?: {action:SalesConfigurationOperation;existingVersion?:number}
+}
+export type SalesConfigurationOperation='publish-only'|'publish-apply'|'apply-existing'|'disable-range'
+export interface SalesConfigurationOperationInput {
+  action:SalesConfigurationOperation
+  planDraft:SalesOptionPlan
+  bindings:SalesOptionBinding[]
+  existingVersion?:number
 }
 export const SALES_DRAFT_PREVIEW_PREFIX='preview:draft:'
 const clone=<T>(value:T):T=>JSON.parse(JSON.stringify(value))
@@ -29,7 +37,7 @@ export function previewSalesConfigurationScope(data:AppData,binding:SalesOptionB
  * namespaced and marked as draft simulation, never presented as a published revision.
  * Only selected bindings move; unselected shared bindings retain their exact versions.
  */
-export function createSalesConfigurationPreviewData(data:AppData,input:SalesConfigurationPreviewInput){
+function createSalesConfigurationOverlay(data:AppData,input:SalesConfigurationPreviewInput){
   const candidate:AppData={...data,salesOptionPlans:clone(data.salesOptionPlans||[]),salesOptionBindings:clone(data.salesOptionBindings||[])}
   const issues:string[]=[],plan=input.planDraft
   if(plan&&!input.bindings.length)issues.push('请先确认本次配置的应用范围，再查看本次草稿效果。')
@@ -57,18 +65,70 @@ export function createSalesConfigurationPreviewData(data:AppData,input:SalesConf
   return {data:candidate,bindings,ranges,issues:[...new Set(issues)],previewPlanId,mode,versionLabel:plan?'本次未发布配置草稿模拟（尚未生效）':bindings.length?'本次范围调整模拟（尚未生效）':'当前已生效配置',stamp:salesSignature([plan,input.bindings])}
 }
 
+/** Resolve the actual intended result once; draft contents never substitute for a selected frozen version. */
+export function resolveSalesConfigurationOperation(data:AppData,input:SalesConfigurationOperationInput){
+  const issues:string[]=[],formal=(data.salesOptionPlans||[]).find(plan=>plan.id===input.planDraft.id&&plan.schemaVersion===1)
+  let version:number|undefined,target:SalesOptionPlanVersion|undefined,versionLabel='',bindings=clone(input.bindings)
+  const previousVersions:SalesOptionPlanVersion[]=[]
+  if(input.action==='publish-only'){
+    bindings=[]
+    version=Math.max(0,...(formal?.versions||[]).map(item=>item.version))+1
+    if(formal?.publishedVersion){const before=formal.versions.find(item=>item.version===formal.publishedVersion);if(before)previousVersions.push(before)}
+    issues.push(...planProblems(data,input.planDraft))
+    versionLabel=`仅发布新版本 v${version}；当前销售结果与现有绑定继续使用原版本`
+  }else{
+    for(const binding of bindings){
+      const previous=binding.id?data.salesOptionBindings?.find(item=>item.id===binding.id):undefined
+      const plan=previous?.planId?data.salesOptionPlans?.find(item=>item.id===previous.planId):undefined
+      const before=plan?.versions.find(item=>item.version===previous?.planVersion)
+      if(before)previousVersions.push(before)
+    }
+    if(input.action==='publish-apply'){
+      version=Math.max(0,...(formal?.versions||[]).map(item=>item.version))+1
+      issues.push(...planProblems(data,input.planDraft))
+      versionLabel=`本次未发布配置草稿模拟：发布 v${version} 并应用到明确选中范围（尚未生效）`
+    }else if(input.action==='apply-existing'){
+      version=input.existingVersion
+      target=formal?.versions.find(item=>item.version===version)
+      if(!Number.isSafeInteger(version)||!target)issues.push('所选配置发布版本不存在；未使用工作草稿或其他版本替代。')
+      else if(formal?.status!=='available')issues.push('所选配置已停用，不能作为正常生效配置应用。')
+      bindings=bindings.map(binding=>({...binding,enabled:true,planId:binding.mode==='none'?null:formal?.id||input.planDraft.id,planVersion:binding.mode==='none'?null:version??null}))
+      versionLabel=`应用指定冻结版本 v${version??'未选择'} 的模拟结果；未发布项目不参与此次应用`
+    }else{
+      bindings=bindings.map(binding=>({...binding,enabled:true,mode:'none',planId:null,planVersion:null}))
+      versionLabel='关闭所选范围权益包选项后的模拟结果；未发布项目不参与此次操作'
+    }
+    if(!bindings.length)issues.push('请明确选择此次操作的应用范围。')
+  }
+  const overlay=createSalesConfigurationOverlay(data,{...(input.action==='publish-apply'?{planDraft:input.planDraft}:{}),bindings})
+  const beforeItems=[...new Map(previousVersions.flatMap(item=>item.items).map(item=>[salesSignature([item.id,item]),item])).values()]
+  const beforeRules=[...new Map(previousVersions.flatMap(item=>item.rules).map(item=>[salesSignature([item.id,item]),item])).values()]
+  const afterItems=input.action==='publish-only'||input.action==='publish-apply'?clone(input.planDraft.items):input.action==='apply-existing'?clone(target?.items||[]):[]
+  const afterRules=input.action==='publish-only'||input.action==='publish-apply'?clone(input.planDraft.rules):input.action==='apply-existing'?clone(target?.rules||[]):[]
+  return {action:input.action,version,bindings,beforeItems,beforeRules,afterItems,afterRules,targetVersion:target,overlay:{...overlay,issues:[...new Set([...issues,...overlay.issues])],versionLabel,stamp:salesSignature([input.action,input.planDraft.id,input.existingVersion,overlay.stamp])}}
+}
+
+export function createSalesConfigurationPreviewData(data:AppData,input:SalesConfigurationPreviewInput){
+  if(input.operation){
+    if(!input.planDraft){const overlay=createSalesConfigurationOverlay(data,{bindings:[]});return {...overlay,issues:['此次操作缺少明确的权益包配置。']}}
+    return resolveSalesConfigurationOperation(data,{...input.operation,planDraft:input.planDraft,bindings:input.bindings}).overlay
+  }
+  return createSalesConfigurationOverlay(data,input)
+}
+
 /** Selection is caller-owned and discarded/reset on a changed source/device or draft stamp. */
 export function previewSalesConfiguration(data:AppData,input:SalesConfigurationPreviewInput & {sourceSkuId:string;deviceSkuId?:string;selection?:BenefitPackageDraft}){
   const overlay=createSalesConfigurationPreviewData(data,input),issues=[...overlay.issues]
-  const sourceIssue=salesSkuAdmission(data,input.sourceSkuId)
+  const sourceIssue=salesContextAdmission(data,input.sourceSkuId)
   if(input.sourceSkuId&&!sourceIssue.allowed)issues.push(sourceIssue.reason)
-  if(input.deviceSkuId){const admission=salesSkuAdmission(data,input.deviceSkuId);if(!admission.allowed)issues.push(`本次使用设备：${admission.reason}`);else if(compatibilityRecordRole(data,input.deviceSkuId)!=='host')issues.push('本次使用设备必须是明确的主机销售 SKU。')}
-  if(input.sourceSkuId&&input.bindings.length&&!overlay.ranges.some(range=>range.skuIds.includes(input.sourceSkuId)))issues.push('试选来源不属于当前已确认的应用范围。')
+  if(input.deviceSkuId){const admission=salesDeviceAdmission(data,input.deviceSkuId);if(!admission.allowed)issues.push(`本次使用设备：${admission.reason}`)}
+  if(input.sourceSkuId&&overlay.bindings.length&&!overlay.ranges.some(range=>range.skuIds.includes(input.sourceSkuId)))issues.push('试选来源不属于当前已确认的应用范围。')
   const contextKey=salesSignature([overlay.stamp,input.sourceSkuId,input.deviceSkuId||''])
   const supplied=input.selection as (BenefitPackageDraft & {previewContextKey?:string})|undefined
   const selection=(supplied?.previewContextKey===contextKey?cloneBenefit(supplied):newBenefitPackageDraft(input.deviceSkuId?{kind:'sku',skuId:input.deviceSkuId}:null)) as BenefitPackageDraft & {previewContextKey?:string}
   selection.previewContextKey=contextKey
   const expectedDevice=input.deviceSkuId||(compatibilityRecordRole(data,input.sourceSkuId)==='host'?input.sourceSkuId:'')
+  if(expectedDevice&&!input.deviceSkuId){const admission=salesDeviceAdmission(data,expectedDevice);if(!admission.allowed)issues.push(`来源商品尚不能作为明确使用设备：${admission.reason}`)}
   if(expectedDevice&&(!selection.device||selection.device.kind!=='sku'||selection.device.skuId!==expectedDevice)){
     selection.device={kind:'sku',skuId:expectedDevice};selection.confirmations=[]
   }

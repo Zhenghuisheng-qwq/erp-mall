@@ -1,5 +1,6 @@
 import { isRealSku } from './catalogIdentity'
 import { shelfOf } from './logic'
+import { compatibilityRecordRole, createDeviceResolutionContext, resolveDeviceSku, type DeviceResolutionContext } from './deviceResolution'
 import type { AppData, ProductFamily, Sku } from './types'
 
 /** 销售选购认的模型：商品上的模型编号，没有时用属性方案编号。 */
@@ -23,13 +24,32 @@ export function salesCatalogReady(data: AppData, family: ProductFamily) {
   return !!type && type.categoryId === family.categoryId
 }
 
-/** Shared read-only admission for shopping, configuration preview, add and delivery checks. */
-export function salesSkuAdmission(data: AppData, value: string | Sku): {allowed:boolean;reason:string} {
+/** A real source may be read without being purchased. Sales status is deliberately separate. */
+export function salesContextAdmission(data: AppData, value: string | Sku): {allowed:boolean;reason:string} {
   const sku=typeof value==='string'?data.skus.find(item=>item.id===value):value
   if(!sku)return {allowed:false,reason:'实际销售 SKU 已不存在，请重新选择商品。'}
   if(!isRealSku(data,sku))return {allowed:false,reason:'此记录不是可选购的真实销售 SKU；SPU、PLN 和 MAT 不能直接加入权益包。'}
   const family=data.families.find(item=>item.id===sku.familyId)
   if(!family)return {allowed:false,reason:'销售 SKU 的商品资料已失效。'}
+  return {allowed:true,reason:''}
+}
+
+/** Customer-owned equipment needs a proven host identity, not current shelf eligibility. */
+export function salesDeviceAdmission(data: AppData, value: string | Sku, context?: DeviceResolutionContext): {allowed:boolean;reason:string} {
+  const admission=salesContextAdmission(data,value)
+  if(!admission.allowed)return admission
+  const id=typeof value==='string'?value:value.id
+  if(compatibilityRecordRole(data,id)!=='host')return {allowed:false,reason:'本次使用设备必须是身份明确的主机销售 SKU。'}
+  const device=resolveDeviceSku(data,id,context)
+  return device.status==='resolved'&&device.host?{allowed:true,reason:''}:{allowed:false,reason:device.message||'本次使用设备的型号及规格身份尚未唯一确认。'}
+}
+
+/** Actual delivered goods must additionally meet the current sale/catalogue gates. */
+export function salesSkuAdmission(data: AppData, value: string | Sku): {allowed:boolean;reason:string} {
+  const admission=salesContextAdmission(data,value)
+  if(!admission.allowed)return admission
+  const sku=typeof value==='string'?data.skus.find(item=>item.id===value)!:value
+  const family=data.families.find(item=>item.id===sku.familyId)!
   if(sku.status!=='on_sale'||shelfOf(family)!=='online')return {allowed:false,reason:'商品或 SKU 当前不在售。'}
   if(!salesCatalogReady(data,family))return {allowed:false,reason:'商品分类、产品类型或模型归属未满足销售准入，请先维护对应商品资料。'}
   return {allowed:true,reason:''}
@@ -37,4 +57,9 @@ export function salesSkuAdmission(data: AppData, value: string | Sku): {allowed:
 
 export function salesCatalogSkus(data: AppData) {
   return data.skus.filter(sku=>salesSkuAdmission(data,sku).allowed)
+}
+export function salesContextSkus(data: AppData) { return data.skus.filter(sku=>salesContextAdmission(data,sku).allowed) }
+export function salesDeviceSkus(data: AppData) {
+  const context=createDeviceResolutionContext(data)
+  return data.skus.filter(sku=>salesDeviceAdmission(data,sku,context).allowed)
 }

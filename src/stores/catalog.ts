@@ -63,7 +63,7 @@ import type { MaterialChoice } from '../domain/material'
 import type { ProductGrade } from '../domain/types'
 import { arrangeSpecPositions } from '../domain/logic'
 import { activeProductListView, applyPresetToActiveView, currentModeQuery, ensureProductListViews } from '../domain/productListViews'
-import { createSeed, defaultColumns, emptyQuery, ensureDemoPhonePublished, ensureSalesShelfDemo, phoneCanvas, phoneSpecNodes } from '../domain/seed'
+import { createSeed, defaultColumns, emptyQuery } from '../domain/seed'
 import { DATA_VERSION, STORAGE_KEY, type AppData, type Category, type ColumnPref, type FeedbackItem, type ListQuery, type ListView, type ParamDef, type ProductFamily, type ProductGroup, type ProductType, type Sku, type SpecRule, type Brand, type UserRole } from '../domain/types'
 import { readSalesBindingWorkingCopy, writeSalesBindingWorkingCopy, salesBindingWorkingCopyKey, listSalesBindingWorkingCopies, validateSalesBindingWorkingApplication, type SalesBindingWorkingCopyInput, type SalesBindingWorkingIdentity } from '../domain/salesBindingWorkingCopy'
 
@@ -119,7 +119,7 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   renameSchemeColumn(data.columns, mark)
   data.listViews?.forEach((view) => renameSchemeColumn(view.columns, mark))
   if (!Array.isArray(data.productSpecNodes)) {
-    data.productSpecNodes = phoneSpecNodes()
+    data.productSpecNodes = []
     mark.changed = true
   }
   if (!Array.isArray(data.specCanvases)) {
@@ -129,7 +129,9 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   const templatesWithNodes = new Set(data.productSpecNodes.map((item) => item.templateId))
   templatesWithNodes.forEach((templateId) => {
     if (!data.specCanvases.some((item) => item.templateId === templateId)) {
-      data.specCanvases.push({ ...phoneCanvas(), templateId })
+      // Existing nodes may need layout metadata, never a phone identity or a
+      // publication claim copied from the seed.
+      data.specCanvases.push({templateId,zoom:1,panX:0,panY:0,status:'draft',version:1,versionName:'',direction:'ltr'})
       mark.changed = true
     }
   })
@@ -154,37 +156,8 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
     data.specModelVersions = []
     mark.changed = true
   }
-  const versionTemplates = new Set(data.productSpecNodes.map((item) => item.templateId))
-  versionTemplates.forEach((templateId) => {
-    if (data.specModelVersions.some((item) => item.templateId === templateId)) return
-    const canvas = data.specCanvases.find((item) => item.templateId === templateId)
-    if (canvas && canvas.status !== 'published') return
-    const nodes = data.productSpecNodes.filter((item) => item.templateId === templateId)
-    if (!nodes.some((item) => item.nodeType === 'ATTRIBUTE')) return
-    const now = canvas?.updatedAt || new Date().toISOString()
-    data.specModelVersions.push({
-      id: `mv-${templateId}-v1`,
-      templateId,
-      version: canvas?.version || 1,
-      versionName: canvas?.versionName || 'V1',
-      status: 'published',
-      nodesSnapshot: nodes.map((item) => ({ ...item, namingRule: item.namingRule?.map((part) => ({ ...part })) })),
-      createdTime: now,
-      publishTime: now,
-    })
-    mark.changed = true
-  })
-  data.families.forEach((family) => {
-    if (family.modelVersionId || version >= 14) return
-    const published = data.specModelVersions
-      .filter((item) => item.templateId === family.templateId && item.status === 'published')
-      .slice()
-      .sort((a, b) => a.version - b.version)
-    const latest = published[published.length - 1]
-    if (!latest) return
-    family.modelVersionId = latest.id
-    mark.changed = true
-  })
+  // Missing publication/source records remain missing. Shape compatibility must
+  // never publish today's nodes or guess an archive's historical version.
   if (!Array.isArray(data.productTypes)) {
     data.productTypes = []
     mark.changed = true
@@ -244,8 +217,6 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   }
   if (ensureProductListViews(data)) mark.changed = true
   if (ensureProductListPages(data)) mark.changed = true
-  if (ensureSalesShelfDemo(data)) mark.changed = true
-  if (ensureDemoPhonePublished(data)) mark.changed = true
   const compatibilityProblems = compatibilityImportProblems(data)
   if (compatibilityProblems.length) migrationStorageError = `适用关系配置有待处理项：${compatibilityProblems.join(' ')} 原始记录已保留，请修复或导出备份。`
   ensureRbac(data, loadMenu())

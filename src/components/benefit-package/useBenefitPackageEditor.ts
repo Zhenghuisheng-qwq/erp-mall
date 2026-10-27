@@ -6,8 +6,8 @@ import { nextTick, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useCatalogStore } from '../../stores/catalog'
-import { compatibilityRecordRole, deviceHostKey, listDeviceModels } from '../../domain/deviceResolution'
-import { isRealSku } from '../../domain/catalogIdentity'
+import { deviceHostKey, listDeviceModels } from '../../domain/deviceResolution'
+import { salesDeviceSkus } from '../../domain/salesCatalog'
 import { addBenefitSku,removeBenefitPosition,setBenefitPositionQuantity,setBenefitPositionPrice,assignBenefitPositionGroup, benefitSkuSummary, cloneBenefit, confirmBenefitCondition, copyBenefitPackageDraft, newBenefitPackageDraft, parseBenefitAmount, previewBenefitDelivery, replaceBenefitSku, reviewBenefitQuote, setBenefitDevice, setBenefitIncludedPhone, validateBenefitPackage } from '../../domain/benefitPackages'
 import type { BenefitCommandResult, BenefitDeviceContext, BenefitDeliveryPreview, BenefitIssue, BenefitPackageDraft, BenefitServiceLine,BenefitReferencePrice } from '../../domain/benefitPackageTypes'
 import {referencePriceProblem} from '../../domain/benefitPricing'
@@ -53,7 +53,7 @@ export function useBenefitPackageEditor() {
   const stale = computed(() => Boolean(saved.value && saved.value.revision !== draft.value.revision))
   const commonPackages = computed(() => (store.data.benefitPackages || []).filter(item => item.favorite && item.status !== 'disabled'))
   const models = computed(() => listDeviceModels(store.data))
-  const deviceSkus = computed(() => store.data.skus.filter(sku => isRealSku(store.data, sku) && compatibilityRecordRole(store.data, sku.id) === 'host').map(sku => benefitSkuSummary(store.data, sku.id)).filter(item => item !== undefined))
+  const deviceSkus = computed(() => salesDeviceSkus(store.data).map(sku => benefitSkuSummary(store.data, sku.id)).filter(item => item !== undefined))
   const frameworkRange=computed(()=>resolveBenefitSelection(store.data,draft.value,selectionIndex.value))
   const allCandidates=computed(()=>frameworkRange.value.rows.map(row=>row.summary))
   const candidateRows=computed<CompositionCandidate[]>(()=>frameworkRange.value.rows.filter(row=>!activeGroupId.value||activeGroupId.value==='$ungrouped'?!activeGroupId.value||!row.allowedGroups.length:row.allowedGroups.some(group=>group.id===activeGroupId.value)).map(row=>{const group=activeGroupId.value&&activeGroupId.value!=='$ungrouped'?activeGroupId.value:undefined,possible=row.allowedGroups.length?row.allowedGroups.some(target=>!frameworkRange.value.reason(row.summary.skuId,target.id,'item')):!frameworkRange.value.reason(row.summary.skuId,null,'item');return {summary:row.summary,basicStatus:row.basic,fastChargeStatus:row.fastCharge,capabilities:row.compatibility.capabilities,reasons:row.compatibility.reasons,recommended:frameworkRange.value.recommendedSkuIds.has(row.summary.skuId),reason:group?frameworkRange.value.reason(row.summary.skuId,group,'item'):row.reason,canAdd:row.canAdd&&(group?!frameworkRange.value.reason(row.summary.skuId,group,'item'):possible),bucket:row.bucket==='recommended'?(row.basic==='compatible'?'confirmed':'pending'):row.bucket,groupIds:row.allowedGroups.map(group=>group.id)}}))

@@ -21,6 +21,7 @@
         </el-table>
         <p v-else class="muted">这个 SPU 暂无 SKU，可以分批追加。物料不计入 SKU 数量。</p>
       </section>
+      <ProductBenefitRelations v-if="family" :family-id="family.id"/>
       <section class="panel"><SpuForm :key="String(route.params.id || 'new')" :initial="initial" @dirty="dirty = $event" @cancel="router.push('/spus')" @saved="saved" /></section>
     </template>
     <el-dialog v-model="historyOpen" title="SPU 绑定的历史快照" width="min(900px, 94vw)">
@@ -37,6 +38,7 @@ import { ElMessage } from 'element-plus'
 import PageHead from '../components/PageHead.vue'
 import SpuForm from '../components/catalog/SpuForm.vue'
 import AccessoryCompatibilityDrawer from '../components/compatibility/AccessoryCompatibilityDrawer.vue'
+import ProductBenefitRelations from '../components/benefit-package/ProductBenefitRelations.vue'
 import { compatibilityFamilyRole } from '../domain/deviceResolution'
 import { useUnsavedCatalog } from '../components/catalog/useUnsavedCatalog'
 import { newSpuDraft } from '../domain/spuDraft'

@@ -11,6 +11,7 @@
       <p v-else-if="error" class="issue-error" role="alert">{{ error }}</p>
       <div class="row-actions"><el-button @click="back">取消</el-button><el-button type="primary" :loading="saving" @click="save" :disabled="!(store.can('product:sku:update'))">保存 SKU</el-button></div>
     </section>
+    <ProductBenefitRelations v-if="sku" :sku-id="sku.id"/>
     <AccessoryCompatibilityDrawer v-model="compatibilityOpen" :sku-id="sku?.id || ''" />
   </div>
 </template>
@@ -24,6 +25,7 @@ import { ElMessage } from 'element-plus'
 import PageHead from '../components/PageHead.vue'
 import SkuFields from '../components/catalog/SkuFields.vue'
 import AccessoryCompatibilityDrawer from '../components/compatibility/AccessoryCompatibilityDrawer.vue'
+import ProductBenefitRelations from '../components/benefit-package/ProductBenefitRelations.vue'
 import { compatibilityRecordRole } from '../domain/deviceResolution'
 import { useUnsavedCatalog } from '../components/catalog/useUnsavedCatalog'
 import { isRealSku } from '../domain/catalogIdentity'

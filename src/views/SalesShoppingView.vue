@@ -1,6 +1,7 @@
 <template>
   <div class="sales-shopping" data-sales-shopping>
     <PageHead title="权益包选购" desc="选商品、配件和服务，核对后生成交付清单。">
+      <el-button v-if="productReturn" data-sales-return-product @click="router.push(productReturn)">返回商品</el-button>
       <el-button v-if="store.can('product:benefit:read')" @click="recordsOpen=true">已保存方案</el-button>
       <el-dropdown trigger="click"><el-button aria-label="权益包选购更多操作">更多</el-button><template #dropdown><el-dropdown-menu>
         <el-dropdown-item @click="newSession">开始新方案</el-dropdown-item>
@@ -10,6 +11,8 @@
     </PageHead>
     <div class="sales-status" role="status"><span :data-sales-save-state="saveState">{{saveLabel}}</span><el-input v-if="nameEditing" ref="nameInput" v-model="nameText" aria-label="销售方案名称" maxlength="80" class="inline-name" @compositionstart="nameComposing=true" @compositionend="nameComposing=false" @keydown.enter="commitName" @keydown.esc="cancelName" @blur="commitName"/><button v-else class="name-button" :disabled="!canEdit||businessPending" @click="editName">{{draft.name||'销售方案'}} <span>改名</span></button><el-button v-if="error" link type="danger" @click="retry">重试保存</el-button></div>
     <el-alert v-if="error" :title="error" type="error" :closable="false" class="sales-notice"/>
+    <el-alert v-if="contextError" :title="contextError" type="error" :closable="false" class="sales-notice"/>
+    <el-alert v-if="contextOnly" :title="`当前仅将${sourceRole==='host'?'顾客已有设备':'该商品'}作为配置与适用依据的来源，未加入实物清单。${currentSaleAdmission.reason}`" type="info" :closable="false" class="sales-notice" data-sales-context-only/>
     <el-alert v-if="!supported" title="此方案版本暂不支持在权益包选购中修改，原内容已保留。" type="warning" :closable="false"/>
     <template v-if="supported && !missing"><el-alert v-if="legacyFramework" type="info" :closable="false" class="sales-notice" title="此组合沿用原框架，可调整现有清单；增补与更换请在高级详情中处理。"><el-button link type="primary" :disabled="!canPersist||businessPending" @click="openAdvanced">高级详情</el-button></el-alert>
       <div class="sales-tools panel">
@@ -35,13 +38,13 @@
           <el-button v-if="families.length>shownCount" link @click="shownCount+=24">继续查看 {{Math.min(24,families.length-shownCount)}} 款</el-button>
         </section>
         <section class="panel sales-options" aria-label="规格与相关选配">
-          <template v-if="selectedFamily">
+          <template v-if="selectedFamily && !contextOnly">
             <div class="section-head"><h2>{{selectedFamily.name}}</h2><span class="muted">选择实际规格</span></div>
             <SalesSkuSelector ref="skuSelector" :data="store.data" :family="selectedFamily" :skus="familySkus(selectedFamily.id)" :model-value="sourceSkuId" :label="displaySpec" @selection-state="acceptSkuSelection"/>
           </template>
           <template v-if="sourceSummary">
             <nav v-if="trail.length>1" class="source-trail" aria-label="最近查看的相关商品"><button v-for="(entry,index) in trail" :key="`${entry.skuId}:${entry.positionId||''}`" @click="returnToSource(index)">{{benefitSkuSummary(store.data,entry.skuId)?.name||'来源已失效'}}</button></nav>
-            <div class="current-product" data-sales-current-source><div><small>正在查看</small><h3>{{sourceSummary.name}}</h3><p class="muted">{{displaySpec(sourceSummary.skuId,sourceSummary.spec)}}</p></div><el-button type="primary" :disabled="!canEdit||businessPending||legacyFramework" :data-sales-add-current="sourceSkuId" @click="addCurrent">加入清单</el-button></div>
+            <div class="current-product" data-sales-current-source><div><small>{{contextOnly?'当前配置／设备上下文':'正在查看'}}</small><h3>{{sourceSummary.name}}</h3><p class="muted">{{displaySpec(sourceSummary.skuId,sourceSummary.spec)}}</p></div><el-button type="primary" :disabled="!canEdit||businessPending||legacyFramework||!currentSaleAdmission.allowed" :title="currentSaleAdmission.reason||undefined" :data-sales-add-current="sourceSkuId" @click="addCurrent">加入清单</el-button></div>
             <el-button v-if="sourceRole==='host' && (draft.device?.kind!=='sku'||draft.device.skuId!==sourceSkuId)" link type="primary" @click="chooseDevice({kind:'sku',skuId:sourceSkuId})">用作本次使用设备</el-button>
             <div class="section-head related-head"><h2>相关选配</h2><span v-if="candidates.resolution.plan" class="muted">{{candidates.resolution.plan.name}}</span></div>
             <el-alert v-if="['conflict','invalid'].includes(candidates.resolution.state)" :title="candidates.resolution.message" type="warning" :closable="false"/>
@@ -95,7 +98,7 @@ import DeviceModelPicker from '../components/compatibility/DeviceModelPicker.vue
 import { useSalesShoppingDraft } from '../components/sales-shopping/useSalesShoppingDraft'
 import { categoryFilterCaption, categoryScopeIds } from '../domain/categoryTree'
 import { categoryPath, projectAttrs } from '../domain/logic'
-import { salesCatalogSkus } from '../domain/salesCatalog'
+import { salesCatalogSkus, salesContextAdmission, salesContextSkus, salesDeviceSkus, salesSkuAdmission } from '../domain/salesCatalog'
 import { familyBrandText, familyBrandValues, savedSkuCode, savedSkuSpec } from '../domain/productList'
 import { compatibilityRecordRole, listDeviceModels } from '../domain/deviceResolution'
 import { addBenefitSku, benefitSkuSummary, cloneBenefit, confirmBenefitCondition, parseBenefitAmount, reviewBenefitQuote, setBenefitDevice, setBenefitPositionQuantity } from '../domain/benefitPackages'
@@ -105,13 +108,15 @@ import type { SalesCandidate, SalesOptionItem } from '../domain/salesConfigurati
 import { amountInput, formatBenefitCents, localBenefitRequest } from '../components/benefit-package/benefitPackagePresentation'
 
 const router=useRouter(),route=useRoute()
+const productReturn=computed(()=>{const value=route.query.returnTo;if(typeof value!=='string'||value.length>5000||/[\\\u0000-\u001f\u007f]/.test(value))return '';try{const url=new URL(value,'https://erp.invalid');if(url.origin!=='https://erp.invalid'||/[\\\u0000-\u001f\u007f]/.test(decodeURIComponent(value))||!/^\/(skus|spus|products)(\/|$)/.test(url.pathname))return '';return url.pathname+url.search+url.hash}catch{return ''}})
 const session=useSalesShoppingDraft()
 const {store,draft,validation,businessPending,dirty,error,inputError,missing,canEdit,canPersist,saveState,saveLabel,preview,confirmed,change,clearInputError,retry}=session
 const supported=computed(()=>draft.value.compositionVersion===2&&(!draft.value.sales||draft.value.sales.schemaVersion===1)&&(!draft.value.framework||['type-v1','type-v2'].includes(draft.value.framework.kind)))
 const legacyFramework=computed(()=>!!draft.value.framework)
 const keyword=ref(''),brand=ref(''),categoryIds=ref<string[]>([]),shownCount=ref(24),selectedFamilyId=ref(''),sourceSkuId=ref(''),sourcePositionId=ref<string>()
+const contextSourceId=ref(''),contextError=ref('')
 const skuSelector=ref<{allows:(id:string)=>boolean}>()
-const trail=ref<{skuId:string;positionId?:string}[]>([])
+const trail=ref<{skuId:string;positionId?:string;context?:boolean}[]>([])
 const nameEditing=ref(false),nameText=ref(''),nameComposing=ref(false),nameInput=ref<{focus:()=>void}>(),recordsOpen=ref(false),commonOpen=ref(false),deliveryOpen=ref(false),quoteOpen=ref(false),quoteText=ref(''),quoteComposing=ref(false),quoteError=ref('')
 const basketElement=ref<HTMLElement>(),commonSaving=ref(false),commonError=ref('')
 const replacementOpen=ref(false),replacementId=ref(''),replacementChoice=ref(''),replacementSearch=ref(''),replacementShown=ref(12),sourceOpen=ref(false),sourceChoice=ref('')
@@ -121,6 +126,9 @@ const initialCopy=route.query.copy==='1'&&!!draft.value.id&&supported.value&&!mi
 if(initialCopy)void session.replaceSession(draft.value,true,true)
 quoteText.value=amountInput(draft.value.quote.amountCents)
 const realSkus=computed(()=>salesCatalogSkus(store.data))
+const contextSkus=computed(()=>salesContextSkus(store.data))
+const currentSaleAdmission=computed(()=>salesSkuAdmission(store.data,sourceSkuId.value))
+const contextOnly=computed(()=>!!sourceSkuId.value&&contextSourceId.value===sourceSkuId.value&&!currentSaleAdmission.value.allowed)
 const skuByFamily=computed(()=>{const map=new Map<string,typeof realSkus.value>();for(const sku of realSkus.value){const rows=map.get(sku.familyId)||[];rows.push(sku);map.set(sku.familyId,rows)}return map})
 const familySkus=(id:string)=>skuByFamily.value.get(id)||[]
 const attributeLabels=computed(()=>new Map(store.data.params.map(param=>[param.id,param.name])))
@@ -137,18 +145,18 @@ const candidateIndex=computed(()=>createSalesCandidateIndex(store.data))
 const candidates=computed(()=>legacyFramework.value?{resolution:{state:'none' as const,message:'此组合沿用原框架，不叠加新的选配方案。增补商品请使用高级详情。',bindingIds:[],source:{state:'legacy' as const,skuId:sourceSkuId.value,modelId:'',versionId:'',identityKey:'',message:''},plan:undefined},rows:[] as SalesCandidate[]}:querySalesCandidates(store.data,draft.value,sourceSkuId.value,candidateIndex.value,sourcePositionId.value||undefined))
 const candidateGroups=computed(()=>{const groups=new Map<string,{key:string;item:SalesOptionItem;rows:SalesCandidate[]}>();for(const item of candidates.value.resolution.plan?.items||[])if(item.enabled){const key=`${candidates.value.resolution.plan!.planId}:${item.id}`;groups.set(key,{key,item,rows:[]})}for(const row of candidates.value.rows){const key=`${row.plan?.planId||'related'}:${row.item.id}`;if(!groups.has(key))groups.set(key,{key,item:row.item,rows:[]});groups.get(key)!.rows.push(row)}return [...groups.values()].sort((a,b)=>a.item.order-b.item.order)})
 const models=computed(()=>listDeviceModels(store.data))
-const deviceSkus=computed(()=>realSkus.value.filter(sku=>compatibilityRecordRole(store.data,sku.id)==='host').map(sku=>benefitSkuSummary(store.data,sku.id)!))
+const deviceSkus=computed(()=>salesDeviceSkus(store.data).map(sku=>benefitSkuSummary(store.data,sku.id)!))
 const deviceLabel=computed(()=>draft.value.device?.kind==='sku'?benefitSkuSummary(store.data,draft.value.device.skuId)?.name||'设备已失效':draft.value.device?.kind==='model'?models.value.find(model=>JSON.stringify(model.host)===JSON.stringify(draft.value.device?.kind==='model'?draft.value.device.host:null))?.label||draft.value.device.host.steps.map(step=>step.valueId).join(' · '):'尚未指定')
 const savedSchemes=computed(()=>(store.can('product:benefit:read')?store.data.benefitPackages||[]:[]).filter(record=>record.sales).slice().sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)))
 const commonSchemes=computed(()=>(store.can('product:benefit:read')?store.data.benefitPackages||[]:[]).filter(record=>record.favorite&&record.status!=='disabled'))
 const otherIssues=computed(()=>validation.value.issues.filter(issue=>!issue.positionId&&!issue.skuId&&issue.code!=='quote-review'))
 function toggleCategory(id:string,multiple=false){categoryIds.value=multiple?(categoryIds.value.includes(id)?categoryIds.value.filter(value=>value!==id):[...categoryIds.value,id]):[id]}
 function openFamily(id:string){selectedFamilyId.value=id;const skus=familySkus(id);if(skus.length===1)browseSku(skus[0]!.id);else if(!skus.some(sku=>sku.id===sourceSkuId.value)){sourceSkuId.value='';sourcePositionId.value=undefined;trail.value=[]}}
-function browseSku(id:string,positionId?:string){if(!id){sourceSkuId.value='';sourcePositionId.value=undefined;return}const sku=realSkus.value.find(item=>item.id===id);if(!sku){sourceSkuId.value='';sourcePositionId.value=undefined;return}if(positionId&&!draft.value.goods.some(line=>line.id===positionId&&line.skuId===id))positionId=undefined;selectedFamilyId.value=sku.familyId;sourceSkuId.value=id;sourcePositionId.value=positionId;const previous=trail.value.findIndex(item=>item.skuId===id&&item.positionId===positionId);trail.value=previous>=0?trail.value.slice(0,previous+1):[...trail.value,{skuId:id,positionId}].slice(-16)}
+function browseSku(id:string,positionId?:string,asContext=false){contextError.value='';if(!id){sourceSkuId.value='';sourcePositionId.value=undefined;contextSourceId.value='';return}const sku=(asContext?contextSkus.value:realSkus.value).find(item=>item.id===id);if(!sku){sourceSkuId.value='';sourcePositionId.value=undefined;contextSourceId.value='';if(asContext)contextError.value=`指定商品来源不可读取：${salesContextAdmission(store.data,id).reason} 未替换成其他商品。`;return}if(positionId&&!draft.value.goods.some(line=>line.id===positionId&&line.skuId===id))positionId=undefined;contextSourceId.value=asContext?id:'';selectedFamilyId.value=sku.familyId;sourceSkuId.value=id;sourcePositionId.value=positionId;const previous=trail.value.findIndex(item=>item.skuId===id&&item.positionId===positionId);trail.value=previous>=0?trail.value.slice(0,previous+1):[...trail.value,{skuId:id,positionId,context:asContext}].slice(-16)}
 function acceptSkuSelection(state:SalesSkuSelectionState){if(state.familyId!==selectedFamilyId.value)return;if(!state.selectedSkuId){browseSku('');return}if(state.selectedSkuId!==sourceSkuId.value)browseSku(state.selectedSkuId)}
-function returnToSource(index:number){const entry=trail.value[index];if(entry)browseSku(entry.skuId,entry.positionId)}
+function returnToSource(index:number){const entry=trail.value[index];if(entry)browseSku(entry.skuId,entry.positionId,entry.context)}
 function apply(operation:(value:BenefitPackageDraft)=>BenefitPackageDraft){clearInputError();const accepted=change(operation);if(quoteError.value)inputError.value=quoteError.value;return accepted}
-function chooseDevice(device:BenefitDeviceContext){if(apply(value=>legacyFramework.value?setBenefitDevice(store.data,value,device):setSalesDevice(store.data,value,device)))deviceOpen.value=false}
+function chooseDevice(device:BenefitDeviceContext){const sourceWasContext=!sourceSkuId.value||contextSourceId.value===sourceSkuId.value;if(apply(value=>legacyFramework.value?setBenefitDevice(store.data,value,device):setSalesDevice(store.data,value,device))){deviceOpen.value=false;if(device?.kind==='sku'&&sourceWasContext)browseSku(device.skuId,undefined,true);else if(!device&&contextOnly.value)browseSku('')}}
 function confirmDevice(){if(deviceMode.value==='sku')chooseDevice({kind:'sku',skuId:deviceSkuChoice.value});else{const model=models.value.find(item=>item.key===deviceModelChoice.value);if(model)chooseDevice({kind:'model',host:cloneBenefit(model.host)})}}
 function addCurrent(){if(legacyFramework.value)return;const id=sourceSkuId.value;if(!id||!skuSelector.value?.allows(id)||!realSkus.value.some(sku=>sku.id===id&&sku.familyId===selectedFamilyId.value)){browseSku('');inputError.value='当前规格选择已变化，请重新选择实际在售规格。';return}const accepted=apply(value=>{let next=value;if(sourceRole.value==='host'&&!next.device)next=setBenefitDevice(store.data,next,{kind:'sku',skuId:id});next=addBenefitSku(store.data,next,id,1,{role:sourceRole.value==='host'?'host':'item',groupId:null});const line=next.goods.find(item=>item.skuId===id&&item.groupId===null&&item.role===(sourceRole.value==='host'?'host':'item'));return attachSalesSource(store.data,next,id,line?.id)});if(accepted){const line=draft.value.goods.find(item=>item.skuId===id&&item.groupId===null&&item.role===(sourceRole.value==='host'?'host':'item'));if(line){sourcePositionId.value=line.id;const entry=trail.value[trail.value.length-1];if(entry?.skuId===id&&!entry.positionId)entry.positionId=line.id;else browseSku(id,line.id)}}}
 function candidatePositions(candidate:SalesCandidate){return draft.value.sales?.origins.filter(origin=>origin.sourceSkuId===candidate.sourceSkuId&&origin.sourcePositionId===sourcePositionId.value&&origin.itemId===candidate.item.id&&origin.plan?.planId===candidate.plan?.planId&&origin.plan?.version===candidate.plan?.version).flatMap(origin=>[...draft.value.goods,...draft.value.services].filter(line=>line.id===origin.positionId&&(!candidate.skuId||'skuId' in line&&line.skuId===candidate.skuId)))||[]}
@@ -171,16 +179,16 @@ function commitName(event?:Event){if(!nameEditing.value)return true;if(nameCompo
 async function saveScheme(){if(!commitName()||!commitQuote())return;if(await (error.value?session.retry():session.flush()))ElMessage.success('最新销售方案已保存')}
 let changingRoute=false,skipNextRoute=false,sessionSwitching=false,routeGeneration=0,browsingGeneration=0,alive=true
 onScopeDispose(()=>{alive=false;routeGeneration++})
-function resetBrowsing(){browsingGeneration++;sourceSkuId.value='';sourcePositionId.value=undefined;selectedFamilyId.value='';trail.value=[];quoteText.value=amountInput(draft.value.quote.amountCents);quoteError.value='';conditionNotes.value={};nameEditing.value=false;replacementOpen.value=false;sourceOpen.value=false;commonError.value='';commonAttempt=undefined}
+function resetBrowsing(){browsingGeneration++;contextSourceId.value='';contextError.value='';sourceSkuId.value='';sourcePositionId.value=undefined;selectedFamilyId.value='';trail.value=[];quoteText.value=amountInput(draft.value.quote.amountCents);quoteError.value='';conditionNotes.value={};nameEditing.value=false;replacementOpen.value=false;sourceOpen.value=false;commonError.value='';commonAttempt=undefined}
 async function changeSession(source?:BenefitPackageDraft,copy=false){sessionSwitching=true;try{if(commitName()&&commitQuote()&&await session.replaceSession(source,copy))return true;if(businessPending.value)return false;try{await ElMessageBox.confirm('最新输入尚未保存，切换将放弃本页这些修改。','切换销售方案',{confirmButtonText:'放弃修改并切换',cancelButtonText:'继续处理',type:'warning'});return session.replaceSession(source,copy,true)}catch{return false}}finally{sessionSwitching=false}}
-async function syncUrl(push=false){const query={...route.query};delete query.sku;delete query.copy;if(draft.value.id)query.scheme=draft.value.id;else delete query.scheme;changingRoute=true;try{await router[push?'push':'replace']({path:route.path,query})}finally{changingRoute=false}}
+async function syncUrl(push=false){const query={...route.query};if(contextSourceId.value&&sourceSkuId.value){query.sku=sourceSkuId.value;query.sourceContext='1'}else{delete query.sku;delete query.sourceContext}delete query.copy;if(draft.value.id)query.scheme=draft.value.id;else delete query.scheme;changingRoute=true;try{await router[push?'push':'replace']({path:route.path,query})}finally{changingRoute=false}}
 async function newSession(){if(await changeSession()){resetBrowsing();await syncUrl(true)}}
 async function openSaved(record:BenefitPackageDraft){if(await changeSession(record)){resetBrowsing();recordsOpen.value=false;await syncUrl(true)}}
 function canUseCommon(record:BenefitPackageDraft){return record.compositionVersion===2&&(!record.sales||record.sales.schemaVersion===1)&&(!record.framework||['type-v1','type-v2'].includes(record.framework.kind))}
 async function useCommon(record:BenefitPackageDraft){if(!canUseCommon(record))return;if(await changeSession(record,true)){resetBrowsing();recordsOpen.value=false;commonOpen.value=false;await syncUrl(true)}}
 watch(()=>draft.value.id,(id)=>{if(id&&!changingRoute&&!sessionSwitching&&route.query.scheme!==id)void syncUrl()})
-onBeforeRouteUpdate(async(to,from)=>{if(skipNextRoute){skipNextRoute=false;return true}if(changingRoute)return true;const target=typeof to.query.scheme==='string'?to.query.scheme:'',previous=typeof from.query.scheme==='string'?from.query.scheme:'';if(target!==previous||to.query.copy==='1'){const epoch=++routeGeneration;const source=target?store.data.benefitPackages?.find(item=>item.id===target):undefined;if(!await changeSession(source,to.query.copy==='1'&&!!source)||epoch!==routeGeneration)return false;resetBrowsing();if(target&&!source)session.loadInitial(target);if(to.query.copy==='1'&&source){skipNextRoute=true;return {path:to.path,query:{...to.query,scheme:undefined,copy:undefined},replace:true}}}if(typeof to.query.sku==='string')browseSku(to.query.sku);return true})
-watch(()=>route.query.sku,id=>{if(typeof id==='string')browseSku(id)},{immediate:true})
+onBeforeRouteUpdate(async(to,from)=>{if(skipNextRoute){skipNextRoute=false;return true}if(changingRoute)return true;const target=typeof to.query.scheme==='string'?to.query.scheme:'',previous=typeof from.query.scheme==='string'?from.query.scheme:'';if(target!==previous||to.query.copy==='1'){const epoch=++routeGeneration;const source=target?store.data.benefitPackages?.find(item=>item.id===target):undefined;if(!await changeSession(source,to.query.copy==='1'&&!!source)||epoch!==routeGeneration)return false;resetBrowsing();if(target&&!source)session.loadInitial(target);if(to.query.copy==='1'&&source){skipNextRoute=true;return {path:to.path,query:{...to.query,scheme:undefined,copy:undefined},replace:true}}}if(typeof to.query.sku==='string')browseSku(to.query.sku,undefined,to.query.sourceContext==='1');return true})
+watch(()=>route.query.sku,id=>{if(typeof id==='string')browseSku(id,undefined,route.query.sourceContext==='1')},{immediate:true})
 if(initialCopy)void syncUrl()
 function focusBasket(){basketElement.value?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});basketElement.value?.focus({preventScroll:true})}
 let commonAttempt:{key:string;draft:BenefitPackageDraft;requestId:string}|undefined
@@ -196,7 +204,7 @@ function confirmSource(){if(apply(value=>reselectSalesSource(store.data,value,re
 
 async function openAdvanced(){if(!commitName()||!commitQuote())return;if(await (error.value?session.retry():session.flush())&&draft.value.id)await router.push(`/benefit-packages/${draft.value.id}`)}
 async function checkout(){if(!commitName()||!commitQuote())return;if(await session.prepareDelivery())deliveryOpen.value=true}
-async function generateDelivery(){const result=await session.generate();if(result.ok&&result.delivery)await router.push(`/benefit-packages/deliveries/${result.delivery.id}`)}
+async function generateDelivery(){const result=await session.generate();if(result.ok&&result.delivery)await router.push({path:`/benefit-packages/deliveries/${result.delivery.id}`,query:productReturn.value?{returnTo:productReturn.value}:{}})}
 watch([()=>store.activeUserId,()=>store.previewUserId],()=>{quoteText.value=amountInput(draft.value.quote.amountCents);quoteError.value='';conditionNotes.value={};deliveryOpen.value=false;nameEditing.value=false;deviceOpen.value=false;recordsOpen.value=false;commonOpen.value=false;sourcePositionId.value=undefined;commonAttempt=undefined;commonError.value='';void syncUrl()})
 onBeforeRouteLeave(async()=>{if(businessPending.value)return false;if(commitName()&&commitQuote()&&await session.flush())return true;try{await ElMessageBox.confirm('最新输入尚未保存。离开将放弃本页未保存的修改。','离开权益包选购',{confirmButtonText:'放弃并离开',cancelButtonText:'继续处理',type:'warning'});return true}catch{return false}})
 </script>

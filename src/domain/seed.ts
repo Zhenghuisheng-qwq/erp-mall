@@ -264,7 +264,7 @@ export function ensureLeafProductTypes(data: AppData) {
   return changed
 }
 
-/** 保护壳已有分类、产品类型和模型，但没有在售商品。缺这套时补上，不改已有商品。 */
+/** 仅供首次 createSeed／明确演示重置初始化销售样例，不属于旧数据结构兼容。 */
 export function ensureSalesShelfDemo(data: AppData) {
   if (data.families.some(item => item.id === 'f-case')) return false
   const type = data.productTypes.find(item => item.id === 'pt-case')
@@ -293,7 +293,7 @@ function originalIphoneDemo(data: AppData) {
   return { family, blue, white }
 }
 
-/** 演示手机改绑到覆盖其真实规格的已发布版本。不改 V1 快照，也不改用户已经改过的规格。 */
+/** 仅供首次 createSeed／明确演示重置初始化。不得用于已有数据加载、导入或修复。 */
 export function ensureDemoPhonePublished(data: AppData) {
   const demo = originalIphoneDemo(data)
   if (!demo) return false

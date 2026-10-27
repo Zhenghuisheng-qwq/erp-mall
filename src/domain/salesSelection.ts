@@ -3,9 +3,8 @@ import { addBenefitSku, benefitCompatibilitySummary, benefitSkuSummary, cloneBen
 import { benefitSelectionCatalogStamp, createBenefitSelectionIndex, resolveBenefitRange, type BenefitSelectionIndex } from './benefitFrameworks'
 import { benefitGroupRuleIssues } from './benefitPositions'
 import { compatibilityRecordRole } from './deviceResolution'
-import { isRealSku } from './catalogIdentity'
 import { actualSkuAttributes } from './actualSkuAttributes'
-import { salesSkuAdmission } from './salesCatalog'
+import { salesContextAdmission, salesDeviceAdmission, salesSkuAdmission } from './salesCatalog'
 import { cloneSales, planProblems, relationProblems, resolveSalesPlan, resolveSalesSource, salesConfigurationStamp, salesSignature, salesPlanVersionProblems } from './salesConfiguration'
 import type { AppData } from './types'
 import type { BenefitCompatibilitySummary, BenefitDeviceContext, BenefitIssue, BenefitPackageDraft } from './benefitPackageTypes'
@@ -67,7 +66,7 @@ export function querySalesCandidates(data:AppData,draft:BenefitPackageDraft,sour
   const stamp=salesCandidateStamp(data),index=supplied?.stamp===stamp?supplied:createSalesCandidateIndex(data),key=salesSignature([sourceSkuId,sourcePositionId,draft.device,draft.requireFastCharge,retained,draft.goods.map(line=>[line.id,line.skuId,line.quantity]),draft.services.map(line=>[line.id,line.quantity]),draft.sales?.origins])
   const cached=index.queries.get(key);if(cached)return {...cached,index}
   let resolution=resolveSalesPlan(data,sourceSkuId)
-  const rows:SalesCandidate[]=[],excludedRows:SalesCandidate[]=[],sourceIssue=(index.admission.get(sourceSkuId)||salesSkuAdmission(data,sourceSkuId)).reason
+  const rows:SalesCandidate[]=[],excludedRows:SalesCandidate[]=[],sourceIssue=salesContextAdmission(data,sourceSkuId).reason
   if(retained.length&&!['conflict','invalid'].includes(resolution.state)){
     const versions=new Set(retained.map(context=>salesSignature(context.plan)))
     if(versions.size>1)resolution={...resolution,state:'conflict',message:'此商品在本次清单中有多个用途版本，请从已选位置明确查看来源。',plan:undefined}
@@ -98,7 +97,7 @@ export function querySalesCandidates(data:AppData,draft:BenefitPackageDraft,sour
 }
 
 export function attachSalesSource(data:AppData,draft:BenefitPackageDraft,sourceSkuId:string,sourcePositionId?:string):BenefitPackageDraft{
-  const admission=salesSkuAdmission(data,sourceSkuId);if(!admission.allowed)throw Error(admission.reason)
+  const admission=salesContextAdmission(data,sourceSkuId);if(!admission.allowed)throw Error(admission.reason)
   const next=cloneBenefit(draft);next.sales??={schemaVersion:1,origins:[],contexts:[]}
   if(next.sales.schemaVersion!==1)throw Error('未知销售方案版本只读保留。')
   const resolved=resolveSalesPlan(data,sourceSkuId)
@@ -107,7 +106,7 @@ export function attachSalesSource(data:AppData,draft:BenefitPackageDraft,sourceS
   return next
 }
 export function setSalesDevice(data:AppData,draft:BenefitPackageDraft,device:BenefitDeviceContext):BenefitPackageDraft{
-  if(device?.kind==='sku'){const admission=salesSkuAdmission(data,device.skuId);if(!admission.allowed)throw Error(admission.reason)}
+  if(device?.kind==='sku'){const admission=salesDeviceAdmission(data,device.skuId);if(!admission.allowed)throw Error(admission.reason)}
   let next=setBenefitDevice(data,draft,device)
   if(next.sales?.schemaVersion===1)next.sales.contexts=next.sales.contexts.filter(context=>context.sourcePositionId||device?.kind==='sku'&&device.skuId===context.sourceSkuId||next.sales!.origins.some(origin=>origin.sourceSkuId===context.sourceSkuId&&origin.sourcePositionId===context.sourcePositionId&&origin.plan?.planId===context.plan.planId&&origin.plan.version===context.plan.version))
   if(device?.kind==='sku')next=attachSalesSource(data,next,device.skuId)
@@ -120,7 +119,7 @@ export function addSalesCandidate(data:AppData,draft:BenefitPackageDraft,candida
   if(!current||!current.canAdd)throw Error(current?.reason||'候选或来源方案已变化，请重新查看相关商品。')
   if(current.evidence!==candidate.evidence)throw Error('适用依据或方案范围已变化，请重新核对当前候选。')
   let next=attachSalesSource(data,draft,current.sourceSkuId,options.sourcePositionId)
-  if(!next.device&&compatibilityRecordRole(data,current.sourceSkuId)==='host')next.device={kind:'sku',skuId:current.sourceSkuId}
+  if(!next.device&&compatibilityRecordRole(data,current.sourceSkuId)==='host')next=setBenefitDevice(data,next,{kind:'sku',skuId:current.sourceSkuId})
   const origin:SalesSelectionOrigin={positionId:'',sourceSkuId:current.sourceSkuId,...(options.sourcePositionId?{sourcePositionId:options.sourcePositionId}:{}),itemId:current.item.id,checkTarget:current.item.checkTarget,bindingIds:current.bindingIds,...(current.plan?{plan:cloneSales(current.plan)}:{}),relationIds:[...current.relationIds],evidence:current.evidence}
   const existingOrigin=next.sales!.origins.find(item=>purposeKey(item.sourceSkuId,item.itemId,item.plan,item.sourcePositionId)===purposeKey(origin.sourceSkuId,origin.itemId,origin.plan,origin.sourcePositionId)&&(current.skuId?next.goods.some(line=>line.id===item.positionId&&line.skuId===current.skuId):next.services.some(line=>line.id===item.positionId)))
   if(current.item.scope.kind==='service'){
@@ -268,7 +267,7 @@ export function salesSelectionIssues(data:AppData,draft:BenefitPackageDraft):Ben
   const malformed=salesMetadataProblems(draft.sales);if(malformed.length)return malformed.map(message=>({code:'sales-structure',message,severity:'error',structural:true}))
   const issues:BenefitIssue[]=[],add=(message:string,positionId?:string)=>issues.push({code:'sales-selection',message,positionId,severity:'error'})
   for(const line of draft.goods){const admission=salesSkuAdmission(data,line.skuId);if(!admission.allowed)add(admission.reason,line.id)}
-  if(draft.device?.kind==='sku'){const admission=salesSkuAdmission(data,draft.device.skuId);if(!admission.allowed)add(`本次使用设备：${admission.reason}`)}
+  if(draft.device?.kind==='sku'){const admission=salesDeviceAdmission(data,draft.device.skuId);if(!admission.allowed)add(`本次使用设备：${admission.reason}`)}
   issues.push(...salesPositionIdentityProblems(draft).map(tampered))
   const alive=new Map([...draft.goods,...draft.services].map(line=>[line.id,line])),seen=new Set<string>()
   if(draft.goods.some(line=>line.groupId?.startsWith('sales:')&&!draft.sales!.origins.some(origin=>origin.positionId===line.id)))issues.push(tampered('销售用途位置缺少来源记录，不能绕过原方案规则。'))
@@ -285,7 +284,8 @@ export function salesSelectionIssues(data:AppData,draft:BenefitPackageDraft):Ben
   for(const origin of draft.sales.origins){
     const line=alive.get(origin.positionId)
     if(!line||seen.has(origin.positionId)){issues.push(tampered('销售来源对应的位置缺失或重复，请修复来源记录。'));continue}seen.add(origin.positionId)
-    if(!data.skus.some(sku=>sku.id===origin.sourceSkuId&&isRealSku(data,sku)))add('推荐来源商品已失效，请重新核对本次用途。',origin.positionId)
+    const sourceAdmission=salesContextAdmission(data,origin.sourceSkuId)
+    if(!sourceAdmission.allowed)add(`推荐来源商品：${sourceAdmission.reason}`,origin.positionId)
     if(origin.sourcePositionId&&!draft.goods.some(item=>item.id===origin.sourcePositionId&&item.skuId===origin.sourceSkuId))add(`「${'snapshot'in line?line.snapshot.name:line.name}」依赖的来源商品已移除或更换，请重新选择用途或移除此项。`,origin.positionId)
     const item=origin.plan?.items.find(item=>item.id===origin.itemId)
     if(origin.plan){
@@ -316,7 +316,7 @@ export function salesSelectionIssues(data:AppData,draft:BenefitPackageDraft):Ben
   }
   for(const context of draft.sales.contexts){
     if(context.sourcePositionId&&!alive.has(context.sourcePositionId))continue
-    const admission=salesSkuAdmission(data,context.sourceSkuId);if(!admission.allowed)add(`来源商品：${admission.reason}`,context.sourcePositionId)
+    const admission=salesContextAdmission(data,context.sourceSkuId);if(!admission.allowed)add(`来源商品：${admission.reason}`,context.sourcePositionId)
     const owner=data.salesOptionPlans?.find(plan=>plan.schemaVersion===1&&plan.id===context.plan.planId),version=owner?.versions.find(version=>version.version===context.plan.version)
     if(!version||owner?.status!=='available'||salesSignature(version)!==salesSignature(context.plan)||planProblems(data,context.plan).length){add('本次来源选配方案已停用或发布版本无效，请核对后重新选择。');continue}
     const current=resolveSalesPlan(data,context.sourceSkuId);if(['conflict','invalid'].includes(current.state)){add(current.message,context.sourcePositionId);continue}

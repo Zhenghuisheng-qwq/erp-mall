@@ -16,7 +16,7 @@
       </template>
       <template v-else-if="tab === 'deliveries' && store.can('product:delivery:read')"><el-empty v-if="!deliveries.length" description="还没有匹配的交付清单。先保存权益包，再明确发起一次清单生成。" /><article v-for="item in deliveries" :key="item.id" class="package-card" :data-benefit-delivery="item.id"><div class="card-main"><h2>{{ item.packageName }}</h2><p class="muted">{{ item.code }} · 来源 {{ item.packageCode }} / 修订 {{ item.sourceRevision }}</p><p class="device-line">{{ item.packageCount }} 包 · {{ item.generatedAt }}</p></div><div class="card-price"><strong>{{ supportedBenefitDelivery(item) ? formatBenefitCents(item.quote.totalCents) : '版本暂不支持' }}</strong><span>本次总报价</span></div><el-button @click="router.push(`/benefit-packages/deliveries/${encodeURIComponent(item.id)}`)">查看清单</el-button></article></template>
     </section>
-    <el-dialog v-model="hostOpen" title="选择手机" width="min(650px,94vw)"><p>选择手机后进入销售选购查看规格，由您主动加入本次清单。</p><el-select v-model="hostSkuId" filterable placeholder="搜索主机名称、编号或规格" aria-label="选择开始选购的手机" style="width:100%"><el-option v-for="host in hostSkus" :key="host.skuId" :value="host.skuId" :label="`${host.name} · ${host.code} · ${host.spec}`"/></el-select><template #footer><el-button @click="hostOpen=false">取消</el-button><el-button type="primary" :disabled="!hostSkuId" @click="startShopping(hostSkuId)">查看此手机</el-button></template></el-dialog>
+    <el-dialog v-model="hostOpen" title="选择手机" width="min(650px,94vw)"><p>选择手机后进入权益包选购。停售手机可作为已有设备查看配件，只有在售商品才能由您明确加入实物清单。</p><el-select v-model="hostSkuId" filterable placeholder="搜索主机名称、编号或规格" aria-label="选择开始选购的手机" style="width:100%"><el-option v-for="host in hostSkus" :key="host.skuId" :value="host.skuId" :label="`${host.name} · ${host.code} · ${host.spec}`"/></el-select><template #footer><el-button @click="hostOpen=false">取消</el-button><el-button type="primary" :disabled="!hostSkuId" @click="startShopping(hostSkuId)">查看此手机</el-button></template></el-dialog>
   </div>
 </template>
 <script setup lang="ts">
@@ -30,12 +30,10 @@ import { useCatalogStore } from '../stores/catalog'
 import type { BenefitPackageDraft } from '../domain/benefitPackageTypes'
 import { validateBenefitPackage,benefitSkuSummary } from '../domain/benefitPackages'
 import {salesShoppingEntryQuery} from '../components/sales-shopping/salesShoppingNavigation'
-import {shelfOf} from '../domain/logic'
-import {isRealSku} from '../domain/catalogIdentity'
-import {compatibilityRecordRole} from '../domain/deviceResolution'
+import {salesDeviceSkus} from '../domain/salesCatalog'
 import { formatBenefitCents, packageStatusLabels } from '../components/benefit-package/benefitPackagePresentation'
 const store = useCatalogStore(), router = useRouter(),hostOpen=ref(false),hostSkuId=ref('')
-const hostSkus=computed(()=>store.data.skus.filter(sku=>isRealSku(store.data,sku)&&sku.status==='on_sale'&&shelfOf(store.data.families.find(family=>family.id===sku.familyId)!)==='online'&&compatibilityRecordRole(store.data,sku.id)==='host').flatMap(sku=>{const summary=benefitSkuSummary(store.data,sku.id);return summary?[summary]:[]}))
+const hostSkus=computed(()=>salesDeviceSkus(store.data).flatMap(sku=>{const summary=benefitSkuSummary(store.data,sku.id);return summary?[summary]:[]}))
 const tab = ref(''), keyword = ref(''), status = ref(''), favoritesOnly = ref(false), error = ref(''), pendingId = ref('')
 // Prefer the existing package landing view, then the other explicitly readable sections.
 const availableTabs = computed(() => [
@@ -51,7 +49,7 @@ const rows = computed(() => validatedRows.value.filter(row => {
 const deliveries = computed(() => (store.can('product:delivery:read') ? store.data.benefitDeliveries || [] : []).filter(item => !keyword.value.trim() || `${item.packageName} ${item.packageCode} ${item.code}`.toLocaleLowerCase().includes(keyword.value.trim().toLocaleLowerCase())).slice().reverse())
 function supported(item:BenefitPackageDraft) { return (item.compositionVersion === undefined || item.compositionVersion === 1 || item.compositionVersion === 2) && (!item.sales || item.sales.schemaVersion === 1) && (!item.framework || ['type-v1','type-v2'].includes(item.framework.kind)) }
 function memberSummary(item:BenefitPackageDraft) { return [...item.goods.slice(0,3).map(line=>`${line.snapshot?.name || line.skuId} × ${line.quantity}`),...item.services.slice(0,2).map(line=>`${line.name} × ${line.quantity}`),...(item.goods.length>3||item.services.length>2?['…']:[])].join(' · ') || '尚未添加商品和服务' }
-function startShopping(skuId=''){if(!store.can('product:sales:read'))return;if(skuId&&!hostSkus.value.some(sku=>sku.skuId===skuId)){error.value='此手机已不可售，请重新选择。';return}hostOpen.value=false;router.push({path:'/sales-shopping',query:salesShoppingEntryQuery(store,skuId)})}
+function startShopping(skuId=''){if(!store.can('product:sales:read'))return;if(skuId&&!hostSkus.value.some(sku=>sku.skuId===skuId)){error.value='此手机的设备身份或适用依据已失效，请重新选择。';return}hostOpen.value=false;router.push({path:'/sales-shopping',query:{...salesShoppingEntryQuery(store,skuId),...(skuId?{sourceContext:'1'}:{})}})}
 function useCombination(id:string) { router.push({path:'/sales-shopping',query:{scheme:id,copy:'1'}}) }
 function edit(id: string) { router.push(`/benefit-packages/${encodeURIComponent(id)}`) }
 function copy(id: string) { router.push({ path: '/benefit-packages/new', query: { copy: id } }) }

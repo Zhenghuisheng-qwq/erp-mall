@@ -1,6 +1,6 @@
 <template>
   <div class="benefit-editor" data-benefit-editor>
-    <PageHead :title="draft.id ? '常用组合 · 高级配置' : '新建组合 · 高级配置'" desc="选择设备与组成位置，核对规则后保存；适配对象与包含主机实物分别决定。"><el-button @click="back" :disabled="busy">{{ typeof route.query.returnTo === 'string' ? '返回原页面' : '返回常用组合' }}</el-button><el-button v-if="draft.id && store.can(draft.id ? 'product:benefit:update' : 'product:benefit:create')" :disabled="(dirty) || busy" @click="useCommon(draft.id)">复制组包</el-button></PageHead>
+    <PageHead :title="draft.id ? '权益包详情 · 高级配置' : '新建权益包 · 高级配置'" desc="选择设备与组成位置，核对规则后保存；适配对象与包含主机实物分别决定。"><el-button @click="back" :disabled="busy">{{ typeof route.query.returnTo === 'string' ? '返回原页面' : '返回常用权益包' }}</el-button><el-button v-if="draft.id && store.can(draft.id ? 'product:benefit:update' : 'product:benefit:create')" :disabled="(dirty) || busy" @click="useCommon(draft.id)">复制组包</el-button></PageHead>
     <el-empty v-if="missing" description="权益包不存在，原配置未被重新创建。请返回列表查看。" />
     <template v-else>
       <el-alert v-if="!store.can(draft.id ? 'product:benefit:update' : 'product:benefit:create')" title="当前角色可查看配置与已有清单；组包、保存和生成清单需维护权限。" type="info" :closable="false" class="editor-alert" />

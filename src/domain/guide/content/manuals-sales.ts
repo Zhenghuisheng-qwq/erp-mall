@@ -1,4 +1,5 @@
 import type { GuideFeatureRow, GuideManualContent, GuideRestrictionRow } from '../types'
+import {benefitWorkflowDetails} from './manuals-sales-options'
 
 // These rows are authored against the sales views and their actual save commands.
 const f = (id:string,title:string,description:string,operation:string,result:string,flags:Pick<GuideFeatureRow,'primary'|'risk'|'actionIds'>={}):GuideFeatureRow => ({id,title,description,operation,result,...flags})
@@ -86,7 +87,9 @@ export const salesManuals:Record<string,GuideManualContent> = {
       f('spu-edit-materials','管理已有物料','单独查看 V3 主体的物料档案。','V3 主体使用“管理物料”入口。','进入真实 MAT 档案，物料与销售 SKU 的维护页面分开。'),
       f('spu-edit-history','查看绑定的历史快照','核对创建依据的模型版本和节点。','有绑定版本时点击“查看历史快照”。','显示该主体绑定版本，不自动切到最新发布版本。',{actionIds:['action-spu-history']}),
       f('spu-edit-compatible','查看主机适用配件','以主体下真实主机 SKU 查询正式适用结论。','主体身份为主机且有销售 SKU 时点击“适用配件”。','适用关系与在售状态分开；MAT 结果不自动充当销售配件。'),
+      f('spu-edit-benefits','按具体规格查看关联权益包','区分可使用配置、列为可选项目和已经包含该 SKU 的权益包。','在“关联权益包”查看下属 SKU 概览并切换具体规格，按权限查看配置、开始选购或使用可用组合。','只对当前明确 SKU 解释关系；部分规格有关联不表示整个 SPU 全部适用，查看和切换不会创建或修改权益包。',{primary:true}),
     ],
+    details:benefitWorkflowDetails('product'),
     restrictions:[
       r('spu-edit-lock','主体已有 SKU、物料、规划来源、公共身份签名或相关适用关系。','分类、类型、模型版本和公共属性被锁定；名称、编号及状态仍可维护。','其他身份需要新建 SPU；不要改写历史记录来容纳新规格。',{ruleIds:['rule-spu-identity']}),
       r('spu-edit-stale','原主体已删除或保存失败。','不会用编辑草稿重新创建已删除主体；写入失败不替换已保存记录。','保留输入并回列表核对对象，恢复存储后再明确保存。',{ruleIds:['rule-spu-input','rule-persistence']}),
@@ -137,8 +140,10 @@ export const salesManuals:Record<string,GuideManualContent> = {
       f('sku-edit-fields','编辑当前 SKU','修改编码、名称、OA_SKUID、状态和允许修改的规格属性。','在字段表单修改后点击“保存 SKU”。','只保存当前 SKU，不替换同级 SKU；空编码／名称不会被自动编造。',{primary:true,actionIds:['action-sku-save']}),
       f('sku-edit-source','查看主体与绑定版本','核对来源种类、版本和主体归属。','查看“来源／绑定版本”，点击所属 SPU 返回详情。','手工、方案、模型和规划来源如实分别显示；未记录来源不伪造关联。'),
       f('sku-edit-compatible','查看适用配件或主机','使用真实主机或配件 SKU 查询相应关系。','符合主机／配件身份时点击对应适用关系按钮。','基本适用、快充能力、待确认和不适用分别显示。'),
+      f('sku-edit-benefits','查看三类关联权益包','按当前真实 SKU 查询可使用配置、候选项目与已经包含该商品的权益包。','打开“关联权益包”，按权限查看指定配置、开始权益包选购或使用已保存组合；结束后返回商品。','列为候选不等于已确认兼容或已经加入权益包；未知、停用和失效内容明确说明，缺少读取权限不显示成“暂无关联”。',{primary:true}),
       f('sku-edit-cancel','取消与返回范围','继续原列表范围或处理未保存输入。','点击取消或“返回 SKU 管理”，在未保存确认中明确选择。','来自 SPU 范围时保留其返回范围；页面功能阅读不执行保存。'),
     ],
+    details:benefitWorkflowDetails('product'),
     restrictions:[
       r('sku-edit-identity','当前 SKU 保留模型节点、规划或来源身份。','规格属性锁定，不能直接改成另一组合。','其他规格应使用新增 SKU；已有绑定版本不自动升级到最新版本。',{ruleIds:['rule-sku-identity']}),
       r('sku-edit-duplicate','可编辑规格与同 SPU 另一 SKU 相同，或状态无效。','保存被拒绝，不能借改名建立重复规格。','使用已有 SKU，或填写合法且不同的规格与状态。',{ruleIds:['rule-sku-input','rule-sku-identity']}),

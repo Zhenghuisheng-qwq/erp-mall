@@ -75,7 +75,7 @@ try{
   await go('/catalog?view=types&categoryId=c-phone');await page.locator('[data-catalog-create-type]').click()
   const form=page.locator('[data-catalog-type-form]');await form.getByRole('textbox',{name:'产品类型名称',exact:true}).fill(`收尾类型-${role}`);await select('产品类型业务用途',label,form);await form.getByRole('button',{name:'保存',exact:true}).click();await form.waitFor({state:'hidden'});await settle()
   const type=JSON.parse(await raw()).data.productTypes.find(item=>item.name===`收尾类型-${role}`);assert.equal(type.catalogRole,role)
-  await page.reload({waitUntil:'networkidle'});await page.locator(`[data-catalog-type="${type.id}"]`).click();assert.match(await page.locator('[data-type-purpose]').innerText(),new RegExp(label));await page.locator('[data-catalog-type-detail] .el-drawer__close-btn').click()
+  await page.reload({waitUntil:'networkidle'});await page.locator(`[data-catalog-type="${type.id}"]`).click();assert.match(await page.locator('[data-type-purpose]').innerText(),new RegExp(label));await page.locator('[data-catalog-type-detail] .el-dialog__headerbtn').click()
   await page.locator('[data-catalog-view="models"]').click();await page.locator('[data-catalog-create-model]').click();const modelForm=page.locator('[data-catalog-model-form]')
   await select('模型产品类型',`${type.name} · ${type.id}`,modelForm);await modelForm.getByRole('textbox',{name:'模型名称',exact:true}).fill(`收尾模型-${role}`);await modelForm.getByRole('button',{name:'创建模型',exact:true}).click();await modelForm.waitFor({state:'hidden'})
   await page.locator('[data-catalog-model-detail]').waitFor();await page.reload({waitUntil:'networkidle'});assert.match(await page.locator('[data-catalog-model-detail]').innerText(),role==='host'?/反查适配配件/:/配件模板：配置适用机型/)

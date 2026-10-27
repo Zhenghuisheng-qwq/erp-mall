@@ -12,12 +12,12 @@
       <el-table-column label="操作" width="145" :fixed="narrow?false:'right'"><template #default="{row}"><el-button link type="primary" @click="requestDetail(row.id)">查看</el-button><el-dropdown v-if="canMaintain" trigger="click" @command="command($event,row.id)"><el-button link :disabled="saving" :aria-label="`${row.name}的更多操作`">更多 ▾</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item v-if="store.can('product:type:update')" command="edit">编辑</el-dropdown-item><el-dropdown-item v-if="store.can('product:type:update')" command="status">{{row.status==='enabled'?'停用':'启用'}}</el-dropdown-item><el-dropdown-item v-if="store.can('product:type:delete')" command="delete" divided>删除</el-dropdown-item></el-dropdown-menu></template></el-dropdown></template></el-table-column>
     </el-table>
     <div class="ledger-footer"><span class="muted">当前筛选 {{filtered.length}} 个产品类型</span><el-pagination small layout="prev, pager, next" :total="filtered.length" :page-size="prefs.pageSize" :current-page="currentPage" @current-change="(page:number)=>update({page})"/></div>
-    <el-drawer :model-value="!!detailId&&!suspended" title="产品类型详情" size="min(680px,96vw)" @close="closeDetail" data-catalog-type-detail>
+    <el-dialog class="catalog-type-dialog" :model-value="!!detailId&&!suspended" title="产品类型详情" width="min(720px, calc(100vw - 32px))" align-center append-to-body @close="closeDetail" data-catalog-type-detail>
       <template v-if="detail"><h2>{{detail.name}}</h2><p class="muted">{{detail.id}} · {{detail.status==='enabled'?'启用':'停用'}}</p><p>{{detail.description || '说明未记录'}}</p><h3>关联分类</h3><p>{{store.can('product:category:read')?detail.categoryPaths.join('；')||'未关联分类':'不可查看'}}</p><h3>模型列表</h3><ul v-if="detail.metrics.models.readable && detailModels.length" class="record-list"><li v-for="model in detailModels" :key="model.id"><button class="record-name" @click="emit('model',model.id)">{{model.name}}</button><span class="muted">{{model.statusText}}</span></li></ul><p v-else class="muted">{{detail.metrics.models.readable?'尚无模型，可按实际需要创建':'不可查看'}}</p><h3>相关记录</h3><div class="detail-metrics"><template v-for="kind in ['spus','skus','materials','pending'] as const" :key="kind"><button v-if="detail.metrics[kind].readable" class="metric" @click="showMetric(detail,kind)">{{metricLabels[kind]}} {{detail.metrics[kind].count}}</button><span v-else class="muted">{{metricLabels[kind]}} 不可查看</span></template></div><p class="muted">商品按已记录的创建来源关联，不根据当前分类推测历史归属。</p><el-button v-if="store.can('product:type:update')" @click="openEdit(detail.id)">编辑产品类型</el-button></template>
       <p v-if="detail" data-type-purpose>业务用途：{{productTypePurposeLabel(store.data.productTypes.find(item=>item.id===detail?.id)?.catalogRole)}}</p>
       <el-empty v-else description="产品类型已不存在或不可读取"/>
-    </el-drawer>
-    <el-drawer :model-value="formOpen" :title="editing.id?'编辑产品类型':'新增产品类型'" size="min(500px,96vw)" :before-close="closeForm" :close-on-click-modal="false" data-catalog-type-form>
+    </el-dialog>
+    <el-dialog class="catalog-type-dialog" :model-value="formOpen" :title="editing.id?'编辑产品类型':'新增产品类型'" width="min(560px, calc(100vw - 32px))" align-center append-to-body :before-close="closeForm" :close-on-click-modal="false" data-catalog-type-form>
       <el-form label-position="top" :disabled="saving">
         <el-form-item label="业务用途"><el-select v-model="editing.catalogRole" aria-label="产品类型业务用途"><el-option v-for="item in productTypePurposes" :key="item.value" :value="item.value" :label="item.label"/></el-select><p class="hint">主机／设备（如手机、平板）反查配件；配件（如手机壳、保护膜）配置适用机型。其他不提供这两种入口，未指定可稍后维护。</p></el-form-item>
         <el-form-item label="关联分类"><CategoryTreeSelect v-if="store.can('product:category:read')" :model-value="editing.categoryId" :categories="store.data.categories" :block-reason="categoryBlock" placeholder="选择可用的末级分类" @update:model-value="setCategory"/><el-input v-else model-value="不可查看分类，请联系有分类读取权限的人员维护" disabled/></el-form-item>
@@ -25,7 +25,7 @@
         <el-form-item label="产品类型名称"><el-input v-model="editing.name" aria-label="产品类型名称"/></el-form-item><el-form-item label="说明"><el-input v-model="editing.description" type="textarea" aria-label="产品类型说明"/></el-form-item><el-form-item label="排序"><el-input-number v-model="editing.sort" :min="1"/></el-form-item><el-form-item label="状态"><el-select v-model="editing.status" aria-label="产品类型状态"><el-option value="enabled" label="启用"/><el-option value="disabled" label="停用"/></el-select></el-form-item>
       </el-form><el-alert v-if="formError" :title="formError" type="error" :closable="false"/>
       <template #footer><el-button :disabled="saving" @click="closeForm()">取消</el-button><el-button type="primary" :loading="saving" :disabled="!store.can(editing.id?'product:type:update':'product:type:create') || !store.can('product:category:read')" @click="saveType">{{formError?'重试保存':'保存'}}</el-button></template>
-    </el-drawer>
+    </el-dialog>
   </section>
 </template>
 <script setup lang="ts">
@@ -102,4 +102,8 @@ defineExpose({openCreate,openDetail,canLeave,acceptContextChange})
 </script>
 <style scoped>
 .record-name,.metric{border:0;background:none;color:var(--el-color-primary);cursor:pointer;padding:3px 0;text-align:left;font:inherit}.record-name:focus-visible,.metric:focus-visible{outline:2px solid var(--el-color-primary);outline-offset:3px}.record-name{font-weight:600}small{display:block;color:var(--el-text-color-secondary);font-size:11px;overflow-wrap:anywhere}.muted{color:var(--el-text-color-secondary);font-size:12px}.ledger-footer,.detail-metrics{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:14px}.detail-metrics{justify-content:flex-start}.record-list{padding:0;list-style:none}.record-list li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--el-border-color-lighter)}.hint{color:var(--el-text-color-secondary);font-size:13px}.error{color:var(--el-color-danger);font-size:13px}h2{margin-top:0}h3{font-size:14px;margin-top:24px}:deep(.el-drawer__body){overflow-wrap:anywhere}
+</style>
+<style>
+.catalog-type-dialog.el-dialog{max-height:min(760px,calc(100vh - 48px));display:flex;flex-direction:column}
+.catalog-type-dialog .el-dialog__body{overflow:auto;overflow-wrap:anywhere}
 </style>
