@@ -17,7 +17,7 @@
       <el-alert v-if="!summary.valid" :title="summary.message" type="warning" :closable="false" data-catalog-invalid-scope />
       <div v-if="summary.valid" class="scope-totals" aria-label="当前分类范围汇总" data-catalog-totals><template v-for="kind in metricKinds" :key="kind"><button v-if="summary.metrics[kind].readable" type="button" :data-catalog-total="kind" :title="kind==='spus'?CATALOG_SPU_DEFINITION:undefined" @click="showMetric(kind,summary.metrics[kind],`${scopeLabel} · ${metricLabels[kind]}`)">{{metricLabels[kind]}} <strong>{{summary.metrics[kind].count}}</strong></button><span v-else>{{metricLabels[kind]}} <span class="muted">不可查看</span></span></template></div>
       <div class="query-toolbar">
-        <el-input :model-value="prefs.keyword" clearable :placeholder="searchPlaceholder" :aria-label="searchPlaceholder" @update:model-value="changePreference({keyword:String($event),page:1})" />
+        <el-input :model-value="prefs.keyword" clearable :placeholder="searchPlaceholder" :aria-label="searchPlaceholder" @update:model-value="changePreference({keyword:String($event)})" />
         <el-select :model-value="prefs.status" clearable placeholder="全部状态" aria-label="资料状态" @update:model-value="changePreference({status:String($event||''),page:1})"><el-option v-for="option in statusOptions" :key="option.value" :label="option.label" :value="option.value" /></el-select>
         <el-select :model-value="prefs.sort" aria-label="资料排序" @update:model-value="changePreference({sort:String($event),page:1})"><el-option label="名称升序" value="name"/><el-option label="名称降序" value="name-desc"/><el-option label="状态" value="status"/><el-option v-if="view==='models'" label="最近维护" value="updated"/></el-select>
         <div class="query-tools">
@@ -32,7 +32,7 @@
         <aside v-if="view!=='categories'&&preferences.sidebar&&!narrow&&store.can('product:category:read')" class="catalog-sidebar" aria-label="分类范围"><CatalogScopeTree :categories="index.categories" :category-id="categoryId" :expanded-ids="prefs.expandedIds" @select="pickCategory" @expand="changePreference({expandedIds:$event})" /></aside>
         <section class="catalog-main">
           <el-empty v-if="!summary.valid" description="请重新选择有效分类范围" />
-          <CatalogCategorySummary v-else-if="view==='categories'" :index="index" :prefs="prefs" :category-id="categoryId" :include-descendants="scopeMode!=='current'" @select="pickCategory" @repair="openOrganize" @update:prefs="updatePreferences" @details="openDetails" />
+          <CatalogCategorySummary v-else-if="view==='categories'" :key="preferenceKey" ref="categorySummary" :index="index" :prefs="prefs" :category-id="categoryId" :include-descendants="scopeMode!=='current'" @select="pickCategory" @repair="openOrganize" @update:prefs="updatePreferences" @details="openDetails" />
           <ProductTypeLedger v-else-if="view==='types'" ref="typeLedger" :index="index" :summary="summary" :prefs="prefs" :category-id="categoryId" :return-to="route.fullPath" :suspended="!!modelId && store.can('product:model:read')" @update:prefs="updatePreferences" @details="openDetails" @model="openModel" @type="openType" />
           <ModelLedger v-else ref="modelLedger" :index="index" :summary="summary" :prefs="prefs" :category-id="categoryId" :return-to="route.fullPath" @update:prefs="updatePreferences" @details="openDetails" @model="openModel" />
         </section>
@@ -57,7 +57,6 @@ import CatalogModelDetail from '../components/catalog-workspace/CatalogModelDeta
 import {catalogColumns,catalogWorkspacePreferenceKey,readCatalogWorkspacePreferences,repairCatalogViewPreferences,saveCatalogWorkspacePreferences,type CatalogViewPreferences,type CatalogWorkspacePreferences} from '../components/catalog-workspace/catalogWorkspaceState'
 import {buildCatalogWorkspaceIndex,CATALOG_SPU_DEFINITION,type CatalogDetailRow,type CatalogMetric,type CatalogMetricKind} from '../domain/catalogWorkspaceQuery'
 import {catalogViewPermissions,firstReadableCatalogView,isCatalogView,catalogSearchKeyword,withCatalogSearch,type CatalogView} from '../domain/catalogWorkspaceNavigation'
-import {catalogExpandableCategoryIds} from '../domain/catalogCategoryProjection'
 import {categoryPathLabel} from '../domain/categoryTree'
 import {useCatalogStore} from '../stores/catalog'
 const store=useCatalogStore(),route=useRoute(),router=useRouter()
@@ -84,6 +83,7 @@ const modelId=computed(()=>scalar(route.query.modelId)||(view.value==='models'?(
 const modelVersion=computed(()=>scalar(route.query.version)||scalar(route.query.versionId)||undefined)
 const typeId=computed(()=>scalar(route.query.typeId)||(view.value==='types'?(scalar(route.query.type)||scalar(route.query.focus)||scalar(route.query.id)):''))
 const typeLedger=ref<InstanceType<typeof ProductTypeLedger>>(),modelLedger=ref<InstanceType<typeof ModelLedger>>()
+const categorySummary=ref<InstanceType<typeof CatalogCategorySummary>>()
 const modelDetail=ref<InstanceType<typeof CatalogModelDetail>>()
 const detailRequest=ref<CatalogDetailRequest|null>(null),categoryDrawer=ref(false),narrow=ref(window.innerWidth<900)
 let writeTimer:ReturnType<typeof setTimeout>|undefined,pendingWrite:{key:string;value:CatalogWorkspacePreferences}|undefined,content:HTMLElement|null=null,scrollTimer:ReturnType<typeof setTimeout>|undefined
@@ -97,7 +97,7 @@ function changePreference(patch:Partial<CatalogViewPreferences>){updatePreferenc
 function syncQueryPreferences(){if(route.path!=='/catalog'||!view.value)return;const state=prefs.value;const query={...withCatalogSearch(route.query,state.keyword),status:state.status||undefined,sort:state.sort==='name'?undefined:state.sort,page:state.page===1?undefined:String(state.page)};const target={path:'/catalog',query};if(router.resolve(target).fullPath!==route.fullPath)void router.replace(target)}
 function setColumn(key:string,visible:boolean){const columns=visible?[...prefs.value.columns,key]:prefs.value.columns.filter(value=>value!==key);changePreference({columns})}
 function setCategoryLayout(value:string|number|boolean){changePreference({categoryLayout:value==='list'?'list':'tree'})}
-function setTreeExpansion(open:boolean){changePreference({treeExpandReady:true,expandedIds:open?catalogExpandableCategoryIds(index.value.categories):[]})}
+function setTreeExpansion(open:boolean){categorySummary.value?.setTreeExpansion(open)}
 async function canChangeContext(){if(modelDetail.value&&!await modelDetail.value.canLeave())return false;const ledger=view.value==='types'?typeLedger.value:view.value==='models'?modelLedger.value:undefined;return !ledger||await ledger.canLeave()}
 function acceptContextChange(){modelDetail.value?.acceptContextChange();if(view.value==='types')typeLedger.value?.acceptContextChange();if(view.value==='models')modelLedger.value?.acceptContextChange()}
 function cleanDetails(query:LocationQueryRaw){for(const key of ['modelId','typeId','version','versionId','template','focus','id','type','metric'])delete query[key];return query}

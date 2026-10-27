@@ -25,6 +25,8 @@ export interface CatalogCategoryProjection {
   rows: CatalogCategoryProjectionRow[]
   anomalyTotal: number
   empty: CatalogCategoryEmpty
+  /** 条件变化时的一次性展开建议；展示计算本身不覆盖用户的展开集合。 */
+  filterExpandedIds: string[]
 }
 
 const categoryName = (category: Category) => typeof category.name === 'string' && category.name ? category.name : category.id
@@ -255,9 +257,7 @@ export function projectCatalogCategories(input: {
     }
   }
   const open = new Set(input.expandedIds)
-  if (filtering && input.layout === 'tree') {
-    for (const id of included) if ((children.get(id) || []).some(child => included.has(child))) open.add(id)
-  }
+  const filterExpandedIds = filtering ? [...included].filter(id => (children.get(id) || []).some(child => included.has(child))) : []
   const rows: CatalogCategoryProjectionRow[] = []
   const seen = new Set<string>()
   const pushTree = (bucket: Map<string | null, Category[]>, section: 'main' | 'anomaly', parentId: string | null, depth: number) => {
@@ -303,5 +303,5 @@ export function projectCatalogCategories(input: {
     if (rows[anomalyStart]) rows[anomalyStart].anomalyLead = true
   }
   const empty: CatalogCategoryEmpty = !started.length ? 'none' : rows.length ? '' : needle && status ? 'both' : needle ? 'search' : status ? 'status' : ''
-  return { rows, anomalyTotal: forest.anomalies.size, empty }
+  return { rows, anomalyTotal: forest.anomalies.size, empty, filterExpandedIds }
 }
