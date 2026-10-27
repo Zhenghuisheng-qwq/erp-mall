@@ -22,7 +22,7 @@
       <el-tab-pane label="适用关系" name="compatibility">
         <HostTemplateCompatibility v-if="templateRole==='host'" ref="hostCompatibility" :model-id="modelId" :version-id="version" :node-id="activeNodeId" :scope-selector="selectedSelector" :readonly="readonly"/>
         <TemplateCompatibilityDialog v-else-if="templateRole==='accessory'" ref="compatibilityEditor" :model-value="modelValue" :model-id="modelId" :initial-node-id="activeNodeId" :scope-selector="selectedSelector" :version-id="version||undefined" :readonly="readonly" embedded @update:model-value="value=>{if(!value)close()}"/>
-        <el-alert v-else title="此模板的主机／配件身份尚不明确，请先核对产品类型的目录角色。已有配置保留，不按名称推测适用方向。" type="warning" :closable="false" data-template-role-unknown/>
+        <div v-else data-template-role-unknown><el-alert :title="templateRole==='other'?'此产品类型的业务用途为「其他」，不提供主机反查配件或配件适用机型配置。':'此产品类型业务用途未指定，无法确定适用方向。请维护对应产品类型，不按名称或分类推测。'" :type="templateRole==='other'?'info':'warning'" :closable="false"/><el-button v-if="canMaintainType" data-repair-type-purpose @click="repairType">编辑产品类型业务用途</el-button><p v-else class="muted">{{!productType?'模型未关联唯一有效的产品类型，请联系管理员核对模型归属。':'当前身份缺少产品类型读取或修改权限，请联系有权限的人员维护。'}}</p></div>
       </el-tab-pane>
       <el-tab-pane v-if="store.can('product:sales-config:read')" label="试选预览" name="preview">
         <el-select v-model="previewSkuId" filterable clearable aria-label="试选实际销售 SKU" placeholder="选择此范围已有的实际销售 SKU"><el-option v-for="sku in scopeSkus" :key="sku.id" :value="sku.id" :label="`${savedSkuName(sku)} · ${savedSkuCode(sku)}`"/></el-select>
@@ -31,12 +31,13 @@
       </el-tab-pane>
     </el-tabs>
     <div class="workspace-footer"><el-button v-if="editing" link @click="router.push('/sales-configurations')">全局选配方案</el-button><el-button @click="close()">关闭</el-button></div>
+    <ProductTypePurposeEditor v-if="purposeOpen&&productType" ref="purposeEditor" v-model:open="purposeOpen" :type-id="productType.id"/>
   </el-dialog>
 </template>
 <script setup lang="ts">
 import {computed,ref,watch,onBeforeUnmount} from 'vue'
 import {ElMessage,ElMessageBox} from 'element-plus'
-import {useRouter,onBeforeRouteLeave} from 'vue-router'
+import {useRouter,onBeforeRouteLeave,onBeforeRouteUpdate} from 'vue-router'
 import {useCatalogStore,uid} from '../../stores/catalog'
 import {salesBindingContext,resolveSalesSource,resolveSalesPlanForCombination,previewSalesBinding,salesSignature} from '../../domain/salesConfiguration'
 import {selectorForNode,selectorForCombination,templateSelectorCoverage} from '../../domain/templateCompatibility'
@@ -44,7 +45,8 @@ import {savedSkuName,savedSkuCode} from '../../domain/productList'
 import {isRealSku} from '../../domain/catalogIdentity'
 import {newBenefitPackageDraft} from '../../domain/benefitPackages'
 import {querySalesCandidates} from '../../domain/salesSelection'
-import {templateBusinessRole} from '../../domain/templateHostCompatibility'
+import {templateBusinessRole,templateProductType} from '../../domain/templateHostCompatibility'
+import ProductTypePurposeEditor from '../catalog-workspace/ProductTypePurposeEditor.vue'
 import {salesBindingWorkingIdentity,salesBindingWorkingTaskKey,type SalesBindingWorkingIdentity,type SalesBindingWorkingCopy} from '../../domain/salesBindingWorkingCopy'
 import type {TemplateSpecSelector} from '../../domain/templateCompatibilityTypes'
 import type {SalesCandidate,SalesOptionBinding,SalesPlanResolution} from '../../domain/salesConfigurationTypes'
@@ -61,6 +63,10 @@ const canEdit=computed(()=>!props.readonly&&store.can('product:sales-config:upda
 const modelName=computed(()=>store.data.specCanvases.find(item=>item.templateId===props.modelId)?.name||store.data.templates.find(item=>item.id===props.modelId)?.name||props.modelId)
 const versions=computed(()=>store.data.specModelVersions.filter(item=>item.templateId===props.modelId).sort((a,b)=>b.version-a.version))
 const templateRole=computed(()=>templateBusinessRole(store.data,props.modelId))
+const productType=computed(()=>templateProductType(store.data,props.modelId))
+const canMaintainType=computed(()=>!!productType.value&&store.can('product:type:read')&&store.can('product:type:update'))
+const purposeOpen=ref(false),purposeEditor=ref<InstanceType<typeof ProductTypePurposeEditor>>()
+async function repairType(){if(canMaintainType.value&&await canLeave()){acceptContextChange();purposeOpen.value=true}}
 const context=computed(()=>salesBindingContext(store.data,props.modelId,version.value))
 const attributeStart=computed(()=>context.value.byNode.get(activeNodeId.value)?.nodeType==='ATTRIBUTE')
 const nodeLabel=computed(()=>{const node=context.value.byNode.get(activeNodeId.value);return node?`${store.data.params.find(item=>item.id===node.attributeId)?.name||node.attributeId||''} ${node.valueId||''}`:'节点不属于当前版本'})
@@ -86,7 +92,7 @@ function stateLabel(state:string){return ({none:'此范围不展示选配',uncon
 async function startEdit(group?:ResultGroup){if(!canEdit.value)return;if(group){if(!await canLeave())return;acceptContextChange();}notice.value='';const chosen=group||(groups.value.length===1?groups.value[0]:undefined);let selector=selectedSelector.value;if(group){selector={anyOf:group.identities.map(id=>selectorForCombination(context.value.byIdentity.get(id)!)).flatMap(item=>item?.anyOf||[])};selectedSelector.value=selector}const exact=scopeBindings.value.filter(binding=>scopeMode.value!=='default'?binding.mode!=='default'&&binding.scope.kind==='model'&&salesSignature(binding.scope.selector)===salesSignature(selector):binding.mode==='default');bindingId.value=exact.length===1?exact[0]!.id:'';initialDraft.value={schemaVersion:1,id:'',revision:0,name:`${modelName.value}${scopeMode.value!=='default'?' · '+nodeLabel.value:'默认选配'}`,enabled:false,scope:{kind:'model',modelId:props.modelId,versionId:version.value,...(scopeMode.value!=='default'?{nodeId:activeNodeId.value,selector}: {})},mode:scopeMode.value!=='default'?(chosen?.resolution.state==='none'?'none':'replace'):'default',planId:chosen?.resolution.plan?.planId||null,planVersion:chosen?.resolution.plan?.version||null,source:'模板搭配与适用',updatedAt:''};beginTask(exact.length===1?exact[0]!:initialDraft.value,activeNodeId.value)}
 async function editBinding(binding:SalesOptionBinding){if(!await canLeave())return;acceptContextChange();beginTask(binding,binding.scope.kind==='model'?binding.scope.nodeId||'':'')}
 function preparePublishedDraft(){if(!mappingValid.value||!draftWorkCopy.value)return;const draft=JSON.parse(JSON.stringify(draftWorkCopy.value.draft)) as SalesOptionBinding;if(draft.scope.kind!=='model')return;const selector=draft.scope.selector;const targets=scopeBindings.value.filter(binding=>binding.mode===draft.mode&&binding.scope.kind==='model'&&(draft.mode==='default'||salesSignature(binding.scope.selector)===salesSignature(selector)));if(targets.length>1){notice.value='此发布范围存在多个设置，请先处理重叠记录后再应用。';return}const target=targets[0];if(target&&store.getSalesBindingWorkingCopy(target.id).copy){notice.value='此发布范围已有独立工作草稿，请先继续核对该草稿。';return}draft.id=target?.id||'';draft.revision=target?.revision||0;draft.enabled=target?.enabled||false;draft.scope.versionId=version.value;beginTask(draft,activeNodeId.value)}
-async function canLeave(){if(!editing.value&&scopePending.value){try{await ElMessageBox.confirm('规格范围还有未应用的输入，放弃本次输入？','未应用范围输入',{confirmButtonText:'放弃输入',cancelButtonText:'继续编辑'})}catch{return false}}if(editing.value&&!await bindingEditor.value?.canDiscard())return false;return hostCompatibility.value?await hostCompatibility.value.canDiscard():compatibilityEditor.value?await compatibilityEditor.value.canDiscard():true}
+async function canLeave(){if(purposeOpen.value&&!await purposeEditor.value?.canLeave())return false;if(!editing.value&&scopePending.value){try{await ElMessageBox.confirm('规格范围还有未应用的输入，放弃本次输入？','未应用范围输入',{confirmButtonText:'放弃输入',cancelButtonText:'继续编辑'})}catch{return false}}if(editing.value&&!await bindingEditor.value?.canDiscard())return false;return hostCompatibility.value?await hostCompatibility.value.canDiscard():compatibilityEditor.value?await compatibilityEditor.value.canDiscard():true}
 async function changeScope(selector:TemplateSpecSelector|undefined){if(!await canLeave()){scopeInputEpoch.value++;return}acceptContextChange();selectedSelector.value=selector}
 function acceptContextChange(){rangePicker.value?.discardPending();scopePending.value=false;hostCompatibility.value?.acceptContextChange();bindingEditor.value?.acceptContextChange();compatibilityEditor.value?.acceptContextChange()}
 async function close(done?:()=>void){if(!await canLeave())return;acceptContextChange();emit('update:modelValue',false);done?.()}
@@ -99,6 +105,7 @@ function refreshCopies(event:StorageEvent){if(event.key?.startsWith('iyge-sales-
 window.addEventListener('storage',refreshCopies)
 onBeforeUnmount(()=>window.removeEventListener('storage',refreshCopies))
 onBeforeRouteLeave(async()=>{if(!props.modelValue)return true;if(!await canLeave())return false;acceptContextChange();return true})
+onBeforeRouteUpdate(async(to,from)=>{if(!props.modelValue||!['template','version','versionId','mode','panel'].some(key=>to.query[key]!==from.query[key]))return true;if(!await canLeave())return false;acceptContextChange();return true})
 async function openShopping(id:string){if(await canLeave()){acceptContextChange();await router.push({path:'/sales-shopping',query:{sku:id}})}}
 defineExpose({canLeave,acceptContextChange})
 </script>

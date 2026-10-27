@@ -32,6 +32,7 @@ import {
 } from '../domain/categoryTree'
 import { applyAccessoryCategoryFix, PHONE_CASE_CATEGORY_FIX } from '../domain/categoryFix'
 import { dictionaryRemovalBlock } from '../domain/dictionaryGuard'
+import { productTypePurposeChangeMessage, validProductTypePurpose } from '../domain/productTypePurpose'
 import { applyModelDictionaryBatch, modelDictionaryInputProblem, type ModelDictionaryBatchInput, type ModelDictionaryBatchResult } from '../domain/modelDictionaryCommands'
 import { captureEditor, editorEntry, prepareEditorUndo, type EditorHistoryEntry } from '../domain/editorHistory'
 import { blankVariantAttrs, categoryPath, descendantIds, familySkus, sameSpecSnapshot, specPublishProblems } from '../domain/logic'
@@ -62,7 +63,7 @@ import type { MaterialChoice } from '../domain/material'
 import type { ProductGrade } from '../domain/types'
 import { arrangeSpecPositions } from '../domain/logic'
 import { activeProductListView, applyPresetToActiveView, currentModeQuery, ensureProductListViews } from '../domain/productListViews'
-import { createSeed, defaultColumns, emptyQuery, phoneCanvas, phoneSpecNodes } from '../domain/seed'
+import { createSeed, defaultColumns, emptyQuery, ensureSalesShelfDemo, phoneCanvas, phoneSpecNodes } from '../domain/seed'
 import { DATA_VERSION, STORAGE_KEY, type AppData, type Category, type ColumnPref, type FeedbackItem, type ListQuery, type ListView, type ParamDef, type ProductFamily, type ProductGroup, type ProductType, type Sku, type SpecRule, type Brand, type UserRole } from '../domain/types'
 import { readSalesBindingWorkingCopy, writeSalesBindingWorkingCopy, salesBindingWorkingCopyKey, listSalesBindingWorkingCopies, validateSalesBindingWorkingApplication, type SalesBindingWorkingCopyInput, type SalesBindingWorkingIdentity } from '../domain/salesBindingWorkingCopy'
 
@@ -243,6 +244,7 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   }
   if (ensureProductListViews(data)) mark.changed = true
   if (ensureProductListPages(data)) mark.changed = true
+  if (ensureSalesShelfDemo(data)) mark.changed = true
   const compatibilityProblems = compatibilityImportProblems(data)
   if (compatibilityProblems.length) migrationStorageError = `适用关系配置有待处理项：${compatibilityProblems.join(' ')} 原始记录已保留，请修复或导出备份。`
   ensureRbac(data, loadMenu())
@@ -916,6 +918,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     for(const key of Object.keys(prefixes))if(key!=='profile'&&(parsed.data as any)[key]!==undefined&&!Array.isArray((parsed.data as any)[key]))throwImportValidation(`导入记录集合 ${key} 必须为数组，不能按空集合处理损坏内容。`)
     const next = normalizeStored(parsed, { persist: false })
     if (!next?.params) throwImportValidation('演示数据版本不匹配，当前数据没有被替换')
+    if(next.productTypes.some(type=>!validProductTypePurpose(type.catalogRole)))throwImportValidation('产品类型业务用途无效，只接受主机／设备、配件、其他或未指定。')
     for(const incoming of next.benefitPackages||[]){
       const previous=data.benefitPackages?.find(record=>record.id===incoming.id)
       if(!previous?.sales&&incoming.sales?.schemaVersion!==1||previous&&frameworkSignature(previous)===frameworkSignature(incoming))continue
@@ -1170,10 +1173,14 @@ export const useCatalogStore = defineStore('catalog', () => {
     return data.productTypes.filter((item) => item.categoryId === categoryId).slice().sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, 'zh'))
   }
 
-  function saveProductType(input: { id: string; name: string; categoryId: string; description: string; sort: number; status: ProductType['status'] }) {
-    return saveProductTypeInto(data,input)
+  function saveProductType(input: { id: string; name: string; categoryId: string; description: string; sort: number; status: ProductType['status']; catalogRole?: ProductType['catalogRole'] }) {
+    const next=cloneCompatibility(data),message=saveProductTypeInto(next,input)
+    if(message)return message
+    const result=commitCandidate(next,{ok:true},['productTypes'])
+    return result.ok?'':result.message||'保存失败，原产品类型未改变。'
   }
   function saveProductTypeInto(target: AppData,input: Parameters<typeof saveProductType>[0]) {
+    if (!validProductTypePurpose(input.catalogRole)) return '业务用途无效，请选择主机／设备、配件、其他或未指定。'
     const name = input.name.trim()
     if (!name) return '请填写产品类型名称。'
     const category = target.categories.find((item) => item.id === input.categoryId)
@@ -1188,12 +1195,16 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (input.id) {
       const row = target.productTypes.find((item) => item.id === input.id)
       if (!row) return '产品类型不存在。'
+      // Older callers omit the field; only an explicitly supplied undefined clears it.
+      const catalogRole = Object.hasOwn(input, 'catalogRole') ? input.catalogRole : row.catalogRole
+      const purposeBlock = productTypePurposeChangeMessage(target, row.id, catalogRole)
+      if (purposeBlock) return purposeBlock
       const blocked = productTypeCategoryMoveMessage(target, input.id, input.categoryId, categoryPath(target, input.categoryId))
       if (blocked) return blocked
-      Object.assign(row, { name, categoryId: input.categoryId, description, sort, status: input.status })
+      Object.assign(row, { name, categoryId: input.categoryId, description, sort, status: input.status, catalogRole })
       return ''
     }
-    target.productTypes.push({ id: uid('pt'), name, categoryId: input.categoryId, description, sort, status: input.status })
+    target.productTypes.push({ id: uid('pt'), name, categoryId: input.categoryId, description, sort, status: input.status, ...(input.catalogRole ? {catalogRole:input.catalogRole} : {}) })
     return ''
   }
 
@@ -1823,7 +1834,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     productTypesOf,
     saveProductType,
     commitProductType: (input: Parameters<typeof saveProductType>[0], expectedRecord = '', isCurrent: () => boolean = () => true) => {
-      const value=cloneCompatibility(input),owner=activeUserId.value,preview=previewUserId.value
+      const value={...cloneCompatibility(input),...(Object.hasOwn(input,'catalogRole')?{catalogRole:input.catalogRole}:{})},owner=activeUserId.value,preview=previewUserId.value
       return command(()=>commitProductType(value,expectedRecord,()=>owner===activeUserId.value&&preview===previewUserId.value&&isCurrent()))
     },
     commitProductTypeAction: (id: string, action: 'delete'|'enabled'|'disabled', expectedRecord: string, isCurrent: () => boolean = () => true) => {

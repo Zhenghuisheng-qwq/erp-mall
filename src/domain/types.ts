@@ -55,7 +55,7 @@ export interface ProductType {
   status: 'enabled' | 'disabled'
   sort: number
   description: string
-  /** 主机或配件。缺省时仍按分类名称推断，旧数据不用补。 */
+  /** 显式业务用途；缺省为未指定。模板适用入口不根据名称或分类推测。 */
   catalogRole?: 'host' | 'accessory' | 'other'
 }
 

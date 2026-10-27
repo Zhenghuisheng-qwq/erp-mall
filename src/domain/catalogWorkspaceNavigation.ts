@@ -4,6 +4,17 @@ export const catalogViewPermissions = {
   models: 'product:model:read',
 } as const
 export type CatalogView = keyof typeof catalogViewPermissions
+/** Presence takes precedence over aliases: q='' is an explicit clear. */
+export function catalogSearchKeyword(query: Record<string, unknown>): string | undefined {
+  for (const key of ['q', 'keyword', 'search']) {
+    if (Object.hasOwn(query, key) && query[key] !== undefined) return typeof query[key] === 'string' ? query[key] as string : ''
+  }
+  return undefined
+}
+export function withCatalogSearch<T extends Record<string, unknown>>(query: T, keyword: string) {
+  const {keyword: _keyword, search: _search, ...rest} = query
+  return {...rest, q: keyword}
+}
 export function isCatalogView(value: unknown): value is CatalogView {
   return typeof value === 'string' && Object.hasOwn(catalogViewPermissions, value)
 }

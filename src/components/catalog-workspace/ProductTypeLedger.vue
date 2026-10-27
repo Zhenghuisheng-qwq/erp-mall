@@ -6,6 +6,7 @@
       <el-table-column v-if="visible('category')" prop="category" label="明确关联分类" :min-width="width('category',190)"><template #default="{row}"><span :title="row.categoryPaths.join('；')">{{store.can('product:category:read') ? row.categoryPaths.join('；') || '未关联分类' : '不可查看'}}</span></template></el-table-column>
       <el-table-column v-if="visible('models')" prop="models" label="模型数" :width="width('models',95)"><template #default="{row}"><button v-if="row.metrics.models.readable" class="metric" @click="showMetric(row,'models')">{{row.metrics.models.count}}</button><span v-else class="muted">不可查看</span></template></el-table-column>
       <el-table-column v-if="visible('status')" prop="status" label="状态" :width="width('status',100)"><template #default="{row}"><el-tag :type="row.status==='enabled'?'success':'info'">{{row.status==='enabled'?'启用':'停用'}}</el-tag></template></el-table-column>
+      <el-table-column v-if="visible('catalogRole')" prop="catalogRole" label="业务用途" :width="width('catalogRole',120)"><template #default="{row}"><el-tag type="info">{{productTypePurposeLabel(store.data.productTypes.find(item=>item.id===row.id)?.catalogRole)}}</el-tag></template></el-table-column>
       <el-table-column v-if="visible('description')" prop="description" label="简短说明" :min-width="width('description',180)" show-overflow-tooltip/>
       <el-table-column v-for="kind in optionalMetrics" :key="kind" :prop="kind" :label="metricLabels[kind]" :width="width(kind,105)"><template #default="{row}"><button v-if="row.metrics[kind].readable" class="metric" @click="showMetric(row,kind)">{{row.metrics[kind].count}}</button><span v-else class="muted">不可查看</span></template></el-table-column>
       <el-table-column label="操作" width="145" :fixed="narrow?false:'right'"><template #default="{row}"><el-button link type="primary" @click="requestDetail(row.id)">查看</el-button><el-dropdown v-if="canMaintain" trigger="click" @command="command($event,row.id)"><el-button link :disabled="saving" :aria-label="`${row.name}的更多操作`">更多 ▾</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item v-if="store.can('product:type:update')" command="edit">编辑</el-dropdown-item><el-dropdown-item v-if="store.can('product:type:update')" command="status">{{row.status==='enabled'?'停用':'启用'}}</el-dropdown-item><el-dropdown-item v-if="store.can('product:type:delete')" command="delete" divided>删除</el-dropdown-item></el-dropdown-menu></template></el-dropdown></template></el-table-column>
@@ -13,10 +14,12 @@
     <div class="ledger-footer"><span class="muted">当前筛选 {{filtered.length}} 个产品类型</span><el-pagination small layout="prev, pager, next" :total="filtered.length" :page-size="prefs.pageSize" :current-page="currentPage" @current-change="(page:number)=>update({page})"/></div>
     <el-drawer :model-value="!!detailId&&!suspended" title="产品类型详情" size="min(680px,96vw)" @close="closeDetail" data-catalog-type-detail>
       <template v-if="detail"><h2>{{detail.name}}</h2><p class="muted">{{detail.id}} · {{detail.status==='enabled'?'启用':'停用'}}</p><p>{{detail.description || '说明未记录'}}</p><h3>关联分类</h3><p>{{store.can('product:category:read')?detail.categoryPaths.join('；')||'未关联分类':'不可查看'}}</p><h3>模型列表</h3><ul v-if="detail.metrics.models.readable && detailModels.length" class="record-list"><li v-for="model in detailModels" :key="model.id"><button class="record-name" @click="emit('model',model.id)">{{model.name}}</button><span class="muted">{{model.statusText}}</span></li></ul><p v-else class="muted">{{detail.metrics.models.readable?'尚无模型，可按实际需要创建':'不可查看'}}</p><h3>相关记录</h3><div class="detail-metrics"><template v-for="kind in ['spus','skus','materials','pending'] as const" :key="kind"><button v-if="detail.metrics[kind].readable" class="metric" @click="showMetric(detail,kind)">{{metricLabels[kind]}} {{detail.metrics[kind].count}}</button><span v-else class="muted">{{metricLabels[kind]}} 不可查看</span></template></div><p class="muted">商品按已记录的创建来源关联，不根据当前分类推测历史归属。</p><el-button v-if="store.can('product:type:update')" @click="openEdit(detail.id)">编辑产品类型</el-button></template>
+      <p v-if="detail" data-type-purpose>业务用途：{{productTypePurposeLabel(store.data.productTypes.find(item=>item.id===detail?.id)?.catalogRole)}}</p>
       <el-empty v-else description="产品类型已不存在或不可读取"/>
     </el-drawer>
     <el-drawer :model-value="formOpen" :title="editing.id?'编辑产品类型':'新增产品类型'" size="min(500px,96vw)" :before-close="closeForm" :close-on-click-modal="false" data-catalog-type-form>
       <el-form label-position="top" :disabled="saving">
+        <el-form-item label="业务用途"><el-select v-model="editing.catalogRole" aria-label="产品类型业务用途"><el-option v-for="item in productTypePurposes" :key="item.value" :value="item.value" :label="item.label"/></el-select><p class="hint">主机／设备（如手机、平板）反查配件；配件（如手机壳、保护膜）配置适用机型。其他不提供这两种入口，未指定可稍后维护。</p></el-form-item>
         <el-form-item label="关联分类"><CategoryTreeSelect v-if="store.can('product:category:read')" :model-value="editing.categoryId" :categories="store.data.categories" :block-reason="categoryBlock" placeholder="选择可用的末级分类" @update:model-value="setCategory"/><el-input v-else model-value="不可查看分类，请联系有分类读取权限的人员维护" disabled/></el-form-item>
         <p v-if="categoryHint" class="hint" data-catalog-type-category-hint>{{categoryHint}}</p><p v-if="moveHint" class="error">{{moveHint}}</p>
         <el-form-item label="产品类型名称"><el-input v-model="editing.name" aria-label="产品类型名称"/></el-form-item><el-form-item label="说明"><el-input v-model="editing.description" type="textarea" aria-label="产品类型说明"/></el-form-item><el-form-item label="排序"><el-input-number v-model="editing.sort" :min="1"/></el-form-item><el-form-item label="状态"><el-select v-model="editing.status" aria-label="产品类型状态"><el-option value="enabled" label="启用"/><el-option value="disabled" label="停用"/></el-select></el-form-item>
@@ -34,10 +37,12 @@ import {productTypeCategoryMoveMessage} from '../../domain/categoryTree'
 import type {CatalogWorkspaceIndex,CatalogScopeResult,CatalogMetricKind,CatalogTypeRow} from '../../domain/catalogWorkspaceQuery'
 import type {CatalogViewPreferences} from './catalogWorkspaceState'
 import CategoryTreeSelect from '../CategoryTreeSelect.vue'
+import {productTypePurposes,productTypePurposeLabel} from '../../domain/productTypePurpose'
+import type {ProductType} from '../../domain/types'
 const props=defineProps<{index:CatalogWorkspaceIndex;summary:CatalogScopeResult;prefs:CatalogViewPreferences;categoryId:string;returnTo:string;suspended?:boolean}>()
 const emit=defineEmits<{'update:prefs':[CatalogViewPreferences];details:[{kind:CatalogMetricKind;ids:string[];title:string}];model:[string];type:[string]}>()
 const store=useCatalogStore(),detailId=ref(''),formOpen=ref(false),saving=ref(false),formError=ref(''),operationError=ref('')
-const editing=reactive({id:'',categoryId:'',name:'',description:'',sort:1,status:'enabled' as 'enabled'|'disabled'})
+const editing=reactive({id:'',categoryId:'',name:'',description:'',sort:1,status:'enabled' as 'enabled'|'disabled',catalogRole:'' as NonNullable<ProductType['catalogRole']>|''})
 let baseline='',expectedRecord='',alive=true
 let pendingAction:{id:string;action:'delete'|'enabled'|'disabled';expected:string;actor:string;preview:string}|undefined
 const narrow=ref(typeof window!=='undefined'&&window.innerWidth<700)
@@ -64,15 +69,15 @@ function closeDetail(){if(props.suspended)return;detailId.value='';emit('type','
 function categoryBlock(id:string){const row=store.data.categories.find(item=>item.id===id);return !row?'分类已不存在':row.enabled===false?'此分类已停用':store.data.categories.some(item=>item.parentId===id)?'请选择末级分类；父分类不能直接关联产品类型。':''}
 function setCategory(value:string|string[]){if(typeof value==='string')editing.categoryId=value}
 function beginForm(){expectedRecord=editing.id?JSON.stringify(store.data.productTypes.find(row=>row.id===editing.id)):'';baseline=JSON.stringify(editing);formError.value='';formOpen.value=true}
-function openCreate(){if(!store.can('product:type:create'))return;const id=store.can('product:category:read')?props.categoryId:'';Object.assign(editing,{id:'',categoryId:id,name:'',description:'',sort:store.productTypesOf(id).reduce((max,item)=>Math.max(max,item.sort),0)+1,status:'enabled'});beginForm()}
-function openEdit(id:string){if(!store.can('product:type:update'))return;const row=store.data.productTypes.find(item=>item.id===id);if(!row)return;Object.assign(editing,{id:row.id,categoryId:row.categoryId,name:row.name,description:row.description,sort:row.sort,status:row.status});beginForm()}
+function openCreate(){if(!store.can('product:type:create'))return;const id=store.can('product:category:read')?props.categoryId:'';Object.assign(editing,{id:'',categoryId:id,name:'',description:'',sort:store.productTypesOf(id).reduce((max,item)=>Math.max(max,item.sort),0)+1,status:'enabled',catalogRole:''});beginForm()}
+function openEdit(id:string){if(!store.can('product:type:update'))return;const row=store.data.productTypes.find(item=>item.id===id);if(!row)return;Object.assign(editing,{id:row.id,categoryId:row.categoryId,name:row.name,description:row.description,sort:row.sort,status:row.status,catalogRole:row.catalogRole||''});beginForm()}
 async function canLeave(){if(saving.value)return false;if(!formOpen.value||JSON.stringify(editing)===baseline&&!formError.value)return true;try{await ElMessageBox.confirm('产品类型还有未保存输入，放弃后离开？','未保存产品类型',{confirmButtonText:'放弃输入',cancelButtonText:'继续编辑'});return true}catch{return false}}
 async function closeForm(done?:()=>void){if(!await canLeave())return;formOpen.value=false;formError.value='';done?.()}
 async function saveType(){
   if(saving.value)return
   const actor=store.activeUserId,preview=store.previewUserId,current=()=>alive&&formOpen.value&&actor===store.activeUserId&&preview===store.previewUserId
   saving.value=true;formError.value=''
-  try{const saved=await store.commitProductType({...editing},expectedRecord,current);if(!current())return;if(!saved.ok){formError.value=saved.message||'保存失败，输入已保留，请重试。';return}baseline=JSON.stringify(editing);formOpen.value=false;ElMessage.success('产品类型已保存')}
+  try{const saved=await store.commitProductType({...editing,catalogRole:editing.catalogRole||undefined},expectedRecord,current);if(!current())return;if(!saved.ok){formError.value=saved.message||'保存失败，输入已保留，请重试。';return}baseline=JSON.stringify(editing);formOpen.value=false;ElMessage.success('产品类型已保存')}
   catch(error){if(current())formError.value=error instanceof Error?error.message:'保存失败，输入已保留。'}finally{saving.value=false}
 }
 async function command(action:string,id:string){
@@ -90,7 +95,7 @@ async function retryPersistence(){
   try{const result=await store.commitProductTypeAction(task.id,task.action,task.expected,current);if(!current())return;if(!result.ok){operationError.value=result.message||'保存失败，原数据未改变，请重试。';return}pendingAction=undefined;ElMessage.success(result.message||'已保存')}
   catch(error){if(current())operationError.value=error instanceof Error?error.message:'操作失败'}finally{saving.value=false}
 }
-watch(()=>[store.activeUserId,store.previewUserId,store.can('product:type:read')],()=>{pendingAction=undefined;detailId.value='';formOpen.value=false;formError.value='';operationError.value='';Object.assign(editing,{id:'',categoryId:'',name:'',description:'',sort:1,status:'enabled'})})
+watch(()=>[store.activeUserId,store.previewUserId,store.can('product:type:read')],()=>{pendingAction=undefined;detailId.value='';formOpen.value=false;formError.value='';operationError.value='';Object.assign(editing,{id:'',categoryId:'',name:'',description:'',sort:1,status:'enabled',catalogRole:''})})
 onBeforeRouteLeave(canLeave);onBeforeUnmount(()=>{alive=false})
 function acceptContextChange(){formOpen.value=false;formError.value=''}
 defineExpose({openCreate,openDetail,canLeave,acceptContextChange})

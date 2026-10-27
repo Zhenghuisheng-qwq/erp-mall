@@ -96,6 +96,7 @@ import { useSalesShoppingDraft } from '../components/sales-shopping/useSalesShop
 import { categoryFilterCaption, categoryScopeIds } from '../domain/categoryTree'
 import { categoryPath, shelfOf, projectAttrs } from '../domain/logic'
 import { isRealSku } from '../domain/catalogIdentity'
+import { salesCatalogReady } from '../domain/salesCatalog'
 import { familyBrandText, familyBrandValues, savedSkuCode, savedSkuSpec } from '../domain/productList'
 import { compatibilityRecordRole, listDeviceModels } from '../domain/deviceResolution'
 import { addBenefitSku, benefitSkuSummary, cloneBenefit, confirmBenefitCondition, parseBenefitAmount, reviewBenefitQuote, setBenefitDevice, setBenefitPositionQuantity } from '../domain/benefitPackages'
@@ -120,7 +121,7 @@ if(typeof route.query.scheme==='string')session.loadInitial(route.query.scheme)
 const initialCopy=route.query.copy==='1'&&!!draft.value.id&&supported.value&&!missing.value
 if(initialCopy)void session.replaceSession(draft.value,true,true)
 quoteText.value=amountInput(draft.value.quote.amountCents)
-const realSkus=computed(()=>store.data.skus.filter(sku=>isRealSku(store.data,sku)&&sku.status==='on_sale'&&shelfOf(store.data.families.find(family=>family.id===sku.familyId)!)==='online'))
+const realSkus=computed(()=>store.data.skus.filter(sku=>{const family=store.data.families.find(item=>item.id===sku.familyId);return !!family&&isRealSku(store.data,sku)&&sku.status==='on_sale'&&shelfOf(family)==='online'&&salesCatalogReady(store.data,family)}))
 const skuByFamily=computed(()=>{const map=new Map<string,typeof realSkus.value>();for(const sku of realSkus.value){const rows=map.get(sku.familyId)||[];rows.push(sku);map.set(sku.familyId,rows)}return map})
 const familySkus=(id:string)=>skuByFamily.value.get(id)||[]
 const attributeLabels=computed(()=>new Map(store.data.params.map(param=>[param.id,param.name])))
@@ -135,7 +136,7 @@ watch([keyword,brand,categoryIds],()=>{shownCount.value=24})
 const sourceSummary=computed(()=>benefitSkuSummary(store.data,sourceSkuId.value)),sourceRole=computed(()=>compatibilityRecordRole(store.data,sourceSkuId.value))
 const candidateIndex=computed(()=>createSalesCandidateIndex(store.data))
 const candidates=computed(()=>legacyFramework.value?{resolution:{state:'none' as const,message:'此组合沿用原框架，不叠加新的选配方案。增补商品请使用高级详情。',bindingIds:[],source:{state:'legacy' as const,skuId:sourceSkuId.value,modelId:'',versionId:'',identityKey:'',message:''},plan:undefined},rows:[] as SalesCandidate[]}:querySalesCandidates(store.data,draft.value,sourceSkuId.value,candidateIndex.value,sourcePositionId.value||undefined))
-const candidateGroups=computed(()=>{const groups=new Map<string,{key:string;item:SalesOptionItem;rows:SalesCandidate[]}>();for(const item of candidates.value.resolution.plan?.items||[])if(item.enabled){const key=`${candidates.value.resolution.plan!.planId}:${item.id}`;groups.set(key,{key,item,rows:[]})}for(const row of candidates.value.rows){const key=`${row.plan?.planId||'related'}:${row.item.id}`;if(!groups.has(key))groups.set(key,{key,item:row.item,rows:[]});groups.get(key)!.rows.push(row)}return [...groups.values()].sort((a,b)=>a.item.order-b.item.order)})
+const candidateGroups=computed(()=>{const groups=new Map<string,{key:string;item:SalesOptionItem;rows:SalesCandidate[]}>();for(const item of candidates.value.resolution.plan?.items||[])if(item.enabled){const key=`${candidates.value.resolution.plan!.planId}:${item.id}`;groups.set(key,{key,item,rows:[]})}for(const row of candidates.value.rows){if(row.skuId&&!realSkus.value.some(sku=>sku.id===row.skuId))continue;const key=`${row.plan?.planId||'related'}:${row.item.id}`;if(!groups.has(key))groups.set(key,{key,item:row.item,rows:[]});groups.get(key)!.rows.push(row)}return [...groups.values()].sort((a,b)=>a.item.order-b.item.order)})
 const models=computed(()=>listDeviceModels(store.data))
 const deviceSkus=computed(()=>realSkus.value.filter(sku=>compatibilityRecordRole(store.data,sku.id)==='host').map(sku=>benefitSkuSummary(store.data,sku.id)!))
 const deviceLabel=computed(()=>draft.value.device?.kind==='sku'?benefitSkuSummary(store.data,draft.value.device.skuId)?.name||'设备已失效':draft.value.device?.kind==='model'?models.value.find(model=>JSON.stringify(model.host)===JSON.stringify(draft.value.device?.kind==='model'?draft.value.device.host:null))?.label||draft.value.device.host.steps.map(step=>step.valueId).join(' · '):'尚未指定')

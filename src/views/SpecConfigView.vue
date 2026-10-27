@@ -514,7 +514,7 @@ import { readTemplateCompatibilityConfig, templateCompatibilityContentSignature 
 import { outlineChoices } from '../domain/outlineEdit'
 import { commandPermissions, effectivePermissions } from '../domain/rbac'
 import {modelDictionaryBasis,previewModelDictionaryBatch,parseDictionaryValueLines,type ModelDictionaryAttribute,type ModelDictionaryBatchInput} from '../domain/modelDictionaryCommands'
-import { legalComboMaterialStatus } from '../domain/comboMaterialStatus'
+import { legalComboMaterialStatus, resolveComboVersion } from '../domain/comboMaterialStatus'
 import { previewDraftCombinations, publishImpactText } from '../domain/draftComboPreview'
 import NamingRuleDialog from '../components/NamingRuleDialog.vue'
 import NodeBusinessDialog from '../components/model-editor/NodeBusinessDialog.vue'
@@ -540,14 +540,8 @@ const flowRevision = ref(0)
 onNodesChange(() => {
   flowRevision.value += 1
 })
-const templateId = ref(typeof route.query.template === 'string' ? route.query.template : '')
-watch(
-  () => route.query.template,
-  (value) => {
-    if (typeof value === 'string' && value) templateId.value = value
-    else if (route.query.panel === 'overview') templateId.value = ''
-  },
-)
+// Model and explicit version are read from the same committed route.
+const templateId = computed(() => typeof route.query.template === 'string' ? route.query.template : '')
 function storedFold(key: string) {
   const saved = localStorage.getItem(key)
   if (saved === '0') return false
@@ -634,7 +628,6 @@ function toggleCategory(id: string) {
   closedIds.value = next
 }
 function clearOpenModel() {
-  templateId.value = ''
   router.replace({ path: '/specs', query: { ...(viewing.value ? { mode: 'view' } : {}), ...(catalogReturn.value ? {returnTo:catalogReturn.value} : {}) } })
 }
 function belongsToLeaf(id: string) {
@@ -654,7 +647,6 @@ function focusType(typeId: string) {
 }
 function openModel(id: string) {
   if(composerBusy.value)return
-  templateId.value = id
   router.replace({ path: '/specs', query: {template:id,...(viewing.value ? {mode:'view'} : {}),...(catalogReturn.value ? {returnTo:catalogReturn.value} : {})} })
 }
 async function createModelFor(typeId: string) {
@@ -832,7 +824,18 @@ const { checkedIds, toggle: toggleCheck, clear: clearComboSelection } = comboSel
 const comboManageOpen = ref(false)
 const comboKeyword = ref('')
 const comboUnfiledOnly = ref(false)
-const comboVersionId = ref('')
+const manualComboVersion = ref('')
+const comboVersionId = computed({
+  get: () => resolveComboVersion(store.data, templateId.value, requestedVersionId.value, queryText(route.query.materialVersion), manualComboVersion.value),
+  set: (id: string) => {
+    if (!publishedComboVersions.value.some(item => item.id === id)) return
+    if (requestedVersionId.value) void router.replace({path:'/specs',query:{...route.query,version:id,versionId:undefined,materialVersion:undefined,mode:'view'}})
+    else {
+      manualComboVersion.value = id
+      if (route.query.materialVersion !== undefined) void router.replace({query:{...route.query,materialVersion:id}})
+    }
+  },
+})
 const showStructureMaterials = ref(false)
 const relationOpen = ref(false)
 const materialHighlight = ref(new Set<string>())
@@ -841,13 +844,7 @@ const materialAttributeHighlight = computed(() => showStructureMaterials.value &
   : new Set<string>())
 watch(templateId, () => { materialHighlight.value = new Set(); showStructureMaterials.value = false })
 const publishedComboVersions = computed(() => modelVersionsOf(store.data, templateId.value).filter((item) => item.status === 'published'))
-watch(
-  () => `${templateId.value}#${publishedComboVersions.value.map((item) => item.id).join('|')}`,
-  () => {
-    comboVersionId.value = requestedVersionId.value || publishedComboVersions.value[publishedComboVersions.value.length - 1]?.id || ''
-  },
-  { immediate: true },
-)
+watch([templateId, requestedVersionId, () => route.query.materialVersion], () => { manualComboVersion.value = '' }, {flush:'sync'})
 const materialLaunch = ref<{ token: number; key: string; mode: '' | MaterialLaunchMode }>({ token: 0, key: '', mode: '' })
 const temporaryOpen = ref(false)
 const temporaryListOpen = ref(false)
@@ -1113,7 +1110,7 @@ watch(() => [canEditStructure.value, nodes.value.map(n => n.id).join('|')], () =
     if (open.value && !validDialog(kind)) composerError.value='操作上下文已变化，待选内容保留，请核对节点或取消。'
   }
 })
-watch(comboVersionId, value => { dragStart = undefined; if(requestedVersionId.value && value && value!==requestedVersionId.value)void router.replace({path:'/specs',query:{...route.query,version:value,mode:'view'}}) })
+watch(comboVersionId, () => { dragStart = undefined })
 function invalidateEditorDialogs() {
   interaction += 1
   dragStart = undefined
@@ -1160,7 +1157,7 @@ watch(viewMode, () => {
   frameCanvas()
 })
 watch(()=>[showStructureMaterials.value,comboVersionId.value,JSON.stringify(store.data.materialRelations),store.data.skus.map(s=>`${s.id}:${s.skuName}:${s.materialCode}`).join('|')],()=>{paint();nextTick(frameCanvas)})
-watch(()=>route.fullPath,()=>{if(requestedVersionId.value)comboVersionId.value=requestedVersionId.value;else if(typeof route.query.materialVersion==='string')comboVersionId.value=route.query.materialVersion;if(typeof route.query.materialNode==='string')nextTick(()=>{selected.value=String(route.query.materialNode);revealNode(selected.value)})},{immediate:true})
+watch(()=>route.query.materialNode,()=>{if(typeof route.query.materialNode==='string')nextTick(()=>{selected.value=String(route.query.materialNode);revealNode(selected.value)})},{immediate:true})
 watch(
   () => `${templateId.value}#${nodes.value.map((item) => `${item.id}:${item.parentId}:${item.nodeType}:${item.attributeId}:${item.valueId}:${item.role || ''}:${item.sort}`).join('|')}`,
   (_next, prev) => {
@@ -2110,6 +2107,7 @@ function enterEdit() {
   delete next.mode
   delete next.version
   delete next.versionId
+  delete next.materialVersion
   router.replace({ path: '/specs', query: next })
 }
 async function saveModel() {

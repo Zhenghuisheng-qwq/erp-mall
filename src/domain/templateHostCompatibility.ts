@@ -8,14 +8,17 @@ import type { TemplateSpecSelector } from './templateCompatibilityTypes'
 
 /** Direction needs an explicitly recorded product role. No category/name fallback. */
 export function templateBusinessRole(data:AppData,modelId:string){
+  return templateProductType(data,modelId)?.catalogRole||'unknown'
+}
+export function templateProductType(data:AppData,modelId:string){
   const ids=new Set(data.specCanvases.filter(item=>item.templateId===modelId).map(item=>item.productTypeId).filter(Boolean))
-  if(ids.size!==1)return 'unknown' as const
-  return data.productTypes.find(item=>item.id===[...ids][0])?.catalogRole||'unknown'
+  if(ids.size!==1)return undefined
+  return data.productTypes.find(item=>item.id===[...ids][0])
 }
 export interface TemplateDeviceChoice {key:string;label:string;groupKey:string;groupLabel:string;device:DeviceResolution;identityKey:string;skuId?:string}
 export function templateHostChoices(data:AppData,input:{modelId:string;versionId?:string|null;nodeId?:string;selector?:TemplateSpecSelector}){
   const result={choices:[] as TemplateDeviceChoice[],issues:[] as string[],legalCount:0,skuCount:0}
-  if(templateBusinessRole(data,input.modelId)!=='host'){result.issues.push('模板尚未明确登记为主机类型，不能按名称推测适配方向。');return result}
+  if(templateBusinessRole(data,input.modelId)!=='host'){result.issues.push(templateBusinessRole(data,input.modelId)==='other'?'此类型业务用途为「其他」，不提供主机反查配件。':'模板尚未明确登记为主机类型，请维护产品类型业务用途；不能按名称推测适配方向。');return result}
   const context=salesBindingContext(data,input.modelId,input.versionId)
   if(context.issues.length){result.issues.push(...context.issues.map(item=>item.message));return result}
   let selector=input.selector

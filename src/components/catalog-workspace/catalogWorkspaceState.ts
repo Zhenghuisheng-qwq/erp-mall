@@ -33,6 +33,7 @@ export const catalogColumns: Record<CatalogView, {key: string; label: string; re
     {key:'materials',label:'MAT 数',defaultVisible:false},
   ],
   types: [
+    {key:'catalogRole',label:'业务用途',defaultVisible:false},
     {key:'name',label:'产品类型名称',required:true,defaultVisible:true},
     {key:'category',label:'明确关联分类',defaultVisible:true},
     {key:'models',label:'模型数',defaultVisible:true},

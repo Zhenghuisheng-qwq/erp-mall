@@ -3,6 +3,14 @@ import { relatedMaterials } from './materialRelations'
 import { legalPlanningCombinations } from './planning'
 import type { AppData, PlanningRecord, Sku } from './types'
 
+/** Explicit invalid/foreign versions must remain errors, never fall back to latest. */
+export function resolveComboVersion(data: AppData, modelId: string, explicitVersion: string, materialVersion: string, manualVersion = '') {
+  if (!modelId) return ''
+  if (explicitVersion || materialVersion) return explicitVersion || materialVersion
+  const versions = data.specModelVersions.filter(item => item.templateId === modelId && item.status === 'published')
+  return versions.find(item => item.id === manualVersion)?.id || versions.sort((a,b) => b.version-a.version)[0]?.id || ''
+}
+
 /** 一条已保存物料的展示卡片。名称和编号只取档案原值。 */
 export interface ComboMaterialCard {
   skuId: string

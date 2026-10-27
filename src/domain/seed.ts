@@ -252,6 +252,24 @@ export function ensureLeafProductTypes(data: AppData) {
   return changed
 }
 
+/** 保护壳已有分类、产品类型和模型，但没有在售商品。缺这套时补上，不改已有商品。 */
+export function ensureSalesShelfDemo(data: AppData) {
+  if (data.families.some(item => item.id === 'f-case')) return false
+  const type = data.productTypes.find(item => item.id === 'pt-case')
+  const canvas = data.specCanvases.find(item => item.templateId === 't-case-model')
+  if (!type || type.categoryId !== 'c-case' || !data.categories.some(item => item.id === 'c-case') || !canvas || canvas.productTypeId !== 'pt-case' || !data.templates.some(item => item.id === 't-case-model')) return false
+  if (data.skus.some(item => item.id === 's-case-orange' || item.id === 's-case-clear')) return false
+  data.families.push({
+    id: 'f-case', name: '手机保护壳', templateId: 't-case-model', productModelId: 't-case-model', productTypeId: 'pt-case', categoryId: 'c-case',
+    oaProductId: '', commonAttrs: { 品牌: 'Apple' }, productGroupIds: ['g-acc'], lifecycle: 'ready', shelfStatus: 'online', origin: 'sample', createdAt: now, updatedAt: now,
+  })
+  data.skus.push(
+    { id: 's-case-orange', familyId: 'f-case', code: '', oaSkuId: '', skuName: '橙色保护壳', status: 'on_sale', variantAttrs: { 颜色: '橙色' }, projectedAttrs: { 品牌: 'Apple', 颜色: '橙色' } },
+    { id: 's-case-clear', familyId: 'f-case', code: '', oaSkuId: '', skuName: '透明保护壳', status: 'on_sale', variantAttrs: { 颜色: '透明' }, projectedAttrs: { 品牌: 'Apple', 颜色: '透明' } },
+  )
+  return true
+}
+
 function sku(
   id: string,
   familyId: string,
@@ -465,6 +483,7 @@ export function createSeed(): AppData {
   }
   appendEbikeDemo(data)
   ensureLeafProductTypes(data)
+  ensureSalesShelfDemo(data)
   data.skus = data.skus.map((item) => {
     const owner = data.families.find((family) => family.id === item.familyId)
     if (!owner) return item
