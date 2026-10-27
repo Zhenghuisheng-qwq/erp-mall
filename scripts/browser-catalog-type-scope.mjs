@@ -1,0 +1,86 @@
+import assert from 'node:assert/strict'
+import {resolve} from 'node:path'
+import {createServer} from 'vite'
+import {chromium} from 'playwright-core'
+import {createTestRuntime,removeTestRuntime} from './test-runtime.mjs'
+const runtime=createTestRuntime('catalog-type-scope'),errors=[]
+let server,browser,page
+try{
+  server=await createServer({cacheDir:resolve(runtime,'vite'),logLevel:'error',define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify('true')},server:{host:'127.0.0.1',port:0,watch:null,hmr:false,ws:false}})
+  const f=await server.ssrLoadModule('/scripts/catalog-workspace-fixtures.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
+  const {ensureRbac}=await server.ssrLoadModule('/src/domain/rbac.ts'),data=f.createCatalogWorkspaceFixture()
+  data.productTypes.push(f.catalogType('type-second','leaf','同名类型'),{...f.catalogType('disabled-empty','leaf','停用空类型'),status:'disabled'})
+  data.specCanvases.push(f.catalogModel('second-model','type-second','第二类型模型'))
+  ensureRbac(data)
+  await server.listen();const base=`http://127.0.0.1:${server.httpServer.address().port}`
+  browser=await chromium.launch({channel:'chrome',headless:true})
+  const context=await browser.newContext({viewport:{width:1500,height:1000},locale:'zh-CN',reducedMotion:'reduce'})
+  await context.addInitScript(({data,version})=>{
+    if(location.protocol!=='http:')return
+    if(!localStorage.getItem('iyge-v2-mock-db'))localStorage.setItem('iyge-v2-mock-db',JSON.stringify({version,data}))
+    sessionStorage.setItem('iyge-rbac-simulated-user','u-admin')
+    window.state=(selector,name)=>{let instance=document.querySelector(selector)?.__vueParentComponent;while(instance&&instance.type.__name!==name)instance=instance.parent;if(!instance)throw Error(`${name} missing`);return instance.setupState}
+  },{data,version:DATA_VERSION})
+  page=await context.newPage();page.setDefaultTimeout(12000);page.on('pageerror',error=>errors.push(String(error)))
+  const settle=()=>page.evaluate(async()=>{await(await import('/src/stores/catalog.ts')).useCatalogStore().waitForPersistence();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))})
+  const business=()=>page.evaluate(async()=>JSON.stringify((await import('/src/stores/catalog.ts')).useCatalogStore().data))
+  const tree=()=>page.locator('.catalog-sidebar'),type=id=>tree().locator(`[data-catalog-tree-type="${id}"]`)
+  const scope=()=>new URL(page.url()).searchParams.get('scopeTypeId')
+  const models=()=>page.locator('[data-catalog-model]').evaluateAll(items=>items.map(item=>item.getAttribute('data-catalog-model')).sort())
+  await page.goto(`${base}/catalog?view=models&categoryId=leaf`,{waitUntil:'networkidle'});await settle();const before=await business()
+  await tree().locator('[data-catalog-tree-category="leaf"]').locator('..').getByRole('button',{name:'展开 手机',exact:true}).click()
+  assert.equal(await type('type-phone').count(),1);assert.equal(await type('type-second').count(),1)
+  await page.evaluate(()=>{window.state('[data-catalog-workspace]','CatalogWorkspaceView').preferences.views.models.page=2})
+  await type('type-phone').click();await settle()
+  assert.equal(await page.evaluate(()=>window.state('[data-catalog-workspace]','CatalogWorkspaceView').prefs.page),1)
+  assert.equal(scope(),'type-phone');assert.deepEqual(await models(),['model-phone'])
+  assert.match(await page.locator('[data-catalog-scope]').innerText(),/手机目录.*手机.*同名类型.*产品类型/)
+  assert.equal(await page.getByRole('radiogroup',{name:'统计分类范围'}).count(),0)
+  assert.equal(await page.locator('[data-catalog-type-detail]:visible').count(),0)
+  await page.locator('[data-catalog-total="models"]').click()
+  assert.deepEqual(await page.locator('[data-catalog-detail-id]').evaluateAll(items=>items.map(item=>item.getAttribute('data-catalog-detail-id'))),['model-phone'])
+  await page.getByRole('dialog').filter({has:page.locator('[data-catalog-details]')}).locator('.el-dialog__headerbtn').click()
+  const search=tree().getByRole('textbox',{name:'搜索分类或产品类型',exact:true})
+  await search.fill('type-second');assert.equal(await type('type-second').count(),1);assert.equal(await type('type-phone').count(),0)
+  assert.equal(scope(),'type-phone');assert.deepEqual(await models(),['model-phone'])
+  await tree().locator('[data-catalog-tree-category="leaf"]').locator('..').getByRole('button',{name:'折叠 手机',exact:true}).click()
+  assert.equal(await type('type-second').count(),0)
+  await search.fill('');assert.equal(await type('type-phone').count(),1)
+  await type('type-second').click();await settle();assert.deepEqual(await models(),['second-model'])
+  await page.goBack();await settle();assert.equal(scope(),'type-phone');assert.deepEqual(await models(),['model-phone'])
+  await page.goForward();await settle();assert.equal(scope(),'type-second')
+  await page.reload({waitUntil:'networkidle'});await settle();assert.equal(await type('type-second').getAttribute('aria-pressed'),'true');assert.deepEqual(await models(),['second-model'])
+  await tree().locator('[data-catalog-tree-category="leaf"]').click();await settle();assert.equal(scope(),null);assert((await models()).includes('model-phone')&&(await models()).includes('second-model'))
+  await type('type-phone').click();await settle()
+  console.log('PASS path 1: mixed tree selection, exact totals/details, search + manual collapse, refresh/back/forward, same-category reset')
+
+  await page.locator('[data-catalog-create-model]').click()
+  const form=page.getByRole('dialog',{name:'新建模型',exact:true})
+  assert.deepEqual(await page.evaluate(()=>{const d=window.state('[data-catalog-models]','ModelLedger').draft;return {categoryId:d.categoryId,productTypeId:d.productTypeId}}),{categoryId:'leaf',productTypeId:'type-phone'})
+  await form.getByRole('textbox',{name:'模型名称',exact:true}).fill('未保存模型输入')
+  // Same route change used by a directory selection, including the new scope parameter.
+  await page.evaluate(()=>{const router=document.querySelector('#app').__vue_app__.config.globalProperties.$router;void router.push({path:'/catalog',query:{view:'models',categoryId:'leaf',scopeTypeId:'type-second'}})})
+  await page.getByRole('dialog',{name:'未保存模型',exact:true}).getByRole('button',{name:'继续编辑',exact:true}).click()
+  assert.equal(scope(),'type-phone');assert.equal(await form.getByRole('textbox',{name:'模型名称',exact:true}).inputValue(),'未保存模型输入')
+  await form.getByRole('button',{name:'取消',exact:true}).click()
+  await page.getByRole('dialog',{name:'未保存模型',exact:true}).getByRole('button',{name:'放弃输入',exact:true}).click();await form.waitFor({state:'hidden'})
+  await page.locator('[data-catalog-model="model-phone"]').click()
+  await page.locator('[data-catalog-model-detail] .version-controls .el-select').click()
+  await page.getByRole('option',{name:'已发布 V1 · 已发布',exact:true}).click()
+  await page.locator('[data-catalog-view-design]').click();await page.locator('[data-model-back-catalog]').waitFor()
+  assert.equal(new URL(page.url()).searchParams.get('version'),'phone-v1')
+  await page.locator('[data-model-back-catalog]').click();await page.locator('[data-catalog-model-detail]').waitFor()
+  assert.equal(scope(),'type-phone');assert.equal(new URL(page.url()).searchParams.get('version'),'phone-v1')
+  await page.getByRole('button',{name:'返回资料管理',exact:true}).click();await settle();assert.equal(scope(),'type-phone')
+  await page.locator('[data-catalog-view="types"]').click();await settle();assert.equal(scope(),'type-phone')
+  assert.equal(await page.locator('[data-catalog-type]').count(),1);assert.equal(await page.locator('[data-catalog-type-detail]:visible').count(),0)
+  await page.locator('[data-catalog-type="type-phone"]').click();await page.locator('[data-catalog-type-detail] .el-dialog__headerbtn').click();assert.equal(scope(),'type-phone')
+  await page.locator('[data-catalog-view="categories"]').click();await settle();assert.equal(scope(),null);assert.equal(new URL(page.url()).searchParams.get('categoryId'),'leaf')
+  await page.locator('[data-catalog-view="models"]').click();await settle()
+  await type('disabled-empty').click();await page.locator('[data-catalog-create-model]').click();assert.match(await page.locator('[data-catalog-models]').innerText(),/已停用，不能新建模型/)
+  await settle();assert.equal(await business(),before,'directory browsing and cancelled model creation must not write business data')
+  console.log('PASS path 2: model prefill + cancelled dirty navigation, exact version designer return, independent type detail and view scope, disabled type, zero writes')
+  assert.deepEqual(errors,[])
+  await context.close()
+}catch(error){console.error(error);if(page)console.error((await page.locator('body').innerText()).slice(-4000));process.exitCode=1}
+finally{if(browser)await browser.close();if(server)await server.close();removeTestRuntime(runtime)}

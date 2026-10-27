@@ -1,3 +1,4 @@
+import {supportsBenefitAdvanced,supportsBenefitShopping} from './benefitPackageSupport'
 import {isRealSku} from './catalogIdentity'
 import {salesCatalogTypeId,salesSkuAdmission} from './salesCatalog'
 import {resolveSalesPlan,planProblems,salesPlanVersionProblems} from './salesConfiguration'
@@ -12,7 +13,7 @@ export interface ProductBenefitCandidate {
 }
 export interface ProductBenefitMember {
   id:string;name:string;code:string;status:string;favorite:boolean;quantity:number|null
-  supported:boolean;usable:boolean;message:string
+  supported:boolean;advancedCopyable:boolean;shoppingSupported:boolean;usable:boolean;message:string
 }
 export interface ProductBenefitRelations {
   skuId:string;valid:boolean;message:string;skuLabel:string;spec:string
@@ -75,15 +76,16 @@ export function queryProductBenefitRelations(data:AppData,skuId:string,can:(perm
     if(!Array.isArray(pack.goods)){result.diagnostics.push(`权益包「${pack.name||pack.id}」成员格式无法解析，未作为可用组合推荐。`);continue}
     const members=pack.goods.filter(line=>line?.skuId===skuId)
     if(!members.length)continue
-    const supported=(pack.compositionVersion===undefined||pack.compositionVersion===1||pack.compositionVersion===2)&&(!pack.sales||pack.sales.schemaVersion===1)&&(!pack.framework||['type-v1','type-v2'].includes(pack.framework.kind))
+    const supported=supportsBenefitAdvanced(pack),shoppingSupported=supportsBenefitShopping(pack)
     const count=members.reduce((total,line)=>Number.isSafeInteger(line.quantity)&&line.quantity>0?total+line.quantity:NaN,0),quantity=Number.isSafeInteger(count)&&count>0?count:null
     let usable=false,message=''
     if(!supported)message='未知配置版本，仅保留查看，不作为正常可用组合推荐。'
     else if(pack.status==='disabled')message='权益包已停用，不能作为可用组合使用。'
     else if(pack.status!=='available')message='权益包仍为草稿，请先补齐并核对内容。'
     else if(quantity===null)message='此商品的成员数量记录异常，请核对权益包。'
-    else try{const validation=validateBenefitPackage(data,pack);usable=validation.canSaveAvailable;message=usable?'实际成员已保存；使用此组合会建立新的选购草稿。':validation.issues.find(issue=>issue.severity==='error'||issue.severity==='condition')?.message||'权益包内容需要重新核对。'}catch{message='权益包内容无法完整校验，请查看原记录处理。'}
-    result.packages.push({id:pack.id,name:pack.name||'未命名权益包',code:pack.code,status:pack.status,favorite:!!pack.favorite,quantity,supported,usable,message})
+    else try{const validation=validateBenefitPackage(data,pack);usable=validation.canSaveAvailable;message=usable?(shoppingSupported?'实际成员已保存；使用此组合会建立新的选购草稿。':'实际成员已保存。'):validation.issues.find(issue=>issue.severity==='error'||issue.severity==='condition')?.message||'权益包内容需要重新核对。'}catch{message='权益包内容无法完整校验，请查看原记录处理。'}
+    if(supported&&!shoppingSupported){usable=false;message+=' 此版本请通过高级详情查看或复制。'}
+    result.packages.push({id:pack.id,name:pack.name||'未命名权益包',code:pack.code,status:pack.status,favorite:!!pack.favorite,quantity,supported,advancedCopyable:supported,shoppingSupported,usable,message})
   }
   return result
 }

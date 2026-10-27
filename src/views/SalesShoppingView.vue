@@ -86,6 +86,7 @@
 </template>
 
 <script setup lang="ts">
+import {supportsBenefitShopping} from '../domain/benefitPackageSupport'
 import { computed, ref, watch, nextTick, onScopeDispose } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -111,7 +112,7 @@ const router=useRouter(),route=useRoute()
 const productReturn=computed(()=>{const value=route.query.returnTo;if(typeof value!=='string'||value.length>5000||/[\\\u0000-\u001f\u007f]/.test(value))return '';try{const url=new URL(value,'https://erp.invalid');if(url.origin!=='https://erp.invalid'||/[\\\u0000-\u001f\u007f]/.test(decodeURIComponent(value))||!/^\/(skus|spus|products)(\/|$)/.test(url.pathname))return '';return url.pathname+url.search+url.hash}catch{return ''}})
 const session=useSalesShoppingDraft()
 const {store,draft,validation,businessPending,dirty,error,inputError,missing,canEdit,canPersist,saveState,saveLabel,preview,confirmed,change,clearInputError,retry}=session
-const supported=computed(()=>draft.value.compositionVersion===2&&(!draft.value.sales||draft.value.sales.schemaVersion===1)&&(!draft.value.framework||['type-v1','type-v2'].includes(draft.value.framework.kind)))
+const supported=computed(()=>supportsBenefitShopping(draft.value))
 const legacyFramework=computed(()=>!!draft.value.framework)
 const keyword=ref(''),brand=ref(''),categoryIds=ref<string[]>([]),shownCount=ref(24),selectedFamilyId=ref(''),sourceSkuId=ref(''),sourcePositionId=ref<string>()
 const contextSourceId=ref(''),contextError=ref('')
@@ -184,10 +185,10 @@ async function changeSession(source?:BenefitPackageDraft,copy=false){sessionSwit
 async function syncUrl(push=false){const query={...route.query};if(contextSourceId.value&&sourceSkuId.value){query.sku=sourceSkuId.value;query.sourceContext='1'}else{delete query.sku;delete query.sourceContext}delete query.copy;if(draft.value.id)query.scheme=draft.value.id;else delete query.scheme;changingRoute=true;try{await router[push?'push':'replace']({path:route.path,query})}finally{changingRoute=false}}
 async function newSession(){if(await changeSession()){resetBrowsing();await syncUrl(true)}}
 async function openSaved(record:BenefitPackageDraft){if(await changeSession(record)){resetBrowsing();recordsOpen.value=false;await syncUrl(true)}}
-function canUseCommon(record:BenefitPackageDraft){return record.compositionVersion===2&&(!record.sales||record.sales.schemaVersion===1)&&(!record.framework||['type-v1','type-v2'].includes(record.framework.kind))}
-async function useCommon(record:BenefitPackageDraft){if(!canUseCommon(record))return;if(await changeSession(record,true)){resetBrowsing();recordsOpen.value=false;commonOpen.value=false;await syncUrl(true)}}
+function canUseCommon(record:BenefitPackageDraft){return supportsBenefitShopping(record)}
+async function useCommon(record:BenefitPackageDraft){const current=store.data.benefitPackages?.find(item=>item.id===record.id);if(!store.can('product:benefit:read')||!store.can('product:benefit:create')||!current||current.status==='disabled'||!canUseCommon(current))return;record=current;if(await changeSession(record,true)){resetBrowsing();recordsOpen.value=false;commonOpen.value=false;await syncUrl(true)}}
 watch(()=>draft.value.id,(id)=>{if(id&&!changingRoute&&!sessionSwitching&&route.query.scheme!==id)void syncUrl()})
-onBeforeRouteUpdate(async(to,from)=>{if(skipNextRoute){skipNextRoute=false;return true}if(changingRoute)return true;const target=typeof to.query.scheme==='string'?to.query.scheme:'',previous=typeof from.query.scheme==='string'?from.query.scheme:'';if(target!==previous||to.query.copy==='1'){const epoch=++routeGeneration;const source=target?store.data.benefitPackages?.find(item=>item.id===target):undefined;if(!await changeSession(source,to.query.copy==='1'&&!!source)||epoch!==routeGeneration)return false;resetBrowsing();if(target&&!source)session.loadInitial(target);if(to.query.copy==='1'&&source){skipNextRoute=true;return {path:to.path,query:{...to.query,scheme:undefined,copy:undefined},replace:true}}}if(typeof to.query.sku==='string')browseSku(to.query.sku,undefined,to.query.sourceContext==='1');return true})
+onBeforeRouteUpdate(async(to,from)=>{if(skipNextRoute){skipNextRoute=false;return true}if(changingRoute)return true;const target=typeof to.query.scheme==='string'?to.query.scheme:'',previous=typeof from.query.scheme==='string'?from.query.scheme:'';if(target!==previous||to.query.copy==='1'){const epoch=++routeGeneration;const source=target?store.data.benefitPackages?.find(item=>item.id===target):undefined;if(!await changeSession(source,to.query.copy==='1'&&!!source&&supportsBenefitShopping(source))||epoch!==routeGeneration)return false;resetBrowsing();if(target&&!source)session.loadInitial(target);if(to.query.copy==='1'&&source&&supportsBenefitShopping(source)){skipNextRoute=true;return {path:to.path,query:{...to.query,scheme:undefined,copy:undefined},replace:true}}}if(typeof to.query.sku==='string')browseSku(to.query.sku,undefined,to.query.sourceContext==='1');return true})
 watch(()=>route.query.sku,id=>{if(typeof id==='string')browseSku(id,undefined,route.query.sourceContext==='1')},{immediate:true})
 if(initialCopy)void syncUrl()
 function focusBasket(){basketElement.value?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});basketElement.value?.focus({preventScroll:true})}

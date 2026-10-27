@@ -19,7 +19,7 @@ export interface CatalogDetailRow {
   sourceText: string; issues: CatalogWorkspaceIssue[]; route?: string; routeUnavailableReason?: string
 }
 export interface CatalogTypeRow {
-  id: string; name: string; status: ProductType['status']; description: string
+  id: string; name: string; status: ProductType['status']; description: string; scopeEligible: boolean
   categoryIds: string[]; categoryPaths: string[]; metrics: CatalogWorkspaceMetrics
 }
 export interface CatalogModelRow {
@@ -29,7 +29,7 @@ export interface CatalogModelRow {
   statusText: string; publishedVersions: SpecModelVersion[]; latestPublishedVersion?: SpecModelVersion
   updatedAt: string; hasCanvas: boolean; metrics: CatalogWorkspaceMetrics
 }
-export interface CatalogScopeInput { categoryId?: string; includeDescendants?: boolean }
+export interface CatalogScopeInput { categoryId?: string; scopeTypeId?: string; includeDescendants?: boolean }
 export interface CatalogScopeResult { valid: boolean; message?: string; categoryIds: string[]; metrics: CatalogWorkspaceMetrics }
 export interface CatalogWorkspaceIndex {
   categories: Category[]; typeRows: CatalogTypeRow[]; modelRows: CatalogModelRow[]
@@ -152,6 +152,7 @@ export function buildCatalogWorkspaceIndex(data: AppData, can: (permission: stri
   }
   for (const [id, records] of typeRecords) {
     const row = records[0]!, categoryIds = typeCategoryIds(id)
+    if(records.length!==1){addIssue('types',id,'identity-conflict','产品类型身份冲突，请核对原记录。','error');unassigned.types.add(id)}
     register('types', id, categoryIds, [id]); makeDetail('types', id, row.name, row.status === 'disabled' ? '停用' : '启用')
     if (readable.categories && (!categoryIds.length || categoryIds.some(categoryId => !categories.has(categoryId)))) addIssue('types', id, 'category-invalid', '明确关联的分类未记录或已失效。', 'error')
   }
@@ -224,6 +225,13 @@ export function buildCatalogWorkspaceIndex(data: AppData, can: (permission: stri
   for (const [id, parent] of displayParents) if (parent) { const list = children.get(parent) || []; list.push(id); children.set(parent, list) }
   const scopeCache = new Map<string, CatalogScopeResult>()
   function scope(input: CatalogScopeInput = {}): CatalogScopeResult {
+    const typeId=input.scopeTypeId||''
+    if(typeId){
+      const records=typeRecords.get(typeId),type=records?.[0]
+      const message=!readable.types?'当前身份不能查看此产品类型范围。':!type?'产品类型已不存在，请重新选择。':records!.length!==1?'产品类型身份冲突，请核对待处理记录。':!categories.has(type.categoryId)?'产品类型所属分类已失效，请重新选择。':input.categoryId&&input.categoryId!==type.categoryId?'分类与产品类型归属不一致，请重新选择范围。':''
+      if(message)return {valid:false,message,categoryIds:[],metrics:mask(buckets())}
+      return {valid:true,categoryIds:readable.categories?[type!.categoryId]:[],metrics:mask(getBucket(rawType,typeId))}
+    }
     const id = input.categoryId || '', include = input.includeDescendants !== false, cacheKey = JSON.stringify([id, include])
     const cached = scopeCache.get(cacheKey); if (cached) return cached
     if (id && (!readable.categories || !categories.has(id))) return { valid: false, message: readable.categories ? '分类范围已失效，请重新选择；未切换到全部数据。' : '当前身份不能查看此分类范围。', categoryIds: [], metrics: mask(buckets()) }
@@ -239,7 +247,7 @@ export function buildCatalogWorkspaceIndex(data: AppData, can: (permission: stri
   const modelMetrics = (id: string) => readable.models ? mask(modelIds.has(id) ? getBucket(rawModel, id) : buckets()) : unavailableMetrics()
   return {
     categories: readable.categories ? [...categories.values()] : [],
-    typeRows: readable.types ? [...typeRecords].map(([id, records]) => ({ id, name: records[0]!.name, status: records[0]!.status, description: records[0]!.description, categoryIds: readable.categories ? typeCategoryIds(id) : [], categoryPaths: readable.categories ? typeCategoryIds(id).length ? typeCategoryIds(id).map(categoryPath) : ['未归属'] : ['不可查看'], metrics: typeMetrics(id) })) : [],
+    typeRows: readable.types ? [...typeRecords].map(([id, records]) => ({ id, scopeEligible: records.length===1&&categories.has(records[0]!.categoryId), name: records[0]!.name, status: records[0]!.status, description: records[0]!.description, categoryIds: readable.categories ? typeCategoryIds(id) : [], categoryPaths: readable.categories ? typeCategoryIds(id).length ? typeCategoryIds(id).map(categoryPath) : ['未归属'] : ['不可查看'], metrics: typeMetrics(id) })) : [],
     modelRows: readable.models ? [...modelBase.values()].map(row => ({ ...row, metrics: modelMetrics(row.id) })) : [],
     issues, unassigned: mask(unassigned), scope, categoryMetrics: (id, includeDescendants = true) => scope({ categoryId: id, includeDescendants }).metrics, typeMetrics, modelMetrics,
     details(kind, ids) { if (!readable[kind]) return []; return unique(ids).flatMap(id => { const row = detailRows.get(kind === 'pending' ? id : recordKey(kind, id)); return row ? [{ ...row, ...(kind === 'pending' ? { id } : {}), categoryIds: [...row.categoryIds], categoryPaths: [...row.categoryPaths], issues: [...row.issues] }] : [] }) },

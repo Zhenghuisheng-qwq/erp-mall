@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import {createSalesConfigurationFixture} from './sales-configuration-fixtures'
 import {queryProductBenefitRelations} from '../src/domain/productBenefitRelations'
-import {newBenefitPackageDraft,addBenefitSku} from '../src/domain/benefitPackages'
+import {supportsBenefitShopping,supportsBenefitAdvanced} from '../src/domain/benefitPackageSupport'
+import {newBenefitPackageDraft,addBenefitSku,reviewBenefitQuote,validateBenefitPackage,copyBenefitPackageDraft} from '../src/domain/benefitPackages'
 const {data,phoneIds,phonePlan,phoneBinding}=createSalesConfigurationFixture()
 const original=JSON.stringify(data),phone=queryProductBenefitRelations(data,phoneIds[0]!)
 assert.equal(phone.effective?.state,'matched');assert.equal(phone.effective?.plan?.version,1);assert.deepEqual(phone.effectiveRanges.map(row=>row.id),[phoneBinding.id])
@@ -38,3 +39,25 @@ const denied=queryProductBenefitRelations(data,'case-sku',code=>code==='product:
 assert.equal(denied.configurationsReadable,false);assert.equal(denied.packagesReadable,false);assert.equal(denied.effective,undefined);assert.deepEqual(denied.candidates,[]);assert.deepEqual(denied.packages,[])
 assert.equal(queryProductBenefitRelations(data,'case-sku',()=>false).valid,false)
 console.log('PASS product benefit relations: exact frozen resolution/conflicts, dynamic type IDs, real saved members/quantity/unknown states, read isolation and zero writes')
+
+// Entry capability is independent of readable/valid legacy composition.
+for(const version of [2,1,undefined,99]){
+  let source={...structuredClone(pack),compositionVersion:version}
+  if(version!==99)source=reviewBenefitQuote(source,data)
+  data.benefitPackages=[source]
+  const row=queryProductBenefitRelations(data,'case-sku').packages[0]!
+  assert.equal(supportsBenefitShopping(source),version===2)
+  assert.equal(supportsBenefitAdvanced(source),version!==99)
+  assert.equal(row.advancedCopyable,version!==99)
+  assert.equal(row.shoppingSupported,version===2)
+  if(version!==99)assert.equal(validateBenefitPackage(data,source).canSaveAvailable,true)
+  assert.equal(row.usable,version===2)
+  assert.equal(row.quantity,2)
+  if(version===1||version===undefined){
+    assert.match(row.message,/此版本请通过高级详情查看或复制/)
+    const before=JSON.stringify(source),copy=copyBenefitPackageDraft(source)
+    assert.equal(copy.id,'');assert.equal(copy.compositionVersion,version)
+    copy.goods[0]!.quantity=3;assert.equal(JSON.stringify(source),before)
+  }
+}
+console.log('PASS v2 / v1 / missing / unknown entry capabilities and independent legacy copy')

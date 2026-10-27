@@ -1,6 +1,7 @@
 <template>
   <section data-catalog-types>
     <el-alert v-if="operationError" :title="operationError" type="error" :closable="false"><el-button link @click="retryPersistence">重试保存</el-button></el-alert>
+    <el-empty v-if="!filtered.length" description="当前范围内没有符合关键词或状态的产品类型，请调整筛选。"/>
     <el-table :data="pageRows" row-key="id" highlight-current-row :current-row-key="prefs.selectedId" @current-change="selectRow" @header-dragend="resizeColumn" data-catalog-type-table>
       <el-table-column prop="name" label="产品类型名称" :width="narrow?150:width('name',190)" fixed="left"><template #default="{row}"><button class="record-name" :data-catalog-type="row.id" @click="requestDetail(row.id)">{{row.name}}</button><small>{{row.id}}</small></template></el-table-column>
       <el-table-column v-if="visible('category')" prop="category" label="明确关联分类" :min-width="width('category',190)"><template #default="{row}"><span :title="row.categoryPaths.join('；')">{{store.can('product:category:read') ? row.categoryPaths.join('；') || '未关联分类' : '不可查看'}}</span></template></el-table-column>
