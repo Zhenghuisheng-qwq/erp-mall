@@ -9,7 +9,7 @@
           <div class="crumb">{{ title }}</div>
         </div>
         <div class="row-actions">
-          <PageAssist :path="route.path" :full-path="route.fullPath" :title="String(route.meta.title || route.path)" :query-panel="route.query.panel" />
+            <PageAssist :path="route.path" :full-path="route.fullPath" :title="title" :query-panel="route.query.panel" />
           <el-tag v-if="!store.rbacEnforced" effect="plain" title="当前统一按超级管理员运行，权限限制暂未启用">超级管理员</el-tag>
           <el-select v-else :model-value="store.previewUserId || store.activeUserId" :disabled="dataBusy" size="small" style="width:180px" aria-label="模拟用户" @change="onUser">
             <el-option v-for="user in store.data.users" :key="user.id" :label="`模拟用户：${user.displayName}`" :value="user.id" :disabled="!user.enabled || (!canSwitchUser && user.id !== store.activeUserId)" />
@@ -51,6 +51,7 @@ import { computed, markRaw, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Component } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { menuRouteForLocation, menuRevision, railModel } from '../domain/menuConfig'
+import {compatibilityPageTitle} from '../domain/compatibilityNavigation'
 import { useCatalogStore } from '../stores/catalog'
 import { isSuperAdmin } from '../domain/rbac'
 import PageAssist from '../components/PageAssist.vue'
@@ -80,7 +81,7 @@ function onToggleTheme() {
   applyTheme(next)
 }
 const fileRef = ref<HTMLInputElement>()
-const title = computed(() => String(route.meta.title || '商品配置'))
+const title = computed(() => route.path==='/compatibility'?compatibilityPageTitle(route.query.tab):String(route.meta.title || '商品配置'))
 const active = computed(() => menuRouteForLocation(route.path, route.query))
 
 const groups = computed(() => {

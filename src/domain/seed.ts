@@ -69,6 +69,18 @@ export function phoneSpecNodes(): ProductSpecNode[] {
   return nodes
 }
 
+/** 销售演示用的已发布版本。V1 快照保持原样，这里只增加一条能覆盖现有 SPU/SKU 的发布记录。 */
+export function phoneDemoV2Nodes(): ProductSpecNode[] {
+  const nodes = phoneSpecNodes().map((item) => ({ ...item }))
+  const series = nodes.find((item) => item.id === 'sn-apple-series-iphone')
+  if (series) series.valueId = 'iPhone 17'
+  if (!nodes.some((item) => item.id === 'sn-apple-256-blue')) {
+    nodes.push({ id: 'sn-apple-256-blue', templateId: 't-phone', parentId: 'sn-apple-color-256', nodeType: 'VALUE', attributeId: 'p-color', valueId: '蓝色', sort: 2 })
+  }
+  arrangeSpecPositions(nodes)
+  return nodes
+}
+
 /** 旧演示把品牌、系列、容量、颜色并列在根上。只保留给历史快照对照，不再作为初始模型。 */
 export function legacyPhoneSpecNodes(): ProductSpecNode[] {
   const nodes: ProductSpecNode[] = [
@@ -268,6 +280,46 @@ export function ensureSalesShelfDemo(data: AppData) {
     { id: 's-case-clear', familyId: 'f-case', code: '', oaSkuId: '', skuName: '透明保护壳', status: 'on_sale', variantAttrs: { 颜色: '透明' }, projectedAttrs: { 品牌: 'Apple', 颜色: '透明' } },
   )
   return true
+}
+
+function originalIphoneDemo(data: AppData) {
+  const family = data.families.find((item) => item.id === 'f-iphone')
+  const blue = data.skus.find((item) => item.id === 's-iphone-blue' && item.familyId === 'f-iphone')
+  const white = data.skus.find((item) => item.id === 's-iphone-white' && item.familyId === 'f-iphone')
+  if (!family || !blue || !white) return undefined
+  if (family.commonAttrs['系列'] !== 'iPhone 17' || family.commonAttrs['型号'] !== 'iPhone 17') return undefined
+  if (blue.variantAttrs['容量'] !== '256G' || blue.variantAttrs['颜色'] !== '蓝色') return undefined
+  if (white.variantAttrs['容量'] !== '256G' || white.variantAttrs['颜色'] !== '白色') return undefined
+  return { family, blue, white }
+}
+
+/** 演示手机改绑到覆盖其真实规格的已发布版本。不改 V1 快照，也不改用户已经改过的规格。 */
+export function ensureDemoPhonePublished(data: AppData) {
+  const demo = originalIphoneDemo(data)
+  if (!demo) return false
+  const { family, blue, white } = demo
+  let changed = false
+  if (!data.specModelVersions.some((item) => item.id === 'phone-demo-v2')) {
+    data.specModelVersions.push({
+      id: 'phone-demo-v2', templateId: 't-phone', version: 2, versionName: 'V2', status: 'published',
+      nodesSnapshot: phoneDemoV2Nodes().map((item) => ({ ...item })), createdTime: now, publishTime: now,
+    })
+    changed = true
+  }
+  if (family.productTypeId !== 'pt-phone') { family.productTypeId = 'pt-phone'; changed = true }
+  if (family.productModelId !== 't-phone') { family.productModelId = 't-phone'; changed = true }
+  if (family.modelVersionId !== 'phone-demo-v2') { family.modelVersionId = 'phone-demo-v2'; changed = true }
+  const bind = (sku: Sku, sourceNodeIds: string[]) => {
+    if (sku.modelVersionId !== 'phone-demo-v2') { sku.modelVersionId = 'phone-demo-v2'; changed = true }
+    if (JSON.stringify(sku.sourceNodeIds || []) !== JSON.stringify(sourceNodeIds)) { sku.sourceNodeIds = [...sourceNodeIds]; changed = true }
+    if (sku.creationSource?.kind !== 'model' || sku.creationSource.templateId !== 't-phone' || sku.creationSource.modelVersionId !== 'phone-demo-v2') {
+      sku.creationSource = { kind: 'model', templateId: 't-phone', modelVersionId: 'phone-demo-v2', createdAt: now }
+      changed = true
+    }
+  }
+  bind(blue, ['sn-brand-apple', 'sn-apple-series-iphone', 'sn-apple-model-17', 'sn-apple-cap-256', 'sn-apple-256-blue'])
+  bind(white, ['sn-brand-apple', 'sn-apple-series-iphone', 'sn-apple-model-17', 'sn-apple-cap-256', 'sn-apple-256-white'])
+  return changed
 }
 
 function sku(
@@ -484,6 +536,7 @@ export function createSeed(): AppData {
   appendEbikeDemo(data)
   ensureLeafProductTypes(data)
   ensureSalesShelfDemo(data)
+  ensureDemoPhonePublished(data)
   data.skus = data.skus.map((item) => {
     const owner = data.families.find((family) => family.id === item.familyId)
     if (!owner) return item

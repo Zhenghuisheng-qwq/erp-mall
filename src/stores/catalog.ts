@@ -8,7 +8,7 @@ import { createRbacCommands } from './catalogRbac'
 import { catalogPublicData } from './catalogAccess'
 import { salesConfigurationImportProblems } from '../domain/salesConfiguration'
 import { salesSelectionIssues } from '../domain/salesSelection'
-import { saveSalesPlanCommand, publishSalesPlanCommand, setSalesPlanStatusCommand, saveSalesBindingsCommand, saveSalesRelationCommand, type SalesPlanSave, type SalesPlanPublish, type SalesPlanStatus, type SalesBindingSave, type SalesBindingsSave, type SalesRelationSave, type SalesConfigurationResult } from '../domain/salesConfigurationCommands'
+import { saveSalesPlanCommand, publishSalesPlanCommand, setSalesPlanStatusCommand, saveSalesBindingsCommand, saveSalesRelationCommand, commitSalesConfigurationCommand, type SalesConfigurationCommit, type SalesPlanSave, type SalesPlanPublish, type SalesPlanStatus, type SalesBindingSave, type SalesBindingsSave, type SalesRelationSave, type SalesConfigurationResult } from '../domain/salesConfigurationCommands'
 import { frameworkProductResetProblems, frameworkCommand, frameworkReference, frameworkSnapshot, frameworkSnapshotProblem, frameworkProblems, frameworkSignature } from '../domain/benefitFrameworks'
 import type { BenefitFramework } from '../domain/benefitPackageTypes'
 import { defineStore } from 'pinia'
@@ -63,7 +63,7 @@ import type { MaterialChoice } from '../domain/material'
 import type { ProductGrade } from '../domain/types'
 import { arrangeSpecPositions } from '../domain/logic'
 import { activeProductListView, applyPresetToActiveView, currentModeQuery, ensureProductListViews } from '../domain/productListViews'
-import { createSeed, defaultColumns, emptyQuery, ensureSalesShelfDemo, phoneCanvas, phoneSpecNodes } from '../domain/seed'
+import { createSeed, defaultColumns, emptyQuery, ensureDemoPhonePublished, ensureSalesShelfDemo, phoneCanvas, phoneSpecNodes } from '../domain/seed'
 import { DATA_VERSION, STORAGE_KEY, type AppData, type Category, type ColumnPref, type FeedbackItem, type ListQuery, type ListView, type ParamDef, type ProductFamily, type ProductGroup, type ProductType, type Sku, type SpecRule, type Brand, type UserRole } from '../domain/types'
 import { readSalesBindingWorkingCopy, writeSalesBindingWorkingCopy, salesBindingWorkingCopyKey, listSalesBindingWorkingCopies, validateSalesBindingWorkingApplication, type SalesBindingWorkingCopyInput, type SalesBindingWorkingIdentity } from '../domain/salesBindingWorkingCopy'
 
@@ -245,6 +245,7 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   if (ensureProductListViews(data)) mark.changed = true
   if (ensureProductListPages(data)) mark.changed = true
   if (ensureSalesShelfDemo(data)) mark.changed = true
+  if (ensureDemoPhonePublished(data)) mark.changed = true
   const compatibilityProblems = compatibilityImportProblems(data)
   if (compatibilityProblems.length) migrationStorageError = `适用关系配置有待处理项：${compatibilityProblems.join(' ')} 原始记录已保留，请修复或导出备份。`
   ensureRbac(data, loadMenu())
@@ -1748,6 +1749,29 @@ export const useCatalogStore = defineStore('catalog', () => {
       const copied = cloneCompatibility(next), copiedGuard = manualGuard && cloneCompatibility(manualGuard)
       return command(() => commitListPage('sku', copied, expectedPage, isCurrent, copiedGuard))
     },
+    commitSalesConfiguration: (input:SalesConfigurationCommit,isCurrent:()=>boolean=()=>true) => {
+      const value=cloneCompatibility(input),owner=activeUserId.value,preview=previewUserId.value
+      return salesCommand(next=>{
+        return commitSalesConfigurationCommand(next,value,kind=>uid(kind==='plan'?'sales-plan':'sales-binding'),new Date().toISOString(),()=>{
+          if(value.workingCopy){
+            const task=value.workingCopy,key=salesBindingWorkingCopyKey(owner,preview,task.key),stored=readSalesBindingWorkingCopy(key,next)
+            if(!task.key||!Number.isSafeInteger(task.expectedRevision)||task.expectedRevision<0)return '工作草稿身份或修订无效，请重新核对。'
+            if(!stored.ok)return stored.message||'工作草稿无法读取，本次未提交。'
+            if((stored.copy?.revision||0)!==task.expectedRevision)return '工作草稿已在其他页面变化，请重新核对后发布；本次未提交。'
+            if(stored.conflict)return stored.message||'工作草稿的正式基础修订已变化。'
+            if(stored.copy?.planDraft&&(stored.copy.planDraft.id!==value.planDraft.id||stored.copy.expectedPlanRevision!==value.expectedPlanRevision))return '配置项目与待发布工作草稿不属于同一任务，请重新核对。'
+          }
+          if(!value.workingContext)return ''
+          const draft=value.bindings[0]
+          if(!draft)return '工作草稿的应用范围缺失，未提交。'
+          const key=salesBindingWorkingCopyKey(owner,preview,value.workingContext.key)
+          const problem=validateSalesBindingWorkingApplication(key,next,draft,value.workingContext)
+          if(problem)return problem
+          const saved=readSalesBindingWorkingCopy(key,next).copy
+          return saved?.planDraft&&(saved.planDraft.id!==value.planDraft.id||saved.expectedPlanRevision!==value.expectedPlanRevision)?'配置项目与当前范围工作草稿不属于同一任务，请重新核对。':''
+        })
+      },['salesOptionPlans','salesOptionBindings'],isCurrent)
+    },
     saveSalesOptionPlan: (input: SalesPlanSave, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input); return salesCommand(next=>saveSalesPlanCommand(next,value,()=>uid('sales-plan'),new Date().toISOString()),['salesOptionPlans'],isCurrent) },
     publishSalesOptionPlan: (input: SalesPlanPublish, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input); return salesCommand(next=>publishSalesPlanCommand(next,value,new Date().toISOString()),['salesOptionPlans'],isCurrent) },
     setSalesOptionPlanStatus: (input: SalesPlanStatus, isCurrent: () => boolean = () => true) => { const value=cloneCompatibility(input); return salesCommand(next=>setSalesPlanStatusCommand(next,value,new Date().toISOString()),['salesOptionPlans'],isCurrent) },
@@ -1881,7 +1905,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       const codes=commandPermissions(name,args,data)
       if(!codes.every(can)){const message=`未授权操作：${codes.join('、')}。`;throw failureError(message,branchFailure('command.permission',message,{actionId:commandAction(name),savedState:'unchanged',context:{requiredPermissions:codes.join('、'),mode:RBAC_ENFORCEMENT_ENABLED?'enforced':'unrestricted'},recovery:['view-related','feedback']}))}
       if((name==='resetAll'||name==='resetModule')&&!isAdmin.value)throw new Error('只有受保护的超级管理员可重置演示数据。')
-      const bindingArgs=name==='saveSalesOptionBinding'||name==='saveSalesOptionBindings'?[cloneCompatibility(args[0])]:undefined
+      const bindingArgs=name==='saveSalesOptionBinding'||name==='saveSalesOptionBindings'||name==='commitSalesConfiguration'||name==='saveSalesBindingWorkingCopy'?[cloneCompatibility(args[0])]:undefined
       const previous=invocation;invocation={codes,actor:effectiveUserId.value,name,...(bindingArgs?{currentCodes:()=>commandPermissions(name,bindingArgs,data)}:{})}
       try{return (original as (...a:unknown[])=>unknown)(...args)}finally{invocation=previous}
     }

@@ -1,5 +1,5 @@
 import type { AppData } from './types'
-import type { SalesOptionBinding, SalesBindingScope } from './salesConfigurationTypes'
+import type { SalesOptionBinding, SalesBindingScope, SalesOptionPlan } from './salesConfigurationTypes'
 import { salesBindingContext, salesSignature } from './salesConfiguration'
 import { templateSelectorCoverage } from './templateCompatibility'
 
@@ -48,10 +48,16 @@ export function salesBindingWorkingContextProblem(data: AppData, draft: SalesOpt
 export interface SalesBindingWorkingCopy {
   key: string; draft: SalesOptionBinding; baseRevision: number; revision: number; updatedAt: string
   identity?: SalesBindingWorkingIdentity
+  planDraft?: SalesOptionPlan
+  expectedPlanRevision?: number
+  ui?: Record<string,unknown>
 }
 export interface SalesBindingWorkingCopyInput {
   key: string; draft: SalesOptionBinding; baseRevision: number; expectedRevision: number
   identity?: SalesBindingWorkingIdentity
+  planDraft?: SalesOptionPlan
+  expectedPlanRevision?: number
+  ui?: Record<string,unknown>
 }
 export interface SalesBindingWorkingCopyResult {
   ok: boolean; message?: string; copy?: SalesBindingWorkingCopy; conflict?: boolean; legacy?: boolean; contextMismatch?: boolean
@@ -61,6 +67,14 @@ export interface SalesBindingWorkingList {ok:boolean;message?:string;copies:Sale
 export const salesBindingWorkingCopyKey = (actor: string, preview: string | null, key: string) =>
   `iyge-sales-binding-work:${JSON.stringify([actor, preview, key])}`
 
+function workingPlanProblem(data:AppData,input:Pick<SalesBindingWorkingCopyInput,'planDraft'|'expectedPlanRevision'>):string {
+  if(!input.planDraft)return input.expectedPlanRevision===undefined?'':'配置工作草稿缺少配套的项目输入，原内容保留。'
+  const draft=input.planDraft,expected=input.expectedPlanRevision
+  if(draft.schemaVersion!==1||typeof draft.id!=='string'||typeof expected!=='number'||!Number.isSafeInteger(expected)||expected<0)return '配置工作草稿身份或基础修订无效。'
+  const plan=draft.id?data.salesOptionPlans?.find(item=>item.id===draft.id):undefined
+  return draft.id?(!plan||plan.schemaVersion!==1||plan.revision!==expected?'配置项目的正式修订已变化，请重新核对；项目和范围输入均保留。':''):expected!==0?'新配置工作草稿的基础修订必须为零。':''
+}
+
 export function readSalesBindingWorkingCopy(storageKey: string, data: AppData, expectedIdentity?:SalesBindingWorkingIdentity): SalesBindingWorkingCopyResult {
   try {
     const raw = localStorage.getItem(storageKey)
@@ -68,12 +82,13 @@ export function readSalesBindingWorkingCopy(storageKey: string, data: AppData, e
     const copy = JSON.parse(raw) as SalesBindingWorkingCopy
     if (!copy || typeof copy.key !== 'string' || copy.draft?.schemaVersion !== 1 || !Number.isSafeInteger(copy.revision) || copy.revision < 1 || !Number.isSafeInteger(copy.baseRevision))
       return { ok: false, message: '工作草稿格式暂不支持，原内容保留。' }
-    const legacy=!copy.identity
+    const legacy=!copy.identity&&!copy.planDraft
     if(copy.identity&&!salesBindingWorkingIdentityEquals(copy.identity,salesBindingWorkingIdentity(copy.draft,copy.identity.entryNodeId)))return {ok:false,message:'工作草稿的规格范围身份不一致，原内容保留，请重新核对。',contextMismatch:true}
     if(expectedIdentity&&(legacy||!salesBindingWorkingIdentityEquals(copy.identity!,expectedIdentity)))return {ok:false,legacy,contextMismatch:true,message:legacy?'发现旧格式工作草稿，请明确查看并恢复其实际范围；未套用到当前范围。':'已有工作草稿属于其他规格范围，未套用到当前编辑任务。'}
     const record = copy.draft.id ? data.salesOptionBindings?.find(item => item.id === copy.draft.id) : undefined
-    const conflict = copy.draft.id ? !record || record.schemaVersion !== 1 || record.revision !== copy.baseRevision : copy.baseRevision !== 0
-    return { ok: true, copy, conflict, legacy, ...(conflict ? { message: '正式配置已更新，请重新核对；工作草稿保留。' } : legacy?{message:'旧格式工作草稿，需明确核对所属范围后恢复。'}:{}) }
+    const planProblem=workingPlanProblem(data,copy)
+    const conflict = (copy.draft.id ? !record || record.schemaVersion !== 1 || record.revision !== copy.baseRevision : copy.baseRevision !== 0)||!!planProblem
+    return { ok: true, copy, conflict, legacy, ...(conflict ? { message: planProblem||'正式配置已更新，请重新核对；工作草稿保留。' } : legacy?{message:'旧格式工作草稿，需明确核对所属范围后恢复。'}:{}) }
   } catch { return { ok: false, message: '无法读取工作草稿，原内容保留。' } }
 }
 
@@ -101,13 +116,15 @@ export function writeSalesBindingWorkingCopy(storageKey: string, data: AppData, 
     return { ok: false, message: '工作草稿身份或版本无效。' }
   const prior = readSalesBindingWorkingCopy(storageKey, data)
   if (!prior.ok) return prior
+  const planProblem=workingPlanProblem(data,input)
+  if(planProblem)return {ok:false,conflict:true,message:planProblem}
   if (input.identity) {const problem=salesBindingWorkingContextProblem(data,input.draft,{key:input.key,identity:input.identity});if(problem)return {ok:false,contextMismatch:true,message:problem}}
   else if(input.key.startsWith('scope-v2:'))return {ok:false,message:'当前范围缺少工作任务身份，未保存。',contextMismatch:true}
   if ((prior.copy?.revision || 0) !== input.expectedRevision) return { ok: false, message: '工作草稿已在其他页面更新，请重新打开核对；输入保留。' }
   const record = input.draft.id ? data.salesOptionBindings?.find(item => item.id === input.draft.id) : undefined
   if (input.draft.id ? !record || record.schemaVersion !== 1 || record.revision !== input.baseRevision : input.baseRevision !== 0)
     return { ok: false, conflict: true, message: '正式配置已更新，请重新核对基础修订；输入保留。' }
-  const copy: SalesBindingWorkingCopy = { key: input.key, draft: JSON.parse(JSON.stringify(input.draft)), baseRevision: input.baseRevision, revision: input.expectedRevision + 1, updatedAt: new Date().toISOString(),...(input.identity?{identity:JSON.parse(JSON.stringify(input.identity))}:{}) }
+  const copy: SalesBindingWorkingCopy = { key: input.key, draft: JSON.parse(JSON.stringify(input.draft)), baseRevision: input.baseRevision, revision: input.expectedRevision + 1, updatedAt: new Date().toISOString(),...(input.identity?{identity:JSON.parse(JSON.stringify(input.identity))}:{}),...(input.planDraft?{planDraft:JSON.parse(JSON.stringify(input.planDraft)),expectedPlanRevision:input.expectedPlanRevision}:{}),...(input.ui?{ui:JSON.parse(JSON.stringify(input.ui))}:{}) }
   try { localStorage.setItem(storageKey, JSON.stringify(copy)); return { ok: true, copy } }
   catch { return { ok: false, message: '工作草稿未能写入本机，当前输入保留，请重试。' } }
 }

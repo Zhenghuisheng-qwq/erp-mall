@@ -1366,7 +1366,7 @@ export const guidePageArticles: GuideArticle[] = [
   },
   {
     "id": "manual-compatibility",
-    "title": "适用关系操作手册",
+    "title": "兼容性查询与维护操作手册",
     "kind": "page",
     "summary": "按设备型号与真实对象维护双向适用声明，并保留原物料维护入口。",
     "aliases": [
@@ -1447,7 +1447,7 @@ export const guidePageArticles: GuideArticle[] = [
   },
   {
     "id": "manual-benefits",
-    "title": "常用组合操作手册",
+    "title": "常用权益包操作手册",
     "kind": "page",
     "summary": "查询包配置、收藏/复制常用包，并独立维护只有类型范围的选配框架。",
     "aliases": [

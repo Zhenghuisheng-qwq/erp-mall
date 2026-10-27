@@ -135,7 +135,7 @@ export function isSuperAdmin(data: AppData, userId: string): boolean {
 
 function legacyAllowed(nodes: MenuNode[], route: string) {
   if (adminPage(route)) return false
-  let node = nodes.find(item => item.kind === 'page' && item.route === route)
+  let node = nodes.find(item => item.kind === 'page' && (item.route === route || item.route.split('?')[0] === route))
   if (!node) return false
   const seen = new Set<string>()
   while (node) {
@@ -267,7 +267,11 @@ export function salesBindingNeedsPublish(previous: { enabled?: boolean } | undef
 /** Store command bindings. An unknown command fails closed. These are execution points, not labels. */
 export function commandPermissions(name: string, args: unknown[] = [], data?: AppData): string[] {
   if(name==='getSalesBindingWorkingCopy'||name==='listSalesBindingWorkingCopies')return ['product:sales-config:read']
-  if(name==='saveSalesBindingWorkingCopy'||name==='discardSalesBindingWorkingCopy')return ['product:sales-config:update']
+  if(name==='saveSalesBindingWorkingCopy'){
+    const input=args[0] as {planDraft?:{id?:string};draft?:{id?:string}}|undefined
+    return input?.planDraft?[...new Set([`product:sales-config:${input.planDraft.id?'update':'create'}`,...(input.draft?.id?['product:sales-config:update']:[])])]:['product:sales-config:update']
+  }
+  if(name==='discardSalesBindingWorkingCopy')return ['product:sales-config:update']
   if (name === 'commitModelDictionaryBatch') {
     const input = args[0] as ModelDictionaryBatchInput | undefined
     const codes = data ? modelDictionaryPermissions(data, input as ModelDictionaryBatchInput) : ['product:model:update']
@@ -280,6 +284,14 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
   }
   const first = args[0] as Record<string,unknown> | undefined
   const save = (resource:string, exists:boolean) => [`product:${resource}:${exists ? 'update' : 'create'}`]
+  if(name==='commitSalesConfiguration'){
+    const input=first as {action?:string;planDraft?:{id?:string};bindings?:unknown[]}|undefined
+    return [...new Set([
+      ...(input?.action==='apply-existing'?[]:save('sales-config',Boolean(input?.planDraft?.id))),
+      'product:sales-config:publish',
+      ...(input?.action!=='publish-only'?['product:sales-config:update']:[]),
+    ])]
+  }
   if(name==='saveSalesOptionPlan')return save('sales-config',Boolean((first?.draft as {id?:string})?.id))
   if(name==='publishSalesOptionPlan'||name==='setSalesOptionPlanStatus')return ['product:sales-config:publish']
   if(name==='saveSalesOptionBinding'||name==='saveSalesOptionBindings'){

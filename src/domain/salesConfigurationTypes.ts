@@ -36,7 +36,11 @@ export interface SalesProductRelation {
   verification: 'pending' | 'confirmed'; conditions: CompatibilityCondition[]; source: string; note: string; updatedAt: string
   receipts?: SalesCommandReceipt[]
 }
-export interface SalesCommandReceipt { requestId: string; intent: string; sourceRevision: number; resultRevision: number }
+export interface SalesCommandReceipt {
+  requestId: string; intent: string; sourceRevision: number; resultRevision: number
+  /** Receipt of one atomic configuration publication/application, never a second business relation. */
+  configuration?: {planId:string;version:number;bindingIds:string[]}
+}
 export interface SalesSourceResolution { state: 'resolved' | 'legacy' | 'invalid'; skuId: string; modelId: string; versionId: string; identityKey: string; message: string }
 export interface SalesBindingPreview {
   stamp: string; legalCount: number; skuCount: number; skuIds: string[]

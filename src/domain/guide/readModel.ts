@@ -56,7 +56,7 @@ type PageLink = [from:string,to:string,kind:GuideRelationKind,reason:string,reve
 // Relationships are authored against real page identities. Kind and explanation are not
 // inferred from a title, menu position, object name, or similar-looking route.
 const links: PageLink[] = [
-  ['page-sales-shopping','page-sales-configurations','upstream','已发布方案和正式范围绑定组织选购候选；浏览不修改配置。','销售选购按具体商品读取正式方案并建立实际清单。'],
+  ['page-sales-shopping','page-sales-configurations','upstream','已发布方案和正式范围绑定组织选购候选；浏览不修改配置。','权益包选购按具体商品读取正式方案并建立实际清单。'],
   ['page-sales-configurations','page-specs','related','模型节点的搭配与适用和独立配置页共用相同绑定与方案。','在节点打开搭配与适用，预览真实范围后明确应用。'],
   ['page-sales-configurations','page-compatibility','related','选配方案组织选择，具体适用仍由正式声明及相关条件决定。'],
   ['page-sales-shopping','page-benefits','downstream','实际清单复用现有权益包草稿与冻结交付能力。'],
@@ -87,8 +87,8 @@ const links: PageLink[] = [
   ['page-compatibility','page-skus','related','销售 SKU 的适用声明独立维护；MAT 声明不会自动成为 SKU 适用证据。'],
   ['page-compatibility','page-material-edit','related','可维护 MAT 的适用关系和来源，但物料身份与销售 SKU 保持分离。'],
   ['page-compatibility','page-benefit-create','downstream','权益包推荐与最终保存使用正式基本适用结论，附条件、待确认与不适用分别处理。','选配时依据主机型号和正式声明查询适用商品；设备上下文不等于包内商品。'],
-  ['page-benefits','page-benefit-create','related','选择独立框架或自由组包，再运行时选择实际销售 SKU。','创建和保存后可在常用组合列表管理当前配置。'],
-  ['page-benefits','page-benefit-edit','related','从常用组合列表选择当前包，查看冻结框架修订与成员。','常用组合列表提供当前配置及常用包入口。'],
+  ['page-benefits','page-benefit-create','related','选择独立框架或自由组包，再运行时选择实际销售 SKU。','创建和保存后可在常用权益包列表管理当前配置。'],
+  ['page-benefits','page-benefit-edit','related','从常用权益包列表选择当前包，查看冻结框架修订与成员。','常用权益包列表提供当前配置及常用包入口。'],
   ['page-benefit-create','page-skus','upstream','包内实物成员必须是实际销售 SKU，不能用 SPU、PLN 或 MAT 代替。','在售并符合框架范围及适配条件的 SKU 可动态参与选配。'],
   ['page-benefit-edit','page-benefit-delivery','downstream','保存当前完整配置并复核报价后，预览确认生成冻结交付清单。','清单从已保存包配置生成；修改配置不会重写旧清单。'],
   ['page-benefit-delivery','page-sku-edit','related','历史清单读取当时冻结的商品、数量和参考价格；后续 SKU 修改不会回写历史。'],

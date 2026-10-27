@@ -1,5 +1,5 @@
 <template>
-  <component :is="embedded ? 'section' : ElDialog" :model-value="modelValue" title="选配设置" width="min(900px,96vw)" top="5vh" :close-on-click-modal="false" :before-close="close" :show-close="!busy" data-sales-binding-dialog destroy-on-close>
+  <component :is="embedded ? 'section' : ElDialog" :model-value="modelValue" title="权益包应用范围" width="min(900px,96vw)" top="5vh" :close-on-click-modal="false" :before-close="close" :show-close="!busy" data-sales-binding-dialog destroy-on-close>
     <details v-if="recoverableCopies.length && !planEditorOpen" class="context-details" data-binding-other-workcopies><summary>其他范围或旧格式工作草稿（{{recoverableCopies.length}}）</summary><article v-for="entry in recoverableCopies" :key="entry.copy.key"><span>{{copyRangeLabel(entry.copy.draft)}} · {{entry.legacy?'旧格式，待核对':'已保存工作草稿'}}</span><el-button link type="primary" :disabled="busy" @click="restoreCopy(entry.copy)">恢复此范围草稿</el-button></article></details>
     <p v-if="draft?.scope.kind==='model'" class="muted" data-binding-actual-scope>实际编辑范围：{{copyRangeLabel(draft)}}</p>
     <el-form v-if="draft && !planEditorOpen" label-position="top" :disabled="busy || !canEdit">

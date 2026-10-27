@@ -1,8 +1,8 @@
 import type { GuideArticle, GuideManualContent, GuidePage } from '../types'
 
 export const salesOptionPages: GuidePage[] = [
-  { id:'page-sales-shopping', title:'销售选购', patterns:['/sales-shopping'], articleId:'manual-sales-shopping', actionIds:['action-benefit-select','action-benefit-save','action-benefit-quote','action-benefit-deliver'], formal:true },
-  { id:'page-sales-configurations', title:'选配方案', patterns:['/sales-configurations'], articleId:'manual-sales-configurations', actionIds:['action-business-save'], formal:true },
+  { id:'page-sales-shopping', title:'权益包选购', patterns:['/sales-shopping'], articleId:'manual-sales-shopping', actionIds:['action-benefit-select','action-benefit-save','action-benefit-quote','action-benefit-deliver'], formal:true },
+  { id:'page-sales-configurations', title:'权益包配置', patterns:['/sales-configurations'], articleId:'manual-sales-configurations', actionIds:['action-business-save'], formal:true },
 ]
 export const salesOptionManuals: Record<string, GuideManualContent> = {
   'page-sales-shopping': {
@@ -25,13 +25,14 @@ export const salesOptionManuals: Record<string, GuideManualContent> = {
     ],
   },
   'page-sales-configurations': {
-    purpose:'维护可复用选配项目和冻结版本，把方案明确绑定到模型发布范围或真实商品范围。',
+    purpose:'在一个连续工作区维护权益包配置，明确应用范围、商品与服务项目、兼容性核对和草稿试选，再检查发布与应用结果。',
     features:[
-      {id:'options-plan',title:'维护选配方案',description:'配置名称、选配项目及真实产品类型、SPU、SKU 或服务范围。',operation:'创建或复制方案，按需展开数量、必选、依赖、互斥等高级设置。',result:'保存选择范围和规则，不枚举所有 SKU 配对，不生成商品或固定套餐。',primary:true},
-      {id:'options-publish',title:'发布并管理版本',description:'草稿编辑与已发布方案分别保留。',operation:'发布新版本；查看引用范围，再明确预览、更新所选绑定。',result:'旧绑定仍指向原版本；停用后不能成为新的正式选购依据。',primary:true},
-      {id:'options-bind',title:'绑定模型与节点范围',description:'独立页和模型的“搭配与适用”共用同一方案与绑定记录。',operation:'选择方案及版本，核对合法规格数、当前真实 SKU 数、样本与未解析来源；确认应用到已发布范围。',result:'工作草稿隔离操作者、模板版本、节点、完整规格范围和配置意图；其他范围及旧格式草稿只能明确恢复。正式应用再次核对任务身份和修订。',primary:true},
+      {id:'options-plan',title:'可以选什么',description:'配置真实产品类型、SPU、SKU 或服务项目，常用字段直接编辑，高级约束按需展开。',operation:'从配置列表继续配置，或复制为独立配置；维护项目名称、候选范围、可选／必选、最多款数和默认数量。',result:'动态范围保存真实 ID；不会把当前 SKU 清单固化，也不改写已有权益包成员。',primary:true},
+      {id:'options-publish',title:'预览并发布',description:'区分正式已生效结果与尚未生效的本次草稿模拟。',operation:'选择当前范围内实际销售 SKU 查看候选及原因，核对变更影响和将更新的绑定；按权限仅发布，或发布并应用所选范围。',result:'发布并应用一次提交正式结果；失败不留下部分方案或绑定，旧范围和历史交付继续读取原版本。',primary:true},
+      {id:'options-bind',title:'应用到哪里',description:'从模型详情或树节点进入会承接明确模型、版本和入口范围；也支持真实 SPU／SKU 范围。',operation:'核对合法规格数与当前真实 SKU 数；属性节点进一步选择实际取值，模型草稿仅用于配置预览。',result:'工作草稿成套保留配置项目和应用范围，并隔离操作者、模型版本、节点及完整范围身份；失效来源明确报错。',primary:true},
       {id:'options-rules',title:'设置替换或不使用',description:'模型默认方案、明确范围完整替换、不使用三种结果独立于旧适用声明。',operation:'为属性值或明确条件范围选方案；属性节点必须进一步明确范围。',result:'同方案同版本重复可去重；不同结果冲突阻止正式应用，不按深度或顺序取胜。'},
       {id:'options-relations',title:'维护商品推荐与直接适用',description:'真实 SKU 之间的推荐关系与直接适用证据分开维护。',operation:'选择来源和目标商品，填写来源及条件，按权限保存。',result:'推荐只带出下一批候选；直接适用仍需已确认的依据和满足的条件。'},
+      {id:'options-check-compatibility',title:'怎样核对兼容性',description:'明确给本次使用设备、当前来源商品配套，或作为独立商品／服务。',operation:'定位草稿试选中的具体问题，按权限带准确商品和设备进入兼容性维护，再返回原配置继续核对。',result:'推荐和相同品牌不能代替正式依据；缺少维护权限不影响有权限的其他配置操作。'},
     ],
     restrictions:[
       {id:'options-draft',condition:'来源是模型草稿或无法准确解析的旧商品。',effect:'草稿配置只供预览，不能成为正式适用依据；不按名字补关联。',resolution:'选择明确发布版本，或为旧商品明确选择真实 SPU/SKU 范围。',warning:true},

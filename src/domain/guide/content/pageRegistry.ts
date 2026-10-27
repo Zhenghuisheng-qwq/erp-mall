@@ -252,7 +252,7 @@ export const guidePages: GuidePage[] = [
   },
   {
     "id": "page-compatibility",
-    "title": "适用关系",
+    "title": "兼容性查询",
     "patterns": [
       "/compatibility"
     ],
@@ -267,7 +267,7 @@ export const guidePages: GuidePage[] = [
   },
   {
     "id": "page-benefits",
-    "title": "常用组合",
+    "title": "常用权益包",
     "patterns": [
       "/benefit-packages"
     ],
@@ -295,7 +295,7 @@ export const guidePages: GuidePage[] = [
   },
   {
     "id": "page-benefit-edit",
-    "title": "常用组合 · 高级详情",
+    "title": "常用权益包 · 高级详情",
     "patterns": [
       "/benefit-packages/:id"
     ],

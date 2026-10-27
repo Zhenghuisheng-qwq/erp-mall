@@ -186,7 +186,7 @@ export async function runRound1Checks() {
   const snapshotAfterStage = JSON.stringify(store.data.specModelVersions.find((item) => item.id === 'phone-model-v1')?.nodesSnapshot)
   const publishedCorrection = (await store.publishSpecModel('t-phone'))
   const v1 = store.data.specModelVersions.find((item) => item.id === 'phone-model-v1')
-  const v2 = store.data.specModelVersions.filter((item) => item.templateId === 't-phone' && item.id !== 'phone-model-v1')
+  const v2 = store.data.specModelVersions.filter((item) => item.templateId === 't-phone' && item.id !== 'phone-model-v1' && item.id !== 'phone-demo-v2')
   const legacyPlan = store.data.planningRecords.find((item) => item.planningId === 'PLN-LEGACY')
   const legacySku = store.data.skus.find((item) => item.id === 's-legacy-phone')
   const correctedLabels = labelsOf(store.data, 't-phone', v2[0]?.nodesSnapshot || [])
