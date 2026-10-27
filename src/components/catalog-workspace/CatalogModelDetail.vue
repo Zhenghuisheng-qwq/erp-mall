@@ -1,5 +1,5 @@
 <template>
-  <el-drawer :model-value="!!modelId" title="模型详情" size="min(780px,97vw)" :before-close="close" data-catalog-model-detail>
+  <el-dialog class="catalog-model-dialog" :model-value="!!modelId" title="模型详情" width="min(860px, calc(100vw - 32px))" align-center append-to-body :before-close="close" data-catalog-model-detail>
     <template v-if="model">
       <div class="model-heading"><div><h2>{{model.name}}</h2><p class="muted">{{model.id}}</p></div><el-tag :type="model.status==='offline'?'info':model.status==='published'?'success':'warning'">{{model.statusText}}</el-tag></div>
       <dl class="model-facts"><div><dt>当前产品类型</dt><dd>{{model.typeName||'未记录'}}</dd></div><div><dt>当前分类路径</dt><dd>{{model.categoryPaths.join('；')||'未记录'}}</dd></div><div><dt>最近维护</dt><dd>{{model.updatedAt?model.updatedAt.replace('T',' ').slice(0,19):'未记录'}}</dd></div><div><dt>工作资料</dt><dd>{{model.hasCanvas?'已有模型工作资料':'工作资料未记录；查看不会补建'}}</dd></div></dl>
@@ -10,7 +10,7 @@
       <section><h3>待处理</h3><template v-if="model.metrics.pending.readable"><p v-if="!issues.length" class="muted">暂无已记录待处理事项。</p><ul v-else class="issue-list"><li v-for="issue in issues" :key="issue.id"><el-tag :type="issue.level==='error'?'danger':'info'">{{issue.level==='error'?'引用错误':'待完善'}}</el-tag><span>{{issue.message}}</span></li></ul><button v-if="model.metrics.pending.count" class="metric" @click="showMetric('pending')">查看关联范围 {{model.metrics.pending.count}} 条受影响记录</button></template><p v-else class="muted">不可查看</p></section>
     </template><el-empty v-else description="模型不存在或当前身份不可读取"/>
     <template #footer><el-button @click="close()">返回资料管理</el-button></template>
-  </el-drawer>
+  </el-dialog>
   <TemplateSalesWorkspace v-if="model&&workspaceOpen&&canOpenWorkspace" ref="workspace" v-model="workspaceOpen" :model-id="model.id" :version-id="selectedVersion||null" :readonly="workspaceReadonly" :initial-tab="store.can('product:sales-config:read')?'sales':'compatibility'"/>
 </template>
 <script setup lang="ts">
@@ -54,4 +54,8 @@ defineExpose({canLeave,acceptContextChange})
 </script>
 <style scoped>
 .model-heading,.detail-metrics,.version-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.model-heading{justify-content:space-between}.model-heading h2{margin:0}.muted{color:var(--el-text-color-secondary);font-size:12px;line-height:1.7;overflow-wrap:anywhere}.model-facts{margin:20px 0}.model-facts>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;margin:10px 0}.model-facts dt{color:var(--el-text-color-secondary)}.model-facts dd{margin:0;overflow-wrap:anywhere}section{padding:14px 0;border-top:1px solid var(--el-border-color-lighter)}h3{font-size:14px;margin:0 0 14px}.version-controls .el-select{width:230px}.version-list,.issue-list{list-style:none;padding:0}.version-list li,.issue-list li{display:flex;align-items:center;gap:12px;padding:8px 0;flex-wrap:wrap}.version-list time{color:var(--el-text-color-secondary);font-size:12px}.metric,.record-link{border:0;background:none;color:var(--el-color-primary);cursor:pointer;padding:3px 0;text-align:left;font:inherit}.metric:focus-visible,.record-link:focus-visible{outline:2px solid var(--el-color-primary);outline-offset:3px}.error{color:var(--el-color-danger);font-size:13px}@media(max-width:600px){.model-facts>div{grid-template-columns:85px minmax(0,1fr)}.version-controls .el-select{width:100%}}
+</style>
+<style>
+.catalog-model-dialog.el-dialog{max-height:min(860px,calc(100vh - 48px));display:flex;flex-direction:column}
+.catalog-model-dialog .el-dialog__body{overflow:auto}
 </style>

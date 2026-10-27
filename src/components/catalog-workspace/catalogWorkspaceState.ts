@@ -10,6 +10,10 @@ export interface CatalogViewPreferences {
   widths: Record<string, number>
   selectedId: string
   expandedIds: string[]
+  /** 分类汇总的展示方式。其它视图保留该字段，但不使用。 */
+  categoryLayout: 'tree' | 'list'
+  /** 为 false 时分类树使用默认展开，避免把“从未展开”误当成“已全部收起”。 */
+  treeExpandReady: boolean
   scrollTop: number
   scrollLeft: number
 }
@@ -49,7 +53,7 @@ export const catalogColumns: Record<CatalogView, {key: string; label: string; re
   ],
 }
 export function defaultCatalogViewPreferences(view: CatalogView): CatalogViewPreferences {
-  return {keyword:'',status:'',sort:'name',page:1,pageSize:40,columns:catalogColumns[view].filter(item=>item.defaultVisible).map(item=>item.key),widths:{},selectedId:'',expandedIds:[],scrollTop:0,scrollLeft:0}
+  return {keyword:'',status:'',sort:'name',page:1,pageSize:40,columns:catalogColumns[view].filter(item=>item.defaultVisible).map(item=>item.key),widths:{},selectedId:'',expandedIds:[],categoryLayout:'tree',treeExpandReady:false,scrollTop:0,scrollLeft:0}
 }
 export function defaultCatalogWorkspacePreferences(): CatalogWorkspacePreferences {
   return {version:1,sidebar:true,views:{categories:defaultCatalogViewPreferences('categories'),types:defaultCatalogViewPreferences('types'),models:defaultCatalogViewPreferences('models')}}
@@ -71,6 +75,8 @@ export function repairCatalogViewPreferences(view: CatalogView, value: unknown):
   return {...base,keyword:text(value.keyword),status:statuses.includes(String(value.status))?String(value.status):'',sort:sorts.includes(String(value.sort))?String(value.sort):base.sort,
     page:positive(value.page,1,100000),pageSize:[20,40,80].includes(Number(value.pageSize))?Number(value.pageSize):40,columns:[...new Set(columns)],widths,
     selectedId:text(value.selectedId),expandedIds:Array.isArray(value.expandedIds)?[...new Set(value.expandedIds.filter((id):id is string=>typeof id==='string'&&id.length<500))].slice(0,10000):[],
+    categoryLayout:value.categoryLayout==='list'?'list':'tree',
+    treeExpandReady:value.treeExpandReady===true||(value.treeExpandReady==null&&Array.isArray(value.expandedIds)&&value.expandedIds.some(id=>typeof id==='string'&&id.length>0)),
     scrollTop:offset(value.scrollTop),scrollLeft:offset(value.scrollLeft)}
 }
 export function catalogWorkspacePreferenceKey(actor: string, preview: string) {

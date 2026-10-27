@@ -6,9 +6,9 @@ export const catalogManuals: Record<string,GuideManualContent> = {
   'page-catalog': {
     purpose:'按真实分类、类型和模型查询资料状态与对象明细；明确进入整理或设计后才维护业务结构。',
     features:[
-      {id:'catalog-views',title:'切换观察粒度',description:'分类汇总、产品类型和商品模型共用分类范围，各自保留查询与表格配置。',operation:'顶部切视图；默认进入分类汇总，无该权限时进入第一个可读视图。',result:'切视图、搜索、排序和展开只改变浏览状态，不建立业务对象。',primary:true},
-      {id:'catalog-scope',title:'选择分类范围',description:'当前分类自身与包含全部后代是两种明确口径。',operation:'选择分类，切“仅本级／包含下级”；分类汇总搜索名称和编号并保留命中路径。',result:'默认包含下级；展开树不改变数量。失效分类提示错误，不退回全部。',primary:true},
-      {id:'catalog-counts',title:'核对数量和明细',description:'每个数字与明细使用同一组去重对象 ID。',operation:'点类型、模型、SPU、销售 SKU、MAT 或待处理数量；在抽屉中查询具体记录，再按权限进入完整管理。',result:'SPU 沿用全部 Family 商品主体，含物料承载主体；销售 SKU 与 MAT 使用统一身份判定分别计数。同模型多版本仍计一个模型。',primary:true},
+      {id:'catalog-views',title:'切换观察粒度',description:'分类汇总、产品类型和商品模型共用分类范围，各自保留查询与表格配置。分类汇总可在树形结构和列表表格之间切换。',operation:'顶部切视图；分类汇总默认树形，并用“树形结构／列表表格”切换。无该权限时进入第一个可读视图。',result:'切视图、搜索、排序和展开只改变浏览状态，不建立业务对象，也不改分类父子关系。',primary:true},
+      {id:'catalog-scope',title:'选择分类范围',description:'当前分类自身与包含全部后代是两种明确口径。展示方式不改变统计口径。',operation:'选择分类，切“仅本级／包含下级”；分类汇总可搜索名称、编号和路径。树形命中子分类时保留上级，清除搜索后恢复原来的展开。',result:'默认包含下级；展开树不改变数量。失效分类提示错误，不退回全部。',primary:true},
+      {id:'catalog-counts',title:'核对数量和明细',description:'每个数字与明细使用同一组去重对象 ID。树形和列表读同一套汇总。',operation:'点类型、模型、SPU、销售 SKU、MAT 或待处理数量；在明细窗口查询具体记录，再按权限进入完整管理。',result:'SPU 沿用全部 Family 商品主体，含物料承载主体；销售 SKU 与 MAT 使用统一身份判定分别计数。同模型多版本仍计一个模型。',primary:true},
       {id:'catalog-sources',title:'区分结构归属与历史来源',description:'分类商品按实际分类；类型和模型来源按已记录 ID，不能从名称或新路径猜测。',operation:'查看具体对象与待处理明细；无归属、引用失效和来源未记录分别定位。',result:'调整分类或模型归属不批量改写商品创建来源；空类型和未发布模型属于待完善，不自动视为错误。'},
       {id:'catalog-types',title:'维护产品类型',description:'类型台账显示关联分类、模型和实际状态。',operation:'点名称查看详情；新增、编辑或更多操作明确进入维护。父分类不能直接新建类型，需选择合法末级分类。',result:'沿用类型保存、引用和删除保护；同名不同 ID 不合并。',actionIds:['action-type-save']},
       {id:'catalog-models',title:'先看模型详情，再进入设计',description:'详情展示草稿状态、真实发布记录和关联商品，组合信息按需查看。',operation:'点模型名称，选择准确版本；查看设计读取该版本，编辑则明确进入当前草稿。用“返回商品资料管理”恢复来源上下文。',result:'不会伪造 V1 发布记录、自动切到最新版本或自动发布。搭配与适用沿用现有工作区和范围身份。',actionIds:['action-model-edit']},
