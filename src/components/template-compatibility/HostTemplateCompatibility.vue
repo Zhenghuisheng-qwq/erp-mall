@@ -8,7 +8,7 @@
     <p v-if="selected" class="muted">{{ selected.label }} · {{ selected.skuId?'使用实际商品的来源、属性及规划规格':'仅查询此合法规格，不代表已创建 SKU' }}</p>
     <CompatibilityResults v-if="selected" :key="selected.key" :device-context="selected.device" fixed-context include-undeclared :readonly="readonly || !store.can('product:compatibility:read')" @maintain="maintain" />
     <el-empty v-else-if="store.can('product:compatibility:read')" description="选择明确设备规格后查看适配配件；身份不明确的范围继续保留待核对。" :image-size="60" />
-    <details v-if="selected" class="context-detail"><summary>方向与来源详情</summary><p>此处反查配件适用于当前设备的正式声明。选配项目不会自动建立兼容声明。</p><p>{{ modelId }} · {{ versionId || '模型草稿' }} · {{ selected.identityKey }}</p><p v-if="!selected.device.planningId">当前设备未唯一对应 PLN，指定 PLN 的声明仍须单独核对。</p></details>
+    <details v-if="selected" class="context-detail"><summary>方向与来源详情</summary><p>此处反查配件适用于当前设备的正式声明。商品名称或分类不会自动建立兼容声明。</p><p>{{ modelId }} · {{ versionId || '模型草稿' }} · {{ selected.identityKey }}</p><p v-if="!selected.device.planningId">当前设备未唯一对应 PLN，指定 PLN 的声明仍须单独核对。</p></details>
     <section v-if="maintenanceOpen && !readonly" class="maintenance"><div class="context-head"><strong>维护当前设备的配件声明</strong><el-button @click="closeMaintenance">返回适配结果</el-button></div><CompatibilityManager ref="manager" :target="maintenanceTarget" :host="maintenanceHost" :device-sku-id="selected?.skuId" managed-navigation /></section>
   </section>
 </template>

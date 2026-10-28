@@ -86,7 +86,6 @@ AppData.rbac
 | 模型/设计 | model:read 与 model-designer:read 分别登记，避免扩大旧访问范围 | 创建/复制/草稿/节点配置/模板兼容/发布/删除，各按真实动作 |
 | 分类/类型/词典/属性方案/规则/品牌/分组 | 各自 read | 既有命令及原位编辑深层写保护，各自 create/update/delete；业务校验语义保留 |
 | 适用关系/型号 | compatibility:read | 声明 add/edit/remove，设备绑定/型号维护及同步，按 create/update/delete |
-| 权益包/框架/交付 | benefit:read；框架共享其页面 read；交付单独 delivery:read | 包与框架 create/update/delete，交付 create/export；导出处理函数也检查权限 |
 | 列表视图 | 原列表 read 允许个人查询工作配置；独立列配置入口需 view:read | commitSkuPage 限本机页面配置；独立视图维护 view:update，不能写其他业务字段 |
 | 全量及商品导入导出 | import:read/execute、export:execute | importJson/exportJson；导入逐字段及对象检查旧操作者权限 |
 | 用户 | system:user:read | 受控 create/update/delete、roleIds 改变另需 bind |

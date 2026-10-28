@@ -6,7 +6,7 @@ import { createTemplateCompatibilityContext, freezeTemplateCompatibility, select
 import { createRefinementSyncFixture, SYNC_REFINEMENT_TIME as now } from './compatibility-refinement-sync-fixtures'
 
 const phase = process.env.SYNC_REFINEMENT_PHASE || 'after'
-const output = resolve(process.env.SYNC_REFINEMENT_OUTPUT || `work/compatibility-benefit-refinement/sync-${phase}.json`)
+const output = resolve(process.env.SYNC_REFINEMENT_OUTPUT || `work/compatibility-refinement/sync-${phase}.json`)
 const results: { name: string; passed: boolean; detail: string }[] = []
 function check(name: string, run: () => void) {
   try { run(); results.push({ name, passed: true, detail: 'strict assertions passed' }); console.log(`PASS ${name}`) }

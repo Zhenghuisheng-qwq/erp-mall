@@ -29,7 +29,7 @@ export function catalogClosureFixture(){
   data.families.push(family)
   data.skus.push({...structuredClone(data.skus[0]!),id:'closure-material',familyId:family.id,recordKind:'material',line:'v3',skuName:'B版本真实物料',materialCode:'MAT-CLOSURE-B',modelVersionId:bVersion.id,planningId:record.planningId})
   ensureRbac(data)
-  for(const [id,codes] of [['closure-create',['product:type:read','product:type:create','product:category:read']],['closure-read',['product:model-designer:read','product:model:read','product:type:read','product:category:read','product:compatibility:read','product:sales-config:read']]] as const){
+  for(const [id,codes] of [['closure-create',['product:type:read','product:type:create','product:category:read']],['closure-read',['product:model-designer:read','product:model:read','product:type:read','product:category:read','product:compatibility:read']]] as const){
     data.rbac!.roles.push({id,code:id,name:id,description:'isolated regression',enabled:true,permissionCodes:[...codes]})
     data.users.push({id,username:id,displayName:id,enabled:true,role:'operator',roleIds:[id]})
   }

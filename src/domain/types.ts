@@ -1,8 +1,6 @@
-import type { BenefitFramework } from './benefitPackageTypes'
-import type { SalesOptionPlan, SalesOptionBinding, SalesProductRelation } from './salesConfigurationTypes'
+
 import type { SkuViewConfig, SkuWorkbenchState } from './skuWorkbenchTypes'
 import type { AccessoryTargetKind, CompatibilityCapability, CompatibilityConclusion, CompatibilityCondition, CompatibilityProvenance, CompatibilityVerification, DeviceBinding, DeviceModel } from './accessoryCompatibilityTypes'
-import type { BenefitDeliverySnapshot, BenefitPackage } from './benefitPackageTypes'
 import type { TemplateCompatibilityConfig, TemplateCompatibilitySnapshot } from './templateCompatibilityTypes'
 import type { TemplateCompatibilityOrigin } from './templateCompatibilitySync'
 
@@ -524,10 +522,6 @@ export interface Profile {
 }
 
 export interface AppData {
-  /** Sales configuration is independent of specification axes and historical SKU snapshots. */
-  salesOptionPlans?: SalesOptionPlan[]
-  salesOptionBindings?: SalesOptionBinding[]
-  salesProductRelations?: SalesProductRelation[]
   rbac?: import('./rbac').RbacState
   materialRelations?: import('./materialRelations').MaterialRelation[]
   materialContributions?: import('./materialRelations').MaterialContribution[]
@@ -558,10 +552,6 @@ export interface AppData {
   /** Optional preference-independent compatibility catalogue; no business record is synthesized. */
   deviceModels?: DeviceModel[]
   deviceBindings?: DeviceBinding[]
-  /** Independent package configurations and immutable confirmed delivery snapshots. */
-  benefitFrameworks?: BenefitFramework[]
-  benefitPackages?: BenefitPackage[]
-  benefitDeliveries?: BenefitDeliverySnapshot[]
   /** 规划节点上的适用主机。旧数据没有时保持空数组，不回填历史物料。 */
   nodeCompatibilityRules: NodeCompatibilityRule[]
   rules: SpecRule[]

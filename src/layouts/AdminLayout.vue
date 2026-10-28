@@ -22,7 +22,7 @@
             <el-button size="small" :loading="dataBusy">演示数据</el-button>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item v-if="store.isAdmin && !route.path.startsWith('/benefit-packages')" :disabled="dataBusy" @click="resetCurrent">重置当前模块</el-dropdown-item>
+                <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="resetCurrent">重置当前模块</el-dropdown-item>
                 <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="resetAll">重置全部演示数据</el-dropdown-item>
                 <el-dropdown-item v-if="store.can('product:export:execute')" :disabled="dataBusy" @click="download">导出演示数据</el-dropdown-item>
                 <el-dropdown-item v-if="store.can('product:import:execute')" :disabled="dataBusy" @click="pickFile">导入演示数据</el-dropdown-item>
@@ -35,7 +35,7 @@
       <div class="demo-strip">演示数据只保存在这台浏览器里。不会连接客户数据库，也不会改线上商品。</div>
       <main class="content">
         <RuleExplanation v-if="store.persistenceState.failure" :failure="store.persistenceState.failure" :supported-recovery="[]" />
-        <router-view :key="['spu-new', 'spu-edit', 'sku-new', 'sku-edit', 'benefit-package-new', 'benefit-package-edit', 'benefit-delivery'].includes(String(route.name)) ? route.fullPath : route.name" />
+        <router-view :key="['spu-new', 'spu-edit', 'sku-new', 'sku-edit'].includes(String(route.name)) ? route.fullPath : route.name" />
       </main>
     </section>
   </div>
@@ -69,7 +69,7 @@ const dataBusy = ref(false)
 const importFailure=ref<GuideFailure>()
 const workbenchMedia = window.matchMedia('(max-width: 700px)')
 const narrowWorkbench = ref(workbenchMedia.matches)
-const temporaryCompact = computed(() => narrowWorkbench.value && (route.path.startsWith('/benefit-packages') || route.path === '/compatibility'))
+const temporaryCompact = computed(() => narrowWorkbench.value && route.path === '/compatibility')
 const updateWorkbenchMedia = (event: MediaQueryListEvent) => { narrowWorkbench.value = event.matches }
 onMounted(() => workbenchMedia.addEventListener('change', updateWorkbenchMedia))
 onBeforeUnmount(() => workbenchMedia.removeEventListener('change', updateWorkbenchMedia))
@@ -160,7 +160,7 @@ function download() {
 }
 function pickFile() {
   if (dataBusy.value) return
-  if (!store.can('product:import:execute')) ElMessage.info('运营导入仍受只读权限约束，不能修改业务目录、节点配置、物料关联、权益包框架、参考价格或历史冻结信息。')
+  if (!store.can('product:import:execute')) ElMessage.info('运营导入仍受只读权限约束，不能修改业务目录、节点配置、物料关联、参考价格或历史冻结信息。')
   fileRef.value?.click()
 }
 async function onImport(event: Event) {

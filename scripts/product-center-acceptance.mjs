@@ -18,20 +18,9 @@ const suites=[
  ['browser-accessory-compatibility','ACCESSORY_BROWSER_OUTPUT'],
  ['browser-r02-repair-compatibility','R02_COMPAT_BROWSER_OUTPUT'],
  ['browser-sku-workbench','SKU_WORKBENCH_OUTPUT_DIR'],
- ['browser-benefit-packages','BENEFIT_BROWSER_OUTPUT'],
- ['browser-benefit-refinement','BENEFIT_REFINEMENT_BROWSER_OUTPUT'],
- ['browser-r03','R03_BROWSER_OUTPUT'],
- ['browser-r03-repair','R03_REPAIR_BROWSER_OUTPUT',{R03_REPAIR_FIXTURE_DIR:resolve(out,'r03-store')}],
 ]
 const evidenceDirs={'browser-product-center-type-model':'type-model','browser-product-center-list-create':'list-create','browser-product-center-naming':'naming-conflict','browser-product-center-supplement':'supplement'}
 const selected=process.env.ACCEPTANCE_SUITES?.split(',');const results=[]
-// Rebuild isolated backups from the real Store for each acceptance run.
-if(!selected||selected.some(name=>['browser-r03-repair','browser-product-center-supplement'].includes(name))){
- const log=createWriteStream(resolve(out,'r03-store.log'))
- const child=spawn(process.execPath,['scripts/run-domain-check.mjs','scripts/r03-repair-check.ts'],{env:{...process.env,R03_REPAIR_OUTPUT:resolve(out,'r03-store')},windowsHide:true,stdio:['ignore','pipe','pipe']});child.stdout.pipe(log);child.stderr.pipe(log)
- const code=await new Promise(r=>child.on('close',r));log.end();if(code!==0)throw Error('Acceptance fixture Store checks failed')
-}
-
 for(const [name,key,extra] of suites){
  if(selected&&!selected.includes(name))continue
  const started=new Date().toISOString(),log=createWriteStream(resolve(out,name+'.log'));console.log('START '+name)

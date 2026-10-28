@@ -96,16 +96,8 @@ try {
   const materialId=await first.locator('[data-material-id]').first().getAttribute('data-material-id');await first.locator('[data-material-id]').first().click();await page.waitForURL(url=>url.pathname.startsWith('/materials/'));assert.equal(new URL(page.url()).searchParams.get('sku'),materialId)
   mark('structure shows two same-name MAT, highlights both value nodes, readonly, opens exact archive')
   await page.evaluate(()=>document.documentElement.style.zoom='1')
-  const benefitPaths=await page.evaluate(async()=>{
-    const store=(await import('/src/stores/catalog.ts')).useCatalogStore(), domain=await import('/src/domain/benefitPackages.ts')
-    const draft=domain.newBenefitPackageDraft();draft.name='帮助验收权益包';draft.services=[{id:'help-service',name:'验收服务',quantity:1,unit:'次',measurement:'per-package',validity:'30天',description:'本机验收'}]
-    const saved=await store.saveBenefitPackage({draft,status:'available',requestId:'help-package'});if(!saved.ok)throw Error(saved.message)
-    const preview=domain.previewBenefitDelivery(store.data,saved.package,1)
-    const delivery=await store.generateBenefitDelivery({packageId:saved.id,expectedRevision:saved.package.revision,requestId:'help-delivery',packageCount:1,expectedBasis:preview.basis});if(!delivery.ok)throw Error(delivery.message)
-    return [`/benefit-packages/${saved.id}`,`/benefit-packages/deliveries/${delivery.id}`]
-  })
   // Verify actual page help and one persisted feature feedback with full context.
-  const paths=[...benefitPaths,'/spus','/spus/new','/spus/gaps-spu','/skus','/skus/new?spu=gaps-spu','/skus/gaps-a?spu=gaps-spu','/materials/new',new URL(page.url()).pathname+new URL(page.url()).search,'/benefit-packages','/benefit-packages/new',`/specs?template=${fixture.modelId}&mode=view`]
+  const paths=['/spus','/spus/new','/spus/gaps-spu','/skus','/skus/new?spu=gaps-spu','/skus/gaps-a?spu=gaps-spu','/materials/new',new URL(page.url()).pathname+new URL(page.url()).search,`/specs?template=${fixture.modelId}&mode=view`]
   for(const path of paths){await page.goto(base+path,{waitUntil:'networkidle'});await page.getByRole('button',{name:'页面功能',exact:true}).click();const drawer=page.getByRole('dialog',{name:'页面功能',exact:true});await drawer.waitFor();assert.notEqual((await drawer.locator('.assist-page').innerText()).trim(),'当前页面');assert(await drawer.locator('.assist-item').count()>0);await page.keyboard.press('Escape')}
   await page.goto(base+'/skus/gaps-a?spu=gaps-spu',{waitUntil:'networkidle'});await page.getByRole('button',{name:'页面功能',exact:true}).click();await page.locator('.assist-item').first().getByRole('button',{name:'反馈',exact:true}).click()
   const feedback=page.getByRole('dialog',{name:'反馈问题',exact:true});await feedback.locator('.el-form-item').filter({hasText:'标题'}).locator('input').fill('来源关联验收');await feedback.locator('textarea').fill('仅本机反馈测试');await feedback.getByRole('button',{name:'保存到本机',exact:true}).click();await feedback.waitFor({state:'hidden'});await settle()

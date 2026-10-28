@@ -3,7 +3,7 @@ import { failureBranch } from './failureRegistry'
 
 const kinds=new Set(['business','input','permission','persistence','conflict','unknown'])
 const states=new Set(['unchanged','memory-only','unconfirmed'])
-const contextKeys=new Set(['categoryId','categoryName','targetId','targetName','modelId','nodeId','nodePath','attributeId','planningId','versionId','skuId','spuId','materialId','packageId','frameworkId','revision','requiredPermissions','mode'])
+const contextKeys=new Set(['categoryId','categoryName','targetId','targetName','modelId','nodeId','nodePath','attributeId','planningId','versionId','skuId','spuId','materialId','revision','requiredPermissions','mode'])
 const permissionContext=new Set(['requiredPermissions','mode'])
 const recoveryKeys=new Set(['edit-input','choose-target','view-related','retry','repreview','read-latest','feedback'])
 const strings=(value:unknown,limit=16)=>Array.isArray(value)?value.filter((item):item is string=>typeof item==='string').slice(0,limit).map(item=>item.slice(0,120)):[]

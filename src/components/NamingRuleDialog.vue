@@ -63,7 +63,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { legalPlanningCombinations } from '../domain/planning'
-import { salesBindingContext } from '../domain/salesConfiguration'
+import { modelSpecificationContext } from '../domain/modelSourceContext'
 import { nearestNamingRule, PRODUCT_TYPE, renderNamingRule, suggestMaterialName } from '../domain/naming'
 import type { NamingPart } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
@@ -77,7 +77,7 @@ const selectedVersion=computed(()=>props.versionId?store.data.specModelVersions.
 const versionProblem=computed(()=>props.versionId&&!selectedVersion.value?'指定发布版本不存在或不属于此模型；未使用当前草稿替代。':'')
 const readOnly=computed(()=>props.readonly||Boolean(props.versionId))
 const frozenNames=computed(()=>new Map(selectedVersion.value?.templateCompatibilitySnapshot?.attributeNames.map(item=>[item.attributeId,item.name])||[]))
-const historicalContext=computed(()=>props.versionId&&selectedVersion.value?salesBindingContext(store.data,props.templateId,props.versionId):undefined)
+const historicalContext=computed(()=>props.versionId&&selectedVersion.value?modelSpecificationContext(store.data,props.templateId,props.versionId):undefined)
 const parts = ref<DraftPart[]>([])
 const fixedText = ref('')
 const comboKey = ref('')

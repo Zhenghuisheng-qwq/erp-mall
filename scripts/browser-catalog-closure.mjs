@@ -35,7 +35,7 @@ try{
   const route=()=>page.evaluate(()=>window.__state('.content','AdminLayout').router.currentRoute.value.fullPath)
   const navigate=path=>page.evaluate(async path=>{const app=document.querySelector('#app').__vue_app__;await app.config.globalProperties.$router.push(path)},path)
   async function select(label,option,container=page){const field=container.locator('.el-select').filter({has:page.getByRole('combobox',{name:label,exact:true})});await field.locator('.el-select__wrapper').click();await page.getByRole('option',{name:option,exact:true}).click()}
-  const workspace=()=>page.getByRole('dialog',{name:'搭配与适用',exact:true})
+  const workspace=()=>page.getByRole('dialog',{name:'模型适用关系',exact:true})
   const closeWorkspace=async()=>{await workspace().getByRole('button',{name:'关闭',exact:true}).last().click();await workspace().waitFor({state:'hidden'})}
   const state=()=>page.evaluate(()=>{const s=window.__state('.designer','SpecConfigView');return {model:s.templateId,requested:s.requestedVersionId,combo:s.comboVersionId,status:JSON.parse(JSON.stringify(s.comboStatus)),nodes:s.nodes.map(n=>({id:n.id,model:n.templateId}))}})
   async function showMaterials(){if(!await page.getByRole('checkbox',{name:'显示关联物料',exact:true}).isChecked())await page.locator('.structure-material-toggle .el-checkbox').click();await page.locator('[data-structure-materials]').waitFor()}
@@ -48,7 +48,7 @@ try{
    assert(changed.status.rows.some(row=>row.materials.some(card=>card.skuId==='closure-material'&&card.modelVersionId===bv.id)))
    assert.equal(new URL(page.url()).searchParams.has('version'),false);await showMaterials();assert.match(await page.locator('[data-structure-materials]').innerText(),/MAT-CLOSURE-B/)
    await page.locator(`.vue-flow__node[data-id="${b}-brand"]`).click();await page.getByRole('button',{name:'查看命名规则',exact:true}).click();assert.match(await page.getByRole('dialog',{name:'物料命名规则',exact:true}).innerText(),new RegExp(`${b}-V1`));await page.getByRole('dialog',{name:'物料命名规则',exact:true}).getByRole('button',{name:'关闭',exact:true}).click()
-   await page.locator('[data-open-sales-options]').click();await workspace().waitFor();await workspace().locator('.context-trace').first().locator('summary').click();assert.match(await workspace().locator('.context-trace').first().innerText(),new RegExp(`${b}.*模型草稿`));await closeWorkspace()
+   await page.locator('[data-open-template-compatibility]').click();await workspace().waitFor();assert.equal(await workspace().count(),1);await closeWorkspace()
    assert.equal(await raw(),before);mark(`versions/${strict}: historical A V1 → left rail B uses owned combinations, actual MAT, B naming and B workspace without writes`)
    await navigate(`/specs?template=${a}&version=${v1.id}&mode=view`);await page.locator('.model-line').filter({hasText:c}).click();await assertContext(c,'');await showMaterials();assert.match(await page.locator('[data-structure-materials]').innerText(),/未发布|发布模型/);assert.doesNotMatch(await page.locator('[data-structure-materials]').innerText(),/MAT-CLOSURE-B/);mark(`versions/${strict}: A historical → unpublished C has no stale combo, material or version context`)
    await navigate(`/specs?template=${a}&version=${v1.id}&mode=view`);await showMaterials();await select('物料发布版本',v2.versionName);await assertContext(a,v2.id)
@@ -124,32 +124,18 @@ try{
     await page.getByRole('button',{name:'保存模型',exact:true}).click();await settle();await page.getByRole('button',{name:'发布模型',exact:true}).click();await settle()
     const versions=JSON.parse(await raw()).data.specModelVersions.filter(v=>v.templateId===modelId);assert.equal(versions.length,1);created[role].version=versions[0].id
     await page.reload({waitUntil:'networkidle'})
-    if(role==='unknown'){
-      const node=await page.evaluate(async id=>(await import('/src/stores/catalog.ts')).useCatalogStore().data.productSpecNodes.find(n=>n.templateId===id&&n.nodeType==='VALUE').id,modelId)
-      await page.locator(`.vue-flow__node[data-id="${node}"]`).click();await page.locator('[data-open-node-sales-options]').click()
-      await select('搭配与适用版本',`${versions[0].versionName} · 已发布`)
-    }else await page.locator('[data-open-sales-options]').click()
-    await workspace().getByRole('tab',{name:'适用关系',exact:true}).click()
-    if(role==='host'){await page.locator('[data-host-template-device]').waitFor();assert.match(await workspace().innerText(),/适配配件/);assert.match(await workspace().innerText(),/1 个合法组合/)}
-    if(role==='accessory'){assert.match(await workspace().innerText(),/模板默认|适用设备|适用机型/);assert.equal(await page.locator('[data-host-template-device]').count(),0);assert.equal(await workspace().locator('[data-template-role-unknown]').count(),0)}
-    if(role==='unknown'){
-      assert.match(await workspace().locator('[data-template-role-unknown]').innerText(),/未指定/)
-      const previous=await page.evaluate(()=>{const s=window.__state('[data-template-sales-workspace]','TemplateSalesWorkspace');return JSON.stringify([s.version,s.activeNodeId,s.selectedSelector,s.scopeMode])})
-      const [rangeVersion,rangeNode,selector]=JSON.parse(previous);assert.equal(rangeVersion,versions[0].id);assert(rangeNode);assert(selector?.anyOf.length)
-      await page.locator('[data-repair-type-purpose]').click();const editor=page.locator('[data-type-purpose-editor]');await select('产品类型业务用途','主机／设备',editor)
-      const original=await raw();await page.evaluate(()=>window.__quota=true);await editor.getByRole('button',{name:'保存并返回',exact:true}).click();await editor.getByRole('button',{name:'重试保存',exact:true}).waitFor();assert.equal(await raw(),original);assert.match(await editor.innerText(),/quota|无法保存/)
-      await page.evaluate(()=>window.__quota=false);await editor.getByRole('button',{name:'重试保存',exact:true}).click();await editor.waitFor({state:'hidden'});await page.locator('[data-host-template-device]').waitFor()
-      const after=await page.evaluate(()=>{const s=window.__state('[data-template-sales-workspace]','TemplateSalesWorkspace');return JSON.stringify([s.version,s.activeNodeId,s.selectedSelector,s.scopeMode])});assert.equal(after,previous)
-    }
-    if(role==='other'){assert.match(await workspace().locator('[data-template-role-unknown]').innerText(),/用途为「其他」/);assert.doesNotMatch(await workspace().locator('[data-template-role-unknown]').innerText(),/身份尚不明确|用途未指定/)}
-    await closeWorkspace();mark(`purpose/${strict}: new ${role} type → real model/structure/publish → correct compatibility direction after refresh`)
+    await page.locator('[data-open-template-compatibility]').click()
+    const compatibilityDialog=page.getByRole('dialog',{name:'模型适用关系',exact:true});await compatibilityDialog.waitFor()
+    if(role==='host')await page.locator('[data-host-template-device]').waitFor()
+    if(role==='accessory')assert.match(await compatibilityDialog.innerText(),/模板默认|适用设备|适用机型/)
+    if(role==='unknown'||role==='other')assert.match(await compatibilityDialog.innerText(),/产品类型用途未指定或为其他/)
+    await compatibilityDialog.getByRole('button',{name:'关闭',exact:true}).click();mark(`purpose/${strict}: new ${role} type → published model → independent compatibility direction`)
    }
-   const now=JSON.parse(await raw()).data;for(const key of ['families','skus','compatibilities','salesOptionBindings'])assert.deepEqual(now[key],before[key])
+   const now=JSON.parse(await raw()).data;for(const key of ['families','skus','compatibilities'])assert.deepEqual(now[key],before[key])
    // Existing dependent type rejects purpose changes in the real form, preserving all input and disk.
    await navigate('/catalog?view=types&categoryId=c-phone');await page.locator('[data-catalog-type="r01-type"]').click();await page.getByRole('button',{name:'编辑产品类型',exact:true}).click();await select('产品类型业务用途','配件',typeForm());const protectedRaw=await raw();await typeForm().getByRole('button',{name:'保存',exact:true}).click();await typeForm().getByRole('button',{name:'重试保存',exact:true}).waitFor();assert.equal(await raw(),protectedRaw);assert.match(await typeForm().innerText(),/已有 SKU|PLN|主机引用|配件/);await typeForm().getByRole('button',{name:'取消',exact:true}).click();await page.getByRole('button',{name:'放弃输入',exact:true}).click()
-   mark(`purpose/${strict}: protected role change refuses atomically in UI; unknown repair quota/retry preserves exact workspace version/node/range`)
+   mark(`purpose/${strict}: protected role change refuses atomically in UI`)
    await context.close()
-   context=await open('/specs?template=r01-other&mode=view','closure-read');const readerBefore=await raw();await page.locator('[data-open-sales-options]').click();await workspace().getByRole('tab',{name:'适用关系',exact:true}).click();assert.match(await workspace().locator('[data-template-role-unknown]').innerText(),/未指定/);if(strict){assert.equal(await workspace().locator('[data-repair-type-purpose]').count(),0);assert.match(await workspace().innerText(),/缺少产品类型读取或修改权限/)}await closeWorkspace();assert.equal(await raw(),readerBefore);mark(`purpose/${strict}: unspecified type recovery respects actual update permission and browsing writes no roles`);await context.close()
   }
   await server.close();server=undefined
  }

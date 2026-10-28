@@ -41,7 +41,7 @@ const sheets: Record<string, LegacyFeatureSheet> = {
   '/skus': sheet('SKU 管理', [
     ['sku.workbench.filters', '高级筛选与常用筛选', '视图'],
     ['sku.workbench.views', '保存与恢复视图', '视图'],
-    ['sku.workbench.compatibility', '适用关系与组权益包', '业务'],
+    ['sku.workbench.compatibility', '适用关系', '业务'],
   ]),
   '/skus/new': sheet('新增 SKU', [
     ['sku.create.source', '选择 SPU 与生成来源', '创建'],
@@ -56,21 +56,6 @@ const sheets: Record<string, LegacyFeatureSheet> = {
   ]),
   '/materials/edit': sheet('物料档案', [
     ['material.archive.open', '查看与维护物料', '物料'],
-  ]),
-  '/benefit-packages': sheet('权益包', [
-    ['benefit.list.manage', '查找与管理权益包', '权益包'],
-  ]),
-  '/benefit-packages/new': sheet('新建权益包', [
-    ['benefit.create.contents', '组合商品与服务', '组包'],
-    ['benefit.create.quote', '保存并预览交付', '交付'],
-  ]),
-  '/benefit-packages/edit': sheet('权益包详情', [
-    ['benefit.edit.contents', '维护包内内容', '组包'],
-    ['benefit.edit.delivery', '确认交付清单', '交付'],
-  ]),
-  '/benefit-packages/deliveries/detail': sheet('交付清单', [
-    ['benefit.delivery.snapshot', '查看交付快照', '清单'],
-    ['benefit.delivery.export', '打印与导出 Excel', '清单'],
   ]),
   '/categories': sheet('商品分类', [
     ['browse', '查看分类', '查看'],
@@ -226,8 +211,7 @@ const sheets: Record<string, LegacyFeatureSheet> = {
 export function featurePageKey(path: string, query: { panel?: unknown } = {}) {
   path = path.split('?')[0] || '/'
   if (path === '/columns' || (['/spus','/skus'].includes(path) && query.panel === 'columns')) return '/products?panel=columns'
-  if (/^\/benefit-packages\/deliveries\/[^/]+$/.test(path)) return '/benefit-packages/deliveries/detail'
-  for (const base of ['spus', 'skus', 'materials', 'benefit-packages']) {
+  for (const base of ['spus', 'skus', 'materials']) {
     if (path === `/${base}/new`) return path
     if (new RegExp(`^/${base}/[^/]+$`).test(path)) return `/${base}/edit`
   }

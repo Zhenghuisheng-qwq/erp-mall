@@ -1,10 +1,8 @@
 import type { GuidePage } from '../types'
-import { salesOptionPages } from './manuals-sales-options'
 import { catalogPages } from './manuals-catalog'
 
 export const guidePages: GuidePage[] = [
   ...catalogPages,
-  ...salesOptionPages,
   {
     "id": "page-home",
     "title": "商品工作台",
@@ -262,61 +260,6 @@ export const guidePages: GuidePage[] = [
       "action-compatibility-declare",
       "action-compatibility-sync",
       "action-compatibility-cancel"
-    ],
-    "formal": true
-  },
-  {
-    "id": "page-benefits",
-    "title": "常用权益包",
-    "patterns": [
-      "/benefit-packages"
-    ],
-    "articleId": "manual-benefits",
-    "actionIds": [
-      "action-framework-save",
-      "action-benefit-copy",
-      "action-benefit-query"
-    ],
-    "formal": true
-  },
-  {
-    "id": "page-benefit-create",
-    "title": "新建组合 · 高级配置",
-    "patterns": [
-      "/benefit-packages/new"
-    ],
-    "articleId": "manual-benefit-create",
-    "actionIds": [
-      "action-benefit-save",
-      "action-benefit-select",
-      "action-benefit-quote"
-    ],
-    "formal": true
-  },
-  {
-    "id": "page-benefit-edit",
-    "title": "常用权益包 · 高级详情",
-    "patterns": [
-      "/benefit-packages/:id"
-    ],
-    "articleId": "manual-benefit-edit",
-    "actionIds": [
-      "action-benefit-save",
-      "action-benefit-deliver",
-      "action-benefit-quote",
-      "action-business-save"
-    ],
-    "formal": true
-  },
-  {
-    "id": "page-benefit-delivery",
-    "title": "交付清单",
-    "patterns": [
-      "/benefit-packages/deliveries/:id"
-    ],
-    "articleId": "manual-benefit-delivery",
-    "actionIds": [
-      "action-delivery-export"
     ],
     "formal": true
   },

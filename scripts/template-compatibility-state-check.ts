@@ -82,7 +82,7 @@ try {
   const salesId = appended.ids[0]!, sales = store.data.skus.find(item => item.id === salesId)!
   const salesLink = store.data.compatibilities.find(item => item.targetId === salesId)!
   assert.ok(salesLink); assert.equal(salesLink.targetKind, 'sku'); assert.equal(salesLink.provenance?.kind, 'template'); assert.equal(writes - before, 1)
-  const unrelated = JSON.stringify([store.data.benefitPackages, store.data.benefitDeliveries, store.data.productListPages, store.data.deviceBindings])
+  const unrelated = JSON.stringify([store.data.productListPages, store.data.deviceBindings])
   const duplicateWrites = writes
   const repeated = (await store.appendSkus(f.family.id, { kind: 'model' }, [key])); await nextTick(); await store.waitForPersistence()
   assert.ok(repeated.ok); assert.equal(repeated.ids.length, 0); assert.equal(writes, duplicateWrites)
@@ -99,7 +99,7 @@ try {
   assert.ok(matLink); assert.equal(matLink.targetKind, 'material'); assert.notEqual(matLink.id, salesLink.id); assert.equal(writes - matWrites, 1)
   const sameMatWrites = writes
   assert.equal((await store.createMaterial(materialInput)).ok, true); await nextTick(); await store.waitForPersistence(); assert.equal(writes, sameMatWrites)
-  assert.equal(JSON.stringify([store.data.benefitPackages, store.data.benefitDeliveries, store.data.productListPages, store.data.deviceBindings]), unrelated)
+  assert.equal(JSON.stringify([store.data.productListPages, store.data.deviceBindings]), unrelated)
   mark('material-receipt-atomicity-independent-targets', 'MAT creation/link/receipt commit together; retry returns original material; sales declaration remains a separate identity; unrelated collections remain byte equal')
 
   const origin = store.data.templateCompatibilityOrigins!.find(item => item.target.id === salesId)!

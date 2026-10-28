@@ -17,10 +17,11 @@ import PageHead from '../components/PageHead.vue'
 import { useRbacDraftGuard } from '../components/rbac/useRbacDraftGuard'
 import '../components/rbac/admin.css'
 import { useCatalogStore } from '../stores/catalog'
+import { isRetiredPermission } from '../domain/rbac'
 import type { RbacPermission } from '../domain/rbac'
 const store=useCatalogStore(),search=ref(''),moduleFilter=ref(''),kindFilter=ref(''),enabledFilter=ref(''),page=ref(1),pageError=ref(''),error=ref(''),busy=ref(false),editOpen=ref(false),referenceOpen=ref(false),initial=ref('')
 const form=ref<RbacPermission>(),referencePermission=ref<RbacPermission>()
-const permissions=computed(()=>store.data.rbac?.permissions || []),modules=computed(()=>[...new Set(permissions.value.map(p=>p.module))])
+const permissions=computed(()=>store.data.rbac?.permissions.filter(p=>!isRetiredPermission(p.code)) || []),modules=computed(()=>[...new Set(permissions.value.map(p=>p.module))])
 const filtered=computed(()=>permissions.value.filter(p=>(!search.value||`${p.name} ${p.code} ${p.resource}`.toLowerCase().includes(search.value.toLowerCase()))&&(!moduleFilter.value||p.module===moduleFilter.value)&&(!kindFilter.value||p.kind===kindFilter.value)&&(!enabledFilter.value||(p.enabled?'enabled':'disabled')===enabledFilter.value)))
 const rows=computed(()=>filtered.value.slice((page.value-1)*20,page.value*20));watch([search,moduleFilter,kindFilter,enabledFilter],()=>page.value=1)
 const dirty=computed(()=>editOpen.value&&JSON.stringify(form.value)!==initial.value),{confirmDiscard}=useRbacDraftGuard(dirty)

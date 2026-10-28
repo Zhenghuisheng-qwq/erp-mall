@@ -28,11 +28,9 @@ try{
     const source=readFileSync('src/router/index.ts','utf8'),routes=source.split('\n').filter(line=>line.includes('component: () => import')).map(line=>'/'+(/path:\s*'([^']*)'/.exec(line)?.[1]||'')),staticRoutes=new Set(routes.filter(path=>!path.includes(':')))
     for(const route of routes)assert(guidePageFor(route.replace(/:[a-zA-Z]+/g,'actual-id')),`unmapped ${route}`)
     for(const p of guidePages){const target=guidePageTarget(p.id);assert(target&&staticRoutes.has(target.path),`${p.id}:not an object-independent registered route`);assert(routePermissions(target.path,target.query)!==null)}
-    assert.equal(guidePageTarget('page-material-edit')?.path,'/spus');assert.equal(guidePageTarget('page-benefit-delivery')?.path,'/benefit-packages')
-    assert.equal(guidePageFor('/spus',{panel:'columns'})?.id,'page-columns-spu');assert.equal(guidePageFor('/skus',{panel:'columns'})?.id,'page-columns-sku')
+    assert.equal(guidePageTarget('page-material-edit')?.path,'/spus');    assert.equal(guidePageFor('/spus',{panel:'columns'})?.id,'page-columns-spu');assert.equal(guidePageFor('/skus',{panel:'columns'})?.id,'page-columns-sku')
     assert.equal(guidePageFor('/columns')?.id,'page-columns-spu');assert.equal(guidePageFor('/products/new')?.id,'page-spu-create')
     const relation=pageManual('page-templates')!.relatedPages.find(p=>p.pageId==='page-params');assert.equal(relation?.kind,'upstream')
-    assert(pageManual('page-benefit-edit')!.relatedPages.some(p=>p.pageId==='page-benefit-delivery'&&p.kind==='downstream'))
     for(const bad of ['//evil.test','/spus/%5cfoo','/guide/manage','/spus?returnTo=/guide','https://evil.test','/missing'])assert.equal(safeGuideReturn(bad,()=>true),'/')
   })
   check('real menu ordering, rename, grouping, hiding',()=>{

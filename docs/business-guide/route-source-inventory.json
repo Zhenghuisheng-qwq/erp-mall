@@ -37,26 +37,6 @@
       "title": "SKU 管理"
     },
     {
-      "pattern": "/benefit-packages",
-      "source": "src/views/BenefitPackageListView.vue",
-      "title": "权益包"
-    },
-    {
-      "pattern": "/benefit-packages/new",
-      "source": "src/views/BenefitPackageEditView.vue",
-      "title": "新建权益包"
-    },
-    {
-      "pattern": "/benefit-packages/deliveries/:id",
-      "source": "src/views/BenefitDeliveryView.vue",
-      "title": "交付清单"
-    },
-    {
-      "pattern": "/benefit-packages/:id",
-      "source": "src/views/BenefitPackageEditView.vue",
-      "title": "权益包详情"
-    },
-    {
       "pattern": "/spus/new",
       "source": "src/views/SpuEditView.vue",
       "title": "新建 SPU"
@@ -241,95 +221,6 @@
       ]
     },
     {
-      "source": "src/views/BenefitDeliveryView.vue",
-      "buttons": [
-        "返回权益包",
-        "查看当前包配置",
-        "返回原页面",
-        "打印清单",
-        "导出 Excel"
-      ],
-      "functions": [
-        "print",
-        "download"
-      ],
-      "storeCommands": [
-        "can"
-      ]
-    },
-    {
-      "source": "src/views/BenefitPackageEditView.vue",
-      "buttons": [
-        "{{ typeof route.query.returnTo === 'string' ? '返回原页面' : '返回权益包' }}",
-        "复制组包",
-        "读取最新配置",
-        "{{ membersOpen ? '收起全部成员' : '展开全部成员' }}",
-        "移除原包内手机",
-        "前往设备详情处理型号",
-        "预览并应用框架变更",
-        "维护适用关系",
-        "管理选配框架",
-        "添加服务权益",
-        "{{ draft.goods.some(line => line.skuId === sku.skuId) ? '已加入 · 继续添加' : '加入' }}",
-        "复制组包",
-        "移除",
-        "替换 SKU",
-        "确认按此前提交付",
-        "维护这件商品的适用关系",
-        "编辑服务",
-        "移除服务",
-        "添加服务权益",
-        "已复核当前报价",
-        "管理适用关系",
-        "{{ draft.status === 'disabled' ? '重新启用' : '停用权益包' }}",
-        "{{ deliveryPreview ? '重新预览本次交付' : '预览本次交付' }}",
-        "确认生成清单",
-        "取消",
-        "保存草稿",
-        "保存权益包",
-        "保存并预览交付",
-        "取消",
-        "确认替换",
-        "取消",
-        "仅更换适配对象",
-        "同时替换包内手机",
-        "继续编辑",
-        "{{ leaveIntent === 'service' ? '放弃服务输入' : '放弃并离开' }}",
-        "{{ leaveIntent === 'service' ? '加入包内清单' : '保存草稿并离开' }}"
-      ],
-      "functions": [
-        "setReference",
-        "candidateMatch",
-        "candidateStatus"
-      ],
-      "storeCommands": [
-        "can"
-      ]
-    },
-    {
-      "source": "src/views/BenefitPackageListView.vue",
-      "buttons": [
-        "新建权益包",
-        "开始组包",
-        "{{ store.can('product:benefit:update') ? '打开权益包' : '查看权益包' }}",
-        "复制组包",
-        "{{ row.item.favorite ? '取消常用' : '设为常用' }}",
-        "{{ row.item.status === 'disabled' ? '启用' : '停用' }}",
-        "查看清单"
-      ],
-      "functions": [
-        "edit",
-        "copy",
-        "favorite",
-        "setStatus"
-      ],
-      "storeCommands": [
-        "can",
-        "setBenefitPackageFavorite",
-        "setBenefitPackageStatus"
-      ]
-    },
-    {
       "source": "src/views/BrandView.vue",
       "buttons": [
         "新增品牌",
@@ -432,9 +323,7 @@
     },
     {
       "source": "src/views/CompatibilityView.vue",
-      "buttons": [
-        "{{ returnPath.startsWith('/benefit-packages') ? '返回权益包草稿' : '返回 SKU 管理' }}"
-      ],
+      "buttons": [],
       "functions": [],
       "storeCommands": [
         "can"
@@ -1149,7 +1038,6 @@
         "toggleCategory",
         "changeScope",
         "rememberPackageReturn",
-        "openBenefitPackage",
         "onPage",
         "openName",
         "saveCurrent",

@@ -79,7 +79,7 @@ export const foundationManuals: Record<string, GuideManualContent> = {
       feature('models-create','新建模型','在明确产品类型下建立新模型草稿。','点“新建模型”，依次选分类/产品类型并填模型名，点“创建模型”。','成功打开新模型资料，再明确进入设计；不复制其他模型商品。',{primary:true,actionIds:['action-model-create']}),
       feature('models-open','查看或编辑模型','先查看模型资料，再明确进入设计。','商品资料管理切“商品模型”，点名称打开详情；选择准确版本查看设计，或明确进入当前草稿编辑。','模型读取即可看台账和详情；设计入口另需设计权限。版本失效不会换成最新版本。',{primary:true,actionIds:['action-model-edit']}),
       feature('models-publish','发布模型','验证草稿并保存新的冻结版本。','通过“更多”或详情操作区明确发布，阅读成功/失败提示与规则卡。','通过词典、结构、业务配置和适用规则检查后创建发布快照。',{primary:true,actionIds:['action-model-publish']}),
-      feature('models-compatibility','查看搭配与适用','沿用准确模型、版本和范围打开已有工作区。','模型详情选择版本后进入“搭配与适用”；手机查看适配配件，配件查看适用机型，未知身份不按名称猜测。','工作草稿保持范围身份、私有存储和修订检查；来源版本不因新入口变化。'),
+      feature('models-compatibility','查看适用关系','沿用准确模型、版本和范围打开已有工作区。','模型详情选择版本后进入“适用关系”；手机查看适配配件，配件查看适用机型，未知身份不按名称猜测。','工作草稿保持范围身份、私有存储和修订检查；来源版本不因新入口变化。'),
       feature('models-copy','复制模型','复制当前草稿结构和适用配置。','在“更多”或详情操作区选择“复制模型”并确认。','新模型从草稿开始，不复制商品或历史发布记录。',{actionIds:['action-model-copy']}),
       feature('models-offline','下线模型','停止新商品继续使用该模型。','在“更多”或详情操作区选择“下线模型”并确认。','原子保存失败时原状态保留；历史商品继续读取创建时版本，下线不删除冻结快照。',{actionIds:['action-model-offline']}),
       feature('models-sku','查看关联商品','核对明确模型关联及已记录来源的 SPU、销售 SKU 与 MAT。','点台账或模型详情中的商品数量，在只读明细中按权限进入完整管理页面。','数量与明细使用相同 ID 集合；旧商品来源未记录时明确提示，不覆盖用户的商品保存视图。')
@@ -98,7 +98,6 @@ export const foundationManuals: Record<string, GuideManualContent> = {
       feature('specs-business','配置值节点业务','设置销售定位、物料策略和路径允许值。','选属性值节点点“业务配置”；选功能、范围、参数，点“保存节点配置”。','配置是值节点附属实例，不新增规格轴；目录复用不代表实例共用。',{primary:true,actionIds:['action-node-business-save']}),
       feature('specs-naming','设置命名规则','按字段与固定文字顺序生成物料命名预览。','节点“命名规则”；点击/拖入字段、插入文字并调整顺序，预览合法组合后保存。','只写当前草稿节点；自有规则整段覆盖继承规则，预览不建物料。',{actionIds:['action-node-naming-save']}),
       feature('specs-hosts','适用设备默认与例外','配置模型层和分支层的适用设备。','模型头部“配置适用设备”或节点“节点适用配置”。','保存草稿后还需发布；多来源冲突需明确处理，不改人工取消决定。'),
-        feature('specs-sales','配置权益包选项','从模型或真实节点范围复用已发布选配方案。','点击“搭配与适用”，明确发布版本与值节点范围，核对合法规格数和销售 SKU 数，再应用到已发布范围。','与权益包配置页共用同一绑定；属性节点必须明确选值。手机模板反查适配配件，配件模板维护适用机型；身份不明时先核对真实类型，不按名称猜测。',{actionIds:['action-business-save']}),
       feature('specs-save-publish','保存与发布模型','区分保存草稿和生成正式版本。','点“保存模型”保存编辑；点“发布模型”验证并创建版本；“发布记录”查历史。','保存草稿不替换最近发布版本；发布保留树、词典、业务配置和来源快照。',{primary:true,actionIds:['action-model-edit','action-model-publish']}),
       feature('specs-combos','管理合法组合','按发布版本核对完整路径、PLN、物料与历史记录。','点“管理合法组合”；切版本、搜索、筛未建档，勾选后标核心/一般或批量创建物料。','草稿预览无正式规划编号；单条可查看、新建或关联已有 MAT，多个 MAT 可指向同一组合。'),
       feature('specs-node-materials','节点附近建档和反查','从较早值节点建立/关联 MAT 并查看覆盖范围。','选值节点点“节点范围建档／关联”；用“显示关联物料”控制三视图物料展示。','明确预览并确认当前/下级范围；显示开关不改物料关系，也不截断完整销售组合。',{actionIds:['action-material-relation']}),
@@ -159,7 +158,7 @@ export const foundationManuals: Record<string, GuideManualContent> = {
   'page-check': {
     purpose:'集中查看商品的必填、重复、非法取值及规则未覆盖问题并进入商品修正。',
     features:[feature('check-severity','切换问题等级','区分必须处理错误和规则未覆盖提示。','顶部切“必须处理／规则未覆盖／全部”。','重新读取商品质量检查结果；非必填空值不因此算错误。',{primary:true}),feature('check-locate','去修改问题商品','从具体问题到对应商品详情。','核对商品、问题和类型后点“去修改”。','只跳转，不自动改字段或删除重复项。',{primary:true,actionIds:['action-check-locate']})],
-    restrictions:[restriction('check-warning','问题类型是“未限制／规则未覆盖”','它与必填、重复或非法取值错误不同，不表示系统已确认禁止该值。','核对规则覆盖范围后决定是否补规则。',['rule-constraint-definition']),restriction('check-count','列表没有显示某模型发布或权益包错误','本页检查现有商品，不替代模型、物料或权益包各自的完整提交校验。','在相应业务页面查看具体失败说明。')]
+    restrictions:[restriction('check-warning','问题类型是“未限制／规则未覆盖”','它与必填、重复或非法取值错误不同，不表示系统已确认禁止该值。','核对规则覆盖范围后决定是否补规则。',['rule-constraint-definition']),restriction('check-count','列表没有显示某模型发布错误','本页检查现有商品，不替代模型、物料各自的完整提交校验。','在相应业务页面查看具体失败说明。')]
   },
   'page-import': {
     purpose:'先识别 Excel 工作表、核对字段和预览，再确认导入物料；JSON 完整恢复另在顶部演示数据入口。',
@@ -172,7 +171,7 @@ export const foundationManuals: Record<string, GuideManualContent> = {
       feature('import-confirm','确认导入物料','把可导入行作为候选一次提交。','核对就绪数量后点“确认导入 N 行”。','重新校验当前依据后写盘；已受理行重试不重复建档，失败保留预览与选择。',{primary:true,actionIds:['action-table-import']}),
       feature('import-json','导出或恢复完整演示备份','备份并恢复业务数据及冻结信息。','顶部“演示数据→导出演示数据／导入演示数据”选择 JSON。','导入时校验结构、身份冲突与导入前当前权限；拒绝时不替换现有数据。',{actionIds:['action-backup-export','action-json-import']})
     ],
-    restrictions:[restriction('import-ready','分类、产品类型、模型、规格值或源字段不足','相关行保留阻塞原因，不静默猜测来源或按名称合并。','按“去配置”和明确模型选择处理后重新匹配。',['rule-material-source','rule-material-planning']),restriction('import-json-shape','JSON 容器损坏、真实组外权益包成员、MAT身份冲突或权限越界','完整导入被拒绝，内存及原持久化内容保持。','用合法备份修正结构；缺SKU等可修复引用保留原成员，由业务页处理。',['rule-json-import'],true),restriction('import-atomic','预览后数据已变、双页冲突或保存失败','不能按旧依据部分写入或把失败当成功。','保留预览，解决存储/冲突并重新核对后重试。',['rule-conflict','rule-persistence'])]
+    restrictions:[restriction('import-ready','分类、产品类型、模型、规格值或源字段不足','相关行保留阻塞原因，不静默猜测来源或按名称合并。','按“去配置”和明确模型选择处理后重新匹配。',['rule-material-source','rule-material-planning']),restriction('import-json-shape','JSON 容器损坏、MAT身份冲突或权限越界','完整导入被拒绝，内存及原持久化内容保持。','用合法备份修正结构后重新导入。',['rule-json-import'],true),restriction('import-atomic','预览后数据已变、双页冲突或保存失败','不能按旧依据部分写入或把失败当成功。','保留预览，解决存储/冲突并重新核对后重试。',['rule-conflict','rule-persistence'])]
   },
   'page-menus': {
     purpose:'配置真实导航中心、分组和正式页面的位置、名称、顺序及可见性。',

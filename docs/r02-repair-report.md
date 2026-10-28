@@ -2,7 +2,6 @@
 
 RESULT：READY（仅针对本次 R02 补修）
 
-日期：2026-10-25。分支 `20261022`，开始时 HEAD 为审查基线 `f171eb2a2d2bef767226d9f1dadf04a0e5d94b22`，工作区干净。检查工程及祖先目录、相关源码／脚本／文档目录，未发现适用 AGENTS.md。没有提交、推送或部署；权益包未进入实施。
 
 ## 四项修复
 
@@ -63,7 +62,7 @@ RESULT：READY（仅针对本次 R02 补修）
 
 - `r01-plan-check`、`r01-business-check`、`r01-protection-check`。
 - `material-check`、`material-archive-check`、`combo-material-status-check`。
-- `template-compatibility-domain-check`、`template-compatibility-state-check`、`compatibility-benefit-storage-check`。
+- `template-compatibility-domain-check`、`template-compatibility-state-check`、`compatibility-storage-check`。
 
 Chrome 156.0.8078.47 使用全新隔离 Context，桌面 1600×1000 和窄窗口 980×720。通过真实页面验证等价条件关联、取消声明、修改模板备注、保存并发布 V2、再关联预览保护；商品列表实际显示 3→4→3；三视图显示开关；原范围创建、刷新反查、解绑、双页冲突、失败重试和布局检查继续通过。两个成功报告均无 pageerror。关键截图：[V2 人工保护](../work/r02-repair-20261025/browser-compatibility/cancelled-v2-protected.png)、[4 条规划摘要](../work/r02-repair-20261025/browser/digest-4.png)。
 
@@ -73,6 +72,5 @@ Chrome 156.0.8078.47 使用全新隔离 Context，桌面 1600×1000 和窄窗口
 
 ## 剩余限制与停止点
 
-本轮没有恢复人工取消声明的授权操作；同来源人工保护命中时明确拒绝。旧版本从未记录过的成功别名无法追溯补造；新成功请求均保存回执。自动分组、跨类型归并、权益包、后端跨设备事务均不在本轮。
 
 保留原 MAT 编号、原始建档来源、冻结历史快照及 V2／SKU 语义。本次 READY 只针对四项 R02 补修，不代表整个 ERP 完成。完成后停止，等待审查。

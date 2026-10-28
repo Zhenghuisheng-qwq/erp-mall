@@ -1,6 +1,6 @@
 import { hostFrom } from './compatibility'
 import { createDeviceResolutionContext, deviceHostKey, resolveDeviceSku } from './deviceResolution'
-import { salesBindingContext, resolveSalesSource } from './salesConfiguration'
+import { modelSpecificationContext, resolveSkuModelSource } from './modelSourceContext'
 import { selectorForNode, templateSelectorCoverage } from './templateCompatibility'
 import type { AppData, PlanningStep } from './types'
 import type { DeviceResolution } from './accessoryCompatibilityTypes'
@@ -19,7 +19,7 @@ export interface TemplateDeviceChoice {key:string;label:string;groupKey:string;g
 export function templateHostChoices(data:AppData,input:{modelId:string;versionId?:string|null;nodeId?:string;selector?:TemplateSpecSelector}){
   const result={choices:[] as TemplateDeviceChoice[],issues:[] as string[],legalCount:0,skuCount:0}
   if(templateBusinessRole(data,input.modelId)!=='host'){result.issues.push(templateBusinessRole(data,input.modelId)==='other'?'此类型业务用途为「其他」，不提供主机反查配件。':'模板尚未明确登记为主机类型，请维护产品类型业务用途；不能按名称推测适配方向。');return result}
-  const context=salesBindingContext(data,input.modelId,input.versionId)
+  const context=modelSpecificationContext(data,input.modelId,input.versionId)
   if(context.issues.length){result.issues.push(...context.issues.map(item=>item.message));return result}
   let selector=input.selector
   if(!selector&&input.nodeId){
@@ -31,7 +31,7 @@ export function templateHostChoices(data:AppData,input:{modelId:string;versionId
   const combos=context.combinations.filter(item=>!coverage||coverage.identities.has(item.identityKey));result.legalCount=combos.length
   const devices=createDeviceResolutionContext(data),identities=new Set(combos.map(combo=>combo.identityKey))
   const actual=new Map<string,{skuId:string;resolution:DeviceResolution}[]>()
-  for(const sku of data.skus){const source=resolveSalesSource(data,sku.id);if(source.state!=='resolved'||source.modelId!==input.modelId||source.versionId!==(input.versionId||null)||!identities.has(source.identityKey))continue;const list=actual.get(source.identityKey)||[];list.push({skuId:sku.id,resolution:resolveDeviceSku(data,sku.id,devices)});actual.set(source.identityKey,list);result.skuCount++}
+  for(const sku of data.skus){const source=resolveSkuModelSource(data,sku.id);if(source.state!=='resolved'||source.modelId!==input.modelId||source.versionId!==(input.versionId||null)||!identities.has(source.identityKey))continue;const list=actual.get(source.identityKey)||[];list.push({skuId:sku.id,resolution:resolveDeviceSku(data,sku.id,devices)});actual.set(source.identityKey,list);result.skuCount++}
   const identityIds=new Set(data.params.filter(item=>item.identityRole==='host-model').map(item=>item.id)),typeId=data.specCanvases.find(item=>item.templateId===input.modelId)?.productTypeId||''
   for(const combo of combos){
     const rows=actual.get(combo.identityKey)||[]

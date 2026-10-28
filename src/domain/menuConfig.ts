@@ -19,7 +19,7 @@ export interface MenuNode {
   custom?: boolean
 }
 
-type StoredMenu = { version: 1; guideCenterVersion?: 1; catalogWorkspaceVersion?: 1; benefitNavigationVersion?: 1; nodes: MenuNode[] }
+type StoredMenu = { version: 1; guideCenterVersion?: 1; catalogWorkspaceVersion?: 1; nodes: MenuNode[] }
 const catalogTaskRoutes = new Set(['/categories', '/product-types', '/models', '/specs'])
 
 const BOTH: UserRole[] = ['admin', 'operator']
@@ -39,13 +39,9 @@ export function defaultMenuNodes(): MenuNode[] {
     group('model', '商品模型配置', 'product', 3, ADMIN),
     group('operate', '商品运营', 'product', 4, BOTH),
     group('analysis', '商品分析', 'product', 5, BOTH),
-    group('sales-config', '权益包', 'product', 6, BOTH),
     group('compatibility-group', '兼容性', 'product', 7, BOTH),
-    page('/sales-shopping', '权益包选购', 'sales-config', 1, BOTH),
-    page('/sales-configurations', '权益包配置', 'sales-config', 2, ADMIN),
     page('/spus', 'SPU 管理', 'manage', 1, BOTH),
     page('/skus', 'SKU 管理', 'manage', 1.5, BOTH),
-    page('/benefit-packages', '常用权益包', 'sales-config', 3, BOTH),
     {...page('/compatibility?tab=results', '兼容性查询', 'compatibility-group', 1, BOTH), id:'page:/compatibility'},
     page('/compatibility?tab=workbench', '兼容性维护', 'compatibility-group', 2, BOTH),
     {...page('/compatibility?tab=legacy', '原物料兼容性（高级）', 'compatibility-group', 3, BOTH), hidden:true},
@@ -102,31 +98,7 @@ function rolesOf(value: unknown, fallback: UserRole[]): UserRole[] {
   return Array.from(roles)
 }
 
-/** Move only the former built-in placement. Custom containers, labels and access stay authoritative. */
-function migrateBenefitNavigation(input: MenuNode[]): MenuNode[] {
-  const nodes=clone(input.filter(item=>item&&typeof item.id==='string').map(item=>({...item,roles:rolesOf(item.roles,BOTH)})))
-  const find=(id:string)=>nodes.find(item=>item.id===id)
-  const group=find('sales-config'),shopping=find('page:/sales-shopping'),configuration=find('page:/sales-configurations'),packages=find('page:/benefit-packages'),compatibility=find('page:/compatibility')
-  const legacyLayout=group?.title==='销售配置'||compatibility?.route==='/compatibility'
-  if(group?.title==='销售配置'){group.title='权益包';if(group.sort===4.5)group.sort=6}
-  if(shopping){if(shopping.title==='销售选购')shopping.title='权益包选购';if(legacyLayout&&shopping.parentId==='product'&&!group?.hidden){shopping.parentId='sales-config';if(shopping.sort===1.5)shopping.sort=1}}
-  if(configuration){if(configuration.title==='选配方案')configuration.title='权益包配置';if(legacyLayout&&configuration.parentId==='sales-config'&&configuration.sort===1)configuration.sort=2}
-  if(packages&&['常用组合','权益包'].includes(packages.title))packages.title='常用权益包'
-  if(compatibility){
-    if(['商品关联与适用关系','适用关系'].includes(compatibility.title))compatibility.title='兼容性查询'
-    if(compatibility.route==='/compatibility')compatibility.route='/compatibility?tab=results'
-    if(legacyLayout&&compatibility.parentId==='sales-config'){
-      if(group&&!find('compatibility-group'))nodes.push({...group,id:'compatibility-group',title:'兼容性',sort:group.sort+1,roles:[...group.roles]})
-      compatibility.parentId='compatibility-group'
-    }
-    const maintenanceId='page:/compatibility?tab=workbench'
-    if(!find(maintenanceId))nodes.push({...compatibility,id:maintenanceId,route:'/compatibility?tab=workbench',title:'兼容性维护',sort:compatibility.sort+1,roles:[...compatibility.roles]})
-  }
-  return nodes
-}
-
 export function sanitizeMenu(nodes: MenuNode[]): MenuNode[] {
-  nodes = migrateBenefitNavigation(nodes)
   // Carry the existing entrance's placement into the new daily entrance once. Keep the
   // original nodes (including hidden/sort/custom-container preferences) for compatibility.
   if (!nodes.some(item => item?.id === 'page:/catalog')) {
@@ -211,8 +183,8 @@ export function loadMenu(): MenuNode[] {
   const clean = sanitizeMenu(stored.nodes)
   const previous = stored.nodes.find(node => node.id === 'page:/guide')
   const next = clean.find(node => node.id === 'page:/guide')!
-  if (stored.benefitNavigationVersion !== 1 || stored.catalogWorkspaceVersion !== 1 || stored.guideCenterVersion !== 1 || previous?.parentId !== 'guide' || previous.title !== next.title || !stored.nodes.some(node => node.id === 'guide' && node.kind === 'center')) {
-    try { localStorage.setItem(MENU_KEY, JSON.stringify({ version: 1, guideCenterVersion: 1, catalogWorkspaceVersion: 1, benefitNavigationVersion:1, nodes: clean } satisfies StoredMenu)) }
+  if (stored.catalogWorkspaceVersion !== 1 || stored.guideCenterVersion !== 1 || previous?.parentId !== 'guide' || previous.title !== next.title || !stored.nodes.some(node => node.id === 'guide' && node.kind === 'center')) {
+    try { localStorage.setItem(MENU_KEY, JSON.stringify({ version: 1, guideCenterVersion: 1, catalogWorkspaceVersion: 1, nodes: clean } satisfies StoredMenu)) }
     catch { /* Read the migrated navigation safely; retain the old stored payload if writing is unavailable. */ }
   }
   return clean
@@ -222,7 +194,7 @@ export function saveMenu(nodes: MenuNode[]) {
   const message = validateMenu(nodes)
   if (message) throw new Error(message)
   const clean = sanitizeMenu(nodes)
-  localStorage.setItem(MENU_KEY, JSON.stringify({ version: 1, guideCenterVersion: 1, catalogWorkspaceVersion: 1, benefitNavigationVersion:1, nodes: clean } satisfies StoredMenu))
+  localStorage.setItem(MENU_KEY, JSON.stringify({ version: 1, guideCenterVersion: 1, catalogWorkspaceVersion: 1, nodes: clean } satisfies StoredMenu))
   menuRevision.value += 1
   return clean
 }
@@ -322,7 +294,6 @@ export function menuRouteForLocation(path: string, query: { panel?: unknown; tab
   if (['/products','/spus','/skus'].includes(path) && query.panel === 'columns') return '/products?panel=columns'
   if (/^\/(products|spus|materials)(\/|$)/.test(path)) return '/spus'
   if (/^\/skus(\/|$)/.test(path)) return '/skus'
-  if (/^\/benefit-packages(\/|$)/.test(path)) return '/benefit-packages'
   if(path==='/compatibility')return `/compatibility?tab=${query.tab==='workbench'||query.tab==='legacy'?'workbench':query.tab==='results'?'results':query.legacy||query.model||query.manage?'workbench':'results'}`
   return path || '/'
 }

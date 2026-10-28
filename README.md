@@ -54,12 +54,6 @@ SKU 管理提供本机视图工作台：筛选先应用、再保存，支持条�
 
 统一维护入口为「适用关系」，原 MAT 页面及链接继续保留。数据读取异常时先保留原存储并提供备份、校验恢复入口，不自动替换成演示商品。完整规则、验收与限制见 [设备与配件兼容关系工作台](docs/accessory-compatibility-workbench.md)。专项入口：`npm run check:accessory-compatibility`。
 
-## 权益包工作台
-
-从「商品管理 → 权益包」新建，也可在手机 SKU 的「更多 → 组权益包」或适用配件抽屉进入。选设备仅提供适配上下文，显式加入后才交付手机。添加真实 SKU 和独立服务、填写整包报价或留空，保存后按本次包数预览并确认交付清单；历史清单可打印和导出 Excel。
-
-规则、数据安全、实际验证及限制见 [权益包工作台报告](docs/benefit-package-workbench.md)。专项入口：`npm run check:benefit-packages`。当前不进行支付、库存扣减、出库或服务激活。
-
 ## 还没接真实后端的部分
 
 分类映射、参数角色、必填、商品族、批量保存事务、规则状态，都在浏览器里计算。
@@ -102,4 +96,5 @@ npm run build
 
 实现、全部实际创建入口、数据保护和验收范围见 [模板兼容工作台报告](docs/template-compatibility-workbench.md)。核心检查运行 `npm run check:template-compatibility`，性能运行 `npm run check:template-compatibility:performance`。浏览器使用独立上下文及已安装的 Chrome，可配置 `BROWSER_CHANNEL`；视觉对照运行 `npm run check:template-compatibility:visual`，需要本轮开始前的完整源码快照（`TEMPLATE_COMPATIBILITY_BASELINE`）。缺失环境或基线会明确失败。
 
-兼容关系与权益包的可靠性修复、共享存储保护及新交互见 [本轮实现报告](docs/compatibility-benefit-refinement.md)。专项入口为 `npm run check:compatibility-refinement:domain`、`npm run check:compatibility-refinement:browser` 和 `npm run check:compatibility-refinement:performance`。前后视觉与性能需要实际开工快照，可用 `REFINEMENT_BASELINE` 指定；权益包基线截图使用 `REFINEMENT_BASELINE_ROOT`。浏览器并发中的真实 HTTPS 验证需按报告配置临时测试证书，缺少证书会明确记录该项未验证。
+
+旧权益包及销售选配配置已移除；商品模型、规格规划、SKU/MAT 和独立适用关系继续保留。

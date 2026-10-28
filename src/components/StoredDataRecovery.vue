@@ -18,7 +18,6 @@ import { STORAGE_KEY } from '../domain/types'
 import { restoreCatalogData } from '../stores/catalogPersistence'
 import type { AppData } from '../domain/types'
 import { compatibilityImportProblems } from '../domain/accessoryCompatibilityCommands'
-import { benefitPackageImportProblems } from '../domain/benefitPackages'
 import { templateCompatibilityImportProblems } from '../domain/templateCompatibility'
 import { templateCompatibilityOriginProblems } from '../domain/templateCompatibilitySync'
 import { normalizeStored } from '../stores/catalog'
@@ -46,7 +45,7 @@ async function prepare(event: Event) {
     const parsed = JSON.parse(text) as { version?: number; data?: AppData }
     const data = parsed.data
     if (!data || ![data.families, data.skus, data.categories, data.templates, data.mappings, data.templateParams, data.params].every(Array.isArray)) throw new Error('文件缺少有效商品数据，请检查备份。')
-    const problems = [...compatibilityImportProblems(data), ...benefitPackageImportProblems(data), ...templateCompatibilityImportProblems(data), ...templateCompatibilityOriginProblems(data)]
+    const problems = [...compatibilityImportProblems(data), ...templateCompatibilityImportProblems(data), ...templateCompatibilityOriginProblems(data)]
     if (problems.length) throw new Error(problems.join(' '))
     const normalized = normalizeStored(parsed, { persist: false })
     if (!normalized) throw new Error('数据版本或结构无法读取，原存储保持。')

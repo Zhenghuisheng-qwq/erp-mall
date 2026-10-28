@@ -65,7 +65,7 @@ setActivePinia(createPinia())
 const owner = effectScope(), scopeId = ref(familyId)
 const workbench = owner.run(() => useSkuWorkbench(scopeId))!
 const store = useCatalogStore(); await store.waitForPersistence(); await nextTick()
-const business = (d: typeof data) => JSON.stringify([d.families, d.skus, d.specModelVersions, d.planningRecords, d.compatibilities, d.materialRelations, d.benefitPackages, d.benefitDeliveries])
+const business = (d: typeof data) => JSON.stringify([d.families, d.skus, d.specModelVersions, d.planningRecords, d.compatibilities, d.materialRelations])
 const originalBusiness = business(store.data)
 try {
   for (const [index, config] of configs.entries()) {

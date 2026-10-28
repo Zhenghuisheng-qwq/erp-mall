@@ -11,7 +11,7 @@ export const catalogManuals: Record<string,GuideManualContent> = {
       {id:'catalog-counts',title:'核对数量和明细',description:'每个数字与明细使用同一组去重对象 ID。树形和列表读同一套汇总。',operation:'点类型、模型、SPU、销售 SKU、MAT 或待处理数量；在明细窗口查询具体记录，再按权限进入完整管理。',result:'SPU 沿用全部 Family 商品主体，含物料承载主体；销售 SKU 与 MAT 使用统一身份判定分别计数。同模型多版本仍计一个模型。',primary:true},
       {id:'catalog-sources',title:'区分结构归属与历史来源',description:'分类商品按实际分类；类型和模型来源按已记录 ID，不能从名称或新路径猜测。',operation:'查看具体对象与待处理明细；无归属、引用失效和来源未记录分别定位。',result:'调整分类或模型归属不批量改写商品创建来源；空类型和未发布模型属于待完善，不自动视为错误。'},
       {id:'catalog-types',title:'维护产品类型',description:'类型台账显示关联分类、模型和实际状态。',operation:'点名称查看详情；新增、编辑或更多操作明确进入维护。父分类不能直接新建类型，需选择合法末级分类。',result:'沿用类型保存、引用和删除保护；同名不同 ID 不合并。',actionIds:['action-type-save']},
-      {id:'catalog-models',title:'先看模型详情，再进入设计',description:'详情展示草稿状态、真实发布记录和关联商品，组合信息按需查看。',operation:'点模型名称，选择准确版本；查看设计读取该版本，编辑则明确进入当前草稿。用“返回商品资料管理”恢复来源上下文。',result:'不会伪造 V1 发布记录、自动切到最新版本或自动发布。搭配与适用沿用现有工作区和范围身份。',actionIds:['action-model-edit']},
+      {id:'catalog-models',title:'先看模型详情，再进入设计',description:'详情展示草稿状态、真实发布记录和关联商品，适用关系按需查看。',operation:'点模型名称，选择准确版本；查看设计读取该版本，编辑则明确进入当前草稿。用“返回商品资料管理”恢复来源上下文。',result:'不会伪造 V1 发布记录、自动切到最新版本或自动发布。适用关系按真实型号和所选模型版本查看。',actionIds:['action-model-edit']},
       {id:'catalog-organize',title:'整理分类',description:'日常汇总与批量分类维护分开。',operation:'点“整理分类”，在专项页面连续加入待移动区、选择目标并确认；结束后返回资料管理。',result:'保留原位改名、原子批量移动、复制及删除保护；商品归属和历史快照不随分类移动重写。',actionIds:['action-category-move']},
       {id:'catalog-legacy',title:'使用旧地址',description:'旧书签继续承接对应任务和对象。',operation:'/categories 普通浏览进入分类汇总；带整理任务继续专项维护。/product-types 与 /models 进入对应台账；/specs 保留原设计入口。',result:'参数和目标 ID 保留，数字下钻不覆盖 SPU/SKU 已保存筛选、列宽、冻结列或手动顺序。'},
     ],

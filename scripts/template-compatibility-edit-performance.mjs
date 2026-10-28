@@ -4,7 +4,7 @@ import{existsSync,mkdirSync,writeFileSync}from'node:fs'
 import{resolve}from'node:path'
 import{cpus}from'node:os'
 import{createServer}from'vite'
-const baseline=resolve(process.env.REFINEMENT_BASELINE||'work/compatibility-benefit-refinement/baseline/source'),output=resolve(process.env.COMPATIBILITY_EDIT_PERFORMANCE_OUTPUT||'work/compatibility-benefit-refinement/edit-performance')
+const baseline=resolve(process.env.REFINEMENT_BASELINE||'work/compatibility-refinement/baseline/source'),output=resolve(process.env.COMPATIBILITY_EDIT_PERFORMANCE_OUTPUT||'work/compatibility-refinement/edit-performance')
 if(!existsSync(resolve(baseline,'src/domain/templateCompatibility.ts')))throw new Error(`Missing start-of-task baseline: ${baseline}. Set REFINEMENT_BASELINE to the recorded complete source.`)
 mkdirSync(output,{recursive:true});const servers=[],samples=[];const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex'),median=values=>[...values].sort((a,b)=>a-b)[Math.floor(values.length/2)]
 try{

@@ -2,7 +2,6 @@
 
 RESULT：READY（仅针对 R02）
 
-验收日期：2026-10-25。分支 `20261022`；开始及完成时 HEAD 均为 `f11c4b5c0c0f22ce68ce28e56c133fe9d7efdeb5`。开始时工作区干净，未发现适用的 AGENTS.md。本轮未提交、推送或部署，未进入后续权益包轮次。
 
 ## 实际实现与数据关系
 
@@ -47,7 +46,7 @@ Store 复用现有 command、候选事务、持久化队列／锁和 revision �
 | 类型检查与生产构建 | `npm run build` 包含类型检查并通过：[build-final.log](../work/r02-20261025/build-final.log)。存在大于 500 kB 的分包警告 |
 | 冻结代码 | V2 选择器、SKU 算法、planning、catalogPersistence 的 Git blob 与 HEAD 相同：[protected-code.json](../work/r02-20261025/protected-code.json) |
 
-受影响的 13 个既有领域回归均通过：`r01-plan-check`、`r01-business-check`、`r01-protection-check`、`material-check`、`material-archive-check`、`combo-material-status-check`、`planning-check`、`naming-check`、`spu-sku-check`、`editor-safety-check`、`template-compatibility-state-check`、`compatibility-benefit-storage-check`、`accessory-compatibility-state-check`。日志位于 [regression](../work/r02-20261025/regression/)。最终导入校验调整后重跑 R01 protection，读取层相关检查也再次通过。
+受影响的 13 个既有领域回归均通过：`r01-plan-check`、`r01-business-check`、`r01-protection-check`、`material-check`、`material-archive-check`、`combo-material-status-check`、`planning-check`、`naming-check`、`spu-sku-check`、`editor-safety-check`、`template-compatibility-state-check`、`compatibility-storage-check`、`accessory-compatibility-state-check`。日志位于 [regression](../work/r02-20261025/regression/)。最终导入校验调整后重跑 R01 protection，读取层相关检查也再次通过。
 
 用户要求的 16 项断言对应如下：
 
@@ -77,6 +76,5 @@ Store 复用现有 command、候选事务、持久化队列／锁和 revision �
 - 本轮完成显式共用和范围来源，未定义所有自动分组键、跨类型自动归并、策略覆盖优先级或批量历史迁移规则。
 - 仍为前端 Mock 本地存储及浏览器锁／revision 语义，没有实现后端数据库事务或跨设备协作。
 - 未配置兼容数据会明确显示当前无法提供的兼容证据，遵循原建档语义；不会声称未知兼容已得到证明。
-- 权益包后续轮次未实施。此次 READY 不代表整个商城 ERP 完成。
 
 R02 到此停止，等待审查。

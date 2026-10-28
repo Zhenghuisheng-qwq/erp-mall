@@ -72,7 +72,7 @@
                   <span v-else>{{ displayCell(row.id, column.key, row) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="120"><template #default="{ row }"><div class="row-primary-actions"><el-button link type="primary" @click="router.push({ path: `/skus/${row.id}`, query: scopeId ? { spu: scopeId } : {} })">编辑</el-button><el-dropdown trigger="click"><el-button link :data-row-more="row.id" :data-benefit-more="row.id" :aria-label="`更多 SKU 操作 ${row.code}`">更多</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item v-if="compatibilityRoles.get(row.id) !== 'other'" :data-open-compatibility="row.id" @click="openCompatibility(row.id)" :disabled="!(store.can('product:compatibility:read'))">{{ compatibilityRoles.get(row.id) === 'host' ? '适用配件' : '适用主机' }}</el-dropdown-item><el-dropdown-item v-if="store.can('product:benefit:create') && compatibilityRoles.get(row.id) === 'host'" :data-compose-benefit="row.id" @click="openBenefitPackage(row.id)" :disabled="!(store.can('product:benefit:create'))">组权益包</el-dropdown-item><el-dropdown-item @click="router.push(`/spus/${row.familyId}`)">查看 SPU</el-dropdown-item><el-dropdown-item @click="removeOne(row.id)" :disabled="!(store.can('product:sku:delete'))">删除</el-dropdown-item><el-dropdown-item v-if="manualOn" @click="askBoundary('top',[row.id])">移到本组顶部</el-dropdown-item><el-dropdown-item v-if="manualOn" @click="askBoundary('bottom',[row.id])">移到本组底部</el-dropdown-item><el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'before')" :disabled="!(store.can('product:sku:read'))">插到前面</el-dropdown-item><el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'after')" :disabled="!(store.can('product:sku:read'))">插到后面</el-dropdown-item></el-dropdown-menu></template></el-dropdown></div></template></el-table-column>
+              <el-table-column label="操作" width="120"><template #default="{ row }"><div class="row-primary-actions"><el-button link type="primary" @click="router.push({ path: `/skus/${row.id}`, query: scopeId ? { spu: scopeId } : {} })">编辑</el-button><el-dropdown trigger="click"><el-button link :data-row-more="row.id" :aria-label="`更多 SKU 操作 ${row.code}`">更多</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item v-if="compatibilityRoles.get(row.id) !== 'other'" :data-open-compatibility="row.id" @click="openCompatibility(row.id)" :disabled="!(store.can('product:compatibility:read'))">{{ compatibilityRoles.get(row.id) === 'host' ? '适用配件' : '适用主机' }}</el-dropdown-item><el-dropdown-item @click="router.push(`/spus/${row.familyId}`)">查看 SPU</el-dropdown-item><el-dropdown-item @click="removeOne(row.id)" :disabled="!(store.can('product:sku:delete'))">删除</el-dropdown-item><el-dropdown-item v-if="manualOn" @click="askBoundary('top',[row.id])">移到本组顶部</el-dropdown-item><el-dropdown-item v-if="manualOn" @click="askBoundary('bottom',[row.id])">移到本组底部</el-dropdown-item><el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'before')" :disabled="!(store.can('product:sku:read'))">插到前面</el-dropdown-item><el-dropdown-item v-if="manualOn && stageIds.length" @click="askInsert(row.id, row.name, 'after')" :disabled="!(store.can('product:sku:read'))">插到后面</el-dropdown-item></el-dropdown-menu></template></el-dropdown></div></template></el-table-column>
               <template #empty><div class="empty-state" data-empty="sku"><strong>{{ emptyTitle }}</strong><p class="muted">{{ emptyDetail }}</p><el-button v-if="!scopeId" @click="router.push('/skus/new')">新增 SKU</el-button></div></template>
             </el-table>
           </template>
@@ -83,7 +83,7 @@
     <SkuFilterDialog v-model="filterOpen" :data="store.data" :config="config" :view-name="currentView.name" :scope-id="scopeId" :now="now" :apply-config="applyQuickConfig" />
     <SkuDisplayDialog v-model="displayOpen" :data="store.data" :config="config" :tab="displayTab" :apply-config="applyQuickConfig"/>
     <el-drawer v-if="narrowScreen" v-model="categoryOpen" title="商品分类" size="min(330px, calc(100vw - 20px))"><CategoryFilterTree v-if="simpleCategory" :categories="store.data.categories" :selected-ids="categoryIds" :key="`SkuWorkbenchView.vue:${activeId}:${scopeId}`" :state-key="`SkuWorkbenchView.vue:${activeId}:${scopeId}`" @toggle="toggleCategory" @clear="clearCategory"/><template v-else><p>分类属于历史或组合条件。</p><el-button @click="categoryOpen=false;openFilters()">管理分类条件</el-button></template></el-drawer>
-    <AccessoryCompatibilityDrawer v-model="compatibilityOpen" :sku-id="compatibilitySkuId" @prepare-benefit-package="rememberPackageReturn" />
+    <AccessoryCompatibilityDrawer v-model="compatibilityOpen" :sku-id="compatibilitySkuId" />
     <el-dialog v-model="nameOpen" :show-close="!workbench.commandPending.value" :close-on-press-escape="!workbench.commandPending.value" :title="nameAction" width="420px" :close-on-click-modal="false" @closed="nameError = ''">
       <el-input :disabled="workbench.commandPending.value" v-model="draftName" placeholder="视图名称" maxlength="80" @keyup.enter="submitName" />
       <el-checkbox v-if="scopeId && nameAction !== '重命名视图'" v-model="includeScope">将当前 SPU 范围保存为条件</el-checkbox>
@@ -99,7 +99,7 @@ import { clearSkuFilterValues } from '../domain/skuQuickFilters'
 import { categoryFilterCaption } from '../domain/categoryTree'
 import RuleExplanation from '../components/guide/RuleExplanation.vue'
 import { skuCategorySelection, updateSkuCategorySelection } from '../domain/skuCategoryFilter'
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableColumnCtx } from 'element-plus'
@@ -128,7 +128,6 @@ import {conditionEntries,isSkuConditionActive} from '../domain/skuQuickFilters'
 import type { SkuConditionGroup,SkuViewConfig } from '../domain/skuWorkbenchTypes'
 import type { Sku } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
-import { rememberBenefitSkuReturn, takeBenefitSkuReturn, restoreBenefitSkuScroll, hasBenefitSkuReturn, clearBenefitSkuReturn } from '../components/benefit-package/skuReturnState'
 
 const store = useCatalogStore(), route = useRoute(), router = useRouter()
 const scopeId = computed(() => typeof route.query.spu === 'string' ? route.query.spu : '')
@@ -179,7 +178,7 @@ async function applyManual(ids:string[],targetId:string|undefined,place:'before'
  const saved=await workbench.apply({...config.value,manualOrder:result.order},()=>manualContext()===context,guard)
  return saved.ok?{ok:true as const}:{ok:false as const,message:saved.message||'顺序保存失败，原暂存保留。'}
 }
-const {pickedIds,stageIds,onRowDrag,onRowOver,onRowDrop,endDrag,rowDropClass,dropMessage,busy:manualBusy,stageContextValid,stageGroupLabel,togglePick,addStage,clearStage,removeStaged,askInsert,askBoundary,confirmStage,captureManualState,restoreManualState}=useProductListManualOrder({move:(id,target,place)=>applyManual([id],target,place),insert:(ids,target,place)=>applyManual(ids,target,place),boundary:(ids,edge)=>applyManual(ids,undefined,edge),validateStage,groupLabel:manualGroupLabel,context:manualContext,hasFilters:()=>hasFilters.value||!!search.value})
+const {pickedIds,stageIds,onRowDrag,onRowOver,onRowDrop,endDrag,rowDropClass,dropMessage,busy:manualBusy,stageContextValid,stageGroupLabel,togglePick,addStage,clearStage,removeStaged,askInsert,askBoundary,confirmStage}=useProductListManualOrder({move:(id,target,place)=>applyManual([id],target,place),insert:(ids,target,place)=>applyManual(ids,target,place),boundary:(ids,edge)=>applyManual(ids,undefined,edge),validateStage,groupLabel:manualGroupLabel,context:manualContext,hasFilters:()=>hasFilters.value||!!search.value})
 function eventRowId(event:DragEvent){const target=event.target instanceof Element?event.target.closest('.el-table__row'):null;return target?.querySelector<HTMLElement>('[data-order-row]')?.dataset.orderRow||''}
 function tableDragOver(event:DragEvent){const id=eventRowId(event);if(id)onRowOver(id,event)}
 function tableDrop(event:DragEvent){const id=eventRowId(event);if(id)void onRowDrop(id,event);else endDrag()}
@@ -220,18 +219,10 @@ function isCollapsed(labels: string[]) { return labels.some((_, level) => collap
 async function result(pending: { ok: boolean; message?: string } | Promise<{ ok: boolean; message?: string }>) { const outcome = await pending; if (!outcome.ok && outcome.message) ElMessage.error(outcome.message); return outcome.ok }
 const quickFiltersRef = ref<InstanceType<typeof SkuQuickFilters>>()
 async function flushQuick() { return await quickFiltersRef.value?.flush() ?? true }
-onBeforeRouteLeave(async to => {
+onBeforeRouteLeave(async () => {
   if (workbench.commandPending.value || manualBusy.value || !await flushQuick()) return false
   if (!await result(workbench.flush())) return false
-  const returnable = to.path === '/benefit-packages/new' && to.query.returnTo === route.fullPath && hasBenefitSkuReturn(route.fullPath) && store.can('product:benefit:create')
-  if (returnable) {
-    const id = typeof to.query.device === 'string' ? to.query.device : ''
-    if (compatibilityRecordRole(store.data, id) !== 'host') return false
-    rememberPackageReturn(id)
-    return true
-  }
   const allowed = await confirmStage(false)
-  if (allowed) clearBenefitSkuReturn(route.fullPath)
   return allowed
 })
 onBeforeRouteUpdate(async to => !workbench.commandPending.value && await flushQuick() && (String(to.query.spu || '') === scopeId.value || await confirmStage(false)))
@@ -257,13 +248,7 @@ function toggleCategory(id: string,multiple=false) {
   applyConfig(next)
 }
 async function changeScope(id: string) { if (!(await flushQuick())) return; router.push({ path: '/skus', query: id ? { spu: id } : {} }) }
-function rememberPackageReturn(skuId: string) {
-  rememberBenefitSkuReturn({ path: route.fullPath, activeId: activeId.value, scopeSearch: scopeSearch.value, scopePage: scopePage.value, selectedIds: selectedIds.value, collapsed, focusSkuId: skuId, manual: captureManualState() })
-}
-function openBenefitPackage(skuId: string) {
-  rememberPackageReturn(skuId)
-  void router.push({ path: '/benefit-packages/new', query: { device: skuId, returnTo: route.fullPath } })
-}
+
 function onPage(value: number) { page.value = value }
 async function openName(action: string) { if (!(await flushQuick()) || (action !== '重命名视图' && !(await confirmStage(false)))) return; nameAction.value = action; draftName.value = action === '重命名视图' ? currentView.value.name : ''; includeScope.value = false; nameError.value = ''; nameOpen.value = true }
 async function saveCurrent() { if (!(await flushQuick())) return; if (activeId.value === SYSTEM_SKU_VIEW_ID) { openName('另存为'); return }; result(workbench.save()) }
@@ -276,23 +261,12 @@ function setSelectedStatus(status: Sku['status']) { if (!presentation.value.erro
 async function removeOne(id: string) { try { await ElMessageBox.confirm('删除这条 SKU？所属 SPU 会保留。', '删除规格') } catch { return }; const blocked = store.removeSku(id); if (blocked) ElMessage.warning(blocked) }
 async function removeSelected() { if (presentation.value.errors.length) return; const ids = validSelection(); const blocked = ids.map(id => compatibilitySkuBlock(store.data, id)).find(Boolean); if (blocked) { ElMessage.warning(blocked); return }; try { await ElMessageBox.confirm(`删除选中的 ${ids.length} 条 SKU？SPU 会保留。`, '批量删除 SKU') } catch { return }; ids.forEach(id => store.removeSku(id)); selectedIds.value = [] }
 let dateTimer: ReturnType<typeof setInterval> | undefined
-let benefitReturnFrame: number | undefined
-let benefitReturnActive = true
 function updateDate() { now.value = new Date() }
 onMounted(async () => {
   dateTimer = setInterval(updateDate, 60000); document.addEventListener('visibilitychange', updateDate)
-  const previous = takeBenefitSkuReturn(route.fullPath)
-  if (!previous) return
-  if (views.value.some(view => view.id === previous.activeId)) activeId.value = previous.activeId
-  scopeSearch.value = previous.scopeSearch; scopePage.value = previous.scopePage
-  await nextTick()
-  selectedIds.value = previous.selectedIds.filter(id => presentation.value.allIds.includes(id))
-  Object.assign(collapsed, previous.collapsed)
-  if (previous.manual) restoreManualState(previous.manual)
-  await nextTick()
-  if (benefitReturnActive) benefitReturnFrame = requestAnimationFrame(() => restoreBenefitSkuScroll(previous))
+
 })
-onBeforeUnmount(() => { benefitReturnActive = false; if (benefitReturnFrame !== undefined) cancelAnimationFrame(benefitReturnFrame); clearInterval(dateTimer); document.removeEventListener('visibilitychange', updateDate) })
+onBeforeUnmount(() => { clearInterval(dateTimer); document.removeEventListener('visibilitychange', updateDate) })
 </script>
 
 <style scoped>

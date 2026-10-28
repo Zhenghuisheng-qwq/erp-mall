@@ -79,7 +79,7 @@ try{
   await page.locator('[data-catalog-view="models"]').click();await page.locator('[data-catalog-create-model]').click();const modelForm=page.locator('[data-catalog-model-form]')
   await select('模型产品类型',`${type.name} · ${type.id}`,modelForm);await modelForm.getByRole('textbox',{name:'模型名称',exact:true}).fill(`收尾模型-${role}`);await modelForm.getByRole('button',{name:'创建模型',exact:true}).click();await modelForm.waitFor({state:'hidden'})
   await page.locator('[data-catalog-model-detail]').waitFor();await page.reload({waitUntil:'networkidle'});assert.match(await page.locator('[data-catalog-model-detail]').innerText(),role==='host'?/反查适配配件/:/配件模板：配置适用机型/)
-  await page.locator('[data-catalog-model-sales-edit]').click();const workspace=page.getByRole('dialog',{name:'搭配与适用',exact:true});await workspace.getByRole('tab',{name:'适用关系',exact:true}).click()
+  await page.locator('[data-catalog-model-compatibility]').click();const workspace=page.getByRole('dialog',{name:'模型适用关系',exact:true});
   if(role==='host')await page.locator('[data-host-template-compatibility]').waitFor();else await page.locator('[data-template-compatibility-dialog]').waitFor()
   assert.equal(await workspace.locator('[data-template-role-unknown]').count(),0);await workspace.getByRole('button',{name:'关闭',exact:true}).last().click();await workspace.waitFor({state:'hidden'})
  }

@@ -52,7 +52,6 @@ try {
     planningRecords: window.__store.data.planningRecords.map(row => row.planningId),
     materialReceipts: window.__store.data.materialReceipts,
     compatibilities: window.__store.data.compatibilities,
-    benefitPackages: window.__store.data.benefitPackages,
   }))
   async function chooseLayout(label) {
     await page.locator('.el-segmented').getByText(label, {exact: true}).click()

@@ -186,52 +186,6 @@ export const guideTroubleshootingArticles: GuideArticle[] = [
     ]
   },
   {
-    "id": "troubleshooting-benefit-issue",
-    "title": "权益包不能保存可用或交付",
-    "kind": "troubleshooting",
-    "summary": "先按问题定位具体成员、数量、设备或报价；不能统一建议删除商品。",
-    "aliases": [
-      "权益包不能保存可用或交付",
-      "business"
-    ],
-    "pageIds": [],
-    "actionIds": [
-      "action-benefit-save"
-    ],
-    "ruleIds": [
-      "rule-benefit-validation"
-    ],
-    "related": [
-      "manual-feedback"
-    ],
-    "sections": [
-      {
-        "id": "symptom",
-        "title": "现象与失败类别",
-        "paragraphs": [
-          "权益包不能保存可用或交付",
-          "类别：business。先按问题定位具体成员、数量、设备或报价；不能统一建议删除商品。"
-        ]
-      },
-      {
-        "id": "steps",
-        "title": "检查顺序与恢复",
-        "steps": [
-          "点击问题进入包内清单并定位输入。",
-          "修正失效引用、框架范围和条件确认。",
-          "保存最新配置并复核报价，再重新预览交付。"
-        ]
-      },
-      {
-        "id": "feedback",
-        "title": "何时反馈",
-        "paragraphs": [
-          "按以上顺序仍不能确定时，带当前动作、必要对象/字段和原错误反馈；未知情况不冒配确定规则。"
-        ]
-      }
-    ]
-  },
-  {
     "id": "troubleshooting-access",
     "title": "看得到菜单却不能操作",
     "kind": "troubleshooting",

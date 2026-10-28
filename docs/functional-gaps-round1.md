@@ -86,8 +86,6 @@ Escape 恢复已应用值。输入法组合期间不提交；保存、另存、�
 | SPU 列表、新建、详情 | `/spus`、`/spus/new`、`/spus/:id` |
 | SKU 工作台、新建、编辑 | `/skus`、`/skus/new`、`/skus/:id` |
 | 物料建档、档案 | `/materials/new`、`/materials/:id` |
-| 权益包列表、新建、详情 | `/benefit-packages`、`/benefit-packages/new`、`/benefit-packages/:id` |
-| 交付清单 | `/benefit-packages/deliveries/:id` |
 | 模板兼容和结构物料 | `/specs` 内的实际能力 |
 
 路由匹配先识别 new 和 deliveries，再识别普通详情，不硬编码记录 ID。旧 products 入口及列配置帮助继续可解析。
@@ -96,7 +94,6 @@ Escape 恢复已应用值。输入法组合期间不提交；保存、另存、�
 
 PageAssist 使用完整路由作为反馈来源，保留记录 ID、SPU 范围、模型及相关查询参数；功能清单匹配使用规范页面键。未知清单的来源标题回退路由标题，不统一使用“当前页面”。
 
-本机反馈、SKU/MAT 区别、权益包只生成清单的边界明确说明，没有把本机反馈升级为服务器工单，也未宣称支付、扣库存、出库或激活已经实现。
 
 ## 5. 修改文件与职责
 
@@ -120,7 +117,6 @@ PageAssist 使用完整路由作为反馈来源，保留记录 ID、SPU 范围�
 | `scripts/functional-gaps-check.ts` | 新语义领域检查 |
 | `scripts/browser-functional-gaps.mjs` | 真实 Chrome/Edge 流程与失败场景 |
 
-`ProductModelSelector.vue`、`logic.ts`（含 generateSkuFromModel）、`planning.ts`、`material.ts`、命名算法、发布快照业务及模板兼容/权益包算法未修改。类型、分类和 SPU 没有合并；未新增价格、库存、支付、BOM 等能力。
 
 ## 6. 实际验证
 
@@ -146,7 +142,6 @@ Chrome、Edge 的新流程通过：
 - 实际 Web Lock 持锁期间重复提交仅一次写入，等待期间禁止切换操作。
 - 两条同名 MAT 可见、完整组合全部取值节点高亮、准确档案 query。
 - 历史版只有历史物料仍为未建；草稿新增组合不伪造 PLN/MAT；展示不写业务数据。
-- 实际进入 SPU、SKU、物料、权益包、已保存权益包详情和真实生成的交付清单页面检查帮助。
 - 实际保存具体功能反馈，断言页面、功能 ID、功能名及 `/skus/gaps-a?spu=gaps-spu` 完整来源。
 
 大样本复用已有模板兼容 fixture（8 款式 × 32 颜色 × 16 包装）：4096 组合，每页 10 行，实际画布 291 节点；打开及翻页断言通过。原始耗时在 browser 结果中，属于本机单次观测，不是旧实现对比或性能承诺。
@@ -166,7 +161,6 @@ node scripts/run-domain-check.mjs scripts/planning-check.ts
 node scripts/run-domain-check.mjs scripts/material-check.ts
 node scripts/run-domain-check.mjs scripts/template-compatibility-domain-check.ts
 node scripts/run-domain-check.mjs scripts/template-compatibility-state-check.ts
-node scripts/run-domain-check.mjs scripts/benefit-package-domain-check.ts
 node scripts/browser-sku-workbench.mjs
 npm run typecheck
 npm run build
@@ -175,7 +169,6 @@ git diff --check
 
 `product-list-query-check` 复用原命名、组合物料、档案、列表及视图断言。未机械运行依赖独立历史基线的全部旧视觉脚本。旧 SKU 浏览器流程包含已保存视图、范围、失败、字段、排序、分组、明暗及窄屏等原检查。
 
-后续重跑应设置：`SKU_WORKBENCH_OUTPUT_DIR`、`SKU_MIGRATION_FIX_OUTPUT`、`SKU_RESTORE_FIX_OUTPUT_DIR`、`TEMPLATE_COMPATIBILITY_OUTPUT_DIR`、`BENEFIT_DOMAIN_OUTPUT_DIR` 至 `work/functional-gaps-round1/` 下对应目录。新增浏览器脚本已固定在本轮目录按浏览器隔离输出。
 
 ## 7. 少量关键截图与结果
 

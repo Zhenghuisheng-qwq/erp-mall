@@ -12,9 +12,9 @@ try{
   browser=await chromium.launch({channel:'chrome',headless:true})
   for(const strict of [false,true]){
     const server=await createServer({cacheDir:`${runtime}/${strict?'strict':'default'}`,logLevel:'error',define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify(String(strict))},server:{host:'127.0.0.1',port:0,watch:null,hmr:false}});servers.push(server)
-    const {createBenefitPackageFixture}=await server.ssrLoadModule('/scripts/benefit-package-fixtures.ts'),{normalizeStored}=await server.ssrLoadModule('/src/stores/catalog.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
+    const {createAccessoryCompatibilityFixture}=await server.ssrLoadModule('/scripts/accessory-compatibility-fixtures.ts'),{normalizeStored}=await server.ssrLoadModule('/src/stores/catalog.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
     const {guidePages}=await server.ssrLoadModule('/src/domain/guide/registry.ts'),{guideManualContents}=await server.ssrLoadModule('/src/domain/guide/content/manuals.ts')
-    const fixture=createBenefitPackageFixture(),data=normalizeStored({version:DATA_VERSION,data:fixture.data})
+    const fixture=createAccessoryCompatibilityFixture(),data=normalizeStored({version:DATA_VERSION,data:fixture.data})
     data.categories.push({id:'guide-move-source',name:'说明测试来源',parentId:null,sort:200,enabled:true},{id:'guide-move-child',name:'说明测试来源子类',parentId:'guide-move-source',sort:1,enabled:true},{id:'guide-move-source-b',name:'说明测试来源二',parentId:null,sort:201,enabled:true},{id:'guide-move-child-b',name:'说明测试来源二子类',parentId:'guide-move-source-b',sort:1,enabled:true},{id:'guide-move-target',name:'说明测试目标',parentId:null,sort:202,enabled:true})
     data.rbac.roles.push({id:'guide-reading-only',code:'guide-reading-only',name:'说明只读',description:'isolated browser fixture',enabled:true,permissionCodes:['system:guide:read']})
     data.users.push({id:'guide-reader',username:'guide-reader',displayName:'说明只读',enabled:true,role:'operator',roleIds:['guide-reading-only']})
@@ -86,11 +86,11 @@ try{
     await closeHelp();assertEqual(await snapshot(),before,'reading/switching/closing never changes URL or data');await page.close()
     mark(`${strict?'strict':'default'}: one menu directory/renderer, three blocks and same top-help content; no legacy guide IO`)
 
-    for(const [path,selector,value]of [['/spus/new','input[data-spu-name], [data-spu-name] input','说明前SPU输入'],[`/skus/${fixture.ids.phoneA}`,'input[data-sku-name], [data-sku-name] input','说明前SKU输入'],['/benefit-packages/new','input[data-benefit-name], [data-benefit-name] input','说明前权益包输入']]){
+    for(const [path,selector,value]of [['/spus/new','input[data-spu-name], [data-spu-name] input','说明前SPU输入'],[`/skus/${fixture.ids.phoneA}`,'input[data-sku-name], [data-sku-name] input','说明前SKU输入']]){
       await openPage(path);const input=page.locator(selector);await input.fill(value);before=await snapshot();await openHelp();await drawer().locator('.guide-related-actions button').first().click();await closeHelp()
       assert.equal(await input.inputValue(),value);assertEqual(await snapshot(),before,path+' draft/URL/storage');assertEqual(await page.evaluate(()=>window.__guideIO),{reads:0,writes:0},'legacy keys untouched');await page.close()
     }
-    mark(`${strict?'strict':'default'}: SPU, SKU and benefit unsaved drafts/URLs survive page-help switching`)
+    mark(`${strict?'strict':'default'}: SPU and SKU unsaved drafts/URLs survive page-help switching`)
 
     await openPage('/skus');const filter=page.getByRole('textbox',{name:'在当前视图中搜索',exact:true}),keyword=data.skus.find(s=>s.id===fixture.ids.phoneA)?.code||'phone'
     await filter.fill(keyword);await page.waitForTimeout(180);const firstRow=page.locator('.sku-table .el-table__body-wrapper tbody tr').first();await firstRow.locator('.el-checkbox').first().click()

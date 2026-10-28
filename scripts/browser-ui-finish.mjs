@@ -11,8 +11,8 @@ const server = await createServer({ cacheDir: resolve(process.env.UI_FINISH_OUTP
 let browser, page
 const checks = [], errors = [], geometry = []
 try {
-  const { createBenefitPackageFixture } = await server.ssrLoadModule('/scripts/benefit-package-fixtures.ts')
-  const { data } = createBenefitPackageFixture(); data.activeRole = 'admin'
+  const { createAccessoryCompatibilityFixture } = await server.ssrLoadModule('/scripts/accessory-compatibility-fixtures.ts')
+  const { data } = createAccessoryCompatibilityFixture(); data.activeRole = 'admin'
   await server.listen()
   const base = `http://127.0.0.1:${server.httpServer.address().port}`
   browser = await chromium.launch({ channel: 'chrome', headless: true })

@@ -41,7 +41,7 @@ try {
     const page = await context.newPage(); page.setDefaultTimeout(12000); page.on('pageerror', error => errors.push(String(error)))
     await page.goto(`${base}/${mode === 'spu' ? 'spus' : 'skus'}`, { waitUntil: 'networkidle' })
     await page.evaluate(async () => { window.__layoutStore = (await import('/src/stores/catalog.ts')).useCatalogStore(); await window.__layoutStore.waitForPersistence() })
-    const business = await page.evaluate(() => JSON.stringify([window.__layoutStore.data.families, window.__layoutStore.data.skus, window.__layoutStore.data.specModelVersions, window.__layoutStore.data.benefitDeliveries]))
+    const business = await page.evaluate(() => JSON.stringify([window.__layoutStore.data.families, window.__layoutStore.data.skus, window.__layoutStore.data.specModelVersions]))
     const active = mode === 'spu' ? currentSpu.id : currentSku.id
     assert.equal(await page.locator(`[data-view-tab="${active}"]`).count(), 1)
     assert(await page.locator('[data-view-tab]').count() < 24)
@@ -95,7 +95,7 @@ try {
     await help.getByRole('button', { name: '关闭说明', exact: true }).click(); await help.waitFor({ state: 'hidden' })
     assert.equal(page.url(), url)
     assert.deepEqual(await page.evaluate(() => ({ raw: localStorage.getItem('iyge-v2-mock-db'), guides: Object.fromEntries(Object.keys(localStorage).filter(key => /guide/i.test(key)).map(key => [key, localStorage.getItem(key)])) })), beforeHelp); checks++
-    assert.equal(await page.evaluate(() => JSON.stringify([window.__layoutStore.data.families, window.__layoutStore.data.skus, window.__layoutStore.data.specModelVersions, window.__layoutStore.data.benefitDeliveries])), business)
+    assert.equal(await page.evaluate(() => JSON.stringify([window.__layoutStore.data.families, window.__layoutStore.data.skus, window.__layoutStore.data.specModelVersions])), business)
     if (mode === 'sku') {
       const saved = await page.evaluate(() => window.__layoutStore.data.productListPages.sku.views.find(v => v.id === 'layout-sku-current').skuWorkbench)
       assert.equal(saved.categoryLayout, 'popover'); assert.equal(saved.columns[0].width, 187); assert.equal(saved.columns[0].frozen, 'left')

@@ -6,16 +6,13 @@
     "branch": "20261022",
     "head": "fd5f6c8d1d899f1709a5ee58c775f8ad89a99c86",
     "initialStatus": [
-      " M README.md",
-      "?? docs/benefit-package-workbench-evidence.json",
-      "?? docs/benefit-package-workbench.md"
+      " M README.md"
     ],
     "sourceZip": {
       "bytes": 1465786,
       "sha256": "c15685f81554cb79f018505c678d0537c26c59f0d84c6dadfcb030ea158ff53a"
     },
-    "manifest": "work/template-compatibility/baseline/manifest.json",
-    "basis": "Actual start-of-task working tree: HEAD content plus original README and two initially untracked benefit reports. Text comparisons normalize CRLF; old work files and initially untracked user reports compare raw bytes."
+    "manifest": "work/template-compatibility/baseline/manifest.json"
   },
   "environment": {
     "node": "v22.18.0",
@@ -80,36 +77,6 @@
       "bytes": 1982
     },
     {
-      "name": "benefit-package-domain",
-      "command": "node scripts/run-domain-check.mjs scripts/benefit-package-domain-check.ts",
-      "exit": 0,
-      "milliseconds": 475,
-      "phase": "baseline",
-      "path": "work/template-compatibility/baseline/benefit-package-domain.log",
-      "sha256": "df0cc7b7e71c8e414dd1c6ca9f4f771ceb44cbb00d75f9bb3d60403af0c41212",
-      "bytes": 3355
-    },
-    {
-      "name": "benefit-package-state",
-      "command": "node scripts/run-domain-check.mjs scripts/benefit-package-state-check.ts",
-      "exit": 0,
-      "milliseconds": 710,
-      "phase": "baseline",
-      "path": "work/template-compatibility/baseline/benefit-package-state.log",
-      "sha256": "396f26518df73d06095560580661a19f92fa6ad92920e796fea506b573dc50fb",
-      "bytes": 2307
-    },
-    {
-      "name": "benefit-package-export",
-      "command": "node scripts/run-domain-check.mjs scripts/benefit-package-export-check.ts",
-      "exit": 0,
-      "milliseconds": 548,
-      "phase": "baseline",
-      "path": "work/template-compatibility/baseline/benefit-package-export.log",
-      "sha256": "543177e974c69eb843ef02ba5c8b74b74c0e7a70557fb533ccf59f945f3bd52e",
-      "bytes": 672
-    },
-    {
       "name": "frontend",
       "command": "node scripts/check-frontend.mjs",
       "exit": 0,
@@ -158,36 +125,6 @@
       "path": "work/template-compatibility/final-domain/accessory-compatibility-state.log",
       "sha256": "e656d95e096cb68e991276d1d8e83fdba704dd0a28d676bf4f1610eb836dfa07",
       "bytes": 1982
-    },
-    {
-      "name": "benefit-package-domain",
-      "command": "node scripts/run-domain-check.mjs scripts/benefit-package-domain-check.ts",
-      "exit": 0,
-      "milliseconds": 2585,
-      "phase": "final-domain",
-      "path": "work/template-compatibility/final-domain/benefit-package-domain.log",
-      "sha256": "df0cc7b7e71c8e414dd1c6ca9f4f771ceb44cbb00d75f9bb3d60403af0c41212",
-      "bytes": 3355
-    },
-    {
-      "name": "benefit-package-state",
-      "command": "node scripts/run-domain-check.mjs scripts/benefit-package-state-check.ts",
-      "exit": 0,
-      "milliseconds": 2516,
-      "phase": "final-domain",
-      "path": "work/template-compatibility/final-domain/benefit-package-state.log",
-      "sha256": "396f26518df73d06095560580661a19f92fa6ad92920e796fea506b573dc50fb",
-      "bytes": 2307
-    },
-    {
-      "name": "benefit-package-export",
-      "command": "node scripts/run-domain-check.mjs scripts/benefit-package-export-check.ts",
-      "exit": 0,
-      "milliseconds": 2331,
-      "phase": "final-domain",
-      "path": "work/template-compatibility/final-domain/benefit-package-export.log",
-      "sha256": "543177e974c69eb843ef02ba5c8b74b74c0e7a70557fb533ccf59f945f3bd52e",
-      "bytes": 672
     },
     {
       "name": "sku-workbench-query",
@@ -288,16 +225,6 @@
       "path": "work/template-compatibility/regression-final/browser-accessory-compatibility.log",
       "sha256": "04107709088af00fa4ffdc14c22f89c5296f8d5f67cdc759e743ba30ac8e0db9",
       "bytes": 1153
-    },
-    {
-      "name": "browser-benefit-packages",
-      "command": "node scripts/browser-benefit-packages.mjs",
-      "exit": 0,
-      "milliseconds": 36816,
-      "phase": "regression-final",
-      "path": "work/template-compatibility/regression-final/browser-benefit-packages.log",
-      "sha256": "ea422f6962aec1243cea91742ea8c906d53922f5f65cc989f7e4019bcfb8811c",
-      "bytes": 1506
     },
     {
       "name": "browser-navigation-filter",
@@ -1574,11 +1501,6 @@
       "note": "Full ordered business states remain in the referenced raw artifact; no repeated full AppData copies in this report."
     },
     {
-      "artifact": {
-        "path": "work/template-compatibility/regression-final/benefit/browser/result.json",
-        "sha256": "7a3174e52e84df6b8f2381412fa0a1a76bf93212f3dd369afd64da1b77dd136a",
-        "bytes": 2286
-      },
       "result": "PASS",
       "browser": "156.0.8078.47",
       "checkpointCount": 18,
@@ -1744,22 +1666,6 @@
       "rawSha256": "d3e445a65bd0b5d2c40cb5716592b584fd69f3249e1afe11434206b90cf44760",
       "normalizedSha256": "d3e445a65bd0b5d2c40cb5716592b584fd69f3249e1afe11434206b90cf44760"
     },
-    "scripts/benefit-package-domain-check.ts": {
-      "rawSha256": "c0d0f2567847b8dbf190a6462b06124ef76bd72477f992fccb9c05eee0c99304",
-      "normalizedSha256": "c0d0f2567847b8dbf190a6462b06124ef76bd72477f992fccb9c05eee0c99304"
-    },
-    "scripts/benefit-package-export-check.ts": {
-      "rawSha256": "a332c403eb5aeb8ec299e043773635f5fae08b043959672415c88a3eef2b6ae9",
-      "normalizedSha256": "a332c403eb5aeb8ec299e043773635f5fae08b043959672415c88a3eef2b6ae9"
-    },
-    "scripts/benefit-package-fixtures.ts": {
-      "rawSha256": "ea8db94f4b9d9f7071e342eacc1e34b448ce0f7e4f5e6bb1333d2f12d2364b94",
-      "normalizedSha256": "ea8db94f4b9d9f7071e342eacc1e34b448ce0f7e4f5e6bb1333d2f12d2364b94"
-    },
-    "scripts/benefit-package-state-check.ts": {
-      "rawSha256": "b6c92b727545abf958765d45dbe2199c93df884f5512d5ff1a50089e5d55d8f9",
-      "normalizedSha256": "b6c92b727545abf958765d45dbe2199c93df884f5512d5ff1a50089e5d55d8f9"
-    },
     "scripts/browser-4a.mjs": {
       "rawSha256": "e38e0af276efe4a8582fe1cebbf247341642e72916dbc0d54a172288d73feee1",
       "normalizedSha256": "3155e698d0127f8216eeddd36c83afaf8835bdc947d4ca1aaa91b1ea0af76b68"
@@ -1783,10 +1689,6 @@
     "scripts/browser-accessory-compatibility.mjs": {
       "rawSha256": "2020e80b0538b4fdb322dc4c6aedc3f07c94ee7749d7cb1b8c22fca8318668a1",
       "normalizedSha256": "2020e80b0538b4fdb322dc4c6aedc3f07c94ee7749d7cb1b8c22fca8318668a1"
-    },
-    "scripts/browser-benefit-packages.mjs": {
-      "rawSha256": "db8748b266d982bfb8f645312868cde82a738a3289a61b862a1b69b3f413a12f",
-      "normalizedSha256": "db8748b266d982bfb8f645312868cde82a738a3289a61b862a1b69b3f413a12f"
     },
     "scripts/browser-compat.mjs": {
       "rawSha256": "86bfd8ba9e781e077a7b07be6c21bbf124d8587367320f7fab2b213afb5fe73a",
@@ -2152,34 +2054,6 @@
       "rawSha256": "052a2f29202071fd05e1679520a4f293a258302c22d47269e5756f8606d5a730",
       "normalizedSha256": "02d7f3655c29fde6d47c1af414a8388e2d36cdb3a891d295c154db374a05bbb3"
     },
-    "src/components/benefit-package/BenefitDeliverySheet.vue": {
-      "rawSha256": "b12911291d5041e47d73fda23f493f9a0a6e2bc84f9f239f01f1d0a0f6a78c39",
-      "normalizedSha256": "b12911291d5041e47d73fda23f493f9a0a6e2bc84f9f239f01f1d0a0f6a78c39"
-    },
-    "src/components/benefit-package/BenefitIntegerInput.vue": {
-      "rawSha256": "8e88fa0949ddb04dad601e8f22c845566b673ef113ef9bbf87fe08e9f18193a5",
-      "normalizedSha256": "8e88fa0949ddb04dad601e8f22c845566b673ef113ef9bbf87fe08e9f18193a5"
-    },
-    "src/components/benefit-package/BenefitRuleEditor.vue": {
-      "rawSha256": "1e72e00e4c01cf8f3a44a60006f14070166e1322f44e9e1f71a21da77e479959",
-      "normalizedSha256": "1e72e00e4c01cf8f3a44a60006f14070166e1322f44e9e1f71a21da77e479959"
-    },
-    "src/components/benefit-package/BenefitServiceDialog.vue": {
-      "rawSha256": "70676b8f72554bb02ad61ec21e9296819e574d884fe59d3308f408d9770e2736",
-      "normalizedSha256": "70676b8f72554bb02ad61ec21e9296819e574d884fe59d3308f408d9770e2736"
-    },
-    "src/components/benefit-package/benefitPackagePresentation.ts": {
-      "rawSha256": "c903e183032211662237d15e12acb1273a4fd2cf8321708493cc9ee1110e039f",
-      "normalizedSha256": "c903e183032211662237d15e12acb1273a4fd2cf8321708493cc9ee1110e039f"
-    },
-    "src/components/benefit-package/skuReturnState.ts": {
-      "rawSha256": "5c321b455b8ab3147e11a34ea0580006ffb8c6b36072f8a28d61b380259bf747",
-      "normalizedSha256": "5c321b455b8ab3147e11a34ea0580006ffb8c6b36072f8a28d61b380259bf747"
-    },
-    "src/components/benefit-package/useBenefitPackageEditor.ts": {
-      "rawSha256": "37089a00adb9d0a467f0083d1cb071a47adc70548be0d5928a2f27f604c12e6c",
-      "normalizedSha256": "37089a00adb9d0a467f0083d1cb071a47adc70548be0d5928a2f27f604c12e6c"
-    },
     "src/components/catalog/SkuFields.vue": {
       "rawSha256": "1a89e3fa715f9c12f1533a925317193dac1333cd556062b211a5b9fba3de9a70",
       "normalizedSha256": "1a89e3fa715f9c12f1533a925317193dac1333cd556062b211a5b9fba3de9a70"
@@ -2331,18 +2205,6 @@
     "src/domain/accessoryCompatibilityTypes.ts": {
       "rawSha256": "87c0dd14614cf103a4df717315e3ed44f61634d1a3f6a8d2cdcf6c39db9bea07",
       "normalizedSha256": "87c0dd14614cf103a4df717315e3ed44f61634d1a3f6a8d2cdcf6c39db9bea07"
-    },
-    "src/domain/benefitPackageExport.ts": {
-      "rawSha256": "2cec61735c6f5bee15da19f224aea5127889f9671dc65b5eba70b1989ed59c95",
-      "normalizedSha256": "2cec61735c6f5bee15da19f224aea5127889f9671dc65b5eba70b1989ed59c95"
-    },
-    "src/domain/benefitPackageTypes.ts": {
-      "rawSha256": "9e940dd9f8c7dbba808975e26dea0f88505ebdd7663bcb77cc39601bcc7fbee6",
-      "normalizedSha256": "9e940dd9f8c7dbba808975e26dea0f88505ebdd7663bcb77cc39601bcc7fbee6"
-    },
-    "src/domain/benefitPackages.ts": {
-      "rawSha256": "682ba80921a1ff8526002a862f17d494b5e57e27fd6443f0e3672cdae1426320",
-      "normalizedSha256": "682ba80921a1ff8526002a862f17d494b5e57e27fd6443f0e3672cdae1426320"
     },
     "src/domain/catalogIdentity.ts": {
       "rawSha256": "56eae4bd650b45598363c443f34fd8297b6da56b741329811222506abf10caf4",
@@ -2624,18 +2486,6 @@
       "rawSha256": "1b3e7f7a4306bc747fa5ce6c2099338c62d88ef1ddb4d079d5ca658740ab8aad",
       "normalizedSha256": "77ecce4a1fb57971f9821327db003fc12c9b5161f4303fba905ddfe799141425"
     },
-    "src/views/BenefitDeliveryView.vue": {
-      "rawSha256": "4706887ec82687ddb42f87344cf8ac8d94a88dd49b552a89fa56c375462aca84",
-      "normalizedSha256": "4706887ec82687ddb42f87344cf8ac8d94a88dd49b552a89fa56c375462aca84"
-    },
-    "src/views/BenefitPackageEditView.vue": {
-      "rawSha256": "7d1027a244ad0ddb08fe96470873b3f3fc4e708f927bdaf632d88c400ce89326",
-      "normalizedSha256": "0b3aa43caa4f1abb4c4e86e4a382af2e293819f4a6ff27385d8f3bb8687f059e"
-    },
-    "src/views/BenefitPackageListView.vue": {
-      "rawSha256": "840d527f78ef3a2c7a21138f9666a50ad90c303a872f00cc2057a6da32291717",
-      "normalizedSha256": "840d527f78ef3a2c7a21138f9666a50ad90c303a872f00cc2057a6da32291717"
-    },
     "src/views/BrandView.vue": {
       "rawSha256": "57b4319725e6323a74e6708051acd2296973a3f9e71c155e70a1fcfb9c3da101",
       "normalizedSha256": "8c1558a870dbfbf4f7797d9f429450a297ee18d38b36cbd13cf8ec3352e66f70"
@@ -2752,7 +2602,6 @@
     "submitted": false,
     "pushed": false,
     "merged": false,
-    "deployed": false,
-    "status": " M .gitignore\n M README.md\n M package.json\n M scripts/browser-frontend-final.mjs\n M scripts/run-domain-check.mjs\n M src/components/StoredDataRecovery.vue\n M src/components/TemporaryMaterialDialog.vue\n M src/components/V3MaterialActions.vue\n M src/components/compatibility/AccessoryCompatibilityDrawer.vue\n M src/components/compatibility/CompatibilityManager.vue\n M src/domain/accessoryCompatibilityCommands.ts\n M src/domain/accessoryCompatibilityQuery.ts\n M src/domain/accessoryCompatibilityTypes.ts\n M src/domain/catalogIdentity.ts\n M src/domain/planning.ts\n M src/domain/types.ts\n M src/stores/catalog.ts\n M src/views/ModelListView.vue\n M src/views/ProductIoView.vue\n M src/views/SkuCreateView.vue\n M src/views/SpecConfigView.vue\n?? docs/benefit-package-workbench-evidence.json\n?? docs/benefit-package-workbench.md\n?? docs/template-compatibility-workbench-evidence.json\n?? docs/template-compatibility-workbench.md\n?? scripts/browser-template-compatibility-import.mjs\n?? scripts/browser-template-compatibility.mjs\n?? scripts/template-compatibility-batch-performance.ts\n?? scripts/template-compatibility-domain-check.ts\n?? scripts/template-compatibility-fixtures.ts\n?? scripts/template-compatibility-performance.ts\n?? scripts/template-compatibility-scope-audit.mjs\n?? scripts/template-compatibility-state-check.ts\n?? scripts/template-compatibility-visual-check.mjs\n?? src/components/template-compatibility/\n?? src/domain/compatibilityValidation.ts\n?? src/domain/templateCompatibility.ts\n?? src/domain/templateCompatibilitySync.ts\n?? src/domain/templateCompatibilityTypes.ts"
+    "deployed": false
   }
 }

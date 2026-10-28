@@ -417,7 +417,6 @@ export const guideRuleArticles: GuideArticle[] = [
       "page-plans",
       "page-spu-edit",
       "page-material-edit",
-      "page-benefits"
     ],
     "actionIds": [
       "action-model-create",
@@ -433,9 +432,6 @@ export const guideRuleArticles: GuideArticle[] = [
       "action-spu-history",
       "action-material-edit",
       "action-material-unlink",
-      "action-framework-save",
-      "action-benefit-copy",
-      "action-benefit-query"
     ],
     "ruleIds": [],
     "related": [
@@ -480,7 +476,7 @@ export const guideRuleArticles: GuideArticle[] = [
         "id": "impact",
         "title": "影响范围",
         "paragraphs": [
-          "适用于商品模型列表、商品模型设计、商品规划（保留入口）、SPU 详情、物料档案、权益包与框架；不追溯重写已有快照或凭说明新增限制。"
+          "适用于商品模型列表、商品模型设计、商品规划（保留入口）、SPU 详情、物料档案；不追溯重写已有快照或凭说明新增限制。"
         ]
       },
       {
@@ -1483,17 +1479,14 @@ export const guideRuleArticles: GuideArticle[] = [
     ],
     "pageIds": [
       "page-compatibility",
-      "page-benefit-create"
     ],
     "actionIds": [
       "action-compatibility-bind",
       "action-compatibility-declare",
-      "action-benefit-select"
     ],
     "ruleIds": [],
     "related": [
       "manual-compatibility",
-      "manual-benefit-create"
     ],
     "sections": [
       {
@@ -1532,7 +1525,7 @@ export const guideRuleArticles: GuideArticle[] = [
         "id": "impact",
         "title": "影响范围",
         "paragraphs": [
-          "适用于适用关系、新建权益包；不追溯重写已有快照或凭说明新增限制。"
+          "适用于适用关系；不追溯重写已有快照或凭说明新增限制。"
         ]
       },
       {
@@ -1705,399 +1698,6 @@ export const guideRuleArticles: GuideArticle[] = [
     ]
   },
   {
-    "id": "rule-framework-members",
-    "title": "框架类型范围与修订保护",
-    "kind": "rule",
-    "summary": "容器损坏与可修复缺引用必须区分",
-    "aliases": [
-      "框架类型范围与修订保护",
-      "framework-members"
-    ],
-    "pageIds": [
-      "page-benefits",
-      "page-benefit-create"
-    ],
-    "actionIds": [
-      "action-framework-save",
-      "action-benefit-copy",
-      "action-benefit-query",
-      "action-benefit-select",
-      "action-benefit-save"
-    ],
-    "ruleIds": [],
-    "related": [
-      "manual-benefits",
-      "manual-benefit-create"
-    ],
-    "sections": [
-      {
-        "id": "conditions",
-        "title": "真实允许与禁止条件",
-        "table": {
-          "headers": [
-            "允许条件",
-            "禁止条件"
-          ],
-          "rows": [
-            [
-              "成员在唯一启用类型组；合法冻结修订；缺失引用可读并修正",
-              "真实组外 SKU 导入为可用、重叠类型组或损坏冻结依据"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "examples",
-        "title": "正确与失败示例",
-        "table": {
-          "headers": [
-            "正确示例",
-            "失败示例"
-          ],
-          "rows": [
-            [
-              "保存只有类型范围的框架，再动态选择新在售 SKU",
-              "商品模块重置导致已引用框架成员失效仍提交"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "impact",
-        "title": "影响范围",
-        "paragraphs": [
-          "适用于权益包与框架、新建权益包；不追溯重写已有快照或凭说明新增限制。"
-        ]
-      },
-      {
-        "id": "next",
-        "title": "当前下一步",
-        "paragraphs": [
-          "定位组/成员修正；破坏引用的模块重置应拒绝"
-        ]
-      },
-      {
-        "id": "mode",
-        "title": "适用权限模式",
-        "paragraphs": [
-          "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "rule-benefit-validation",
-    "title": "可用权益包通过当前成员与条件校验",
-    "kind": "rule",
-    "summary": "草稿可待完善，但可用/交付不能绕过阻断",
-    "aliases": [
-      "可用权益包通过当前成员与条件校验",
-      "benefit-validation"
-    ],
-    "pageIds": [
-      "page-benefit-create",
-      "page-benefit-edit"
-    ],
-    "actionIds": [
-      "action-benefit-select",
-      "action-benefit-save",
-      "action-benefit-deliver"
-    ],
-    "ruleIds": [],
-    "related": [
-      "manual-benefit-create",
-      "manual-benefit-edit"
-    ],
-    "sections": [
-      {
-        "id": "conditions",
-        "title": "真实允许与禁止条件",
-        "table": {
-          "headers": [
-            "允许条件",
-            "禁止条件"
-          ],
-          "rows": [
-            [
-              "真实成员、数量、服务、设备及条件确认符合当前配置",
-              "失效 SKU/主体/主机、件数/必选种数不符或无正式适配依据"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "examples",
-        "title": "正确与失败示例",
-        "table": {
-          "headers": [
-            "正确示例",
-            "失败示例"
-          ],
-          "rows": [
-            [
-              "缺成员的旧包可打开修复后再保存可用",
-              "缺引用仍生成新交付，或把 MAT 放成销售商品"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "impact",
-        "title": "影响范围",
-        "paragraphs": [
-          "适用于新建权益包、权益包详情；不追溯重写已有快照或凭说明新增限制。"
-        ]
-      },
-      {
-        "id": "next",
-        "title": "当前下一步",
-        "paragraphs": [
-          "点具体问题定位成员输入，修正后保存；旧历史只读"
-        ]
-      },
-      {
-        "id": "mode",
-        "title": "适用权限模式",
-        "paragraphs": [
-          "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "rule-benefit-quote",
-    "title": "人工报价与参考合计分别记录",
-    "kind": "rule",
-    "summary": "报价不是自动由参考价推导出的唯一售价",
-    "aliases": [
-      "人工报价与参考合计分别记录",
-      "benefit-quote"
-    ],
-    "pageIds": [
-      "page-benefit-create",
-      "page-benefit-edit"
-    ],
-    "actionIds": [
-      "action-benefit-select",
-      "action-benefit-save",
-      "action-benefit-quote",
-      "action-benefit-deliver"
-    ],
-    "ruleIds": [],
-    "related": [
-      "manual-benefit-create",
-      "manual-benefit-edit"
-    ],
-    "sections": [
-      {
-        "id": "conditions",
-        "title": "真实允许与禁止条件",
-        "table": {
-          "headers": [
-            "允许条件",
-            "禁止条件"
-          ],
-          "rows": [
-            [
-              "未填与 0 元区分；每包报价人工填写，变化后复核当前依据",
-              "把空价当 0，内容/参考价变后沿用旧复核"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "examples",
-        "title": "正确与失败示例",
-        "table": {
-          "headers": [
-            "正确示例",
-            "失败示例"
-          ],
-          "rows": [
-            [
-              "参考合计高于人工报价，负差额合法",
-              "数量已改变仍拿旧报价确认直接交付"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "impact",
-        "title": "影响范围",
-        "paragraphs": [
-          "适用于新建权益包、权益包详情；不追溯重写已有快照或凭说明新增限制。"
-        ]
-      },
-      {
-        "id": "next",
-        "title": "当前下一步",
-        "paragraphs": [
-          "核对组成与价源，点击复核当前报价"
-        ]
-      },
-      {
-        "id": "mode",
-        "title": "适用权限模式",
-        "paragraphs": [
-          "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "rule-benefit-preview",
-    "title": "交付须基于最新保存与确认预览",
-    "kind": "rule",
-    "summary": "防止生成与当前承诺不一致的清单",
-    "aliases": [
-      "交付须基于最新保存与确认预览",
-      "benefit-preview"
-    ],
-    "pageIds": [
-      "page-benefit-edit",
-      "page-benefit-delivery"
-    ],
-    "actionIds": [
-      "action-benefit-deliver",
-      "action-delivery-export"
-    ],
-    "ruleIds": [],
-    "related": [
-      "manual-benefit-edit",
-      "manual-benefit-delivery"
-    ],
-    "sections": [
-      {
-        "id": "conditions",
-        "title": "真实允许与禁止条件",
-        "table": {
-          "headers": [
-            "允许条件",
-            "禁止条件"
-          ],
-          "rows": [
-            [
-              "包可用、无未保存更改、当前修订预览通过并明确确认",
-              "停用/失效包、旧修订/过期条件/旧预览继续生成"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "examples",
-        "title": "正确与失败示例",
-        "table": {
-          "headers": [
-            "正确示例",
-            "失败示例"
-          ],
-          "rows": [
-            [
-              "保存后填本次包数、预览、勾选再生成",
-              "修改商品或价格后直接确认旧预览"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "impact",
-        "title": "影响范围",
-        "paragraphs": [
-          "适用于权益包详情、交付清单；不追溯重写已有快照或凭说明新增限制。"
-        ]
-      },
-      {
-        "id": "next",
-        "title": "当前下一步",
-        "paragraphs": [
-          "保存最新配置并重新预览核对"
-        ]
-      },
-      {
-        "id": "mode",
-        "title": "适用权限模式",
-        "paragraphs": [
-          "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "rule-delivery-snapshot",
-    "title": "历史交付只读冻结内容",
-    "kind": "rule",
-    "summary": "交付清单是本机约定，不虚构订单支付库存",
-    "aliases": [
-      "历史交付只读冻结内容",
-      "delivery-snapshot"
-    ],
-    "pageIds": [
-      "page-benefit-delivery"
-    ],
-    "actionIds": [
-      "action-delivery-export"
-    ],
-    "ruleIds": [],
-    "related": [
-      "manual-benefit-delivery"
-    ],
-    "sections": [
-      {
-        "id": "conditions",
-        "title": "真实允许与禁止条件",
-        "table": {
-          "headers": [
-            "允许条件",
-            "禁止条件"
-          ],
-          "rows": [
-            [
-              "查看/导出使用生成时快照，后续商品和框架可独立维护",
-              "按当前商品/价格重算旧清单或把导出当出库激活"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "examples",
-        "title": "正确与失败示例",
-        "table": {
-          "headers": [
-            "正确示例",
-            "失败示例"
-          ],
-          "rows": [
-            [
-              "旧清单继续显示旧参考价与人工报价",
-              "改当前包后要求旧 Excel 自动换内容"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "impact",
-        "title": "影响范围",
-        "paragraphs": [
-          "适用于交付清单；不追溯重写已有快照或凭说明新增限制。"
-        ]
-      },
-      {
-        "id": "next",
-        "title": "当前下一步",
-        "paragraphs": [
-          "打开正确清单，导出失败只重试导出"
-        ]
-      },
-      {
-        "id": "mode",
-        "title": "适用权限模式",
-        "paragraphs": [
-          "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
-        ]
-      }
-    ]
-  },
-  {
     "id": "rule-json-import",
     "title": "导入校验与当前角色保护",
     "kind": "rule",
@@ -2193,7 +1793,6 @@ export const guideRuleArticles: GuideArticle[] = [
       "page-skus",
       "page-sku-edit",
       "page-material-create",
-      "page-benefit-edit",
       "page-brands",
       "page-groups",
       "page-rules",
@@ -2230,8 +1829,6 @@ export const guideRuleArticles: GuideArticle[] = [
       "action-sku-save",
       "action-material-create",
       "action-material-temporary",
-      "action-benefit-save",
-      "action-benefit-deliver",
       "action-brand-save",
       "action-group-create",
       "action-group-link",
@@ -2301,7 +1898,7 @@ export const guideRuleArticles: GuideArticle[] = [
         "id": "impact",
         "title": "影响范围",
         "paragraphs": [
-          "适用于商品分类中心、产品类型、属性词典、属性方案、新建 SPU、SPU 详情、SKU 管理、编辑 SKU、物料建档、权益包详情、品牌中心、运营分组、规格约束、商品导入导出、菜单配置、角色管理、权限目录、用户管理、账号设置、反馈管理；不追溯重写已有快照或凭说明新增限制。"
+          "适用于商品分类中心、产品类型、属性词典、属性方案、新建 SPU、SPU 详情、SKU 管理、编辑 SKU、物料建档、品牌中心、运营分组、规格约束、商品导入导出、菜单配置、角色管理、权限目录、用户管理、账号设置、反馈管理；不追溯重写已有快照或凭说明新增限制。"
         ]
       },
       {
@@ -2331,14 +1928,12 @@ export const guideRuleArticles: GuideArticle[] = [
     ],
     "pageIds": [
       "page-sku-create",
-      "page-benefit-edit",
       "page-import",
       "page-roles"
     ],
     "actionIds": [
       "action-material-relation",
       "action-compatibility-sync",
-      "action-benefit-deliver",
       "action-json-import",
       "action-table-import",
       "action-backup-export",
@@ -2350,7 +1945,6 @@ export const guideRuleArticles: GuideArticle[] = [
     "ruleIds": [],
     "related": [
       "manual-sku-create",
-      "manual-benefit-edit",
       "manual-import"
     ],
     "sections": [
@@ -2390,7 +1984,7 @@ export const guideRuleArticles: GuideArticle[] = [
         "id": "impact",
         "title": "影响范围",
         "paragraphs": [
-          "适用于新增 SKU、权益包详情、商品导入导出、角色管理；不追溯重写已有快照或凭说明新增限制。"
+          "适用于新增 SKU、商品导入导出、角色管理；不追溯重写已有快照或凭说明新增限制。"
         ]
       },
       {

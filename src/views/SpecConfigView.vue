@@ -66,7 +66,7 @@
 
               <span v-if="compatibilityUnpublished">兼容配置尚未发布</span>
             </p>
-            <p class="meta-row" data-model-sales-summary><span>{{salesModelSummary}}</span><el-button v-if="store.can('product:sales-config:update')" link type="primary" data-open-benefit-configuration @click="salesNodeId='';configurationOpen=true">配置权益包</el-button><el-button link type="primary" data-open-sales-options data-open-template-compatibility @click="openSalesBinding()">搭配与适用</el-button></p>
+            <p class="meta-row"><el-button v-if="store.can('product:compatibility:read')" link type="primary" data-open-template-compatibility @click="openTemplateCompatibility()">适用关系</el-button></p>
           </div>
           <div class="studio-actions">
             <el-button v-if="fromOverview" @click="backToOverview">返回总览</el-button>
@@ -149,8 +149,7 @@
           </template>
           <span v-else class="ops-idle">{{ !canEditStructure ? '当前视图只读，不能改结构和命名规则' : '选中节点后，可以添加属性、属性值或条件属性' }}</span>
           <el-button v-if="!canEditStructure && selected && selected !== rootId" size="small" @click="namingOpen = true">查看命名规则</el-button>
-          <el-button v-if="selected" size="small" data-open-node-sales-options @click="openSalesBinding(selected===rootId?'':selected)">搭配与适用</el-button>
-          <el-button v-if="selected&&store.can('product:sales-config:update')" size="small" data-open-node-benefit-configuration @click="salesNodeId=selected===rootId?'':selected;configurationOpen=true">配置权益包</el-button><span v-if="selected && store.can('product:sales-config:read')" class="muted" data-node-sales-summary>{{salesNodeSummary}}</span>
+          <el-button v-if="selected" size="small" data-open-node-compatibility @click="openTemplateCompatibility(selected===rootId?'':selected)">适用关系</el-button>
         </div>
         <EmptyModelGuide
           v-else-if="showEmptyGuide"
@@ -398,14 +397,14 @@
         <el-button text @click="runMenu('add-value')">添加属性值</el-button>
         <el-button text @click="runMenu('sibling')">添加同级属性</el-button>
         <el-button text @click="runMenu('naming')">命名规则</el-button>
-        <el-button text @click="runMenu('hosts')">搭配与适用</el-button>
+        <el-button text @click="runMenu('hosts')">适用关系</el-button>
         <el-button text type="danger" @click="runMenu('delete')">删除节点</el-button>
       </template>
       <template v-else>
         <el-button text @click="runMenu('sibling')">添加同级属性值</el-button>
         <el-button text @click="runMenu('add-child')">添加条件属性</el-button>
         <el-button text @click="runMenu('naming')">命名规则</el-button>
-        <el-button text @click="runMenu('hosts')">搭配与适用</el-button>
+        <el-button text @click="runMenu('hosts')">适用关系</el-button>
         <el-button text type="danger" @click="runMenu('delete')">删除节点</el-button>
       </template>
     </div>
@@ -463,8 +462,7 @@
         <el-button type="primary" @click="confirmNodeDraft">确认</el-button>
       </template>
     </el-dialog>
-    <TemplateSalesWorkspace v-if="!requestedVersionId || requestedVersion" v-model="salesBindingOpen" :model-id="templateId" :version-id="requestedVersionId || null" :node-id="salesNodeId||undefined" :initial-tab="workspaceTab" :readonly="viewing"/>
-    <SalesConfigurationWorkspace v-if="configurationOpen" v-model="configurationOpen" :model-id="templateId" :version-id="requestedVersionId||null" :node-id="salesNodeId||undefined"/>
+    <ModelCompatibilityDialog v-if="!requestedVersionId || requestedVersion" v-model="compatibilityOpen" :model-id="templateId" :version-id="requestedVersionId || null" :node-id="compatibilityNodeId||undefined" :readonly="viewing"/>
 
     <el-dialog v-model="copyOpen" title="复制模型" width="440px" :show-close="!copying" :close-on-click-modal="!copying" :close-on-press-escape="!copying">
       <p class="copy-label">原模型</p>
@@ -503,8 +501,7 @@ import StructureMaterials from '../components/model-editor/StructureMaterials.vu
 import LegalComboDialog from '../components/model-editor/LegalComboDialog.vue'
 import { presentComboRow, type MaterialLaunchMode } from '../components/model-editor/comboPresentation'
 import { useComboSelection } from '../components/model-editor/useComboSelection'
-import SalesConfigurationWorkspace from '../components/sales-configuration/SalesConfigurationWorkspace.vue'
-import TemplateSalesWorkspace from '../components/sales-configuration/TemplateSalesWorkspace.vue'
+import ModelCompatibilityDialog from '../components/template-compatibility/ModelCompatibilityDialog.vue'
 import TypeModelRail from '../components/model-editor/TypeModelRail.vue'
 import { categoryChain, visibleCategoryRows } from '../domain/categoryTree'
 import { catalogReturnLocation } from '../domain/catalogWorkspaceNavigation'
@@ -759,13 +756,7 @@ function onDictEsc(event: KeyboardEvent) {
 }
 const copyOpen = ref(false)
 const copying = ref(false), modelSaving = ref(false)
-const salesBindingOpen=ref(false),salesNodeId=ref(''),workspaceTab=ref('sales')
-const salesBindings=computed(()=>(store.data.salesOptionBindings||[]).filter(binding=>binding.schemaVersion===1&&binding.scope?.kind==='model'&&binding.scope.modelId===templateId.value&&binding.scope.versionId===(requestedVersionId.value||null)))
-function salesBindingText(nodeId:string){const matches=salesBindings.value.filter(binding=>binding.scope.kind==='model'&&(nodeId?binding.scope.nodeId===nodeId:binding.mode==='default'));if(!matches.length)return nodeId?'':'选配：尚未配置';const names=[...new Set(matches.map(binding=>{const plan=store.data.salesOptionPlans?.find(plan=>plan.schemaVersion===1&&plan.id===binding.planId),name=binding.mode==='none'?'不使用方案':plan?.name||'引用失效';return `${name}${!binding.enabled?'（待启用）':plan?.status==='disabled'?'（方案已停用）':''}`}))];return `选配：${names.slice(0,2).join('、')}${names.length>2?' 等':''}`}
-const salesModelSummary=computed(()=>salesBindingText(''))
-const salesNodeSummary=computed(()=>salesBindingText(selected.value===rootId?'':selected.value))
-const configurationOpen=ref(false)
-function openSalesBinding(nodeId=''){salesNodeId.value=nodeId;workspaceTab.value='sales';salesBindingOpen.value=true}
+const compatibilityOpen=ref(false),compatibilityNodeId=ref('')
 const namingOpen = ref(false)
 const businessOpen = ref(false), businessBusy = ref(false), businessNodeId = ref('')
 onBeforeRouteLeave(() => !businessBusy.value&&!composerBusy.value)
@@ -882,7 +873,7 @@ const compatibilitySummary = computed(() => {
   const state = config.defaultRule.configured ? config.defaultRule.claims.length ? '全部规格使用默认配置' : '默认明确留空' : '默认尚未配置'
   return `${models} 款设备 · ${state}${config.exceptions.length ? ` · ${config.exceptions.length} 项规格例外` : ''}`
 })
-function openTemplateCompatibility(nodeId = '') {salesNodeId.value=nodeId;workspaceTab.value='compatibility';salesBindingOpen.value=true}
+function openTemplateCompatibility(nodeId = '') {compatibilityNodeId.value=nodeId;compatibilityOpen.value=true}
 
 const showDraftList = computed(() => !requestedVersionId.value && (draftPreview.value.problems.length > 0 || canvas.value.status !== 'published' || draftPreview.value.rows.length !== comboRows.value.length))
 const draftPreviewLine = computed(() => {
@@ -2422,7 +2413,7 @@ function visibleOverlay(selector: string) {
 }
 function shortcutBlocked() {
   if (modelSaving.value || copying.value || publishing.value || businessBusy.value||composerBusy.value) return true
-  if (attributeOpen.value || valueOpen.value || copyOpen.value || nodeDraftOpen.value || editingId.value || namingOpen.value || businessOpen.value || temporaryOpen.value || salesBindingOpen.value || comboManageOpen.value) return true
+  if (attributeOpen.value || valueOpen.value || copyOpen.value || nodeDraftOpen.value || editingId.value || namingOpen.value || businessOpen.value || temporaryOpen.value || compatibilityOpen.value || comboManageOpen.value) return true
   if (document.querySelector('.v3-material-dialog')) return true
   return visibleOverlay('.el-overlay-dialog, .el-message-box')
 }

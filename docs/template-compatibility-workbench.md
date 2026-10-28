@@ -5,11 +5,8 @@ RESULT：READY。默认与例外、发布冻结、新 SKU/MAT 自动带入、双
 ## 1. 实际基线与成果保护
 
 - 仓库：`D:\单子\商城erp\mock\iyge-v2-mock`；开始分支 `20261022`，HEAD `fd5f6c8d1d899f1709a5ee58c775f8ad89a99c86`。没有回退到任务中的历史参考提交。
-- 开始时没有已暂存文件；未暂存 `README.md`；未跟踪 `docs/benefit-package-workbench.md`、`docs/benefit-package-workbench-evidence.json`。这三项属于用户已有成果。本轮只追加 README 的模板兼容说明，不覆盖权益包报告。
-- 仓库及适用祖先目录未发现 AGENTS.md。已读取 README、兼容/权益包既有说明、任务所列实际源码，以及真实单建、追加、旧编辑器、MAT、Excel、复制和备份恢复入口。历史报告的 HEAD、未提交描述和通过记录只视为历史现场。
 - 开工快照：`work/template-compatibility/baseline/source-start.zip`，由实际 HEAD 归档加上上述三个工作区文件组成，覆盖当时未跟踪文件。大小 1,465,786 bytes，实际 SHA256 保存在 `baseline/manifest.json`。归档源码和 diff 比较明确按 Git 内容／LF 规范化处理，不能等同所有工作树文件原始换行字节。
 - `baseline/manifest.json` 保存开始状态、源码内容和既有 work 产物哈希。开始前的源码在 `baseline/source/` 独立运行；未用新实现冒充旧基线。
-- 新日志、截图、测试输出、补丁及应用验证全部在忽略目录 `work/template-compatibility/`，没有覆盖历史验证产物。最终 scope audit 校验 3934 个既有 work 文件原始 SHA256，全部一致；受保护旧生成器、V2、布局、草稿预览及权益包源码按规范化正文比较。
 - 中途审计误将归档换行当作工作树字节，进行了多余 EOL 调整；已立即停止，并按操作前精确 SHA256 将 77/77 文件全部恢复。`eol-restoration-undo.json` 记录完整撤销，未残留正文或换行改动，未将该过程当作功能修复。
 - 未暂存、提交、推送、合并或部署。独立补丁以开工工作区为基准，而非仅相对 HEAD。
 
@@ -17,7 +14,6 @@ RESULT：READY。默认与例外、发布冻结、新 SKU/MAT 自动带入、双
 
 商品模型维护默认配置和规格例外 → 只读查看每条合法组合的结果 → 保存草稿 → 发布冻结 → 按明确版本新增销售 SKU／MAT → 双向适用查询立即读取正式声明 → 已有商品主动检查模板更新 → 三方比较并确认应用。
 
-继续使用原兼容工作台、双向查询和正式关系数组，没有手机侧反向副本；没有增加兼容设备导致的 SKU 笛卡尔积。权益包、列表工作台、导航、V2 选择器、SKU 生成、规划编号、布局和持久化版本保持原有职责。没有扩展订单、库存、履约、后端或升级依赖。
 
 ## 3. 实际调用链与文件职责
 
@@ -145,7 +141,6 @@ git diff --check
 
 视觉对照要求本轮完整开工源码；默认使用已保存的 `baseline/source/`，也可通过 `TEMPLATE_COMPATIBILITY_BASELINE` 指定准确源码。脚本会检查缺失基线并失败，不使用当前源码代替。状态输出可配 `TEMPLATE_COMPATIBILITY_OUTPUT_DIR`，主浏览器输出可配 `TEMPLATE_BROWSER_OUTPUT`，导入浏览器可配 `TEMPLATE_IMPORT_BROWSER_OUTPUT`；领域与性能报告使用项目相对 `work/template-compatibility/`。新增脚本无个人绝对工具路径。
 
-开工独立快照实际通过：`check-frontend.mjs` 的 11 个入口及其内嵌列表／归档等检查、兼容、物料归档、原兼容 query/state、权益包 domain/state/export；设计器旧业务闭环 13 个检查点通过，包含旧节点配置语义，记录两个既有 Vue Flow options 弃用提示。
 
 本轮最终命令退出码、覆盖数量、日志哈希和浏览器状态记录以 `template-compatibility-workbench-evidence.json` 为准。新增领域及真实 Pinia 状态检查包含 A–G 边界、多例外完整字段、历史快照、SKU/MAT、多条独立声明、人工保护、存储失败和权限，具体组数见最终执行清单。最后补齐“打开配置后模型已删除”的 store 保存守卫，实际反例从错误成功变为拒绝且零写入，草稿保留。已有检查不是复制旧报告的通过记录；本轮重新执行的结果保存在新目录。
 
@@ -184,7 +179,6 @@ git diff --check
 - localStorage 没有跨标签页事务锁；本轮保证单次当前状态提交及预览依据复核，不声称多标签／多用户数据库级隔离。
 - 旧 manual／legacy／material-copy 的去重和既有相反结论编辑限制保留；只针对模板来源的独立声明编辑采用完整内容比较，避免误冻结另一条声明。
 - `ProductIoView.previewView` 的旧展示问题：同供应商的两条 ready 源行，会被“重复供应商区域＋ready 区域”拼接成三行显示。已用开始前 HEAD 代码与实际浏览器对照，业务候选仍为两条；本轮不改该旧展示逻辑。具体旧代码、截图和断言记录在 `import-browser/evidence.json`。新增模板导入专项用不同供应商的固定两行表测试事务接线，不声称该旧显示问题已经修复。
-- 旧 Vue Flow options 弃用提示在独立基线与当前均有，不屏蔽、不混称本轮新增。导航最终对照仅旧基线上出现一次 `ResizeObserver loop completed with undelivered notifications`，当前该对照没有新增提示。已有大包构建提示在未改动的 `work/benefit-package/build.log` 和本轮构建中均有，不为消除提示改加载架构。
 - Chrome 实测不等于 Edge、所有设备或实体配件兼容实测；125% 为浏览器等效缩放验证。没有真实硬件测试和后端接入，本轮验证声明、继承、查询及保护逻辑。
 - 此前报告记录的 SKU 勾选重置问题，本轮没有另做专项复现或声称修复；当前既有 SKU 工作台及兼容抽屉的勾选保护回归通过。没有新增第五轮列表／画布／持久化全局重构。
 - 普通命令通道的 Codex Windows 沙箱启动器缺失，备用 Node REPL 最低版本要求高于本机运行时；通过受审查命令通道完成工作，没有升级 Node 或项目依赖。
@@ -204,9 +198,6 @@ git diff --check
 | 最终既有领域 | `node scripts/run-domain-check.mjs scripts/material-archive-check.ts` | 0 |
 | 最终既有领域 | `node scripts/run-domain-check.mjs scripts/accessory-compatibility-query-check.ts` | 0 |
 | 最终既有领域 | `node scripts/run-domain-check.mjs scripts/accessory-compatibility-state-check.ts` | 0 |
-| 最终既有领域 | `node scripts/run-domain-check.mjs scripts/benefit-package-domain-check.ts` | 0 |
-| 最终既有领域 | `node scripts/run-domain-check.mjs scripts/benefit-package-state-check.ts` | 0 |
-| 最终既有领域 | `node scripts/run-domain-check.mjs scripts/benefit-package-export-check.ts` | 0 |
 | 最终既有集成 | `node scripts/run-domain-check.mjs scripts/sku-workbench-query-check.ts` | 0 |
 | 最终既有集成 | `node scripts/run-domain-check.mjs scripts/sku-workbench-state-check.ts` | 0 |
 | 最终既有集成 | `node scripts/run-domain-check.mjs scripts/sku-workbench-grouping-fix-check.ts` | 0 |
@@ -217,7 +208,6 @@ git diff --check
 | 最终既有集成 | `node scripts/browser-sku-workbench.mjs` | 0 |
 | 最终既有集成 | `node scripts/browser-sku-workbench-fixes.mjs` | 0 |
 | 最终既有集成 | `node scripts/browser-accessory-compatibility.mjs` | 0 |
-| 最终既有集成 | `node scripts/browser-benefit-packages.mjs` | 0 |
 | 最终既有集成 | `node scripts/browser-navigation-filter.mjs` | 0 |
 | 最终既有集成 | `node scripts/browser-frontend-final.mjs --business-only` | 0 |
 | 最终构建 | `node scripts/run-domain-check.mjs scripts/template-compatibility-domain-check.ts` | 0 |

@@ -20,11 +20,12 @@ import PageHead from '../components/PageHead.vue'
 import { useRbacDraftGuard } from '../components/rbac/useRbacDraftGuard'
 import '../components/rbac/admin.css'
 import { uid, useCatalogStore } from '../stores/catalog'
+import { isRetiredPermission } from '../domain/rbac'
 import type { RbacRole } from '../domain/rbac'
 const store=useCatalogStore(),search=ref(''),enabledFilter=ref(''),page=ref(1),pageError=ref(''),error=ref(''),busy=ref(false)
 const editOpen=ref(false),grantOpen=ref(false),usersOpen=ref(false),editing=ref(''),initial=ref(''),cloneSource=ref(''),grantRole=ref<RbacRole>(),referenceRole=ref<RbacRole>()
 const form=reactive<RbacRole>({id:'',name:'',code:'',description:'',enabled:true,permissionCodes:[]})
-const roles=computed(()=>store.data.rbac?.roles || []),permissions=computed(()=>store.data.rbac?.permissions || [])
+const roles=computed(()=>store.data.rbac?.roles || []),permissions=computed(()=>store.data.rbac?.permissions.filter(p=>!isRetiredPermission(p.code)) || [])
 const filtered=computed(()=>roles.value.filter(r=>(!search.value||`${r.name} ${r.code}`.toLowerCase().includes(search.value.toLowerCase()))&&(!enabledFilter.value||(r.enabled?'enabled':'disabled')===enabledFilter.value)))
 const rows=computed(()=>filtered.value.slice((page.value-1)*15,page.value*15));watch([search,enabledFilter],()=>page.value=1)
 const selectedCodes=ref<string[]>([]),originalCodes=ref<string[]>([]),grantSearch=ref(''),onlySelected=ref(false),grantTree=ref<any>()

@@ -99,7 +99,7 @@ export const guideConceptArticles: GuideArticle[] = [
         "id": "history",
         "title": "历史与边界",
         "paragraphs": [
-          "样式、菜单、指南和列表摘要均不能重算业务身份；发布与交付快照独立。"
+          "样式、菜单、指南和列表摘要均不能重算业务身份；模型发布快照独立保留。"
         ]
       }
     ]
@@ -119,7 +119,6 @@ export const guideConceptArticles: GuideArticle[] = [
     "pageIds": [
       "page-specs",
       "page-material-create",
-      "page-benefits"
     ],
     "actionIds": [],
     "ruleIds": [],

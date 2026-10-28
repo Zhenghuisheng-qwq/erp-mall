@@ -17,7 +17,7 @@ Object.defineProperty(globalThis,'sessionStorage',{configurable:true,value:{getI
 const clone=<T>(value:T):T=>JSON.parse(JSON.stringify(value))
 let store:ReturnType<typeof useCatalogStore>|undefined
 const mark=(name:string)=>{checks.push(name);console.log('PASS unrestricted '+name)}
-const business=(data:AppData)=>clone({families:data.families,skus:data.skus,productSpecNodes:data.productSpecNodes,specModelVersions:data.specModelVersions,planningRecords:data.planningRecords,materialReceipts:data.materialReceipts,materialRelations:data.materialRelations,materialContributions:data.materialContributions,compatibilities:data.compatibilities,templateCompatibilityOrigins:data.templateCompatibilityOrigins,benefitPackages:data.benefitPackages,benefitDeliveries:data.benefitDeliveries,benefitFrameworks:data.benefitFrameworks,productListPages:data.productListPages,productListViews:data.productListViews})
+const business=(data:AppData)=>clone({families:data.families,skus:data.skus,productSpecNodes:data.productSpecNodes,specModelVersions:data.specModelVersions,planningRecords:data.planningRecords,materialReceipts:data.materialReceipts,materialRelations:data.materialRelations,materialContributions:data.materialContributions,compatibilities:data.compatibilities,templateCompatibilityOrigins:data.templateCompatibilityOrigins,productListPages:data.productListPages,productListViews:data.productListViews})
 async function mount(data:AppData,userId:string){
   if(store){await nextTick();await store.waitForPersistence();store.$dispose();store=undefined}
   disk.clear();session.clear();disk.set(STORAGE_KEY,JSON.stringify({version:DATA_VERSION,data:clone(data)}));session.set('iyge-rbac-simulated-user',userId)
@@ -45,8 +45,8 @@ try{
   for(const userId of ['u-op','disabled-role-user','disabled-user','old-deleted-simulated-user']){
     const s=await mount(input,userId)
     assert(s.authorizationReady);assert.equal(s.rbacEnforced,false);assert.equal(s.isAdmin,true,userId)
-    for(const code of ['product:spu:update','product:model:publish','product:material:create','product:benefit:update','system:role:grant','system:menu:update'])assert.equal(s.can(code),true,`${userId}:${code}`)
-    for(const path of ['/spus','/skus','/models','/specs','/materials/new','/benefit-packages/new','/menus','/roles','/permissions','/users'])assert.equal(s.canRoute({path}),true,`${userId}:${path}`)
+    for(const code of ['product:spu:update','product:model:publish','product:material:create','system:role:grant','system:menu:update'])assert.equal(s.can(code),true,`${userId}:${code}`)
+    for(const path of ['/spus','/skus','/models','/specs','/materials/new','/menus','/roles','/permissions','/users'])assert.equal(s.canRoute({path}),true,`${userId}:${path}`)
     assert.equal(s.canRoute({path:'/not-a-registered-page'}),false,'Disabled RBAC does not register arbitrary pages')
     assert.equal(isSuperAdmin(s.data,userId),true)
     assert.deepEqual([...effectivePermissions(s.data,userId)].sort(),permissionRegistry().map(permission=>permission.code).sort())

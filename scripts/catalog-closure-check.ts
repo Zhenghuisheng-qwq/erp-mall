@@ -40,7 +40,7 @@ mark('search presence distinguishes clear from absent and removes both aliases w
 disk.set(STORAGE_KEY,JSON.stringify({version:DATA_VERSION,data}));session.set('iyge-rbac-simulated-user','u-admin')
 setActivePinia(createPinia());const store=useCatalogStore();await store.waitForPersistence()
 const raw=()=>disk.get(STORAGE_KEY),row=(id:string)=>store.data.productTypes.find(type=>type.id===id)!
-const frozen=()=>JSON.stringify([store.data.specModelVersions,store.data.skus,store.data.families,store.data.planningRecords,store.data.compatibilities,store.data.salesOptionBindings])
+const frozen=()=>JSON.stringify([store.data.specModelVersions,store.data.skus,store.data.families,store.data.planningRecords,store.data.compatibilities])
 const protectedBefore=frozen()
 const create=async(name:string,catalogRole:ProductType['catalogRole'],categoryId='c-phone')=>{const result=await store.commitProductType({id:'',name,categoryId,description:'purpose regression',sort:99,status:'enabled',catalogRole});assert(result.ok,result.message);assert('id' in result);return result.id as string}
 const host=await create('同名用途验证','host'),accessory=await create('同名用途验证','accessory','c-watch'),unknown=await create('用途待定',undefined),other=await create('其他用途','other')

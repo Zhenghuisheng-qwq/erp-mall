@@ -439,69 +439,6 @@
       "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
     },
     {
-      "id": "benefit.save.revision",
-      "actionId": "action-benefit-save",
-      "ruleId": "rule-benefit-preview",
-      "kind": "conflict",
-      "source": "src/stores/catalog.ts:saveBenefitPackage/revision",
-      "exact": true,
-      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
-    },
-    {
-      "id": "benefit.save.validation",
-      "actionId": "action-benefit-save",
-      "ruleId": "rule-benefit-validation",
-      "kind": "business",
-      "source": "src/stores/catalog.ts:saveBenefitPackage/validation",
-      "exact": true,
-      "validation": "default:benefit actual validation; strict:benefit actual validation"
-    },
-    {
-      "id": "benefit.deliver.revision",
-      "actionId": "action-benefit-deliver",
-      "ruleId": "rule-benefit-preview",
-      "kind": "conflict",
-      "source": "src/stores/catalog.ts:generateBenefitDelivery/revision",
-      "exact": true,
-      "validation": "default:delivery stale package revision; strict:delivery stale package revision"
-    },
-    {
-      "id": "benefit.deliver.validation",
-      "actionId": "action-benefit-deliver",
-      "ruleId": "rule-benefit-validation",
-      "kind": "business",
-      "source": "src/stores/catalog.ts:generateBenefitDelivery/validation",
-      "exact": true,
-      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
-    },
-    {
-      "id": "benefit.deliver.basis",
-      "actionId": "action-benefit-deliver",
-      "ruleId": "rule-benefit-preview",
-      "kind": "conflict",
-      "source": "src/stores/catalog.ts:generateBenefitDelivery/basis",
-      "exact": true,
-      "validation": "default:delivery changed basis; strict:delivery changed basis"
-    },
-    {
-      "id": "benefit.quote.invalid",
-      "actionId": "action-benefit-save",
-      "ruleId": "rule-benefit-quote",
-      "kind": "input",
-      "source": "src/stores/catalog.ts:saveBenefitPackage/validation.quote",
-      "exact": true,
-      "validation": "default:benefit invalid quote; strict:benefit invalid quote"
-    },
-    {
-      "id": "benefit.deliver.quote",
-      "actionId": "action-benefit-deliver",
-      "ruleId": "rule-benefit-quote",
-      "kind": "input",
-      "source": "src/stores/catalog.ts:generateBenefitDelivery/preview.quote",
-      "exact": true,
-      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
-    },
-    {
       "id": "import.material.basis",
       "actionId": "action-json-import",
       "ruleId": "rule-conflict",
@@ -1320,101 +1257,69 @@
     },
     {
       "source": "src/stores/catalog.ts",
-      "function": "saveBenefitPackage",
       "line": 543,
-      "syntax": "return { ok: false, message: '保存请求缺少标识，请重新打开权益包后重试。' }",
       "binding": "legacy-unknown"
     },
     {
       "source": "src/stores/catalog.ts",
-      "function": "saveBenefitPackage",
       "line": 544,
-      "syntax": "return { ok: false, message: '请选择保存草稿或保存为可用权益包。' }",
       "binding": "legacy-unknown"
     },
     {
       "source": "src/stores/catalog.ts",
-      "function": "saveBenefitPackage",
       "line": 549,
-      "syntax": "return { ok: false, message: '权益包已不存在，未重新创建已删除的配置。' }",
       "binding": "legacy-unknown"
     },
     {
       "source": "src/stores/catalog.ts",
-      "function": "saveBenefitPackage",
       "line": 550,
-      "syntax": "return rejectGuide('benefit.save.revision', '权益包已被更新，请重新打开并核对最新配置；当前草稿保留。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
-      "binding": "explicit",
-      "branchId": "benefit.save.revision"
+      "binding": "explicit"
     },
     {
       "source": "src/stores/catalog.ts",
-      "function": "saveBenefitPackage",
       "line": 551,
-      "syntax": "return { ok: false, message: '权益包修订版本已超出安全范围，当前配置未改变。' }",
       "binding": "legacy-unknown"
     },
     {
       "source": "src/stores/catalog.ts",
-      "function": "saveBenefitPackage",
       "line": 552,
-      "syntax": "return { ok: false, message: '保存请求已属于另一权益包，请重新发起当前保存操作。' }",
       "binding": "legacy-unknown"
     },
     {
       "source": "src/stores/catalog.ts",
-      "function": "saveBenefitPackage",
       "line": 555,
       "syntax": "return {ok:false,message:problem}",
       "binding": "legacy-unknown"
     },
     {
       "source": "src/stores/catalog.ts",
-      "function": "saveBenefitPackage",
-      "line": 558,
-      "syntax": "return {ok:false,message:'框架已变更或停用，请重新选择当前修订；原成员和报价保留。'}",
-      "binding": "legacy-unknown"
-    },
-    {
-      "source": "src/stores/catalog.ts",
-      "function": "saveBenefitPackage",
       "line": 573,
       "syntax": "return { ok: false, message: error instanceof Error ? error.message : String(error), validation }",
       "binding": "legacy-unknown"
     },
     {
       "source": "src/stores/catalog.ts",
-      "function": "generateBenefitDelivery",
       "line": 608,
       "syntax": "return { ok: false, message: '本次生成请求缺少标识，请重新预览。' }",
       "binding": "legacy-unknown"
     },
     {
       "source": "src/stores/catalog.ts",
-      "function": "generateBenefitDelivery",
       "line": 612,
-      "syntax": "return rejectGuide('benefit.deliver.revision', '权益包已更新或不存在，请重新预览完整组成和报价。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
-      "binding": "explicit",
-      "branchId": "benefit.deliver.revision"
-    },
-    {
-      "source": "src/stores/catalog.ts",
-      "function": "generateBenefitDelivery",
-      "line": 614,
-      "syntax": "return rejectGuide(preview.issues.some(issue=>['quote','quote-review','delivery-quote'].includes(issue.code))?'benefit.deliver.quote':'benefit.deliver.validation',message,{actionId:'action-benefit-deliver',savedState:'unchanged',context:{pa",
       "binding": "explicit"
     },
     {
       "source": "src/stores/catalog.ts",
-      "function": "generateBenefitDelivery",
-      "line": 615,
-      "syntax": "return rejectGuide('benefit.deliver.basis', '商品、兼容条件或报价依据已变化，请重新预览并确认。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
-      "binding": "explicit",
-      "branchId": "benefit.deliver.basis"
+      "line": 614,
+      "binding": "explicit"
     },
     {
       "source": "src/stores/catalog.ts",
-      "function": "generateBenefitDelivery",
+      "line": 615,
+      "binding": "explicit"
+    },
+    {
+      "source": "src/stores/catalog.ts",
       "line": 622,
       "syntax": "return { ok: false, message: error instanceof Error ? error.message : String(error) }",
       "binding": "legacy-unknown"
@@ -1515,7 +1420,6 @@
       "source": "src/stores/catalog.ts",
       "function": "importJson",
       "line": 819,
-      "syntax": "throwImportValidation(`权益包导入校验失败：${benefitProblems.join(' ')} 当前数据没有被替换。`)",
       "binding": "explicit",
       "branchId": "import.json.validation"
     },

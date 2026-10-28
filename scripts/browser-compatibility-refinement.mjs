@@ -4,8 +4,8 @@ import { resolve } from 'node:path'
 import { createServer } from 'vite'
 import { chromium } from 'playwright-core'
 
-const output=resolve(process.env.COMPATIBILITY_REFINEMENT_OUTPUT || 'work/compatibility-benefit-refinement/compatibility-browser')
-const baseline=resolve(process.env.REFINEMENT_BASELINE || 'work/compatibility-benefit-refinement/baseline/source')
+const output=resolve(process.env.COMPATIBILITY_REFINEMENT_OUTPUT || 'work/compatibility-refinement/compatibility-browser')
+const baseline=resolve(process.env.REFINEMENT_BASELINE || 'work/compatibility-refinement/baseline/source')
 if(!existsSync(resolve(baseline,'src/components/template-compatibility/TemplateClaimSetEditor.vue')))throw new Error(`缺少开工前完整源码：${baseline}。请设置 REFINEMENT_BASELINE；不能用最终代码冒充基线。`)
 mkdirSync(output,{recursive:true})
 const servers=[],checks=[],captures=[],diagnostics=[]

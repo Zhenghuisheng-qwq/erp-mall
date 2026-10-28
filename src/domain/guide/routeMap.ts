@@ -23,7 +23,7 @@ export function safeGuideReturn(value:unknown,canRoute:(location:{path:string;qu
     if(/[\\\u0000-\u001f\u007f]/.test(decodeURIComponent(value)))return fallback
     const url=new URL(value,'https://erp.invalid'),query=Object.fromEntries(url.searchParams)
     if(url.origin!=='https://erp.invalid'||url.pathname.startsWith('/guide')||!guidePageFor(url.pathname,query)||!canRoute({path:url.pathname,query}))return fallback
-    const allowed=new Set(['spu','sku','copy','template','model','modelId','productTypeId','categoryId','version','versionId','panel','scope','host','device','add','copySku','id','q','mode','framework','category','deviceModel','family','focus','key','legacy','manage','materialNode','materialVersion','plan','root','scheme','targetId','type','view'])
+    const allowed=new Set(['spu','sku','copy','template','model','modelId','productTypeId','categoryId','version','versionId','panel','scope','host','device','add','copySku','id','q','mode','category','deviceModel','family','focus','key','legacy','manage','materialNode','materialVersion','plan','root','targetId','type','view'])
     if([...url.searchParams.keys()].some(key=>!allowed.has(key)||key==='returnTo'))return fallback
     if(url.hash&&!/^#[a-zA-Z0-9_-]{1,80}$/.test(url.hash))return fallback
     return url.pathname+url.search+url.hash

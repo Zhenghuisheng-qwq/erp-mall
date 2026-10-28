@@ -31,7 +31,7 @@ const bad=structuredClone(menus);bad.find(n=>n.id===center.id)!.parentId=group.i
 const custom=structuredClone(menus);custom.find(n=>n.id===center.id)!.roles=['admin'];assert(!accessRoute('operator','/skus',custom));assert(!railModel('operator',custom).some(g=>g.key===center.id))
 custom.find(n=>n.route==='/users')!.roles=['admin','operator'];assert(!accessRoute('operator','/users',custom));assert(!railModel('operator',custom).flatMap(g=>g.items).some(p=>p.index==='/users'))
 assert(accessRoute('admin','/menus',custom));assert(sanitizeMenu(custom).find(n=>n.route==='/brands')!.hidden)
-assert.equal(menuRouteForLocation('/skus/new'),'/skus');assert.equal(menuRouteForLocation('/materials/archive'),'/spus');assert.equal(menuRouteForLocation('/benefit-packages/deliveries/a'),'/benefit-packages');assert.equal(menuRouteForLocation('/skus',{panel:'columns'}),'/products?panel=columns')
+assert.equal(menuRouteForLocation('/skus/new'),'/skus');assert.equal(menuRouteForLocation('/materials/archive'),'/spus');assert.equal(menuRouteForLocation('/skus',{panel:'columns'}),'/products?panel=columns')
 assert.equal(readNavigation(JSON.stringify({layout:'center',collapsed:true}),[],[]).layout,'center')
 assert.equal(readNavigation(JSON.stringify({mode:'icons',expandedMode:'single'}),[],[]).layout,'single')
 console.log('PASS C custom center/group persistence, canonical page, invalid routes/parents, legacy titles, inherited roles/admin ceiling, recovery and layout migration')

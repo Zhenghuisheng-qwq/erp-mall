@@ -17,7 +17,7 @@ setActivePinia(createPinia())
 const store = useCatalogStore(); await store.waitForPersistence()
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 const page = () => copy(store.data.productListPages!.sku)
-const business = JSON.stringify([store.data.families, store.data.skus, store.data.benefitPackages, store.data.benefitDeliveries, store.data.specModelVersions, store.data.planningRecords])
+const business = JSON.stringify([store.data.families, store.data.skus, store.data.specModelVersions, store.data.planningRecords])
 const checks: { name: string; result: string }[] = []
 function mark(name: string) { checks.push({ name, result: 'PASS' }); console.log(`PASS async save ${name}`) }
 const first = page(), second = page()
@@ -50,10 +50,10 @@ assert(store.data.productListPages!.sku.views.some(view => view.name === '同页
 assert(!store.data.productListPages!.sku.views.some(view => view.name === '等待期间第二条不应覆盖第一条'))
 mark('composable-pending-rejects-second-name-save-no-duplicate')
 
-assert.equal(JSON.stringify([store.data.families, store.data.skus, store.data.benefitPackages, store.data.benefitDeliveries, store.data.specModelVersions, store.data.planningRecords]), business)
+assert.equal(JSON.stringify([store.data.families, store.data.skus, store.data.specModelVersions, store.data.planningRecords]), business)
 const loaded = JSON.parse(disk.get(STORAGE_KEY)!).data.productListPages.sku as ProductListPageState
 assert.deepEqual(loaded, copy(store.data.productListPages!.sku))
 mark('view-settings-only-and-disk-live-equality')
-const output = resolve(process.env.CATALOG_ASYNC_OUTPUT || 'work/compatibility-benefit-refinement/async-save')
+const output = resolve(process.env.CATALOG_ASYNC_OUTPUT || 'work/compatibility-refinement/async-save')
 mkdirSync(output, { recursive: true }); writeFileSync(resolve(output, 'state.json'), JSON.stringify({ result: 'PASS', checks }, null, 2))
 scope.stop(); store.$dispose()

@@ -64,7 +64,6 @@
 - `scripts/closure-store-repair-check.ts`：两种模式各 9 组；包含真实 importJson、未授权调用、内存与持久化原文对照、精确写盘次数、故障后重试。结果位于 `work/closure-rbac-menu/store/{default,strict}/result.json`，最终日志为 `store-default-final.log`、`store-strict-final.log`。
 - `scripts/material-import-identity-check.ts`：两种模式各 3 组；新增重复、加剧已有重复均原子拒绝；历史同 ID 记录原文保留可导入，数量不变但修改第二条不能越权。结果位于 `work/closure-rbac-menu/material-identity/{default,strict}/result.json`。
 - 原 RBAC 领域 5 组、Store 10 组在启用模式通过；默认分支明确按统一管理员约定断言。异步初始化、迁移和只读预览入口已适配，没有去掉原迁移、越权、写盘失败、历史保护断言。
-- R01 两个领域检查、R02 关系（默认/启用两模式）、R02 兼容、权益包领域 30 组、分类领域 9 组、列表展示及 SKU 工作台状态检查通过。日志在 `work/closure-rbac-menu/regression/`。
 - `npm run build` 包含 `node scripts/run-typecheck.mjs`，类型检查与生产构建通过。日志：`work/closure-rbac-menu/build.log`。`git diff --check` 通过。
 
 测试适配文件包括 `scripts/rbac-{domain,store}-check.ts`、`r02-relations-check.ts`、`browser-category-workspace.mjs`、`browser-navigation-special.mjs`、`browser-ui-finish.mjs`、`browser-unrestricted-access.mjs`；新增专项脚本按上表名称保留在 `scripts/`，便于复跑。

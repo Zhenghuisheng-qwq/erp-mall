@@ -11,7 +11,7 @@ try{
  const {normalizeStored}=await server.ssrLoadModule('/src/stores/catalog.ts')
  const {DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
  const data=normalizeStored({version:DATA_VERSION,data:createSeed()})
- const stale={...data.rbac.permissions.find(p=>p.code==='product:benefit:update'),code:'product:benefit:delete',action:'delete',name:'删除权益包（历史配置）'}
+ const stale={...data.rbac.permissions.find(p=>p.code==='product:sku:update'),code:'product:benefit:delete',action:'delete',name:'删除权益包（历史配置）'}
  data.rbac.permissions.push(stale);data.rbac.roles.find(r=>r.superAdmin).permissionCodes.push(stale.code)
  data.rbac.roles.find(r=>r.code==='operator').enabled=false
  const preserved=JSON.stringify(data.rbac),business=JSON.stringify({families:data.families,skus:data.skus,versions:data.specModelVersions,planning:data.planningRecords})

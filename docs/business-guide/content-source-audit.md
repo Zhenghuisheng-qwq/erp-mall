@@ -116,7 +116,6 @@
 ## SKU 管理
 
 - 页面：`src/views/SkuWorkbenchView.vue`。
-- 实际处理函数：openCompatibility、manualOrder、orderResult、displayRows、fieldLabel、displayCell、toggleSelected、togglePage、parentKey、toggleGroup、isCollapsed、result、flushQuick、applyQuickConfig、openFilters、applyConfig、openDisplay、selectView、restoreView、rebuildInvalid、clearFilters、nodeSummary、removeSummary、clearCategory、toggleCategory、changeScope、rememberPackageReturn、openBenefitPackage、onPage、openName、saveCurrent、submitName、copyView、deleteView、onColumnWidth、validSelection、setSelectedStatus、removeOne、removeSelected、updateDate。
 - Store 调用：can、patchSku、removeSku、setSkuStatus。
 - 本页关键说明：按真实销售 SKU 查询，维护工作配置与正式保存视图。
 - 核对的状态差异：SPU 路由临时范围与视图相交，默认不保存到全部 SKU；手工排序与字段排序/分组冲突时暂停拖排。
@@ -165,42 +164,6 @@
 - Store 调用：can。
 - 本页关键说明：按设备型号与真实对象维护双向适用声明，并保留原物料维护入口。
 - 核对的状态差异：基本适用不等于快充；MAT 声明不能自动冒充 SKU 声明；人工取消/修改跨版本受保护。
-
-<a id="page-benefits"></a>
-## 权益包与框架
-
-- 页面：`src/views/BenefitPackageListView.vue`。
-- 实际处理函数：edit、copy、favorite、setStatus。
-- Store 调用：can、setBenefitPackageFavorite、setBenefitPackageStatus。
-- 本页关键说明：查询包配置、收藏/复制常用包，并独立维护只有类型范围的选配框架。
-- 核对的状态差异：旧自由包保留原语义；框架不是商品；未选商品也可独立保存合法框架。
-
-<a id="page-benefit-create"></a>
-## 新建权益包
-
-- 页面：`src/views/BenefitPackageEditView.vue`。
-- 实际处理函数：setReference、candidateMatch、candidateStatus。
-- Store 调用：can。
-- 本页关键说明：在适配上下文中选择真实销售 SKU 和服务，保存新包配置。
-- 核对的状态差异：空参考价与 0 元不同；框架范围一直生效，推荐还需正式基本适用。
-
-<a id="page-benefit-edit"></a>
-## 权益包详情
-
-- 页面：`src/views/BenefitPackageEditView.vue`。
-- 实际处理函数：setReference、candidateMatch、candidateStatus。
-- Store 调用：can。
-- 本页关键说明：继续维护已保存包，并按本次包数独立预览和确认交付清单。
-- 核对的状态差异：更改内容/价格/依据使旧预览失效；停用包不能生成新清单，但历史仍可读。
-
-<a id="page-benefit-delivery"></a>
-## 交付清单
-
-- 页面：`src/views/BenefitDeliveryView.vue`。
-- 实际处理函数：print、download。
-- Store 调用：can。
-- 本页关键说明：只读查询生成时约定并打印/导出 Excel。
-- 核对的状态差异：不代表支付、订单、库存扣减、出库或服务激活。
 
 <a id="page-brands"></a>
 ## 品牌中心
@@ -278,7 +241,6 @@
 ## SKU 字段与视图设置
 
 - 页面：`src/views/SkuWorkbenchView.vue`。
-- 实际处理函数：openCompatibility、manualOrder、orderResult、displayRows、fieldLabel、displayCell、toggleSelected、togglePage、parentKey、toggleGroup、isCollapsed、result、flushQuick、applyQuickConfig、openFilters、applyConfig、openDisplay、selectView、restoreView、rebuildInvalid、clearFilters、nodeSummary、removeSummary、clearCategory、toggleCategory、changeScope、rememberPackageReturn、openBenefitPackage、onPage、openName、saveCurrent、submitName、copyView、deleteView、onColumnWidth、validSelection、setSelectedStatus、removeOne、removeSelected、updateDate。
 - Store 调用：can、patchSku、removeSku、setSkuStatus。
 - 本页关键说明：识别 SKU 的列配置 query 上下文并解释工作配置/正式视图区别。
 - 核对的状态差异：系统视图、SPU 临时范围和普通自定义视图遵循原有隔离。
@@ -616,46 +578,6 @@
 ### 人工取消适用声明
 
 真实步骤：查看当前声明和来源 → 明确取消并保存。结果：贡献记录标记人工取消，历史来源保留。失败：后续只改备注/依据/核验状态不解除人工保护。
-
-<a id="action-framework-save"></a>
-### 保存独立选配框架
-
-真实步骤：填写框架名和类型组 → 设置必选、种类数、件数及兼容过滤 → 保存框架。结果：不选具体 SKU 也可保存合法类型框架。失败：组范围或件数不完整先修正；旧包冻结修订不自动升级。
-
-<a id="action-benefit-copy"></a>
-### 复制常用权益包
-
-真实步骤：选择常用包复制 → 核对设备和成员 → 保存独立新包。结果：新包独立，历史清单不复制成新交付。失败：失效成员或条件重新核对，不沿用不符当前依据的确认。
-
-<a id="action-benefit-query"></a>
-### 查找权益包与历史
-
-真实步骤：按列表范围和收藏查包 → 打开当前配置或已保存清单。结果：可区分配置与历史清单。失败：缺包回列表；不按同名混合记录。
-
-<a id="action-benefit-select"></a>
-### 选配商品和服务
-
-真实步骤：选设备/框架 → 推荐或其他商品中选真实 SKU → 设置每包数量、服务计量和条件确认。结果：包内成员是明确销售商品和服务。失败：框架组外/待确认/不适用不能冒充正常推荐。
-
-<a id="action-benefit-save"></a>
-### 保存权益包
-
-真实步骤：填写名称、成员、数量和规则 → 定位处理问题 → 保存草稿或保存权益包。结果：草稿保留待完善，可用配置需通过当前校验。失败：引用失效可进入修正，但不能保存为可用或生成新清单。
-
-<a id="action-benefit-quote"></a>
-### 填写并复核报价
-
-真实步骤：区分参考价与每包人工报价 → 数量/成员变化后核对差额 → 点击已复核当前报价。结果：0 元和未报价不同，可有负差额。失败：内容/价格改变使复核失效，不靠旧确认交付。
-
-<a id="action-benefit-deliver"></a>
-### 预览并确认本机清单
-
-真实步骤：先保存包配置 → 填包数并预览完整明细 → 勾选确认后生成。结果：冻结商品/服务/价格/适配快照，不做支付库存。失败：旧修订或预览失效重新保存/预览，不重试旧候选。
-
-<a id="action-delivery-export"></a>
-### 打印或导出历史清单
-
-真实步骤：打开清单核对快照 → 点击打印或导出 Excel。结果：文件使用生成时内容。失败：导出失败可重试导出，不重新生成业务清单。
 
 <a id="action-brand-save"></a>
 ### 保存品牌目录
@@ -1008,46 +930,6 @@
 - 实现依据：`src/domain/materialRelationCommands.ts`。
 - 允许：稳定规则/声明真实谱系相同则继承人工决定；无关新来源按原规则执行。
 - 拒绝：只改 note/source/核验状态后重新生成已取消或改过声明。
-- 静态核对：对应当前条件/保护分支，未修改规则来配合说明。
-
-<a id="rule-framework-members"></a>
-### 框架类型范围与修订保护
-
-- 实现依据：`src/domain/benefitFrameworks.ts`。
-- 允许：成员在唯一启用类型组；合法冻结修订；缺失引用可读并修正。
-- 拒绝：真实组外 SKU 导入为可用、重叠类型组或损坏冻结依据。
-- 静态核对：对应当前条件/保护分支，未修改规则来配合说明。
-
-<a id="rule-benefit-validation"></a>
-### 可用权益包通过当前成员与条件校验
-
-- 实现依据：`src/domain/benefitPackages.ts`。
-- 允许：真实成员、数量、服务、设备及条件确认符合当前配置。
-- 拒绝：失效 SKU/主体/主机、件数/必选种数不符或无正式适配依据。
-- 静态核对：对应当前条件/保护分支，未修改规则来配合说明。
-
-<a id="rule-benefit-quote"></a>
-### 人工报价与参考合计分别记录
-
-- 实现依据：`src/domain/benefitPricing.ts`。
-- 允许：未填与 0 元区分；每包报价人工填写，变化后复核当前依据。
-- 拒绝：把空价当 0，内容/参考价变后沿用旧复核。
-- 静态核对：对应当前条件/保护分支，未修改规则来配合说明。
-
-<a id="rule-benefit-preview"></a>
-### 交付须基于最新保存与确认预览
-
-- 实现依据：`src/domain/benefitPackages.ts`。
-- 允许：包可用、无未保存更改、当前修订预览通过并明确确认。
-- 拒绝：停用/失效包、旧修订/过期条件/旧预览继续生成。
-- 静态核对：对应当前条件/保护分支，未修改规则来配合说明。
-
-<a id="rule-delivery-snapshot"></a>
-### 历史交付只读冻结内容
-
-- 实现依据：`src/domain/benefitPackageExport.ts`。
-- 允许：查看/导出使用生成时快照，后续商品和框架可独立维护。
-- 拒绝：按当前商品/价格重算旧清单或把导出当出库激活。
 - 静态核对：对应当前条件/保护分支，未修改规则来配合说明。
 
 <a id="rule-json-import"></a>

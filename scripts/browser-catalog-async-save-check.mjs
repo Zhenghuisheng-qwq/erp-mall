@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createServer } from 'vite'
 import { chromium } from 'playwright-core'
-const output = resolve('work/compatibility-benefit-refinement/async-save/browser'); mkdirSync(output, { recursive: true })
+const output = resolve('work/compatibility-refinement/async-save/browser'); mkdirSync(output, { recursive: true })
 const server = await createServer({ cacheDir: resolve(output, 'vite-cache'), server: { host: '127.0.0.1', port: 0, hmr: false, watch: null } })
 const checks = [], diagnostics = []
 let browser

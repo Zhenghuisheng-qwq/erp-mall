@@ -40,6 +40,5 @@ export function createCatalogWorkspaceFixture(): AppData {
     catalogSku('sku-orphan', 'missing-family'), catalogSku('mat-orphan', 'missing-family', { recordKind: 'material', materialCode: 'MAT-ORPHAN' }),
   ]
   data.materialReceipts = []; data.compatibilities = []; data.nodeCompatibilityRules = []; data.templateCompatibilityConfigs = []; data.templateCompatibilityOrigins = []
-  data.salesOptionPlans = []; data.salesOptionBindings = []; data.salesProductRelations = []
   return data
 }

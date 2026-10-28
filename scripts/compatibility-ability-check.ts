@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict'
 import {createCompatibilityAbilityFixture} from './compatibility-ability-fixtures'
 import {accessoryUseEvaluation,queryDeviceAccessories,queryAccessoryDevices,reverseAccessoryUseEvaluation} from '../src/domain/accessoryCompatibilityQuery'
-import {benefitCompatibilitySummary} from '../src/domain/benefitPackages'
 import {templateBusinessRole,templateHostChoices} from '../src/domain/templateHostCompatibility'
 import {selectorForNode} from '../src/domain/templateCompatibility'
-import {salesBindingContext} from '../src/domain/salesConfiguration'
+import {modelSpecificationContext} from '../src/domain/modelSourceContext'
 const {data,modelId,versionId,matrixModelId,matrixVersionId}=createCompatibilityAbilityFixture(),before=JSON.stringify(data)
 const forward=queryDeviceAccessories(data,'phone-a'),matches=[...forward.sales,...forward.materials,...forward.pending,...forward.excluded,...forward.unavailable]
 for(const [id,basic,fast,conflict] of [['charger-sku','compatible','incompatible',true],['case-sku','compatible','incompatible',false],['film-sku','incompatible','compatible',false],['pending-sku','pending','pending',false]] as const){
@@ -17,7 +16,6 @@ for(const [id,basic,fast,conflict] of [['charger-sku','compatible','incompatible
   assert.equal(reverseAccessoryUseEvaluation(reverse).status,basic)
   assert.equal(reverseAccessoryUseEvaluation(reverse).conflict,id==='film-sku')
   assert.equal(reverseAccessoryUseEvaluation(reverse,{requireFastCharge:true}).status,accessoryUseEvaluation(match,{requireFastCharge:true}).status)
-  assert.equal(benefitCompatibilitySummary(id,match,true,true).basicStatus,basic,'sales and result view use same basic ability')
 }
 console.log('PASS ability matrix basic versus fast charge agrees in forward reverse and sales evaluation')
 const scoped=queryAccessoryDevices(data,{kind:'sku',id:'cable-sku'}).hosts.find(item=>item.host.productModelId===matrixModelId)!
@@ -27,7 +25,7 @@ const fastOnly=queryAccessoryDevices(data,{kind:'sku',id:'case-sku'}).hosts.find
 assert.equal(reverseAccessoryUseEvaluation(fastOnly).status,'compatible');assert.equal(reverseAccessoryUseEvaluation(fastOnly).hasSpecDifferences,false)
 assert.equal(reverseAccessoryUseEvaluation(fastOnly,{requireFastCharge:true}).status,'pending')
 console.log('PASS requested ability keeps actual PLN differences without broadening partial model coverage')
-const all=templateHostChoices(data,{modelId,versionId}),scope=selectorForNode(salesBindingContext(data,modelId,versionId),'compat-style-1').selector
+const all=templateHostChoices(data,{modelId,versionId}),scope=selectorForNode(modelSpecificationContext(data,modelId,versionId),'compat-style-1').selector
 assert.equal(all.skuCount,4);assert.equal(new Set(all.choices.map(item=>item.groupKey)).size,2)
 const chosen=templateHostChoices(data,{modelId,versionId,selector:scope})
 assert.equal(chosen.choices.length,2);assert(chosen.choices.every(item=>item.device.host?.productModelId==='device:model-b'))

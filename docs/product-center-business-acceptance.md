@@ -18,7 +18,6 @@ RESULT：通过本轮已确认的前端 Mock 验收范围；已具备进入用�
 - 19 个浏览器脚本完成 183 个检查点；该数字是脚本检查点数量，不是需求完成率。另有 11 个领域/Store 回归脚本及 R03 真实 Store 夹具检查通过。
 - [最终证据索引][INDEX]列出全部脚本检查点、截图和回归结果。首次批次有一条旧导航假设失败，已调整测试并复验；以最终索引和各脚本的 result/evidence 为准，不能只读取首次 browser-results.json。
 
-证据简写：E1 分类；E2 类型/模型；E3 三视图与手工排序；E4 编辑保护；E5 R01；E6 补充范围/命名/恢复；E7 SPU/SKU；E8 独立创建/COMMON/列表；E9 R02；E10 模板适配；E11 适配查询；E12 R02 人工保护；E13 SKU 工作台；E14 原权益包；E15 权益包细化；E16 R03；E17 R03 补修；E18 词典/导入保护；E19 命名冲突。文末可点击对应证据。
 
 ## 1. 分类、类型、模型和规划编辑
 
@@ -77,7 +76,6 @@ RESULT：通过本轮已确认的前端 Mock 验收范围；已具备进入用�
 |---|---|---|---|---|---|
 | 多主机/双向查询 | 维护配件声明→从主机找配件→从配件反查主机 | 同一正式声明双向一致，型号来源明确 | 适用主机、来源版本、条件可查，修改/刷新立即反映 | [E11]、[E10]；forward-template-matches.png、reverse-template-source.png | 通过 |
 | 分支和未来继承 | 模板默认/例外配置→查看冲突→发布→实际生成 SKU/MAT | 仅匹配分支继承冻结声明；预览不发号 | 4 条新 SKU 的正式声明按规格生效，范围冲突不自动定优先级 | [E10]；exception-conflict-preview.png | 通过 |
-| 基本/条件/待确认/不适用/快充 | 查看配件状态、能力详情，权益包确认条件；无 SKU 声明的 MAT 对照 | 基本与快充分开，待确认/不适用不冒充推荐，MAT 不自动成为 SKU 声明 | 查询、候选状态和条件确认一致；复制 MAT 声明需显式预览确认 | [E11]、[E14]、[E17] | 通过 |
 | 人工取消跨版本保护 | 页面取消声明→模板只改备注→发布 V2→原 MAT 关联预览；同步保护 | 不静默恢复人工取消或修改 | 受影响声明显示人工保护，确认不可用；旧 deleted 状态不变 | [E12]、[E10]；cancelled-v2-protected.png、sync-three-way-protected.png | 通过 |
 | 等价条件 | 两路径条件倒序及 in 集合倒序/重复项→关联同 MAT | 等价去重且保留真实来源；真实冲突拒绝 | 页面共用一 MAT/一声明、两组真实来源；真实矛盾原子拒绝由 R02 Store 回归补充 | [E12]；equivalent-linked.png；[R] | 通过 |
 
@@ -91,62 +89,32 @@ RESULT：通过本轮已确认的前端 Mock 验收范围；已具备进入用�
 | 分组/排序/保存视图 | SPU 按分类分组，名称升降序；SKU 按分类分组、编号降序，另存视图后刷新 | 真实分组、顺序改变且能恢复 | 分组可见，升降序不同；刷新顺序与保存配置一致，业务数据完全相同 | [E8]；spu-grouped.png、spu-sort-restored.png、sku-group-sort-restored.png | 通过 |
 | 跨页手工排序 | 选中加入暂存区→跨页插入；搜索、切视图取消、外部删除和配额失败重试 | 保护原暂存意图，不能丢项/改商品身份 | 真实页面跨页、失败重试、无效暂存处理通过 | [E3] | 通过 |
 
-## 8. 权益包框架与实际选配
-
-| 需求/场景 | 入口与步骤 | 预期 | 实际结果 | 证据 | 状态 |
-|---|---|---|---|---|---|
-| 零 SKU 独立框架 | 框架页仅保存类型组，应用到新包；新增兼容 SKU 后看候选 | 不保存 SKU 白名单；动态选配 | 框架 groups 的 candidateSkuIds 均为空；新销售 SKU 自动出现，框架原文不变 | [E16] | 通过 |
-| 推荐/其他页签 | compatibleOnly=false 框架下切换页签、搜索/类型过滤 | 推荐=框架范围∩正式基本适配；其他=允许范围且真实状态 | 待确认、不适用、无声明、仅快充不进基本推荐；其他页仍可见相应状态 | [E17]；recommendations.png | 通过 |
-| 必选/种数/数量/错误定位 | 按组默认数添加、删除必选成员、违反数量；窄屏切到选商品并折叠后点击问题 | 非法配置不能可用；具体成员优先定位，不改输入 | 件数 2→1 后自动切清单、展开并聚焦，1 保留；规则校验/替换/条件确认链路通过 | [E17]、[E14]、[E15]；quantity-focused.png、selection-rules.png；[R] R03 | 通过 |
-| 主机与包内商品分离 | 选择适配主机、显式包含/移除、更换主机，复制常用包 | 适配主机不自动成为成员；旧自由包继续可用 | 主机包含单独操作，切换保留已有成员待核；复制产生新身份且源包/历史不变 | [E14]、[E15] | 通过 |
-| 框架冻结修订 | 框架修改/停用后打开原包与历史交付 | 原包仍绑定旧修订，不跟随改写 | 旧修订可读，历史清单不变；新绑定按新规则校验 | [E16]；[R] r03-framework | 通过 |
-
-## 9. 权益包价格、清单和导出
-
-| 需求/场景 | 入口与步骤 | 预期 | 实际结果 | 证据 | 状态 |
-|---|---|---|---|---|---|
-| 未填/0 元/小计 | 留空价格、录入 0、再填人工参考价和成员数量 | 未填不等于免费；使用安全分值；小计正确 | 页面空/0 区分；非法小数保留输入并拒绝；参考价来源仍为人工 | [E16]；[R] r03-framework | 通过 |
-| 每包/一次性服务与差额 | 配置两种计量服务→3 包预览→整包人工报价 | 每包乘包数，一次性只算一次；报价不被参考合计覆盖 | 实测总参考 40.50 元、整包总报价 60 元，差额 -19.50 元；一次性服务总数量 1 | [E16]；delivery-full.png、delivery.xlsx；[R] | 通过 |
-| 变更后复核/预览失效 | 修改商品/数量/参考价，复核报价；另一页更新后确认旧预览 | 旧依据不能静默交付 | 复核提示及旧预览拒绝，较新数据未覆盖；失败保留输入与预览可重试 | [E14]、[E15]、[E16] | 通过 |
-| 折叠/窄屏/生成/Excel | 折叠成员→窄屏定位→预览→显式确认生成→下载 Excel | 折叠只影响显示；预览不创建编号；明确生成才落盘 | 真实生成、重复请求及配额重试通过；实际下载 XLSX 并解析关键单元信息 | [E14]、[E16]、[E17] | 通过 |
-| 历史冻结 | 生成后改商品、价格、框架及当前包；缺主机/主体备份中查看历史并导出 | 历史仅读冻结快照，不查当前价格/框架替换历史 | 历史内容和工作簿断言不变；失效引用场景仍实际下载冻结 Excel | [E14]、[E16]、[E6]；family-frozen.xlsx、host-frozen.xlsx、sku-frozen.xlsx | 通过 |
-
 ## 10. 数据保护与异常恢复
 
 | 需求/场景 | 入口与步骤 | 预期 | 实际结果 | 证据 | 状态 |
 |---|---|---|---|---|---|
 | 导出/导入/权限 | 页面导出，运营分别改业务目录、草稿配置、历史配置再文件导入；管理员恢复合法备份 | 按导入前角色拒绝越权；拒绝不改变数据 | 三类真实文件导入均拒绝，磁盘原文与再次导出一致；管理员正常恢复 | [E18] | 通过 |
-| 商品重置保护 | 框架包已引用销售 SKU，商品列表演示数据→重置当前模块 | 明确受影响包/成员，提交前拒绝 | 页面拒绝且磁盘原文不变；真实 Store 回归额外断言内存不变 | [E17]；reset-refused.png；r03-store/checks.json | 通过 |
 | 可修复失效引用 | 缺 SKU、商品主体、主机三种备份启动→编辑页不改内容点击保存→交付预览 | 应可读取并保留原条目；拒绝可用保存/新清单；可修正为草稿 | 初次发现 PC-01，已修复；三类页面明确拒绝，原始存储不变；失效成员可移除并实际保存草稿 | [E6]、[E17]；repairable-sku/family/host.png、dangling-repairable.png | 通过（修复后） |
 | 真正非法/损坏 | 通过真实文件选择导入组外 SKU、MAT 假扮 SKU、损坏框架；损坏节点配置启动 | 明确拒绝或进入恢复，不覆盖原存储 | 三种框架非法导入原子拒绝；损坏配置保留原文进入恢复 | [E6]、[E18]；import-rejected-outside/material/structure.png、damaged-storage-recovery.png | 通过 |
-| 失败/重复/双页 | 框架、物料、权益包保存时注入 quota；重复确认；共享 origin 两页编辑/预览冲突 | 无半写、无重复记录、不覆盖新页，输入留存可重试 | 页面操作及 Store 回执保护断言通过；A/B 请求解绑后不恢复、新 C 才能重建由 R02 回归确认 | [E5]、[E9]、[E10]、[E14]、[E16]；[R] | 通过 |
-| 旧自由包/全量重置 | 同条件自由包商品重置与全量重置；实际自由包创建、保存、交付 | 既有语义不扩改 | Store 重置后正常 normalize；自由包真实页面保存交付通过。本项重置细节为真实 Store 补充证据，非冒称逐个点击过重置按钮 | r03-store/checks.json；[E14] | 通过 |
 
 ## 本轮问题与修复
 
 ### PC-01：失效包无编辑保存被页面快捷分支当作成功
 
-触发：保存可用框架包→准备缺 SKU/主体/主机的可修复备份→打开包编辑页→不编辑直接点击“保存权益包”。页面原 `save()` 在 dirty=false、状态相同且无外部冲突时直接返回 true，未调用 Store 校验。没有发生数据写坏，但没有明确拒绝失效包，不符合本轮要求。
 
-最小修复：`src/components/benefit-package/useBenefitPackageEditor.ts` 的快捷成功条件增加当前 validation.canSaveDraft / canSaveAvailable。失效引用进入原 Store 校验及既有错误定位；合法未编辑包保持原快捷行为。未修改 Store 数据结构、编号、生成、定价或历史语义。
 
-复验：E6 三种失效备份实际点击保存，均出现错误，持久化原文逐字不变，原成员/数量/价格/修订保留，新交付不可确认；历史 Excel 仍可下载。E15 受影响权益包页面链路复跑通过；11 个必要领域/Store 回归和生产构建通过。
 
 本轮没有其他已确认未修复功能缺陷。测试调整不计为产品修复：
 
 - 补充模型测试改为比较业务节点字段，允许布局 positionX/positionY 按视图重排，避免把合法布局变化误报为身份变更。
 - 销售 SKU 追溯按其 creationSource/modelVersionId/sourceNodeIds 验证完整 PLN，未要求 MAT 专用关联字段必填。
-- 旧权益包视觉测试写死“返回单栏导航”，当前已支持保存 center 布局；改为验证恢复原 navPreference.layout，保留样式。
 - 新增脚本调试修正了 Element Plus 输入/对话框定位、异步等待及截图动画时机，未为通过测试改动产品界面。
 
 ## 修改文件及实际检查
 
-唯一产品代码变更：`src/components/benefit-package/useBenefitPackageEditor.ts`。
 
-新增验收脚本：`scripts/product-center-acceptance.mjs`、`browser-product-center-supplement.mjs`、`browser-product-center-list-create.mjs`、`browser-product-center-type-model.mjs`、`browser-product-center-naming.mjs`。旧脚本 `browser-r01-protection.mjs` 和 `browser-r03-repair.mjs` 增加独立输出/夹具路径支持；`browser-benefit-refinement.mjs` 修正保存导航偏好的测试假设。
 
 - [浏览器最终索引][INDEX]：19 个脚本，183 个检查点。包含窄屏 375/780/900/980、桌面、深浅色及已有缩放场景；范围以具体检查点为准。
-- [回归结果][R]：r01-plan、r01-business、r01-protection、r02-relations、r02-compatibility、r02-repair、r03-framework、benefit-package-state、benefit-package-refinement、benefit-package-export、compatibility-benefit-storage，全部 exit 0。
 - [生产构建][BUILD]：`npm run build`（含 vue-tsc）exit 0。仅保留既有超过 500 kB chunk 提示，不在本轮扩展拆包优化。
 - `git diff --check` 通过。冻结 V2 选择器、PLN/MAT 编号与生成算法文件无修改。
 - 浏览器脚本可用 `node scripts/product-center-acceptance.mjs` 重跑；`ACCEPTANCE_SUITES` 可用逗号列出所需脚本，避免无意义全量重复。脚本会先用真实 Store 生成隔离恢复夹具。
@@ -164,7 +132,6 @@ RESULT：通过本轮已确认的前端 Mock 验收范围；已具备进入用�
 
 缺少原文不等于缺功能；上述待核项也不能据此判定全部满足老板需求。除 U1 外，本轮列出的关键浏览器场景没有因浏览器不可用而留下未验证项目。
 
-结论：已具备用户亲自操作验收条件，建议使用独立测试数据从分类/模型一路操作至权益包交付，重点确认业务用语与真实经营规则是否符合预期。本轮到此停止，等待用户操作验收与需求源确认，不自动进入新功能轮次。
 
 ## 证据链接
 
@@ -184,9 +151,6 @@ RESULT：通过本轮已确认的前端 Mock 验收范围；已具备进入用�
 [E11]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/browser-accessory-compatibility/result.json
 [E12]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/browser-r02-repair-compatibility/evidence.json
 [E13]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/browser-sku-workbench/result.json
-[E14]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/browser-benefit-packages/result.json
-[E15]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/browser-benefit-refinement/result.json
 [E16]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/browser-r03/evidence.json
-[E17]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/browser-r03-repair/evidence.json
 [E18]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/r01-protection/evidence.json
 [E19]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/naming-conflict/evidence.json

@@ -9,7 +9,7 @@ export function compatibilityReturnLocation(value:unknown): string | undefined {
   try{
     const url=new URL(value,'https://erp.invalid')
     if(url.origin!=='https://erp.invalid'||/[\\\u0000-\u001f\u007f]/.test(decodeURIComponent(value)))return undefined
-    if(!['/sales-configurations','/sales-shopping','/benefit-packages','/specs','/catalog','/skus','/spus'].includes(url.pathname)&&!/^\/(benefit-packages|materials|skus|spus)\//.test(url.pathname))return undefined
+    if(!['/specs','/catalog','/skus','/spus'].includes(url.pathname)&&!/^\/(materials|skus|spus)\//.test(url.pathname))return undefined
     return url.pathname+url.search+url.hash
   }catch{return undefined}
 }

@@ -37,10 +37,9 @@
 | `r01-business-check.ts` | 全部通过，覆盖继承、限制、冲突、发布冻结、编号保留、JSON 恢复与外部更新保护。 |
 | `editor-safety-check.ts` | 7 项通过，含共享词典、改名/值创建撤销及历史快照保留。 |
 | `functional-gaps-round3-check.ts` | 全部通过。 |
-| `compatibility-benefit-storage-check.ts` | 全部通过，含导入/恢复失败原子性与存储锁保护。 |
+| `compatibility-storage-check.ts` | 全部通过，含导入/恢复失败原子性与存储锁保护。 |
 | `template-compatibility-state-check.ts` | 14 项通过。 |
 | `accessory-compatibility-state-check.ts` | 全部通过，含既有导入权限与校验回归。 |
-| `benefit-package-state-check.ts` | 全部通过，含既有导入权限与校验回归。 |
 | `npm run typecheck` | 通过。 |
 | `npm run build` | 类型检查及生产构建通过；Vite 提示部分 chunk 超过 500 kB。 |
 | `git diff --check` | 通过。 |
@@ -68,5 +67,3 @@ node scripts/browser-r01-protection.mjs
 ```
 
 当前全局词典页面没有“取值改名”按钮，改名保护经实际导出的 valueRenameDecision 领域入口验证；Chrome 验证了现有词典删除入口，不宣称完成不存在的改名 UI 验收。结构损坏配置面板的安全读取有类型检查和领域断言，未单独通过浏览器注入坏 props；持久化损坏在挂载业务页面前已进入恢复页。未开展后端或线上环境验收。
-
-实际多路径共用 MAT、提前建档和权益包新功能继续留给后续轮次。本轮工作到此结束。

@@ -28,7 +28,6 @@ for(const page of guidePages){
 }
 assert.equal(guidePageEntryLabel('page-spu-edit'),'前往列表选择 SPU')
 assert.equal(guidePageEntryLabel('page-sku-edit'),'前往列表选择 SKU')
-assert.equal(guidePageTarget('page-benefit-delivery')?.path,'/benefit-packages')
 const reader=readFileSync('src/components/guide/GuideArticleReader.vue','utf8')
 assert(reader.includes('GuideFeatureTable'));assert(reader.includes('manual.featureRows'));assert(reader.includes('manual.restrictionRows'))
 assert(!/v-for="action in actions"|v-for="rule in rules"|watch\(|remember\(/.test(reader),'normal reading does not expand every old template or write reading records')

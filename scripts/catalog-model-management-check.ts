@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {createPinia,setActivePinia} from 'pinia'
 import {installCatalogTestLocks} from './catalog-storage-test-env'
-import {createSalesConfigurationFixture} from './sales-configuration-fixtures'
+import {createHostModelFixture} from './compatibility-ability-fixtures'
 import {useCatalogStore} from '../src/stores/catalog'
 import {DATA_VERSION,STORAGE_KEY} from '../src/domain/types'
 import {RBAC_ENFORCEMENT_ENABLED} from '../src/domain/accessMode'
@@ -14,7 +14,7 @@ const disk=new Map<string,string>(),session=new Map<string,string>()
 const storage=(map:Map<string,string>)=>({getItem:(key:string)=>map.get(key)??null,removeItem:(key:string)=>map.delete(key),setItem:(key:string,value:string)=>{if(quota&&key===STORAGE_KEY)throw Error('isolated model quota');map.set(key,value)}})
 Object.defineProperty(globalThis,'localStorage',{configurable:true,value:storage(disk)})
 Object.defineProperty(globalThis,'sessionStorage',{configurable:true,value:storage(session)})
-const {data,modelId}=createSalesConfigurationFixture()
+const {data,modelId}=createHostModelFixture()
 data.rbac!.roles.push({id:'model-reader',code:'model-reader',name:'模型只读',enabled:true,description:'isolated',permissionCodes:['product:model:read']})
 data.users.push({id:'model-reader',username:'model-reader',displayName:'模型只读',enabled:true,role:'operator',roleIds:['model-reader']})
 data.rbac!.roles.push({id:'type-creator',code:'type-creator',name:'类型新建',enabled:true,description:'isolated',permissionCodes:['product:type:read','product:type:create','product:category:read']})
@@ -23,7 +23,7 @@ data.categories.push({id:'management-leaf',name:'管理测试末级',parentId:nu
 disk.set(STORAGE_KEY,JSON.stringify({version:DATA_VERSION,data}));session.set('iyge-rbac-simulated-user','u-admin')
 const mount=async()=>{setActivePinia(createPinia());const value=useCatalogStore();await value.waitForPersistence();return value}
 const store=await mount(),other=await mount(),raw=()=>disk.get(STORAGE_KEY),canvas=()=>store.data.specCanvases.find(row=>row.templateId===modelId)!,mark=(name:string)=>{groups++;console.log(`PASS catalog model management: ${name}`)}
-const before=raw(),unchanged=JSON.stringify([store.data.specModelVersions,store.data.families,store.data.skus,store.data.planningRecords,store.data.salesOptionBindings,store.data.templateCompatibilityConfigs])
+const before=raw(),unchanged=JSON.stringify([store.data.specModelVersions,store.data.families,store.data.skus,store.data.planningRecords,store.data.templateCompatibilityConfigs])
 assert.equal((await store.setProductModelStatus('missing-model','offline','')).ok,false)
 assert.equal(raw(),before);assert.equal(store.data.specCanvases.some(row=>row.templateId==='missing-model'),false)
 assert.equal((await store.setProductModelStatus(modelId,'offline','wrong-revision')).ok,false);assert.equal(raw(),before)
@@ -31,7 +31,7 @@ mark('missing canvas never creates ownership; stale model maintenance revision r
 
 quota=true;const failed=await store.setProductModelStatus(modelId,'offline',canvas().updatedAt||'');assert.equal(failed.ok,false);assert.equal(raw(),before);assert.notEqual(canvas().status,'offline');quota=false
 const saved=await store.setProductModelStatus(modelId,'offline',canvas().updatedAt||'');assert(saved.ok,saved.message);assert.equal(canvas().status,'offline')
-assert.equal(JSON.stringify([store.data.specModelVersions,store.data.families,store.data.skus,store.data.planningRecords,store.data.salesOptionBindings,store.data.templateCompatibilityConfigs]),unchanged)
+assert.equal(JSON.stringify([store.data.specModelVersions,store.data.families,store.data.skus,store.data.planningRecords,store.data.templateCompatibilityConfigs]),unchanged)
 const persisted=JSON.parse(raw()!).data;assert.equal(persisted.specCanvases.find((row:{templateId:string})=>row.templateId===modelId).status,'offline')
 mark('disk failure is atomic and retry offlines only the actual canvas; snapshots, sources and bindings stay exact')
 

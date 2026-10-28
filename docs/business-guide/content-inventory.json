@@ -337,73 +337,6 @@
       "formal": true
     },
     {
-      "id": "page-benefits",
-      "title": "权益包与框架",
-      "patterns": [
-        "/benefit-packages"
-      ],
-      "articleId": "manual-benefits",
-      "actionIds": [
-        "action-framework-save",
-        "action-benefit-copy",
-        "action-benefit-query"
-      ],
-      "source": [
-        "src/views/BenefitPackageListView.vue"
-      ],
-      "formal": true
-    },
-    {
-      "id": "page-benefit-create",
-      "title": "新建权益包",
-      "patterns": [
-        "/benefit-packages/new"
-      ],
-      "articleId": "manual-benefit-create",
-      "actionIds": [
-        "action-benefit-save",
-        "action-benefit-select",
-        "action-benefit-quote"
-      ],
-      "source": [
-        "src/views/BenefitPackageEditView.vue"
-      ],
-      "formal": true
-    },
-    {
-      "id": "page-benefit-edit",
-      "title": "权益包详情",
-      "patterns": [
-        "/benefit-packages/:id"
-      ],
-      "articleId": "manual-benefit-edit",
-      "actionIds": [
-        "action-benefit-save",
-        "action-benefit-deliver",
-        "action-benefit-quote",
-        "action-business-save"
-      ],
-      "source": [
-        "src/views/BenefitPackageEditView.vue"
-      ],
-      "formal": true
-    },
-    {
-      "id": "page-benefit-delivery",
-      "title": "交付清单",
-      "patterns": [
-        "/benefit-packages/deliveries/:id"
-      ],
-      "articleId": "manual-benefit-delivery",
-      "actionIds": [
-        "action-delivery-export"
-      ],
-      "source": [
-        "src/views/BenefitDeliveryView.vue"
-      ],
-      "formal": true
-    },
-    {
       "id": "page-brands",
       "title": "品牌中心",
       "patterns": [
@@ -1312,102 +1245,6 @@
       ]
     },
     {
-      "id": "action-framework-save",
-      "title": "保存独立选配框架",
-      "pageIds": [
-        "page-benefits"
-      ],
-      "ruleIds": [
-        "rule-framework-members",
-        "rule-model-history"
-      ]
-    },
-    {
-      "id": "action-benefit-copy",
-      "title": "复制常用权益包",
-      "pageIds": [
-        "page-benefits"
-      ],
-      "ruleIds": [
-        "rule-framework-members",
-        "rule-model-history"
-      ]
-    },
-    {
-      "id": "action-benefit-query",
-      "title": "查找权益包与历史",
-      "pageIds": [
-        "page-benefits"
-      ],
-      "ruleIds": [
-        "rule-framework-members",
-        "rule-model-history"
-      ]
-    },
-    {
-      "id": "action-benefit-select",
-      "title": "选配商品和服务",
-      "pageIds": [
-        "page-benefit-create"
-      ],
-      "ruleIds": [
-        "rule-benefit-validation",
-        "rule-benefit-quote",
-        "rule-framework-members",
-        "rule-compatibility-binding"
-      ]
-    },
-    {
-      "id": "action-benefit-save",
-      "title": "保存权益包",
-      "pageIds": [
-        "page-benefit-create",
-        "page-benefit-edit"
-      ],
-      "ruleIds": [
-        "rule-benefit-validation",
-        "rule-framework-members",
-        "rule-benefit-quote",
-        "rule-persistence"
-      ]
-    },
-    {
-      "id": "action-benefit-quote",
-      "title": "填写并复核报价",
-      "pageIds": [
-        "page-benefit-create",
-        "page-benefit-edit"
-      ],
-      "ruleIds": [
-        "rule-benefit-quote"
-      ]
-    },
-    {
-      "id": "action-benefit-deliver",
-      "title": "预览并确认本机清单",
-      "pageIds": [
-        "page-benefit-edit"
-      ],
-      "ruleIds": [
-        "rule-benefit-validation",
-        "rule-benefit-quote",
-        "rule-benefit-preview",
-        "rule-conflict",
-        "rule-persistence"
-      ]
-    },
-    {
-      "id": "action-delivery-export",
-      "title": "打印或导出历史清单",
-      "pageIds": [
-        "page-benefit-delivery"
-      ],
-      "ruleIds": [
-        "rule-delivery-snapshot",
-        "rule-benefit-preview"
-      ]
-    },
-    {
       "id": "action-brand-save",
       "title": "保存品牌目录",
       "pageIds": [
@@ -1856,7 +1693,6 @@
         "page-skus",
         "page-sku-edit",
         "page-material-create",
-        "page-benefit-edit",
         "page-brands",
         "page-groups",
         "page-rules",
@@ -2000,36 +1836,6 @@
       "id": "rule-compatibility-manual-protection",
       "title": "人工修改与取消跨版本保留",
       "source": "src/domain/materialRelationCommands.ts",
-      "status": "verified"
-    },
-    {
-      "id": "rule-framework-members",
-      "title": "框架类型范围与修订保护",
-      "source": "src/domain/benefitFrameworks.ts",
-      "status": "verified"
-    },
-    {
-      "id": "rule-benefit-validation",
-      "title": "可用权益包通过当前成员与条件校验",
-      "source": "src/domain/benefitPackages.ts",
-      "status": "verified"
-    },
-    {
-      "id": "rule-benefit-quote",
-      "title": "人工报价与参考合计分别记录",
-      "source": "src/domain/benefitPricing.ts",
-      "status": "verified"
-    },
-    {
-      "id": "rule-benefit-preview",
-      "title": "交付须基于最新保存与确认预览",
-      "source": "src/domain/benefitPackages.ts",
-      "status": "verified"
-    },
-    {
-      "id": "rule-delivery-snapshot",
-      "title": "历史交付只读冻结内容",
-      "source": "src/domain/benefitPackageExport.ts",
       "status": "verified"
     },
     {

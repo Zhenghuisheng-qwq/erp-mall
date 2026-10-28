@@ -59,12 +59,12 @@ function prepareSpu(place: 'top' | 'bottom' | 'before' | 'after' = 'top') {
 }
 try {
   await mount()
-  const business = JSON.stringify([store!.data.families, store!.data.skus, store!.data.specModelVersions, store!.data.benefitDeliveries])
+  const business = JSON.stringify([store!.data.families, store!.data.skus, store!.data.specModelVersions])
   let next = spuPage(); next.views[0]!.categoryFilterLayout = 'sidebar'
   const original = snapshot(); failWrite = true
   assert.equal((await store!.commitSpuPage(next)).ok, false); unchanged(original); assert.equal(next.views[0]!.categoryFilterLayout, 'sidebar')
   failWrite = false; assert.equal((await store!.commitSpuPage(next)).ok, true); assert.equal(writes, 1)
-  assert.equal(JSON.stringify([store!.data.families, store!.data.skus, store!.data.specModelVersions, store!.data.benefitDeliveries]), business); groups++
+  assert.equal(JSON.stringify([store!.data.families, store!.data.skus, store!.data.specModelVersions]), business); groups++
 
   let before = snapshot(); assert.equal((await store!.commitSpuPage(spuPage())).ok, true); unchanged(before)
   next = spuPage(); next.views[0]!.categoryFilterLayout = 'popover'; assert.equal((await store!.commitSpuPage(next, undefined, () => false)).ok, false); unchanged(before)

@@ -47,7 +47,7 @@ material.modelVersionId='foreign';assert(legalComboMaterialStatus(data,modelId,v
 console.log('PASS materials: sibling product, two same-name MAT, sales exclusion, current/history/unversioned/foreign, readonly')
 const large=functionalGapsFixture(2048), started=performance.now();const big=legalComboMaterialStatus(large.data,large.modelId,large.versionId)
 assert.equal(big.rows.length,4096);console.log(`PASS large 4096 combinations: ${(performance.now()-started).toFixed(1)} ms`)
-const paths=['/spus','/spus/new','/spus/abc','/skus','/skus/new','/skus/abc','/materials/new','/materials/abc','/benefit-packages','/benefit-packages/new','/benefit-packages/abc','/benefit-packages/deliveries/abc','/specs','/categories','/templates','/models','/products','/products/old','/feedback']
+const paths=['/spus','/spus/new','/spus/abc','/skus','/skus/new','/skus/abc','/materials/new','/materials/abc','/specs','/categories','/templates','/models','/products','/products/old','/feedback']
 const featureIds=new Set<string>()
 for(const path of paths){const sheet=featureSheet(path);assert(sheet && sheet.title!=='当前页面');for(const feature of sheet.features){assert(!featureIds.has(feature.id),`duplicate ${feature.id}`);featureIds.add(feature.id)}}
 assert.equal(featurePageKey('/products/new'),'/spus/new');assert.equal(featurePageKey('/products/old'),'/products/edit');assert.equal(featurePageKey('/spus',{panel:'columns'}),'/products?panel=columns')

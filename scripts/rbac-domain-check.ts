@@ -69,7 +69,7 @@ for(const [path,query,expected] of [
   ['/products/new',{},['product:spu:read','product:spu:create']],['/products/fam-1',{copySku:'sku-1'},['product:sku:read','product:sku:create']],
   ['/columns',{},['product:view:read','product:spu:read']],['/skus',{panel:'columns'},['product:view:read','product:sku:read']],
   ['/specs',{},['product:model-designer:read']],['/roles',{},['system:role:read']],['/permissions',{},['system:permission:read']],
-  ['/benefit-packages/deliveries/delivery-1',{},['product:delivery:read']],['/forbidden',{},[]],['/not-a-route',{},null]
+  ['/forbidden',{},[]],['/not-a-route',{},null]
 ] as const) assert.deepEqual(routePermissions(path,query),expected,path)
 assert.deepEqual(commandPermissions('unknownCommand'),['!unregistered-command'])
 const familyForPublish=clone(data.families[0]!);familyForPublish.shelfStatus=familyForPublish.shelfStatus==='online'?'offline':'online';assert(commandPermissions('saveBundle',[familyForPublish,[]],data).includes('product:spu:publish'));

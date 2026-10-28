@@ -20,16 +20,13 @@ export interface GuideDirectoryCenter extends GuideDirectoryGroup { groups: Guid
 // list/workspace entrance; an explanation never invents an object ID or selects a record.
 const targets: Record<string, GuideLocation> = {
   'page-catalog':{path:'/catalog'},
-  'page-sales-shopping':{path:'/sales-shopping'}, 'page-sales-configurations':{path:'/sales-configurations'},
   'page-home':{path:'/'}, 'page-categories':{path:'/categories',query:{mode:'organize'}}, 'page-product-types':{path:'/catalog',query:{view:'types'}},
   'page-params':{path:'/params'}, 'page-templates':{path:'/templates'}, 'page-models':{path:'/catalog',query:{view:'models'}},
   'page-specs':{path:'/specs'}, 'page-plans':{path:'/plans'}, 'page-tree':{path:'/tree'},
   'page-spus':{path:'/spus'}, 'page-spu-create':{path:'/spus/new'}, 'page-spu-edit':{path:'/spus'},
   'page-skus':{path:'/skus'}, 'page-sku-create':{path:'/skus'}, 'page-sku-edit':{path:'/skus'},
   'page-material-create':{path:'/materials/new'}, 'page-material-edit':{path:'/spus'},
-  'page-compatibility':{path:'/compatibility'}, 'page-benefits':{path:'/benefit-packages'},
-  'page-benefit-create':{path:'/benefit-packages/new'}, 'page-benefit-edit':{path:'/benefit-packages'},
-  'page-benefit-delivery':{path:'/benefit-packages'}, 'page-brands':{path:'/brands'}, 'page-groups':{path:'/groups'},
+  'page-compatibility':{path:'/compatibility'}, 'page-brands':{path:'/brands'}, 'page-groups':{path:'/groups'},
   'page-rules':{path:'/rules'}, 'page-mappings':{path:'/mappings'}, 'page-overview':{path:'/overview'},
   'page-check':{path:'/check'}, 'page-import':{path:'/import'},
   'page-columns-spu':{path:'/spus',query:{panel:'columns'}}, 'page-columns-sku':{path:'/skus',query:{panel:'columns'}},
@@ -45,7 +42,6 @@ export function guidePageTarget(pageId: string): GuideLocation | undefined {
 const selectionLabels: Record<string,string> = {
   'page-spu-edit':'前往列表选择 SPU', 'page-sku-create':'前往 SKU 管理选择主体',
   'page-sku-edit':'前往列表选择 SKU', 'page-material-edit':'前往 SPU 管理查找物料',
-  'page-benefit-edit':'前往列表选择权益包', 'page-benefit-delivery':'前往权益包查看历史清单',
   'page-guide-article':'前往说明目录选择页面',
 }
 export function guidePageEntryLabel(pageId:string) {
@@ -56,10 +52,6 @@ type PageLink = [from:string,to:string,kind:GuideRelationKind,reason:string,reve
 // Relationships are authored against real page identities. Kind and explanation are not
 // inferred from a title, menu position, object name, or similar-looking route.
 const links: PageLink[] = [
-  ['page-sales-shopping','page-sales-configurations','upstream','已发布方案和正式范围绑定组织选购候选；浏览不修改配置。','权益包选购按具体商品读取正式方案并建立实际清单。'],
-  ['page-sales-configurations','page-specs','related','模型节点的搭配与适用和独立配置页共用相同绑定与方案。','在节点打开搭配与适用，预览真实范围后明确应用。'],
-  ['page-sales-configurations','page-compatibility','related','选配方案组织选择，具体适用仍由正式声明及相关条件决定。'],
-  ['page-sales-shopping','page-benefits','downstream','实际清单复用现有权益包草稿与冻结交付能力。'],
   ['page-home','page-spus','related','工作台的商品搜索和快捷入口进入 SPU 管理。','商品工作台提供商品搜索和统计入口。'],
   ['page-home','page-check','related','工作台问题统计可进入商品质量检查。','商品工作台提供待处理问题入口。'],
   ['page-product-types','page-categories','upstream','产品类型显式关联分类，分类需要先存在。','分类下的产品类型在产品类型页面维护。'],
@@ -86,12 +78,6 @@ const links: PageLink[] = [
   ['page-material-edit','page-spu-edit','related','物料档案与商品主体按真实 ID 关联；查看主体及物料时不能把 MAT 当销售 SKU。'],
   ['page-compatibility','page-skus','related','销售 SKU 的适用声明独立维护；MAT 声明不会自动成为 SKU 适用证据。'],
   ['page-compatibility','page-material-edit','related','可维护 MAT 的适用关系和来源，但物料身份与销售 SKU 保持分离。'],
-  ['page-compatibility','page-benefit-create','downstream','权益包推荐与最终保存使用正式基本适用结论，附条件、待确认与不适用分别处理。','选配时依据主机型号和正式声明查询适用商品；设备上下文不等于包内商品。'],
-  ['page-benefits','page-benefit-create','related','选择独立框架或自由组包，再运行时选择实际销售 SKU。','创建和保存后可在常用权益包列表管理当前配置。'],
-  ['page-benefits','page-benefit-edit','related','从常用权益包列表选择当前包，查看冻结框架修订与成员。','常用权益包列表提供当前配置及常用包入口。'],
-  ['page-benefit-create','page-skus','upstream','包内实物成员必须是实际销售 SKU，不能用 SPU、PLN 或 MAT 代替。','在售并符合框架范围及适配条件的 SKU 可动态参与选配。'],
-  ['page-benefit-edit','page-benefit-delivery','downstream','保存当前完整配置并复核报价后，预览确认生成冻结交付清单。','清单从已保存包配置生成；修改配置不会重写旧清单。'],
-  ['page-benefit-delivery','page-sku-edit','related','历史清单读取当时冻结的商品、数量和参考价格；后续 SKU 修改不会回写历史。'],
   ['page-spus','page-columns-spu','related','SPU 列、筛选、分组和保存视图属于 SPU 页面配置。'],
   ['page-skus','page-columns-sku','related','SKU 列和保存视图单独维护，与 SPU 临时范围隔离。'],
   ['page-brands','page-params','related','品牌维护可能同步品牌词典；主数据品牌与规划属性品牌保持各自真实字段。'],

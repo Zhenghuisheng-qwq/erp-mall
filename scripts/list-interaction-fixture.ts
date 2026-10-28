@@ -15,8 +15,7 @@ export function listInteractionFixture(): AppData {
   ] as const
   data.families = records.map(([id, categoryId, axis, name]) => ({ ...JSON.parse(JSON.stringify(sourceFamily)), id: `list-f-${id}`, oaProductId: `LIST-${id}`, name: `${name} ${id}`, templateId: axis === null ? '' : 'list-template', categoryId, commonAttrs: axis === null ? {} : { 列表属性: axis }, productGroupIds: [], line: 'v2', updatedAt: '2026-10-26 12:00:00', createdAt: '2026-10-26 12:00:00', shelfStatus: 'draft' } as ProductFamily))
   data.skus = records.map(([id, , axis]) => ({ ...JSON.parse(JSON.stringify(sourceSku)), id: `list-s-${id}`, familyId: `list-f-${id}`, recordKind: 'sku', materialCode: '', planningId: '', variantAttrs: axis === null ? {} : { 列表属性: axis }, projectedAttrs: {}, manualAttrs: [], specText: '', skuName: `SKU ${id}`, skuCode: `SKU-${id}`, status: 'on_sale', updatedAt: '2026-10-26 12:00:00', createdAt: '2026-10-26 12:00:00' } as Sku))
-  data.materialReceipts = []; data.planningRecords = []; data.compatibilities = []; data.benefitPackages = []; data.benefitDeliveries = []
-  data.listQuery = emptyQuery(); data.listViews = []; data.activeViewId = ''; data.productListViews = [listInteractionSpuView()]; data.activeProductListViewId = 'list-spu-view'; delete data.productListPages
+  data.materialReceipts = []; data.planningRecords = []; data.compatibilities = []; data.listQuery = emptyQuery(); data.listViews = []; data.activeViewId = ''; data.productListViews = [listInteractionSpuView()]; data.activeProductListViewId = 'list-spu-view'; delete data.productListPages
   return data
 }
 export function listInteractionSpuView(): ProductListSavedView {

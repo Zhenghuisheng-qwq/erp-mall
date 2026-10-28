@@ -7,7 +7,7 @@ import { createTestRuntime, removeTestRuntime } from './test-runtime.mjs'
 const runtime = createTestRuntime('sku-saved-scope'), errors = []
 let browser, server, groups = 0
 const mark = name => { groups++; console.log(`PASS ${name}`) }
-const business = data => JSON.stringify([data.families, data.skus, data.specModelVersions, data.planningRecords, data.compatibilities, data.materialRelations, data.benefitPackages, data.benefitDeliveries])
+const business = data => JSON.stringify([data.families, data.skus, data.specModelVersions, data.planningRecords, data.compatibilities, data.materialRelations])
 try {
   browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'chrome', headless: true })
   for (const strict of [false, true]) {

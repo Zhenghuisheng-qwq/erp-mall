@@ -19,7 +19,7 @@ Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getIte
 Object.defineProperty(globalThis,'sessionStorage',{configurable:true,value:{getItem:(key:string)=>session.get(key)??null,setItem:(key:string,value:string)=>session.set(key,value),removeItem:(key:string)=>session.delete(key)}})
 const mark=(name:string)=>{checks.push(name);if(artifacts)console.log(`PASS deleteProperty ${strict?'strict':'default'} ${name}`)}
 const memory=()=>JSON.stringify(store!.data),raw=()=>disk.get(STORAGE_KEY)
-const frozen=(data:AppData)=>JSON.stringify([data.specModelVersions,data.planningRecords,data.materialReceipts,data.materialRelations,data.materialContributions,data.compatibilities,data.benefitDeliveries])
+const frozen=(data:AppData)=>JSON.stringify([data.specModelVersions,data.planningRecords,data.materialReceipts,data.materialRelations,data.materialContributions,data.compatibilities])
 function fixture(){
  const data=normalizeStored({version:DATA_VERSION,data:createSeed()})!;ensureRbac(data)
  const family={...clone(data.families[0]!),id:'delete-v2-family',line:'v2' as const,shelfStatus:'offline' as const,lifecycle:'ready' as const}
