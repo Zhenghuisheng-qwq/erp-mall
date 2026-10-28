@@ -1,5 +1,5 @@
 import type { TemplateSpecSelector } from './templateCompatibilityTypes'
-import type { BenefitGroupRule, BenefitServiceLine, BenefitSkuSummary } from './benefitPackageTypes'
+import type { BenefitGroupRule, BenefitServiceLine, BenefitSkuSummary, BenefitDeviceContext } from './benefitPackageTypes'
 import type { CompatibilityCondition } from './accessoryCompatibilityTypes'
 
 export interface SalesCandidateScope { kind: 'product-types' | 'families' | 'skus' | 'service'; ids: string[] }
@@ -51,7 +51,9 @@ export interface SalesPlanResolution {
   state: 'matched' | 'none' | 'unconfigured' | 'conflict' | 'invalid'; message: string
   source: SalesSourceResolution; bindingIds: string[]; plan?: SalesOptionPlanVersion
 }
+export interface SalesCompatibilityBasis { kind:'device-compatibility'; device:NonNullable<BenefitDeviceContext>; targetSkuId:string; declarationIds:string[] }
 export interface SalesSelectionOrigin {
+  basis?: SalesCompatibilityBasis
   positionId: string; sourceSkuId: string; sourcePositionId?: string
   itemId: string; checkTarget: SalesOptionItem['checkTarget']; bindingIds: string[]
   plan?: SalesOptionPlanVersion; relationIds: string[]; evidence: string
@@ -59,6 +61,7 @@ export interface SalesSelectionOrigin {
 export interface SalesSelectionContext { sourceSkuId: string; sourcePositionId?: string; bindingIds: string[]; plan: SalesOptionPlanVersion }
 export interface SalesSelectionMetadata { schemaVersion: 1; origins: SalesSelectionOrigin[]; contexts: SalesSelectionContext[] }
 export interface SalesCandidate {
+  basis?: SalesCompatibilityBasis
   key: string; skuId?: string; summary?: BenefitSkuSummary; item: SalesOptionItem
   sourceSkuId: string; bindingIds: string[]; plan?: SalesOptionPlanVersion; relationIds: string[]
   status: 'compatible' | 'conditional' | 'pending' | 'incompatible' | 'not-required'

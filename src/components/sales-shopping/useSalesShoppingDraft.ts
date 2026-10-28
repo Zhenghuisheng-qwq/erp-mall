@@ -40,13 +40,14 @@ export function useSalesShoppingDraft() {
     if (alive && dirty.value && canPersist.value && !error.value && !inputError.value)
       timer = setTimeout(() => { void flush() }, 180)
   }
-  function change(operation: (current: BenefitPackageDraft) => BenefitPackageDraft): boolean {
+  function change(operation: (current: BenefitPackageDraft) => BenefitPackageDraft, contextOnly=false): boolean {
     if (!canEdit.value || missing.value || businessPending.value) { error.value = '当前不能修改销售方案，请核对权限或等待正式提交完成。'; return false }
     try {
       const next = operation(cloneBenefit(draft.value))
       if (content(next) === content(draft.value)) return true
       next.status = 'draft'
-      draft.value = next; version++; dirty.value = true; invalidatePreview(); schedule()
+      const transient=contextOnly&&!draft.value.id&&!draft.value.goods.length&&!draft.value.services.length&&!dirty.value
+      draft.value = next; version++; invalidatePreview();if(!transient){dirty.value = true;schedule()}
       return true
     } catch (cause) { inputError.value = cause instanceof Error ? cause.message : String(cause); return false }
   }

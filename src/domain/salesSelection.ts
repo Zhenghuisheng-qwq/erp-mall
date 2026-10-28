@@ -1,4 +1,4 @@
-import { evaluateCompatibilityCondition } from './accessoryCompatibilityQuery'
+import { queryDeviceAccessories, queryModelAccessories, accessoryUseEvaluation, evaluateCompatibilityCondition } from './accessoryCompatibilityQuery'
 import { addBenefitSku, benefitCompatibilitySummary, benefitSkuSummary, cloneBenefit, copyBenefitPackageDraft, removeBenefitPosition, setBenefitDevice, setBenefitPositionQuantity } from './benefitPackages'
 import { benefitSelectionCatalogStamp, createBenefitSelectionIndex, resolveBenefitRange, type BenefitSelectionIndex } from './benefitFrameworks'
 import { benefitGroupRuleIssues } from './benefitPositions'
@@ -57,16 +57,38 @@ export function salesCandidateSelectionLimit(draft:BenefitPackageDraft,candidate
   const origins=draft.sales?.schemaVersion===1?draft.sales.origins.filter(origin=>origin.sourceSkuId===candidate.sourceSkuId&&origin.sourcePositionId===sourcePositionId&&origin.itemId===candidate.item.id&&origin.plan?.planId===candidate.plan?.planId&&origin.plan?.version===candidate.plan?.version):[]
   const ids=new Set(origins.map(origin=>origin.positionId)),goods=draft.goods.filter(line=>ids.has(line.id)),services=draft.services.filter(line=>ids.has(line.id))
   const quantity=candidate.skuId?goods.filter(line=>line.skuId===candidate.skuId).reduce((total,line)=>total+line.quantity,0):services.reduce((total,line)=>total+line.quantity,0)
+  for(const rule of candidate.plan?.rules||[])if(rule.enabled&&rule.kind==='excludes'){
+    const other=rule.sourceGroupId===candidate.item.id?rule.targetGroupId:rule.targetGroupId===candidate.item.id?rule.sourceGroupId:''
+    if(other&&draft.sales?.origins.some(origin=>origin.sourceSkuId===candidate.sourceSkuId&&origin.sourcePositionId===sourcePositionId&&origin.plan?.planId===candidate.plan?.planId&&origin.plan?.version===candidate.plan?.version&&origin.itemId===other&&[...draft.goods,...draft.services].some(line=>line.id===origin.positionId)))return `已选「${candidate.plan!.items.find(item=>item.id===other)?.name||other}」，不能同时选择此项。`
+  }
   if(quantity+candidate.item.defaultQuantity>candidate.item.maxQuantity)return `「${candidate.item.name}」最多 ${candidate.item.maxQuantity} ${candidate.item.service?.unit||'件'}。`
   if(candidate.skuId&&!quantity&&new Set(goods.map(line=>line.skuId)).size>=candidate.item.maxKinds)return `「${candidate.item.name}」最多选择 ${candidate.item.maxKinds} 种。`
   return ''
+}
+/** Uses the existing compatibility engine; no generated relation or model source is needed. */
+export function salesDeviceAccessories(data:AppData,device:BenefitDeviceContext){
+  return device?.kind==='sku'?queryDeviceAccessories(data,device.skuId):queryModelAccessories(data,device?.kind==='model'?device.host:undefined)
+}
+export function salesShoppingPolicy(data:AppData,sourceSkuId:string,device:BenefitDeviceContext){
+  const resolution=resolveSalesPlan(data,sourceSkuId)
+  const sku=data.skus.find(row=>row.id===sourceSkuId),family=sku&&data.families.find(row=>row.id===sku.familyId)
+  const modelId=device?.kind==='model'?device.host.productModelId:resolution.source.modelId||family?.productModelId||family?.templateId
+  const related=(data.salesOptionBindings||[]).filter(row=>row.scope?.kind==='products'?(!!sourceSkuId&&(row.scope.skuIds?.includes(sourceSkuId)||!!family&&row.scope.familyIds?.includes(family.id))):row.scope?.kind==='model'&&!!modelId&&row.scope.modelId===modelId)
+  if(!sourceSkuId&&device?.kind==='model')return {...resolution,state:related.length?'invalid' as const:'unconfigured' as const,message:related.length?'此设备型号有经营范围，请选择实际手机规格以核对适用版本。':''}
+  if(resolution.state==='unconfigured'&&related.some(row=>!row.enabled||row.schemaVersion!==1))return {...resolution,state:'invalid' as const,message:'此设备的经营范围已停用或结构无法读取，请联系管理员核对。'}
+  return resolution
+}
+function compatibilityReason(data:AppData,draft:BenefitPackageDraft,skuId:string){
+  const query=salesDeviceAccessories(data,draft.device),match=[...query.sales,...query.pending,...query.excluded,...query.unavailable].find(row=>row.target.kind==='sku'&&row.target.id===skuId)
+  const use=accessoryUseEvaluation(match,{requireFastCharge:draft.requireFastCharge})
+  return {query,match,use,reason:query.device.status!=='resolved'?query.device.message||'请先选择身份明确的使用设备。':use.conflict?'当前适用依据存在冲突。':use.status==='incompatible'?'此商品不适用于本次设备。':use.status!=='compatible'?'此商品的使用依据或条件尚未确认。':''}
 }
 export function querySalesCandidates(data:AppData,draft:BenefitPackageDraft,sourceSkuId:string,supplied?:SalesCandidateIndex,sourcePositionId?:string){
   const retained=draft.sales?.schemaVersion===1?draft.sales.contexts.filter(context=>context.sourceSkuId===sourceSkuId&&(sourcePositionId===undefined||context.sourcePositionId===sourcePositionId)):[]
   const stamp=salesCandidateStamp(data),index=supplied?.stamp===stamp?supplied:createSalesCandidateIndex(data),key=salesSignature([sourceSkuId,sourcePositionId,draft.device,draft.requireFastCharge,retained,draft.goods.map(line=>[line.id,line.skuId,line.quantity]),draft.services.map(line=>[line.id,line.quantity]),draft.sales?.origins])
   const cached=index.queries.get(key);if(cached)return {...cached,index}
-  let resolution=resolveSalesPlan(data,sourceSkuId)
-  const rows:SalesCandidate[]=[],excludedRows:SalesCandidate[]=[],sourceIssue=salesContextAdmission(data,sourceSkuId).reason
+  let resolution=salesShoppingPolicy(data,sourceSkuId,draft.device)
+  const rows:SalesCandidate[]=[],excludedRows:SalesCandidate[]=[],sourceIssue=sourceSkuId?salesContextAdmission(data,sourceSkuId).reason:draft.device?.kind==='model'?salesDeviceAccessories(data,draft.device).device.message:'请先选择本次使用设备。'
   if(retained.length&&!['conflict','invalid'].includes(resolution.state)){
     const versions=new Set(retained.map(context=>salesSignature(context.plan)))
     if(versions.size>1)resolution={...resolution,state:'conflict',message:'此商品在本次清单中有多个用途版本，请从已选位置明确查看来源。',plan:undefined}
@@ -81,15 +103,31 @@ export function querySalesCandidates(data:AppData,draft:BenefitPackageDraft,sour
     for(const summary of index.benefit.summaries.values()){
       if(!matchesScope(summary,item)||summary.skuId===sourceSkuId)continue
       const compatibility=itemSummary(data,draft,sourceSkuId,item,summary.skuId,index.benefit),status=compatibility.basicStatus==='unchecked'?'pending':compatibility.basicStatus
-      const admission=index.admission.get(summary.skuId)||salesSkuAdmission(data,summary.skuId),reason=sourceIssue||admission.reason,source=resolveSalesSource(data,sourceSkuId)
+      const admission=index.admission.get(summary.skuId)||salesSkuAdmission(data,summary.skuId),checked=item.checkTarget==='source'?'':compatibilityRecordRole(data,summary.skuId)==='accessory'?compatibilityReason(data,{...draft,device:draft.device||(compatibilityRecordRole(data,sourceSkuId)==='host'?{kind:'sku',skuId:sourceSkuId}:null)},summary.skuId).reason:'',reason=sourceIssue||admission.reason||checked||(!['compatible','not-required'].includes(status)?'适用依据或条件尚未确认。':''),source=resolveSalesSource(data,sourceSkuId)
       ;(reason?excludedRows:rows).push({...base,key:salesSignature([purposeKey(sourceSkuId,item.id,plan),summary.skuId]),skuId:summary.skuId,summary:cloneSales(summary),status,canAdd:!reason&&status!=='incompatible',reason:reason||compatibility.reasons.join('；')||(['pending','conditional'].includes(status)?'需要核对使用依据。':status==='not-required'?'独立商品；未宣称与来源兼容。':'已核对当前适用对象。'),evidence:salesSignature([source,admission,data.salesOptionBindings?.filter(binding=>bindingIds.includes(binding.id)),item,compatibility,data.salesProductRelations?.filter(relation=>relation.sourceSkuId===sourceSkuId&&relation.targetSkuId===summary.skuId)])})
     }
   }
   if(resolution.state==='matched')for(const item of [...resolution.plan!.items].sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id)))add(item,resolution.plan,resolution.bindingIds)
-  if(!['conflict','invalid','none'].includes(resolution.state)){
+  if(resolution.state==='unconfigured'){
     const targets=new Map<string,{skuId:string;target:SalesOptionItem['checkTarget'];ids:string[]}>()
     for(const relation of data.salesProductRelations||[])if(relation.schemaVersion===1&&relation.enabled&&relation.sourceSkuId===sourceSkuId&&!relationProblems(data,relation).length){const target=relation.kind==='applicability'?'source':relation.checkTarget||'device',key=salesSignature([relation.targetSkuId,target]),item=targets.get(key)||{skuId:relation.targetSkuId,target,ids:[]};item.ids.push(relation.id);targets.set(key,item)}
     for(const {skuId,target,ids} of targets.values())add({id:`relation:${target}:${skuId}`,name:'相关商品',enabled:true,order:1000,scope:{kind:'skus',ids:[skuId]},recommended:true,required:false,minKinds:0,maxKinds:1,defaultQuantity:1,minQuantity:1,maxQuantity:999,checkTarget:target,source:'商品关联',note:''},undefined,[],ids)
+  }
+  if(resolution.state==='unconfigured'&&draft.device&&!draft.framework&&!sourceIssue){
+    const query=salesDeviceAccessories(data,draft.device)
+    if(query.device.status!=='resolved')resolution={...resolution,state:'invalid',message:query.device.message||'本次设备身份无法解析。'}
+    else {
+      const matches=new Map([...query.sales,...query.pending,...query.excluded,...query.unavailable].filter(row=>row.target.kind==='sku').map(row=>[row.target.id,row]))
+      for(const summary of index.benefit.summaries.values()){
+        if(compatibilityRecordRole(data,summary.skuId)!=='accessory'||rows.some(row=>row.skuId===summary.skuId))continue
+        const match=matches.get(summary.skuId),use=accessoryUseEvaluation(match,{requireFastCharge:draft.requireFastCharge}),admission=salesSkuAdmission(data,summary.skuId)
+        const reason=admission.reason||(!match?'缺少此设备的正式销售配件适用声明。':use.conflict?'适用依据存在冲突。':use.status!=='compatible'?'基本使用或所需能力尚未确认，或使用条件不满足。':'')
+        const item:SalesOptionItem={id:`compatibility:${summary.productTypeId}:${salesSignature(draft.device)}`,name:summary.typeName,enabled:true,order:1000,scope:{kind:'product-types',ids:[summary.productTypeId]},recommended:false,required:false,minKinds:0,maxKinds:999,defaultQuantity:1,minQuantity:1,maxQuantity:999,checkTarget:'device',source:'正式设备适用声明',note:''}
+        const basis={kind:'device-compatibility' as const,device:cloneBenefit(draft.device),targetSkuId:summary.skuId,declarationIds:use.declarations.map(row=>row.id)}
+        ;(reason?excludedRows:rows).push({key:salesSignature([purposeKey(sourceSkuId,item.id),summary.skuId]),skuId:summary.skuId,summary:cloneSales(summary),item,sourceSkuId,bindingIds:[],relationIds:[],basis,status:use.status,canAdd:!reason,reason:reason||'已核对本次设备的基本适用性。',evidence:salesSignature([basis,match,admission,draft.requireFastCharge])})
+      }
+      resolution={...resolution,message:rows.length?'按当前设备的正式适用依据选购，无需新建经营配置。':'暂无当前可正常添加的配件，请查看未展示原因。'}
+    }
   }
   for(const row of rows){const limit=salesCandidateSelectionLimit(draft,row,sourcePositionId);if(row.canAdd&&limit){row.canAdd=false;row.reason=limit}}
   if(sourceIssue)resolution={...resolution,state:'invalid',message:sourceIssue}
@@ -116,11 +154,12 @@ export function addSalesCandidate(data:AppData,draft:BenefitPackageDraft,candida
   if(draft.framework)throw Error('此组合保留原选配框架，请在高级配置中增补商品；不能自动叠加销售选配方案。')
   const query=querySalesCandidates(data,draft,candidate.sourceSkuId,undefined,options.sourcePositionId)
   const current=[...query.rows,...query.excludedRows].find(row=>row.key===candidate.key)
-  if(!current||!current.canAdd)throw Error(current?.reason||'候选或来源方案已变化，请重新查看相关商品。')
-  if(current.evidence!==candidate.evidence)throw Error('适用依据或方案范围已变化，请重新核对当前候选。')
-  let next=attachSalesSource(data,draft,current.sourceSkuId,options.sourcePositionId)
+  if(!current||!current.canAdd)throw Error(`该商品刚发生变化，请重新选择。${current?.reason||query.resolution.message}`)
+  if(current.evidence!==candidate.evidence)throw Error('该商品刚发生变化，请重新选择并核对适用依据。')
+  let next=current.basis?cloneBenefit(draft):attachSalesSource(data,draft,current.sourceSkuId,options.sourcePositionId)
+  next.sales??={schemaVersion:1,origins:[],contexts:[]}
   if(!next.device&&compatibilityRecordRole(data,current.sourceSkuId)==='host')next=setBenefitDevice(data,next,{kind:'sku',skuId:current.sourceSkuId})
-  const origin:SalesSelectionOrigin={positionId:'',sourceSkuId:current.sourceSkuId,...(options.sourcePositionId?{sourcePositionId:options.sourcePositionId}:{}),itemId:current.item.id,checkTarget:current.item.checkTarget,bindingIds:current.bindingIds,...(current.plan?{plan:cloneSales(current.plan)}:{}),relationIds:[...current.relationIds],evidence:current.evidence}
+  const origin:SalesSelectionOrigin={...(current.basis?{basis:cloneSales(current.basis)}:{}),positionId:'',sourceSkuId:current.sourceSkuId,...(options.sourcePositionId?{sourcePositionId:options.sourcePositionId}:{}),itemId:current.item.id,checkTarget:current.item.checkTarget,bindingIds:current.bindingIds,...(current.plan?{plan:cloneSales(current.plan)}:{}),relationIds:[...current.relationIds],evidence:current.evidence}
   const existingOrigin=next.sales!.origins.find(item=>purposeKey(item.sourceSkuId,item.itemId,item.plan,item.sourcePositionId)===purposeKey(origin.sourceSkuId,origin.itemId,origin.plan,origin.sourcePositionId)&&(current.skuId?next.goods.some(line=>line.id===item.positionId&&line.skuId===current.skuId):next.services.some(line=>line.id===item.positionId)))
   if(current.item.scope.kind==='service'){
     const existing=next.services.find(line=>line.id===existingOrigin?.positionId),quantity=(existing?.quantity||0)+current.item.defaultQuantity
@@ -143,7 +182,39 @@ export function addSalesCandidate(data:AppData,draft:BenefitPackageDraft,candida
     next.device=device;origin.positionId=next.goods.find(line=>line.groupId===id&&line.skuId===current.skuId)!.id
   }
   next.sales!.origins=next.sales!.origins.filter(item=>item.positionId!==origin.positionId);next.sales!.origins.push(existingOrigin?cloneSales(existingOrigin):origin)
-  if(current.skuId)next=attachSalesSource(data,next,current.skuId,origin.positionId)
+  if(current.skuId&&!current.basis)next=attachSalesSource(data,next,current.skuId,origin.positionId)
+  next.confirmations=[];next.quote.reviewedBasis='';return next
+}
+/** All ordinary direct-add paths use the same candidate gate as the quick list. */
+export function addSalesItem(data:AppData,draft:BenefitPackageDraft,skuId:string){
+  const admission=salesSkuAdmission(data,skuId);if(!admission.allowed)throw Error(`该商品刚发生变化，请重新选择。${admission.reason}`)
+  const role=compatibilityRecordRole(data,skuId)
+  if(role==='accessory'){
+    const source=draft.device?.kind==='sku'?draft.device.skuId:''
+    const query=querySalesCandidates(data,draft,source),candidate=query.rows.find(row=>row.skuId===skuId&&row.canAdd)
+    if(!candidate)throw Error(query.excludedRows.find(row=>row.skuId===skuId)?.reason||'此商品不在本次设备允许添加的范围，请从可选配件中选择。')
+    return addSalesCandidate(data,draft,candidate)
+  }
+  let next=draft
+  if(role==='host'&&!draft.device)next=setSalesDevice(data,next,{kind:'sku',skuId})
+  next=addBenefitSku(data,next,skuId,1,{role:role==='host'?'host':'item',groupId:null})
+  const line=next.goods.find(row=>row.skuId===skuId&&row.groupId===null)
+  return attachSalesSource(data,next,skuId,line?.id)
+}
+export function salesPositionQuantityRange(draft:BenefitPackageDraft,id:string){
+  const origin=draft.sales?.origins.find(row=>row.positionId===id),item=origin?.plan?.items.find(row=>row.id===origin.itemId)
+  return {min:item?.minQuantity||1,max:item?.maxQuantity||(origin?999:999999)}
+}
+export function setSalesPositionQuantity(data:AppData,draft:BenefitPackageDraft,id:string,quantity:number){
+  const line=[...draft.goods,...draft.services].find(row=>row.id===id),range=salesPositionQuantityRange(draft,id)
+  if(!line||!Number.isSafeInteger(quantity)||quantity<range.min||quantity>range.max)throw Error(`此商品数量须为 ${range.min}～${range.max}。`)
+  if(quantity>line.quantity){
+    const origin=draft.sales?.origins.find(row=>row.positionId===id)
+    if(origin){const candidate=querySalesCandidates(data,removeSalesPosition(draft,id),origin.sourceSkuId,undefined,origin.sourcePositionId).rows.find(row=>row.item.id===origin.itemId&&('skuId'in line?row.skuId===line.skuId:row.item.scope.kind==='service'));if(!candidate?.canAdd)throw Error('该商品刚发生变化，请重新选择；当前不能增加数量。')}
+    else if('skuId'in line&&compatibilityRecordRole(data,line.skuId)==='accessory')addSalesItem(data,removeSalesPosition(draft,id),line.skuId)
+  }
+  const next='skuId'in line?setBenefitPositionQuantity(data,draft,id,quantity):cloneBenefit(draft)
+  const service=next.services.find(row=>row.id===id);if(service)service.quantity=quantity
   next.confirmations=[];next.quote.reviewedBasis='';return next
 }
 export function removeSalesPosition(draft:BenefitPackageDraft,positionId:string):BenefitPackageDraft{
@@ -161,7 +232,7 @@ function replacePosition(data:AppData,draft:BenefitPackageDraft,positionId:strin
   if(origin&&typeof candidate==='string')throw Error('选配位置必须从该用途的有效候选更换，不能直接改 SKU。')
   if(typeof candidate!=='string'){
     const candidateKey=candidate.key
-    const current=querySalesCandidates(data,draft,candidate.sourceSkuId,undefined,options.sourcePositionId??origin?.sourcePositionId).rows.find(row=>row.key===candidateKey)
+    const current=querySalesCandidates(data,removeSalesPosition(draft,positionId),candidate.sourceSkuId,undefined,options.sourcePositionId??origin?.sourcePositionId).rows.find(row=>row.key===candidateKey)
     if(!current||!current.canAdd||current.evidence!==candidate.evidence)throw Error('候选或适用依据已变化，请重新核对更换范围。')
     // Quantity limits and purpose come from the current frozen record, not caller fields.
     candidate=current
@@ -172,7 +243,7 @@ function replacePosition(data:AppData,draft:BenefitPackageDraft,positionId:strin
     const admission=salesSkuAdmission(data,candidate);if(!admission.allowed)throw Error(admission.reason)
     if(!good)throw Error('服务不能更换为商品位置。')
     if(good.role==='host'&&draft.device?.kind==='sku'&&draft.device.skuId===good.skuId)next=setSalesDevice(data,next,{kind:'sku',skuId:candidate})
-    next=addBenefitSku(data,next,candidate,good.quantity,{role:good.role,groupId:good.groupId})
+    if(compatibilityRecordRole(data,candidate)==='accessory'){next=addSalesItem(data,next,candidate);const added=next.goods.find(item=>!before.has(item.id));if(added)next=setSalesPositionQuantity(data,next,added.id,good.quantity)}else next=addBenefitSku(data,next,candidate,good.quantity,{role:good.role,groupId:good.groupId})
     const line=next.goods.find(item=>!before.has(item.id))
     if(!line)throw Error('目标用途已有该商品，请调整已有位置数量；本次未合并。')
     next=attachSalesSource(data,next,candidate,line.id)
@@ -182,7 +253,7 @@ function replacePosition(data:AppData,draft:BenefitPackageDraft,positionId:strin
     if((candidate.item.scope.kind==='service')!==!!service)throw Error('商品和服务的位置类型不能互换。')
     if(!reselect&&(candidate.sourceSkuId!==origin.sourceSkuId||sourcePositionId!==origin.sourcePositionId||!service&&candidate.item.id!==origin.itemId||salesSignature(candidate.plan)!==salesSignature(origin.plan)))throw Error('更换必须保留用途及冻结来源版本；如需改变来源请使用重新选择来源。')
     if(sourcePositionId&&!next.goods.some(line=>line.id===sourcePositionId&&line.skuId===candidate.sourceSkuId))throw Error('来源位置已移除，请先明确选择有效来源。')
-    if(!sourcePositionId&&(next.device?.kind!=='sku'||next.device.skuId!==candidate.sourceSkuId))throw Error('原使用设备已变化，请先明确重新选择来源。')
+    if(!sourcePositionId&&!candidate.basis&&(next.device?.kind!=='sku'||next.device.skuId!==candidate.sourceSkuId))throw Error('原使用设备已变化，请先明确重新选择来源。')
     next=addSalesCandidate(data,next,candidate,{sourcePositionId})
     const added=[...next.goods,...next.services].find(line=>!before.has(line.id))
     if(!added)throw Error('该用途已有目标商品或服务，请调整已有位置数量；本次未合并。')
@@ -233,13 +304,18 @@ export function salesPositionCompatibility(data:AppData,draft:BenefitPackageDraf
   if(item)return itemSummary(data,draft,origin.sourceSkuId,item,line.skuId,index)
   return undefined
 }
+function validCompatibilityBasis(value:unknown):boolean{
+  if(!value||typeof value!=='object')return false
+  const basis=value as NonNullable<SalesSelectionOrigin['basis']>,device=basis.device
+  return basis.kind==='device-compatibility'&&typeof basis.targetSkuId==='string'&&!!basis.targetSkuId&&Array.isArray(basis.declarationIds)&&basis.declarationIds.length>0&&basis.declarationIds.every(id=>typeof id==='string'&&!!id)&&!!device&&(device.kind==='sku'?typeof device.skuId==='string'&&!!device.skuId:device.kind==='model'&&!!device.host&&typeof device.host.identityKey==='string'&&typeof device.host.productModelId==='string'&&Array.isArray(device.host.steps))
+}
 export function salesMetadataProblems(value:unknown):string[]{
   if(value===undefined)return []
   if(!value||typeof value!=='object'||Array.isArray(value))return ['销售来源结构无效。']
   const sales=value as NonNullable<BenefitPackageDraft['sales']>
   if(sales.schemaVersion!==1)return ['未知销售来源版本，不能执行或重新生成交付。']
   if(!Array.isArray(sales.origins)||!Array.isArray(sales.contexts))return ['销售来源及方案上下文必须是数组。']
-  for(const origin of sales.origins)if(!origin||!['positionId','sourceSkuId','itemId','evidence'].every(key=>typeof origin[key as keyof typeof origin]==='string'&&!!origin[key as keyof typeof origin])||!['device','source','none'].includes(origin.checkTarget)||!Array.isArray(origin.bindingIds)||!origin.bindingIds.every(id=>typeof id==='string')||!Array.isArray(origin.relationIds)||!origin.relationIds.every(id=>typeof id==='string')||origin.sourcePositionId!==undefined&&typeof origin.sourcePositionId!=='string'||origin.plan!==undefined&&salesPlanVersionProblems(origin.plan).length)return ['销售位置来源结构无效。']
+  for(const origin of sales.origins)if(!origin||!['positionId','itemId','evidence'].every(key=>typeof origin[key as keyof typeof origin]==='string'&&!!origin[key as keyof typeof origin])||typeof origin.sourceSkuId!=='string'||(!origin.sourceSkuId&&!origin.basis)||!!origin.basis&&!validCompatibilityBasis(origin.basis)||!['device','source','none'].includes(origin.checkTarget)||!Array.isArray(origin.bindingIds)||!origin.bindingIds.every(id=>typeof id==='string')||!Array.isArray(origin.relationIds)||!origin.relationIds.every(id=>typeof id==='string')||origin.sourcePositionId!==undefined&&typeof origin.sourcePositionId!=='string'||origin.plan!==undefined&&salesPlanVersionProblems(origin.plan).length)return ['销售位置来源结构无效。']
   for(const context of sales.contexts)if(!context||typeof context.sourceSkuId!=='string'||!context.sourceSkuId||!Array.isArray(context.bindingIds)||!context.bindingIds.every(id=>typeof id==='string')||context.sourcePositionId!==undefined&&typeof context.sourcePositionId!=='string'||salesPlanVersionProblems(context.plan).length)return ['销售方案上下文结构无效。']
   return []
 }
@@ -284,16 +360,24 @@ export function salesSelectionIssues(data:AppData,draft:BenefitPackageDraft):Ben
   for(const origin of draft.sales.origins){
     const line=alive.get(origin.positionId)
     if(!line||seen.has(origin.positionId)){issues.push(tampered('销售来源对应的位置缺失或重复，请修复来源记录。'));continue}seen.add(origin.positionId)
-    const sourceAdmission=salesContextAdmission(data,origin.sourceSkuId)
+    const sourceAdmission=origin.basis?{allowed:true,reason:''}:salesContextAdmission(data,origin.sourceSkuId)
     if(!sourceAdmission.allowed)add(`推荐来源商品：${sourceAdmission.reason}`,origin.positionId)
     if(origin.sourcePositionId&&!draft.goods.some(item=>item.id===origin.sourcePositionId&&item.skuId===origin.sourceSkuId))add(`「${'snapshot'in line?line.snapshot.name:line.name}」依赖的来源商品已移除或更换，请重新选择用途或移除此项。`,origin.positionId)
     const item=origin.plan?.items.find(item=>item.id===origin.itemId)
     if(origin.plan){
+      if(origin.basis)issues.push(tampered('经营配置来源不能混用默认配件来源。'))
       const owner=data.salesOptionPlans?.find(plan=>plan.schemaVersion===1&&plan.id===origin.plan!.planId),version=owner?.versions.find(version=>version.version===origin.plan!.version)
       if(!version||owner?.status!=='available'||salesSignature(version)!==salesSignature(origin.plan)||planProblems(data,origin.plan).length)add('本次冻结的选配方案版本失效或已停用，请重新核对来源；已选内容保留。',origin.positionId)
       if(!item||!item.enabled)add('选配项目已失效。',origin.positionId)
       if(!draft.sales.contexts.some(context=>context.sourceSkuId===origin.sourceSkuId&&context.sourcePositionId===origin.sourcePositionId&&salesSignature(context.plan)===salesSignature(origin.plan)))issues.push(tampered('销售位置必须保留其完整方案上下文，不能只保留选中的项目以绕过必选规则。'))
       if(item&&origin.checkTarget!==item.checkTarget)issues.push(tampered('位置的实际适用对象与冻结方案不一致，不能改变核验对象来绕过限制。'))
+    }else if(origin.basis){
+      const basis=origin.basis,good=draft.goods.find(row=>row.id===origin.positionId)
+      if(!good||basis.targetSkuId!==good.skuId||origin.checkTarget!=='device'||origin.bindingIds.length||origin.relationIds.length||origin.sourcePositionId||origin.sourceSkuId!==(basis.device.kind==='sku'?basis.device.skuId:''))issues.push(tampered('默认配件必须保留真实设备、目标商品与正式适用来源。'))
+      if(salesSignature(basis.device)!==salesSignature(draft.device))add('本次设备已变化，请移除此项后从当前设备重新添加。',origin.positionId)
+      if(good&&origin.itemId!==`compatibility:${good.snapshot.productTypeId}:${salesSignature(basis.device)}`)issues.push(tampered('默认配件用途与设备身份不一致。'))
+      if(good&&!previous?.goods.some(row=>row.id===good.id)&&salesShoppingPolicy(data,origin.sourceSkuId,draft.device).state!=='unconfigured')issues.push(tampered('已有经营范围时不能新增默认配件来源。'))
+      if(good){const check=compatibilityReason(data,draft,good.skuId);if(check.reason)add(check.reason,origin.positionId);if(basis.declarationIds.some(id=>!check.use.declarations.some(link=>link.id===id)))add('原适用依据已变化，请重新选择此商品。',origin.positionId)}
     }else{
       const relations=(data.salesProductRelations||[]).filter(relation=>origin.relationIds.includes(relation.id))
       if(!('skuId'in line)||!origin.relationIds.length||origin.itemId!==`relation:${origin.checkTarget}:${'skuId'in line?line.skuId:''}`)issues.push(tampered('直接商品关联的位置用途或来源身份无效。'))
@@ -325,7 +409,7 @@ export function salesSelectionIssues(data:AppData,draft:BenefitPackageDraft):Ben
       const origins=draft.sales.origins.filter(origin=>origin.sourceSkuId===context.sourceSkuId&&origin.sourcePositionId===context.sourcePositionId&&origin.plan?.planId===context.plan.planId&&origin.plan.version===context.plan.version&&origin.itemId===item.id)
       const count=new Set(origins.map(origin=>{const line=alive.get(origin.positionId);if(!line||line.quantity<item.minQuantity||line.quantity>item.maxQuantity)return undefined;if(item.scope.kind==='service')return !('skuId'in line)&&line.name.trim()&&line.unit.trim()&&['per-package','per-delivery'].includes(line.measurement)?line.id:undefined;const summary='skuId'in line?benefitSkuSummary(data,line.skuId):undefined;return summary&&matchesScope(summary,item)?summary.skuId:undefined}).filter(Boolean)).size;counts.set(item.id,count)
       const min=item.required||count?item.minKinds:0
-      if(count<min||count>item.maxKinds)add(`「${context.plan.name} / ${item.name}」须选 ${min}～${item.maxKinds} 种，当前 ${count} 种。`)
+      if(count<min||count>item.maxKinds)add(`「${item.name}」${count<min?`还需选择 ${min-count} 款`:`最多选择 ${item.maxKinds} 款`}。`)
     }
     const groups=context.plan.items.map(item=>({id:item.id,name:item.name,enabled:item.enabled,candidateSkuIds:[],required:item.required,minKinds:item.minKinds,maxKinds:item.maxKinds,defaultQuantity:item.defaultQuantity,adjustable:true,minQuantity:item.minQuantity,maxQuantity:item.maxQuantity}))
     issues.push(...benefitGroupRuleIssues(groups,context.plan.rules,counts))
