@@ -36,6 +36,7 @@ export const SUPER_ROLE_ID = 'role:super-admin'
 export const OPERATOR_ROLE_ID = 'role:operator'
 export const RECOVERY_PERMISSIONS = ['system:menu:read', 'system:menu:update', 'system:role:read', 'system:role:grant', 'system:user:read', 'system:user:bind', 'system:permission:read', 'system:permission:update']
 
+export const benefitReadPermissions=['product:sku:read','product:spu:read','product:type:read','product:compatibility:read']
 const resources: { module: string; resource: string; label: string; route: string; actions: string[] }[] = [
   { module: '系统管理', resource: 'guide', label: '系统功能说明', route: '/guide', actions: ['update'] },
   { module: '商品中心', resource: 'workbench', label: '商品工作台', route: '/', actions: [] },
@@ -51,6 +52,8 @@ const resources: { module: string; resource: string; label: string; route: strin
   { module: '商品中心', resource: 'rule', label: '规格约束', route: '/rules', actions: ['create','update','delete'] },
   { module: '商品中心', resource: 'brand', label: '品牌', route: '/brands', actions: ['create','update','delete'] },
   { module: '商品中心', resource: 'group', label: '运营分组', route: '/groups', actions: ['create','update','delete'] },
+  {module:'商品中心',resource:'benefit-group',label:'权益包管理',route:'/benefits/manage',actions:['create','update']},
+  {module:'商品中心',resource:'benefit-selection',label:'权益包选购',route:'/benefits/shopping',actions:['create','update','confirm']},
   { module: '商品中心', resource: 'compatibility', label: '适用关系与设备型号', route: '/compatibility', actions: ['create','update','delete'] },
   { module: '商品中心', resource: 'view', label: '列表视图与列配置', route: '/products?panel=columns', actions: ['update'] },
   { module: '开发工具', resource: 'import', label: '商品导入', route: '/import', actions: ['execute'] },
@@ -67,7 +70,7 @@ const resources: { module: string; resource: string; label: string; route: strin
   { module: '系统管理', resource: 'account', label: '账号资料', route: '/account', actions: ['update'] },
   { module: '系统管理', resource: 'data', label: '演示数据重置', route: '', actions: ['reset'] },
 ]
-const actionLabels: Record<string,string> = { read:'查看',create:'新增',update:'编辑',delete:'删除',publish:'发布／上下架',import:'导入',export:'导出',execute:'执行',grant:'配置授权',bind:'绑定角色',reset:'重置' }
+const actionLabels: Record<string,string> = { read:'查看',confirm:'确认清单',create:'新增',update:'编辑',delete:'删除',publish:'发布／上下架',import:'导入',export:'导出',execute:'执行',grant:'配置授权',bind:'绑定角色',reset:'重置' }
 export function permissionRegistry(): RbacPermission[] {
   return resources.flatMap(item => {
     const prefix = item.module === '系统管理' ? 'system' : 'product'
@@ -88,6 +91,8 @@ export function routePermissions(path: string, query: Record<string,unknown> = {
   // Retired maintenance routes redirect to the read-only module; keep stored permission codes compatible.
   if(clean==='/guide/manage'||clean==='/guide/learn')return ['system:guide:read']
   if(clean==='/guide'||/^\/guide\/(articles|learn)\/[^/]+$/.test(clean))return ['system:guide:read']
+  if(clean==='/benefits/shopping')return ['product:benefit-selection:read',...benefitReadPermissions]
+  if(clean==='/benefits/manage')return ['product:benefit-group:read','product:model:read',...benefitReadPermissions]
   if (clean === '/forbidden') return []
   // No new role grants: the landing route uses an any-readable-view check in Store.canRoute.
   if (clean === '/catalog') return query.view === undefined || query.view === '' ? Object.values(catalogViewPermissions) : isCatalogView(query.view) ? [catalogViewPermissions[query.view]] : null
@@ -156,6 +161,11 @@ export function ensureRbac(data: AppData, legacyMenus: MenuNode[] = defaultMenuN
       }
     }
     if(saved&&saved.guideAccessVersion===undefined)saved.guideAccessVersion=1
+    if(saved&&Array.isArray(saved.permissions)&&Array.isArray(saved.roles)){
+      const missing=permissionRegistry().filter(p=>['benefit-group','benefit-selection'].includes(p.resource)&&!saved.permissions.some(old=>old.code===p.code))
+      saved.permissions.push(...missing)
+      for(const role of saved.roles)if(role.id===SUPER_ROLE_ID&&role.superAdmin&&role.builtIn)role.permissionCodes=[...new Set([...role.permissionCodes,...missing.map(p=>p.code)])]
+    }
     const problems = rbacProblems(data)
     if (problems.length) throw new Error(`授权数据校验失败：${problems.join(' ')}`)
     return
@@ -292,6 +302,8 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
   }
   if (name === 'saveProductType' || name === 'commitProductType') return save('type',Boolean(data?.productTypes.some(item => item.id === first?.id)))
   if (name === 'commitProductTypeAction') return [`product:type:${args[1]==='delete'?'delete':'update'}`]
+  if(name==='saveBenefitGroup')return [...save('benefit-group',Boolean(first?.id)),'product:model:read',...benefitReadPermissions]
+  if(name==='saveBenefitSelection')return [...save('benefit-selection',Boolean(first?.id)),...(first?.status==='confirmed'?['product:benefit-selection:confirm']:[]),...benefitReadPermissions]
   if (name === 'saveDeviceModel') return save('compatibility',Boolean(data?.deviceModels?.some(item => item.id === first?.id)))
   if (name === 'commitCompatibilityChanges') return [...new Set((args[0] as {kind:string}[] || []).map(change => `product:compatibility:${change.kind === 'remove' ? 'delete' : change.kind === 'add' ? 'create' : 'update'}`))]
   if (name === 'removeTemplate') return [`product:${data ? templateAccessResource(data,String(args[0])) : 'template'}:delete`]

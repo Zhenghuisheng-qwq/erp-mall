@@ -35,7 +35,7 @@ const initialTarget = computed<AccessoryTarget | undefined>(() => routeSku.value
 const deviceSkuId = computed(() => typeof route.query.device === 'string' ? route.query.device : '')
 const initialHost=computed(()=>typeof route.query.deviceModel==='string'?listDeviceModels(store.data).find(item=>item.key===route.query.deviceModel)?.host:undefined)
 const returnPath = computed(() => compatibilityReturnLocation(route.query.returnTo)||'/skus')
-const returnLabel=computed(()=>returnPath.value.startsWith('/specs')?'返回商品模型':returnPath.value.startsWith('/catalog')?'返回商品资料管理':'返回商品管理')
+const returnLabel=computed(()=>returnPath.value.startsWith('/benefits/')?'返回权益包':returnPath.value.startsWith('/specs')?'返回商品模型':returnPath.value.startsWith('/catalog')?'返回商品资料管理':'返回商品管理')
 const contextError=computed(()=>route.query.tab!==undefined&&!isCompatibilityTab(route.query.tab)?'兼容性页签无效，请选择兼容性查询或维护。':(route.query.targetId||route.query.manage||route.query.sku)&&!routeSku.value?'指定商品已失效，未退回全部商品。':route.query.deviceModel&&!initialHost.value?'指定设备型号已失效，未使用其他型号代替。':route.query.device&&!store.data.skus.some(item=>item.id===deviceSkuId.value)?'指定使用设备已失效，请返回配置核对。':'')
 watch(() => [route.query.tab,route.query.targetId, route.query.manage, route.query.sku, route.query.model, route.query.legacy, route.query.device, route.query.deviceModel] as const, () => {
   tab.value = isCompatibilityTab(route.query.tab)?route.query.tab:route.query.legacy || route.query.model || (route.query.sku && routeSku.value && isMaterialArchive(store.data, routeSku.value)) ? 'legacy' : route.query.manage ? 'workbench' : 'results'

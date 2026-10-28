@@ -67,6 +67,7 @@
               <span v-if="compatibilityUnpublished">兼容配置尚未发布</span>
             </p>
             <p class="meta-row"><el-button v-if="store.can('product:compatibility:read')" link type="primary" data-open-template-compatibility @click="openTemplateCompatibility()">适用关系</el-button></p>
+          <el-button v-if="store.canRoute({path:'/benefits/manage'})" data-open-model-benefits @click="openBenefits('')">权益包</el-button>
           </div>
           <div class="studio-actions">
             <el-button v-if="fromOverview" @click="backToOverview">返回总览</el-button>
@@ -150,6 +151,7 @@
           <span v-else class="ops-idle">{{ !canEditStructure ? '当前视图只读，不能改结构和命名规则' : '选中节点后，可以添加属性、属性值或条件属性' }}</span>
           <el-button v-if="!canEditStructure && selected && selected !== rootId" size="small" @click="namingOpen = true">查看命名规则</el-button>
           <el-button v-if="selected" size="small" data-open-node-compatibility @click="openTemplateCompatibility(selected===rootId?'':selected)">适用关系</el-button>
+          <el-button v-if="selected&&store.canRoute({path:'/benefits/manage'})" size="small" data-open-node-benefits @click="openBenefits(selected===rootId?'':selected)">权益包</el-button>
         </div>
         <EmptyModelGuide
           v-else-if="showEmptyGuide"
@@ -873,6 +875,7 @@ const compatibilitySummary = computed(() => {
   const state = config.defaultRule.configured ? config.defaultRule.claims.length ? '全部规格使用默认配置' : '默认明确留空' : '默认尚未配置'
   return `${models} 款设备 · ${state}${config.exceptions.length ? ` · ${config.exceptions.length} 项规格例外` : ''}`
 })
+function openBenefits(nodeId:string){router.push({path:'/benefits/manage',query:{model:templateId.value,version:requestedVersionId.value||undefined,node:nodeId||undefined,returnTo:route.fullPath}})}
 function openTemplateCompatibility(nodeId = '') {compatibilityNodeId.value=nodeId;compatibilityOpen.value=true}
 
 const showDraftList = computed(() => !requestedVersionId.value && (draftPreview.value.problems.length > 0 || canvas.value.status !== 'published' || draftPreview.value.rows.length !== comboRows.value.length))

@@ -5,6 +5,7 @@ import { House, Goods, Grid, Connection, FolderOpened, Collection, Files, SetUp,
 const icons: Record<string, Component> = {
   '/guide': Notebook,
   '/': House, '/spus': Goods, '/skus': Grid,
+  '/benefits/shopping': Goods, '/benefits/manage': Collection,
   '/compatibility': Connection, '/categories': FolderOpened, '/product-types': Collection,
   '/templates': Files, '/models': Collection, '/specs': SetUp, '/params': Notebook,
   '/rules': Filter, '/brands': PriceTag, '/groups': User, '/overview': DataAnalysis,

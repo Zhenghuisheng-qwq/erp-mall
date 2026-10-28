@@ -14,6 +14,7 @@
           <el-button v-if="version" @click="historyOpen = true">查看历史快照</el-button>
           <el-button v-if="compatibilityRole === 'host' && children.length" data-spu-compatibility @click="compatibilityOpen = true">适用配件</el-button>
         </div>
+        <el-select v-if="compatibilityRole==='host'&&store.canRoute({path:'/benefits/shopping'})" :model-value="undefined" placeholder="先选择实际规格，再选购权益包" aria-label="选购手机规格" @change="(id:string)=>router.push({path:'/benefits/shopping',query:{device:id}})"><el-option v-for="s in children" :key="s.id" :value="s.id" :label="(s.skuName||s.code)+' · '+savedSkuSpec(family,s)"/></el-select>
         <el-table v-if="children.length" :data="children" size="small">
           <el-table-column label="SKU 编码"><template #default="{ row }">{{ row.code || '—' }}</template></el-table-column>
           <el-table-column label="SKU 名称"><template #default="{ row }"><el-button link @click="router.push({ path: `/skus/${row.id}`, query: { spu: family.id } })">{{ row.skuName || '未记录' }}</el-button></template></el-table-column>

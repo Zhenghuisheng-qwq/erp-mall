@@ -6,6 +6,7 @@
       <p>所属 SPU：<el-button link type="primary" @click="router.push(`/spus/${family.id}`)">{{ family.name }}</el-button></p>
       <p>来源：{{ sourceText }} · 绑定版本：{{ versionName }}</p>
       <el-button v-if="compatibilityRole !== 'other'" data-detail-compatibility @click="compatibilityOpen = true">{{ compatibilityRole === 'host' ? '适用配件' : '适用主机' }}</el-button>
+      <el-button v-if="compatibilityRole==='host'&&store.canRoute({path:'/benefits/shopping'})" data-sku-benefit-shopping @click="router.push({path:'/benefits/shopping',query:{device:sku.id}})">权益包选购</el-button>
       <div style="max-width: 760px"><SkuFields :disabled="!(store.can('product:sku:update'))" v-model="draft" :family="family" :spec-locked="Boolean(sku.sourceNodeIds?.length || sku.planningId || sku.creationSource?.kind === 'plan')" /></div>
       <RuleExplanation v-if="guideFailure" :failure="guideFailure" :supported-recovery="['edit-input']" @recover="recoverGuide" />
       <p v-else-if="error" class="issue-error" role="alert">{{ error }}</p>

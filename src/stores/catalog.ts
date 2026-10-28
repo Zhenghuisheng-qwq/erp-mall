@@ -1,3 +1,5 @@
+import { saveBenefitGroup, saveBenefitSelection, benefitDataProblems } from '../domain/benefits/selection'
+import type { BenefitGroupInput, BenefitSelectionInput } from '../domain/benefits/types'
 import { branchFailure, rejectGuide, getFailure, failureError, failureForResult, unknownFailure, withFailure, createFailure } from '../domain/guide/failure'
 import type { GuideFailure } from '../domain/guide/types'
 import { createCatalogSimulation } from './catalogSimulation'
@@ -92,6 +94,8 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   if (!data?.families || !data.skus || !data.categories || !data.templates || !data.mappings || !data.templateParams) return null
   const version = parsed.version ?? 1
   if (version < 1 || version > DATA_VERSION) return null
+  const benefitProblems = benefitDataProblems(data)
+  if(benefitProblems.length)throw new Error(benefitProblems.join('；'))
   const businessProblems = businessImportProblems(data)
   if (businessProblems.length) throw new Error(`节点业务配置结构校验失败：${businessProblems.join(' ')} 原始记录已保留。`)
   const relationProblems = materialRelationImportProblems(data)
@@ -649,7 +653,10 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function exportJson() {
-    return JSON.stringify({ version: DATA_VERSION, data }, null, 2)
+    const exported=cloneCompatibility(data)
+    if(!can('product:benefit-group:read'))delete exported.benefitGroups
+    if(!can('product:benefit-selection:read'))delete exported.benefitSelections
+    return JSON.stringify({ version: DATA_VERSION, data:exported }, null, 2)
   }
 
   function throwImportValidation(message:string):never{throw failureError(message,branchFailure('import.json.validation',message,{savedState:'unchanged',recovery:['edit-input','feedback']}))}
@@ -667,7 +674,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (templateProblems.length) throwImportValidation(`模板兼容导入校验失败：${templateProblems.join(' ')} 当前数据没有被替换。`)
     const compatibilityProblems = compatibilityImportProblems(parsed.data)
     if (compatibilityProblems.length) throwImportValidation(`适用关系导入校验失败：${compatibilityProblems.join(' ')} 当前数据没有被替换。`)
-    const prefixes:Partial<Record<keyof AppData,string>>={families:'product:spu',skus:'product:sku',productSpecNodes:'product:model',specCanvases:'product:model',specModelVersions:'product:model',businessDefinitions:'product:model',nodeCompatibilityRules:'product:model',materialRelations:'product:material',materialContributions:'product:material',materialReceipts:'product:material',compatibilities:'product:compatibility',deviceModels:'product:compatibility',deviceBindings:'product:compatibility',templateCompatibilityConfigs:'product:model',templateCompatibilityOrigins:'product:compatibility',categories:'product:category',params:'product:dictionary',templates:'product:model',templateParams:'product:template',mappings:'product:template',productTypes:'product:type',rules:'product:rule',brands:'product:brand',productGroups:'product:group',planningRecords:'product:planning',productPlans:'product:planning',feedbacks:'system:feedback',profile:'system:account'}
+    const prefixes:Partial<Record<keyof AppData,string>>={benefitGroups:'product:benefit-group',benefitSelections:'product:benefit-selection',families:'product:spu',skus:'product:sku',productSpecNodes:'product:model',specCanvases:'product:model',specModelVersions:'product:model',businessDefinitions:'product:model',nodeCompatibilityRules:'product:model',materialRelations:'product:material',materialContributions:'product:material',materialReceipts:'product:material',compatibilities:'product:compatibility',deviceModels:'product:compatibility',deviceBindings:'product:compatibility',templateCompatibilityConfigs:'product:model',templateCompatibilityOrigins:'product:compatibility',categories:'product:category',params:'product:dictionary',templates:'product:model',templateParams:'product:template',mappings:'product:template',productTypes:'product:type',rules:'product:rule',brands:'product:brand',productGroups:'product:group',planningRecords:'product:planning',productPlans:'product:planning',feedbacks:'system:feedback',profile:'system:account'}
     for(const key of Object.keys(prefixes))if(key!=='profile'&&(parsed.data as any)[key]!==undefined&&!Array.isArray((parsed.data as any)[key]))throwImportValidation(`导入记录集合 ${key} 必须为数组，不能按空集合处理损坏内容。`)
     const next = normalizeStored(parsed, { persist: false })
     if (!next?.params) throwImportValidation('演示数据版本不匹配，当前数据没有被替换')
@@ -695,6 +702,8 @@ export const useCatalogStore = defineStore('catalog', () => {
         for(const identity of keys){const a=previousRows.find((v:any)=>byId(v)===identity),b=incomingRows.find((v:any)=>byId(v)===identity);if(JSON.stringify(a)===JSON.stringify(b))continue;if(key==='families'&&b&&!commandPermissions('saveSpu',[b],data).every(can))throwImportPermission('导入不能绕过商品编辑或发布权限。');if(key==='skus'&&a&&b&&isMaterialArchive(data,a)!==isMaterialArchive(next,b)&&(!can('product:sku:update')||!can('product:material:update')))throwImportPermission('导入不能跨越 SKU/MAT 身份权限。');const templateRow=(key==='templates'||key==='templateParams'||key==='mappings');const templateId=key==='templates'?(b||a)?.id:(b||a)?.templateId;const resource=templateRow?`product:${templateAccessResource(b?next:data,templateId||'')}`:key==='skus'&&((a||b)?.recordKind==='material'||(a||b)?.materialCode)?'product:material':prefix;const action=key==='templateParams'||key==='mappings'?'update':!a?'create':!b?'delete':'update';if(!can(`${resource}:${action}`))throwImportPermission(`导入被拒绝：没有 ${resource}:${action}，当前数据及会话未改变。`)}
       }else if(!can(`${prefix}:update`))throwImportPermission(`导入被拒绝：没有 ${prefix}:update。`)
     }
+    for(const saved of data.benefitSelections||[]){if(saved.status==='confirmed'&&JSON.stringify(next.benefitSelections?.find(s=>s.id===saved.id))!==JSON.stringify(saved))throwImportValidation('不能通过导入改写或删除已确认清单快照。')}
+    for(const saved of next.benefitSelections||[]){if(saved.status==='confirmed'&&JSON.stringify(data.benefitSelections?.find(s=>s.id===saved.id))!==JSON.stringify(saved)&&!can('product:benefit-selection:confirm'))throwImportPermission('没有导入确认清单的权限。')}
     next.activeRole=data.activeRole // Deprecated backup mirror must never change the current or next mock identity.
     const authIssues=rbacProblems(next);if(authIssues.length)throwImportValidation(authIssues.join(' '))
 
@@ -1428,6 +1437,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     can,canRoute,currentUser,activeUserId:computed(()=>activeUserId.value),previewUserId:computed(()=>previewUserId.value),simulationReturnId,authorizationReady:computed(()=>authorizationReady.value),
     rbacEnforced: RBAC_ENFORCEMENT_ENABLED,
     simulateUser,startPermissionPreview,stopPermissionPreview,
+    saveBenefitGroup:(input:BenefitGroupInput,revision:number,isCurrent:()=>boolean=()=>true)=>{const copy=cloneCompatibility(input);return command(()=>{if(!isCurrent())return {ok:false,message:'编辑上下文已变化，输入保留'};const next=cloneCompatibility(data);return commitCandidate(next,saveBenefitGroup(next,copy,revision,()=>uid('benefit-group'),new Date().toISOString()),['benefitGroups'])})},
+    saveBenefitSelection:(input:BenefitSelectionInput,revision:number,isCurrent:()=>boolean=()=>true)=>{const copy=cloneCompatibility(input);return command(()=>{if(!isCurrent())return {ok:false,message:'选购上下文已变化，输入保留'};const next=cloneCompatibility(data);return commitCandidate(next,saveBenefitSelection(next,copy,revision,()=>uid('benefit-selection'),new Date().toISOString()),['benefitSelections'])})},
     saveRbacRole:(...args:Parameters<typeof rbacCommands.saveRbacRole>)=>command(()=>rbacCommands.saveRbacRole(...args)),
     removeRbacRole:(...args:Parameters<typeof rbacCommands.removeRbacRole>)=>command(()=>rbacCommands.removeRbacRole(...args)),
     grantRbacRole:(...args:Parameters<typeof rbacCommands.grantRbacRole>)=>command(()=>rbacCommands.grantRbacRole(...args)),
