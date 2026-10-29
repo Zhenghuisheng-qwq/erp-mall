@@ -2,27 +2,69 @@ import assert from 'node:assert/strict'
 import {createPinia,setActivePinia} from 'pinia'
 import {benefitsFixture} from './benefits-fixture'
 import {installCatalogTestLocks} from './catalog-storage-test-env'
-import {benefitCandidates,applicableBenefitGroups,benefitNodeHosts} from '../src/domain/benefits/query'
+import {benefitCandidates,applicableBenefitGroups,benefitNodeHosts,benefitGroupCandidates,benefitPreviewDevices,benefitAccessoryReason,benefitRangeAvailability,benefitConfigurationImpact} from '../src/domain/benefits/query'
 import {addBenefitLine,benefitClone,benefitDataProblems,parseBenefitPrice,previewBenefitDeviceChange,reviewBenefitSelection,saveBenefitGroup,saveBenefitSelection} from '../src/domain/benefits/selection'
 import {deviceHostKey} from '../src/domain/deviceResolution'
 import {canPermission,ensureRbac,permissionRegistry} from '../src/domain/rbac'
 import {normalizeStored,useCatalogStore} from '../src/stores/catalog'
 import {DATA_VERSION,STORAGE_KEY} from '../src/domain/types'
-import type {BenefitSelectionInput} from '../src/domain/benefits/types'
+import {benefitGroupProblems,benefitCategoryImpact,resolveBenefitRange,compactBenefitRanges} from '../src/domain/benefits/scope'
+import {createSeed} from '../src/domain/seed'
+import type {BenefitHostRange,BenefitGroup,BenefitSelectionInput} from '../src/domain/benefits/types'
 const f=benefitsFixture(),{data,modelId,versionId,hosts,now}=f,a={kind:'sku' as const,skuId:'phone-a'},b={kind:'sku' as const,skuId:'phone-b'}
 const before=JSON.stringify(data)
-assert.deepEqual(benefitCandidates(data,a).candidates.map(c=>c.sku.id).sort(),['case-sku','charger-sku','film-sku'])
+assert.deepEqual(benefitCandidates(data,a).candidates.map(c=>c.sku.id).sort(),['case-a-sku','case-sku','charger-sku','film-sku'])
 assert.deepEqual(benefitCandidates(data,b).candidates.map(c=>c.sku.id).sort(),['cable-sku','case-sku'])
 assert.equal(JSON.stringify(data),before)
 assert.equal(addBenefitLine(data,a,[],'mat-only').ok,false)
 assert.equal(addBenefitLine(data,a,[],'copy-sku').ok,false)
 assert.equal(benefitNodeHosts(data,modelId,'demo-A',versionId)[0]!.key,deviceHostKey(hosts.a))
 assert.equal(benefitNodeHosts(data,modelId,'missing',versionId).length,0)
-const group={id:'',name:'演示旅行权益包',scope:{modelId},productTypeIds:['type-case','type-charger'],enabled:true,sort:1}
+const group={id:'',name:'演示旅行权益包',categoryId:'cat-accessory-test',hostRanges:[{kind:'snapshot',modelId,versionId}] as BenefitHostRange[],productTypeIds:['type-case','type-film'],enabled:true,sort:1}
 assert(saveBenefitGroup(data,group,0,()=> 'g-model',now).ok)
-assert(saveBenefitGroup(data,{...group,name:'B 专属',scope:{modelId,hostKey:deviceHostKey(hosts.b)}},0,()=> 'g-b',now).ok)
-assert.equal(applicableBenefitGroups(data.benefitGroups!,benefitCandidates(data,a)).length,1)
-assert.equal(applicableBenefitGroups(data.benefitGroups!,benefitCandidates(data,b)).length,2)
+assert(saveBenefitGroup(data,{...group,name:'B 专属',productTypeIds:['type-case'],hostRanges:[{kind:'snapshot',modelId,versionId,nodeId:'demo-brand-B'}]},0,()=> 'g-b',now).ok)
+assert.equal(applicableBenefitGroups(data,benefitCandidates(data,a)).length,1)
+assert.equal(applicableBenefitGroups(data,benefitCandidates(data,b)).length,2)
+// Category ownership is independent from host category. Snapshot branches do not expand with a new release.
+assert.equal(saveBenefitGroup(data,{...group,productTypeIds:['type-charger']},0,()=> 'bad',now).ok,false)
+assert.deepEqual(benefitCategoryImpact(data,'cat-charge',group.productTypeIds),{keep:[],remove:group.productTypeIds})
+const bGroup=data.benefitGroups!.find(g=>g.id==='g-b')!
+assert.deepEqual(benefitPreviewDevices(data,bGroup).devices.map(d=>d.id),['phone-b'])
+assert.deepEqual(benefitGroupCandidates(data,bGroup,benefitCandidates(data,a)),[])
+assert.deepEqual(benefitGroupCandidates(data,bGroup,benefitCandidates(data,b)).map(m=>m.sku.id),['case-sku'])
+assert.equal(compactBenefitRanges(data,[{kind:'type',productTypeId:'type-device'},...group.hostRanges]).length,1)
+assert(resolveBenefitRange(data,{kind:'snapshot',modelId,versionId,nodeId:'demo-brand'}).issue)
+assert(resolveBenefitRange(data,{kind:'snapshot',modelId,versionId:'missing'}).issue)
+const nextVersion=benefitClone(data.specModelVersions[0]!);nextVersion.id='demo-v2';nextVersion.version=2
+nextVersion.nodesSnapshot.push({id:'demo-C',templateId:modelId,parentId:'demo-model-A',nodeType:'VALUE',attributeId:'attr-device-model',valueId:'Orion C',sort:2})
+data.specModelVersions.push(nextVersion)
+assert.equal(resolveBenefitRange(data,group.hostRanges[0]!).keys.length,2)
+assert.equal(resolveBenefitRange(data,{kind:'type',productTypeId:'type-device'}).keys.length,3)
+assert(applicableBenefitGroups(data,benefitCandidates(data,{kind:'model',hostKey:deviceHostKey(hosts.a)})).some(g=>g.id==='g-model'))
+const legacy:BenefitGroup={id:'legacy',name:'原轻量包',scope:{modelId,hostKey:deviceHostKey(hosts.a)},productTypeIds:['type-case'],enabled:true,sort:0,revision:1,createdAt:now,updatedAt:now}
+data.benefitGroups!.push(legacy)
+assert.deepEqual(benefitDataProblems(data),[])
+assert(benefitGroupProblems(data,legacy).some(m=>m.includes('待补充')))
+assert(!applicableBenefitGroups(data,benefitCandidates(data,a)).some(g=>g.id==='legacy'))
+assert(saveBenefitGroup(data,{...legacy,enabled:false},1,()=>'',now).ok)
+assert(saveBenefitGroup(data,{...legacy,categoryId:'cat-accessory-test',hostRanges:[{kind:'host',hostKey:deviceHostKey(hosts.a)}]},2,()=>'',now).ok)
+const stale=benefitClone(data);stale.productTypes.find(t=>t.id==='type-case')!.categoryId='cat-charge'
+assert(benefitGroupProblems(stale,stale.benefitGroups![0]!).some(m=>m.includes('超出')))
+assert(!applicableBenefitGroups(stale,benefitCandidates(stale,a)).length)
+assert.match(benefitAccessoryReason(data,benefitCandidates(data,a),'pending-sku'),/待确认/)
+assert.match(benefitAccessoryReason(data,benefitCandidates(data,a),'off-sale-sku'),/不在售/)
+assert.match(benefitAccessoryReason(data,benefitCandidates(data,a),'copy-sku'),/条件待核验/)
+const seed=createSeed(),seedContext=benefitCandidates(seed,{kind:'sku',skuId:'s-iphone-blue'})
+assert(seedContext.candidates.some(c=>c.sku.id==='s-case-clear'))
+assert.equal(applicableBenefitGroups(seed,seedContext).length,1)
+const seedBefore=JSON.stringify(seed);benefitPreviewDevices(seed,seed.benefitGroups![0]!);assert.equal(JSON.stringify(seed),seedBefore)
+const availabilityB=benefitRangeAvailability(data,'cat-accessory-test',[{kind:'snapshot',modelId,versionId,nodeId:'demo-brand-B'}])
+assert.equal(availabilityB.get('type-film')!.candidates.length,0)
+assert(availabilityB.get('type-film')!.reason)
+assert.deepEqual(availabilityB.get('type-case')!.candidates.map(s=>s.id),['case-sku'])
+assert.deepEqual(benefitConfigurationImpact(data,'cat-accessory-test',[{kind:'snapshot',modelId,versionId,nodeId:'demo-brand-B'}],['type-case','type-film']).remove,['type-film'])
+assert.equal(saveBenefitGroup(data,{...group,hostRanges:[{kind:'snapshot',modelId,versionId,nodeId:'demo-brand-B'}]},0,()=> 'no-candidates',now).ok,false)
+assert(benefitRangeAvailability(data,'cat-accessory-test',[]).get('type-case')!.reason.includes('先确定'))
 const extra=benefitClone(data.skus.find(s=>s.id==='case-sku')!);extra.id='dynamic';data.skus.push(extra);data.compatibilities.push(f.link('dynamic-link',extra.id,'a'))
 assert(benefitCandidates(data,a).candidates.some(c=>c.sku.id==='dynamic'))
 const draft:BenefitSelectionInput={id:'',device:a,status:'draft',lines:[{skuId:'film-sku',quantity:2,unitPriceCents:1234},{skuId:'case-sku',quantity:1,unitPriceCents:0},{skuId:'phone-a',quantity:1,unitPriceCents:null}]}
@@ -46,4 +88,4 @@ setActivePinia(createPinia());const store=useCatalogStore();await store.waitForP
 const result=await store.saveBenefitSelection({id:'',device:a,lines:[{skuId:'case-sku',quantity:1,unitPriceCents:0}],status:'draft'},0);assert.equal(result.ok,false);assert.equal(disk.get(STORAGE_KEY),raw);assert.equal(store.data.benefitSelections,undefined)
 fail=false;assert((await store.saveBenefitSelection({id:'',device:a,lines:[{skuId:'case-sku',quantity:1,unitPriceCents:0}],status:'draft'},0)).ok)
 store.$dispose();restore();Reflect.deleteProperty(globalThis,'localStorage')
-console.log('PASS focused benefits domain: A/B identity, conservative admission, independent dynamic groups, prices/change preview/frozen history, strict permissions, atomic failure/retry; no ordinary-load records')
+console.log('PASS focused benefits domain: category limits, pinned branch/type union, legacy completion, default demo, scoped preview; A/B identity, conservative admission, independent dynamic groups, prices/change preview/frozen history, strict permissions, atomic failure/retry; no ordinary-load records')

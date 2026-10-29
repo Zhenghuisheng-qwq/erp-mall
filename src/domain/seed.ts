@@ -1,5 +1,6 @@
 import { arrangeSpecPositions } from './logic'
 import { buildDefaultView } from './productListViews'
+import { resolveDeviceSku } from './deviceResolution'
 import type { AppData, ColumnPref, ListQuery, ProductSpecNode, Sku } from './types'
 
 const now = '2026-05-10T03:53:00.000Z'
@@ -537,6 +538,22 @@ export function createSeed(): AppData {
   ensureLeafProductTypes(data)
   ensureSalesShelfDemo(data)
   ensureDemoPhonePublished(data)
+  // createSeed is used only for first demonstration initialization or an explicit reset.
+  // Never add evidence while loading existing user records.
+  const demoDevice = resolveDeviceSku(data, 's-iphone-blue')
+  if (demoDevice.status === 'resolved' && demoDevice.host && data.skus.some(s => s.id === 's-case-clear')) {
+    data.compatibilities.push({
+      id: 'demo-benefit-case', accessorySkuId: 's-case-clear', targetKind: 'sku', targetId: 's-case-clear',
+      host: demoDevice.host, capability: 'basic', conclusion: 'compatible', verification: 'confirmed', conditions: [],
+      source: '仅供初始化演示：透明保护壳与演示 iPhone 的适用链，不代表真实商品核验',
+      note: '演示依据', createdAt: now, updatedAt: now,
+    })
+    data.benefitGroups = [{
+      id: 'demo-benefit-protection', name: '演示手机保护权益包', categoryId: 'c-phone-acc', productTypeIds: ['pt-case'],
+      hostRanges: [{kind: 'snapshot', modelId: 't-phone', versionId: 'phone-demo-v2', nodeId: 'sn-brand-apple'}],
+      enabled: true, sort: 0, revision: 1, createdAt: now, updatedAt: now,
+    }]
+  }
   data.skus = data.skus.map((item) => {
     const owner = data.families.find((family) => family.id === item.familyId)
     if (!owner) return item

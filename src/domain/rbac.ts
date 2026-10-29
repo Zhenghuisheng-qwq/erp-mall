@@ -92,7 +92,7 @@ export function routePermissions(path: string, query: Record<string,unknown> = {
   if(clean==='/guide/manage'||clean==='/guide/learn')return ['system:guide:read']
   if(clean==='/guide'||/^\/guide\/(articles|learn)\/[^/]+$/.test(clean))return ['system:guide:read']
   if(clean==='/benefits/shopping')return ['product:benefit-selection:read',...benefitReadPermissions]
-  if(clean==='/benefits/manage')return ['product:benefit-group:read','product:model:read',...benefitReadPermissions]
+  if(clean==='/benefits/manage')return ['product:benefit-group:read','product:category:read','product:model:read',...benefitReadPermissions]
   if (clean === '/forbidden') return []
   // No new role grants: the landing route uses an any-readable-view check in Store.canRoute.
   if (clean === '/catalog') return query.view === undefined || query.view === '' ? Object.values(catalogViewPermissions) : isCatalogView(query.view) ? [catalogViewPermissions[query.view]] : null
@@ -302,7 +302,7 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
   }
   if (name === 'saveProductType' || name === 'commitProductType') return save('type',Boolean(data?.productTypes.some(item => item.id === first?.id)))
   if (name === 'commitProductTypeAction') return [`product:type:${args[1]==='delete'?'delete':'update'}`]
-  if(name==='saveBenefitGroup')return [...save('benefit-group',Boolean(first?.id)),'product:model:read',...benefitReadPermissions]
+  if(name==='saveBenefitGroup')return [...save('benefit-group',Boolean(first?.id)),'product:category:read','product:model:read',...benefitReadPermissions]
   if(name==='saveBenefitSelection')return [...save('benefit-selection',Boolean(first?.id)),...(first?.status==='confirmed'?['product:benefit-selection:confirm']:[]),...benefitReadPermissions]
   if (name === 'saveDeviceModel') return save('compatibility',Boolean(data?.deviceModels?.some(item => item.id === first?.id)))
   if (name === 'commitCompatibilityChanges') return [...new Set((args[0] as {kind:string}[] || []).map(change => `product:compatibility:${change.kind === 'remove' ? 'delete' : change.kind === 'add' ? 'create' : 'update'}`))]
