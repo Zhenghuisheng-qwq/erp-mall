@@ -5,12 +5,12 @@
       <el-button v-if="store.can('product:benefit-group:create')" data-new-benefit-group type="primary" @click="start()">新建权益包</el-button>
     </div>
     <p v-if="scopeTypeId">按包含类型筛选；权益包仍归属于分类。</p>
-    <p v-if="modelId" class="hint">主机模型上下文：{{modelName}}。配件归属分类需单独选择，不会自动使用主机分类。</p>
-    <el-table :data="groups" empty-text="当前范围没有权益包，点击新建开始配置。">
+    <el-table :data="groups" :empty-text="relatedOnly && source.issue ? source.issue : '当前范围没有权益包，可新建配置。'">
       <el-table-column label="权益包名称" min-width="150">
         <template #default="{row}">
           <strong>{{row.name}}</strong>
-          <p v-for="issue in problems(row)" :key="issue" class="issue">{{issue}}</p>
+          <p v-for="issue in problems(row)" :key="issue" class="issue">配置引用问题：{{issue}}</p>
+          <p v-if="!problems(row).length" class="hint">{{availabilitySummary(row)}}</p>
         </template>
       </el-table-column>
       <el-table-column label="归属分类路径" min-width="140">
@@ -43,7 +43,8 @@
             <CategoryTreeSelect :categories="store.data.categories" :model-value="draft.categoryId||''" :disabled="!editable||busy" placeholder="选择真实配件归属分类" @update:model-value="changeCategory"/>
           </label>
         </div>
-        <p class="hint">配件须在归属分类及其后代分类中；适用主机可以在其他分类。没有共同业务父分类时请分别建包或先整理目录。</p>
+        <p class="hint">配置决定包内包含哪些配件类型；实际选购时，系统按当前手机自动筛选可售且已确认适用的商品。</p>
+        <p class="hint">配件须在归属分类及其后代分类中；适用主机可以在其他分类。</p>
         <BenefitConfigTrees :data="store.data" :types="types" :category-id="draft.categoryId||''" :type-ids="draft.productTypeIds" :ranges="draft.hostRanges||[]" :disabled="!editable||busy" :availability="availability" @types="draft.productTypeIds=$event" @ranges="setRanges"/>
         <section class="summary">
           <h3>已选内容</h3>
@@ -57,7 +58,10 @@
         </section>
         <section class="preview">
           <h3>实际设备预览</h3>
-          <p>当前有效范围覆盖 {{coveredCount}} 个型号。仅提供范围内身份明确的设备。</p>
+          <p v-if="!draft.hostRanges?.length">请选择适用主机范围后查看实际商品</p>
+          <p v-else>当前有效范围覆盖 {{coveredCount}} 个型号。仅提供范围内身份明确的设备。</p>
+          <p v-if="!draftProblems.length && !previewOptions.models.length && !previewOptions.devices.length">当前合法范围内暂无身份明确的可预览设备，配置仍可保存。</p>
+          <p v-for="status in typeAvailability" :key="status.id" class="hint" :data-benefit-type-status="status.id">{{status.text}}</p>
           <el-select v-model="previewKey" filterable clearable aria-label="权益包预览设备" placeholder="选择范围内实际手机或型号" :disabled="!!draftProblems.length">
             <el-option-group label="实际 SKU · 规格级预览">
               <el-option v-for="d in previewOptions.devices" :key="d.id" :value="'sku:'+d.id" :label="d.name+' · '+d.spec"/>
@@ -75,7 +79,7 @@
               <el-select v-model="diagnosticId" filterable clearable placeholder="选择真实配件" aria-label="配置核对配件">
                 <el-option v-for="sku in diagnosticAccessories" :key="sku.id" :value="sku.id" :label="benefitSkuLabel(store.data,sku.id).name+' · '+sku.code"/>
               </el-select>
-              <p v-if="diagnosticId">{{benefitAccessoryReason(store.data,preview,diagnosticId)}}
+              <p v-if="diagnosticId">{{diagnosticReason}}
                 <el-button link @click="diagnose">查看／维护适用依据</el-button>
               </p>
             </details>
@@ -105,20 +109,18 @@ import BenefitConfigTrees from './BenefitConfigTrees.vue';
 import { useCatalogStore } from '../../stores/catalog';
 import type { CatalogTypeRow } from '../../domain/catalogWorkspaceQuery';
 import type { BenefitGroup, BenefitGroupInput, BenefitHostRange } from '../../domain/benefits/types';
-import { benefitCandidates, benefitGroupCandidates, benefitPreviewDevices, benefitEmptyReason, benefitNodeHosts, benefitRangeAvailability, benefitConfigurationImpact, benefitSkuLabel, benefitAccessoryReason } from '../../domain/benefits/query';
-import { benefitCategoryLabel, categoryContains, benefitGroupProblems, benefitLegacyRanges, benefitRangeLabel, compactBenefitRanges, resolveBenefitRange } from '../../domain/benefits/scope';
+import { benefitCandidates, benefitGroupCandidates, benefitPreviewDevices, benefitEmptyReason, benefitRangeAvailability, benefitSkuLabel, benefitAccessoryReason } from '../../domain/benefits/query';
+import { benefitCategoryLabel, benefitCategoryImpact, benefitTypeProblem, benefitGroupRelated, type BenefitSourceContext, categoryContains, benefitGroupProblems, benefitLegacyRanges, benefitRangeLabel, compactBenefitRanges, resolveBenefitRange } from '../../domain/benefits/scope';
 import { managementDraft } from './managementDraft';
 import { isRealSku } from '../../domain/catalogIdentity';
-import { compatibilityRecordRole } from '../../domain/deviceResolution';
+import { compatibilityFamilyTypeId, compatibilityRecordRole } from '../../domain/deviceResolution';
 import { benefitClone } from '../../domain/benefits/selection';
 const props = defineProps<{
     categoryId: string;
     scopeTypeId: string;
     types: CatalogTypeRow[];
-    modelId: string;
-    versionId: string;
-    nodeId: string;
-    initialHostKey: string;
+    source: BenefitSourceContext;
+    relatedOnly: boolean;
 }>();
 const store = useCatalogStore(), route = useRoute(), router = useRouter();
 const owner = () => store.activeUserId + '/' + store.previewUserId;
@@ -131,19 +133,38 @@ const editable = computed(() => store.can(draft.value?.id ? 'product:benefit-gro
 const categoryLabel = (id?: string) => benefitCategoryLabel(store.data, id);
 const typeNames = (ids: string[]) => ids.map(id => store.data.productTypes.find(t => t.id === id)?.name || `失效类型 ${id}`).join('、');
 const rangeLabel = (r: BenefitHostRange) => benefitRangeLabel(store.data, r);
-const problems = (g: BenefitGroup) => [...benefitGroupProblems(store.data, g), ...benefitConfigurationImpact(store.data, g.categoryId || '', g.hostRanges || [], g.productTypeIds).remove.map(id => typeNames([id]) + '：当前范围没有合法候选')];
+const problems = (g: BenefitGroup) => benefitGroupProblems(store.data, g);
 const scopeLabel = (g: BenefitGroup) => g.hostRanges?.map(rangeLabel).join('；') || (g.scope ? `待补充配置 · 原模型 ${store.data.specCanvases.find(m => m.templateId === g.scope?.modelId)?.name || g.scope.modelId}${g.scope.hostKey ? '（明确型号）' : ''}` : '待补充配置');
-const modelName = computed(() => store.data.specCanvases.find(m => m.templateId === props.modelId)?.name || props.modelId);
-const caption = computed(() => props.scopeTypeId ? `${categoryLabel(store.data.productTypes.find(t => t.id === props.scopeTypeId)?.categoryId)} / ${typeNames([props.scopeTypeId])} · 按包含类型筛选` : props.categoryId ? `${categoryLabel(props.categoryId)} · 本分类及后代分类` : '全部分类 · 权益包');
-const groups = computed(() => (store.data.benefitGroups || []).filter(g => (!props.categoryId || !!g.categoryId && categoryContains(store.data, props.categoryId, g.categoryId)) && (!props.scopeTypeId || g.productTypeIds.includes(props.scopeTypeId))).sort((a, b) => a.sort - b.sort));
+const caption = computed(() => props.relatedOnly ? '当前范围相关权益包' : props.scopeTypeId ? `${categoryLabel(store.data.productTypes.find(t => t.id === props.scopeTypeId)?.categoryId)} / ${typeNames([props.scopeTypeId])} · 按包含类型筛选` : props.categoryId ? `${categoryLabel(props.categoryId)} · 本分类及后代分类` : '全部分类 · 权益包');
+const groups = computed(() => (store.data.benefitGroups || []).filter(g => (!props.categoryId || !!g.categoryId && categoryContains(store.data, props.categoryId, g.categoryId)) && (!props.scopeTypeId || g.productTypeIds.includes(props.scopeTypeId)) && (!props.relatedOnly || benefitGroupRelated(store.data,g,props.source))).sort((a, b) => a.sort - b.sort));
 const current = computed<BenefitGroup>(() => ({ ...draft.value!, revision: revision.value, createdAt: '', updatedAt: '' }));
 const availability = computed(() => benefitRangeAvailability(store.data, draft.value?.categoryId || '', draft.value?.hostRanges || []));
-const draftProblems = computed(() => draft.value ? [...benefitGroupProblems(store.data, draft.value), ...draft.value.productTypeIds.filter(id => !!availability.value.get(id)?.reason || !availability.value.get(id)?.candidates.length).map(id => typeNames([id]) + '：' + (availability.value.get(id)?.reason || '没有合法候选'))] : []);
+const draftProblems = computed(() => draft.value ? benefitGroupProblems(store.data, draft.value) : []);
+const typeAvailability = computed(() => (draft.value?.productTypeIds || []).map(id => {
+    const status = availability.value.get(id);
+    return {id, text: `${typeNames([id])}：当前 ${status?.candidates.length || 0} 个可选商品${status?.reason ? ' · ' + status.reason : ''}`};
+}));
+const listAvailability = computed(() => new Map(groups.value.map(g => {
+    if (problems(g).length) return [g.id, ''];
+    const entries = benefitRangeAvailability(store.data, g.categoryId || '', g.hostRanges || []);
+    const count = g.productTypeIds.reduce((n, id) => n + (entries.get(id)?.candidates.length || 0), 0);
+    return [g.id, count ? `当前范围内有 ${count} 个可选商品` : '当前暂无可选商品，可继续维护配置'];
+})));
+const availabilitySummary = (g:BenefitGroup) => listAvailability.value.get(g.id) || '';
 const coveredCount = computed(() => new Set((draft.value?.hostRanges || []).flatMap(r => resolveBenefitRange(store.data, r).keys)).size);
 const previewOptions = computed(() => draft.value ? benefitPreviewDevices(store.data, current.value) : { models: [], devices: [] });
 const preview = computed(() => previewKey.value ? benefitCandidates(store.data, previewKey.value.startsWith('sku:') ? { kind: 'sku', skuId: previewKey.value.slice(4) } : { kind: 'model', hostKey: previewKey.value.slice(6) }) : undefined);
 const previewRows = computed(() => preview.value ? benefitGroupCandidates(store.data, current.value, preview.value) : []);
 const emptyReason = (c: ReturnType<typeof benefitCandidates>) => benefitEmptyReason(store.data, c);
+const diagnosticReason = computed(() => {
+    if (!draft.value || !preview.value || !diagnosticId.value) return '';
+    const sku = store.data.skus.find(s => s.id === diagnosticId.value);
+    const typeId = sku ? compatibilityFamilyTypeId(store.data, sku.familyId) : '';
+    const structural = benefitTypeProblem(store.data, draft.value.categoryId || '', typeId);
+    if (structural) return structural;
+    if (!draft.value.productTypeIds.includes(typeId)) return '当前包未包含该配件类型';
+    return benefitAccessoryReason(store.data, preview.value, diagnosticId.value);
+});
 async function discard() {
     if (!dirty.value)
         return true;
@@ -162,29 +183,8 @@ async function closeDrawer(done?: () => void) {
     done?.();
 }
 function contextRanges(): BenefitHostRange[] {
-    if (props.initialHostKey)
-        return [{ kind: 'host', hostKey: props.initialHostKey }];
-    if (!props.modelId)
-        return [];
-    if (!props.versionId) {
-        contextNotice.value = '入口是模型草稿。请在主机树中明确选择已发布范围，不会自动使用最新版本。';
-        return [];
-    }
-    const version = store.data.specModelVersions.find(v => v.id === props.versionId && v.templateId === props.modelId && v.status === 'published');
-    if (!version || (props.nodeId && !version.nodesSnapshot.some(n => n.id === props.nodeId))) {
-        contextNotice.value = '入口版本或节点已失效，请重新选择有效发布范围；不会回退到其他版本。';
-        return [];
-    }
-    const range: BenefitHostRange = { kind: 'snapshot', modelId: props.modelId, versionId: props.versionId, ...(props.nodeId ? { nodeId: props.nodeId } : {}) };
-    if (!resolveBenefitRange(store.data, range).issue)
-        return [range];
-    const hosts = benefitNodeHosts(store.data, props.modelId, props.nodeId, props.versionId);
-    if (hosts.length === 1) {
-        contextNotice.value = '当前规格节点已定位到明确型号；容量、颜色不建立独立范围。';
-        return [{ kind: 'host', hostKey: hosts[0]!.key }];
-    }
-    contextNotice.value = '入口无法确定有效的已发布型号范围，请在主机树中明确选择。';
-    return [];
+    contextNotice.value = props.source.issue || (props.source.range ? '已带入适用主机范围：' + rangeLabel(props.source.range) : '');
+    return props.source.range ? [benefitClone(props.source.range)] : [];
 }
 async function start(g?: BenefitGroup) {
     if (!await discard())
@@ -197,10 +197,10 @@ async function start(g?: BenefitGroup) {
     if (g?.scope && !g.hostRanges)
         contextNotice.value = `原范围：${scopeLabel(g)}。原名称和类型已保留；请补齐归属分类${g.scope.hostKey ? '' : '，并明确选择发布范围'}后保存。`;
     if (!g && type?.catalogRole === 'accessory') {
-        if (availability.value.get(type.id)?.candidates.length && !availability.value.get(type.id)?.reason)
+        if (!benefitTypeProblem(store.data, draft.value.categoryId || '', type.id))
             draft.value.productTypeIds = [type.id];
         else
-            contextNotice.value += ' 请先确定主机范围，再选择该目录类型。';
+            contextNotice.value += ' 该类型存在结构问题，请核对归属和状态。';
     }
     revision.value = g?.revision || 0;
     initial.value = signature();
@@ -209,10 +209,10 @@ async function start(g?: BenefitGroup) {
 async function changeCategory(value: string | string[]) {
     if (!draft.value || busy.value || !editable.value)
         return;
-    const id = String(value), stamp = signature(), impact = benefitConfigurationImpact(store.data, id, draft.value.hostRanges || [], draft.value.productTypeIds);
+    const id = String(value), stamp = signature(), impact = benefitCategoryImpact(store.data, id, draft.value.productTypeIds);
     if (impact.remove.length) {
         try {
-            await ElMessageBox.confirm(`保留：${typeNames(impact.keep) || '无'}。将移除超出范围或已无合法候选的类型：${typeNames(impact.remove)}。`, '变更归属分类', { confirmButtonText: '确认变更', cancelButtonText: '保持原分类' });
+            await ElMessageBox.confirm(`保留：${typeNames(impact.keep) || '无'}。将移除超出新分类范围或引用失效的类型：${typeNames(impact.remove)}。`, '变更归属分类', { confirmButtonText: '确认变更', cancelButtonText: '保持原分类' });
         }
         catch {
             return;
@@ -228,11 +228,10 @@ async function setRanges(ranges: BenefitHostRange[]) {
         return;
     const stamp = signature(), old = draft.value.hostRanges || [];
     const oldKeys = new Set(old.flatMap(r => resolveBenefitRange(store.data, r).keys)), newKeys = new Set(ranges.flatMap(r => resolveBenefitRange(store.data, r).keys));
-    const impact = benefitConfigurationImpact(store.data, draft.value.categoryId || '', ranges, draft.value.productTypeIds);
     const refreshing = old.some(r => r.kind === 'snapshot' && ranges.some(n => n.kind === 'snapshot' && n.modelId === r.modelId && n.versionId !== r.versionId));
-    if (impact.remove.length || refreshing) {
+    if (refreshing) {
         try {
-            await ElMessageBox.confirm(`范围将新增 ${[...newKeys].filter(k => !oldKeys.has(k)).length} 个型号，移出 ${[...oldKeys].filter(k => !newKeys.has(k)).length} 个型号。保留类型：${typeNames(impact.keep) || '无'}；移除不再有合法候选的类型：${typeNames(impact.remove) || '无'}。`, '变更主机范围', { confirmButtonText: '确认范围并移除失效类型', cancelButtonText: '保持原范围' });
+            await ElMessageBox.confirm(`范围将新增 ${[...newKeys].filter(k => !oldKeys.has(k)).length} 个型号，移出 ${[...oldKeys].filter(k => !newKeys.has(k)).length} 个型号。已选配件类型保持不变，请核对新的发布范围。`, '变更主机范围', { confirmButtonText: '确认发布范围', cancelButtonText: '保持原范围' });
         }
         catch {
             return;
@@ -241,7 +240,6 @@ async function setRanges(ranges: BenefitHostRange[]) {
     if (signature() !== stamp)
         return;
     draft.value.hostRanges = compactBenefitRanges(store.data, ranges);
-    draft.value.productTypeIds = impact.keep;
 }
 async function save() {
     if (!draft.value || busy.value || !editable.value)

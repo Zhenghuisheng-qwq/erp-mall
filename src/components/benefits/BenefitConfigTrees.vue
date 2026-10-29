@@ -1,7 +1,7 @@
 <template>
   <div class="config-trees">
     <section>
-      <h3>2. 从合法候选中选择配件类型</h3>
+      <h3>包内配件类型</h3>
       <el-input v-model="accessorySearch" placeholder="搜索配件分类或类型" clearable />
       <el-tree ref="accessoryTree" :data="accessories" node-key="key" default-expand-all :expand-on-click-node="false" :filter-node-method="filter" class="picker-tree">
         <template #default="{data:node}">
@@ -15,12 +15,13 @@
             <small v-if="node.kind==='product-type'">类型</small>
           </el-checkbox>
           <span v-if="node.reason" class="reason" :title="node.reason">{{node.reason}}</span>
+          <span v-else-if="node.hint" class="hint" :title="node.hint">{{node.hint}}</span>
         </template>
       </el-tree>
-      <p class="hint">先确定主机范围，才能勾选有合法 SKU 的类型。分类批量勾选只选择当前合法类型。新增 SKU 可动态出现，后建产品类型不会自动加入。</p>
+      <p class="hint">分类批量勾选当前目录内结构合法的配件类型，暂时没有商品也可配置。新增合格商品会动态出现，后建产品类型不会自动加入。</p>
     </section>
     <section class="host-picker">
-      <h3>1. 确定适用主机范围</h3>
+      <h3>适用主机范围</h3>
       <el-input v-model="hostSearch" placeholder="搜索主机类型、模型或分支" clearable />
       <el-tree ref="hostTree" :data="hosts" node-key="key" default-expand-all :expand-on-click-node="false" :filter-node-method="filter" class="picker-tree">
         <template #default="{data:node}">
@@ -101,5 +102,5 @@ function toggleRange(n: BenefitChoiceNode) {
 }
 </script>
 <style scoped>
-.config-trees{display:grid;grid-template-columns:1fr 1fr;gap:24px}.host-picker{order:-1}.config-trees section{min-width:0}.picker-tree{height:330px;overflow:auto;margin-top:12px;border:1px solid var(--el-border-color-light);padding:8px}.reason,.hint,small{color:var(--el-text-color-secondary);font-size:12px}.reason{margin-left:12px}.hint{line-height:1.7}.el-checkbox{height:auto;min-height:30px}.el-icon{vertical-align:middle}.picker-tree :deep(.el-tree-node__content){width:max-content;min-width:100%}@media(max-width:850px){.config-trees{grid-template-columns:1fr}}
+.config-trees{display:grid;grid-template-columns:1fr 1fr;gap:24px}.config-trees section{min-width:0}.picker-tree{height:330px;overflow:auto;margin-top:12px;border:1px solid var(--el-border-color-light);padding:8px}.reason,.hint,small{color:var(--el-text-color-secondary);font-size:12px}.reason{margin-left:12px}.hint{line-height:1.7}.el-checkbox{height:auto;min-height:30px}.el-icon{vertical-align:middle}.picker-tree :deep(.el-tree-node__content){width:max-content;min-width:100%}@media(max-width:850px){.config-trees{grid-template-columns:1fr}}
 </style>

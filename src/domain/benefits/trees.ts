@@ -14,15 +14,18 @@ export interface BenefitChoiceNode {
     typeIds?: string[];
     range?: BenefitHostRange;
     reason?: string;
+    hint?: string;
 }
 export const rangeKey = (r: BenefitHostRange) => JSON.stringify(r);
 export function benefitAccessoryTree(data: AppData, types: CatalogTypeRow[], categoryId: string, availability: Map<string, BenefitTypeAvailability>) {
     const flat = catalogScopeNodes(data.categories, types);
-    const problem = (id: string) => benefitTypeProblem(data, categoryId, id) || availability.get(id)?.reason || (!availability.get(id)?.candidates.length ? '当前范围没有合法候选' : '');
+    const problem = (id: string) => benefitTypeProblem(data, categoryId, id);
     const map = new Map(flat.map(n => [n.key, {
             key: n.key, label: n.name, kind: n.kind, children: [] as BenefitChoiceNode[],
             typeIds: n.kind === 'product-type' ? problem(n.id) ? [] : [n.id] : data.productTypes.filter(t => categoryContains(data, n.id, t.categoryId) && !problem(t.id)).map(t => t.id),
             reason: n.kind === 'product-type' ? problem(n.id) : categoryContains(data, categoryId, n.id) ? '' : '归属分类范围外',
+            hint: n.kind === 'product-type' && !problem(n.id) ?
+                `当前 ${availability.get(n.id)?.candidates.length || 0} 个可选商品${availability.get(n.id)?.reason ? ' · ' + availability.get(n.id)!.reason : ''}` : '',
         }]));
     const roots: BenefitChoiceNode[] = [];
     for (const n of flat) {

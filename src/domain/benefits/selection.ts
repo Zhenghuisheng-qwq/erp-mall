@@ -1,6 +1,6 @@
 import type { AppData } from '../types';
 import type { BenefitDevice, BenefitLine, BenefitSelection, BenefitSelectionInput, BenefitGroup, BenefitGroupInput, BenefitSnapshot, BenefitWrite } from './types';
-import { benefitCandidates, benefitSkuLabel, sellableSkuProblem, benefitConfigurationImpact } from './query';
+import { benefitCandidates, benefitSkuLabel, sellableSkuProblem } from './query';
 import { benefitGroupProblems, compactBenefitRanges } from './scope';
 export const MAX_QUANTITY = 9999, MAX_PRICE_CENTS = 100000000;
 export const benefitClone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
@@ -83,9 +83,6 @@ export function saveBenefitGroup(data: AppData, input: BenefitGroupInput, revisi
     const message = benefitGroupProblems(data, input).join('；');
     if (message)
         return { ok: false, message };
-    const impact = benefitConfigurationImpact(data, input.categoryId || '', input.hostRanges || [], input.productTypeIds);
-    if (impact.remove.length)
-        return { ok: false, message: '以下类型在当前主机范围没有合法候选，请调整：' + impact.remove.map(id => data.productTypes.find(t => t.id === id)?.name || id).join('、') };
     if (!input.name.trim() || input.name.length > 80 || !input.productTypeIds.length || typeof input.enabled !== 'boolean' || !Number.isSafeInteger(input.sort) || input.sort < 0 || input.sort > 9999)
         return { ok: false, message: '请填写名称、产品类型和有效排序' };
     if (input.productTypeIds.some(typeId => !data.productTypes.some(t => t.id === typeId && t.status === 'enabled' && t.catalogRole === 'accessory')))

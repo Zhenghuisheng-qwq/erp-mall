@@ -48,7 +48,7 @@ export function benefitCandidates(data: AppData, device: BenefitDevice, resolved
 }
 export function benefitGroupMatches(data: AppData, group: BenefitGroup, context: ReturnType<typeof benefitCandidates>) {
     // Structural scope validity is independent of each type's current sale candidates.
-    // Configuration admission remains in benefitConfigurationImpact / saveBenefitGroup.
+    // Configuration validates references; availability only filters actual sale candidates.
     return !context.issue && !!context.query.device.host && !benefitGroupProblems(data, group).length && benefitRangeMatches(data, group.hostRanges || [], context.query.device.host);
 }
 export function applicableBenefitGroups(data: AppData, context: ReturnType<typeof benefitCandidates>) {
@@ -121,7 +121,7 @@ export interface BenefitTypeAvailability {
  * declarations with specification conditions; never expand model combinations for preview. */
 export function benefitRangeAvailability(data: AppData, categoryId: string, ranges: BenefitHostRange[]) {
     const result = new Map<string, BenefitTypeAvailability>();
-    const rangeIssue = !ranges.length ? '请先确定适用主机范围' : ranges.map(r => resolveBenefitRange(data, r).issue).find(Boolean) || '';
+    const rangeIssue = !ranges.length ? '请选择适用主机范围后查看实际商品' : ranges.map(r => resolveBenefitRange(data, r).issue).find(Boolean) || '';
     for (const type of data.productTypes)
         result.set(type.id, { typeId: type.id, candidates: [], reason: benefitTypeProblem(data, categoryId, type.id) || rangeIssue });
     if (rangeIssue)
@@ -167,14 +167,17 @@ export function benefitRangeAvailability(data: AppData, categoryId: string, rang
             collect(benefitCandidates(data, { kind: 'sku', skuId: sku.id }, queryDeviceContextAccessories(data, device)), label.name + ' · ' + label.spec);
         }
     }
-    for (const entry of result.values())
-        if (!entry.reason && !entry.candidates.length)
-            entry.reason = [...(reasons.get(entry.typeId) || [])].join('；') || '当前主机范围内尚无已确认基本使用依据的在售 SKU';
+    for (const entry of result.values()) {
+        if (entry.reason || entry.candidates.length) continue;
+        const families = data.families.filter(f => compatibilityFamilyTypeId(data, f.id) === entry.typeId);
+        const familyIds = new Set(families.map(f => f.id));
+        const skus = data.skus.filter(s => familyIds.has(s.familyId) && isRealSku(data, s));
+        const observed = [...(reasons.get(entry.typeId) || [])].join('；');
+        entry.reason = !families.length ? '暂无商品建档' : !skus.length ? '暂无真实销售 SKU' :
+            skus.every(s => !!sellableSkuProblem(data, s.id, 'accessory')) ? '暂无可售商品；' + (observed || '请核对商品销售状态') :
+            observed || '当前主机范围内尚无已确认适用依据';
+    }
     return result;
-}
-export function benefitConfigurationImpact(data: AppData, categoryId: string, ranges: BenefitHostRange[], ids: string[]) {
-    const availability = benefitRangeAvailability(data, categoryId, ranges);
-    return { availability, keep: ids.filter(id => !!availability.get(id)?.candidates.length && !availability.get(id)?.reason), remove: ids.filter(id => !availability.get(id)?.candidates.length || !!availability.get(id)?.reason) };
 }
 /** Walk the selected branch to its real identity attribute; never expand the model Cartesian product. */
 export function benefitNodeHosts(data: AppData, modelId: string, nodeId: string, versionId?: string) {

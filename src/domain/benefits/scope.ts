@@ -161,3 +161,94 @@ export function benefitLegacyRanges(group: BenefitGroup): BenefitHostRange[] {
     return group.hostRanges || (group.scope?.hostKey ? [{ kind: 'host', hostKey: group.scope.hostKey }] : []);
 }
 export const benefitCategoryLabel = (data: AppData, id?: string) => id ? categoryPathLabel(data.categories, id) || `失效分类 ${id}` : '待补充归属分类';
+
+/** Read-only navigation context, shared by management filtering and new-group defaults. */
+export interface BenefitSourceInput {
+    modelId: string;
+    versionId: string;
+    nodeId: string;
+    hostKey: string;
+    nodePending?: boolean;
+}
+export interface BenefitSourceContext {
+    active: boolean;
+    modelName: string;
+    versionName: string;
+    nodeName: string;
+    issue: string;
+    range?: BenefitHostRange;
+    keys: string[];
+}
+export function benefitSourceContext(data: AppData, input: Partial<BenefitSourceInput>): BenefitSourceContext {
+    const {modelId = '', versionId = '', nodeId = '', hostKey = ''} = input;
+    const model = data.specCanvases.find(m => m.templateId === modelId);
+    const version = data.specModelVersions.find(v => v.id === versionId && v.templateId === modelId && v.status === 'published');
+    const nodes = versionId ? version?.nodesSnapshot || [] : data.productSpecNodes.filter(n => n.templateId === modelId);
+    const node = nodes.find(n => n.id === nodeId);
+    const result: BenefitSourceContext = {
+        active: !!(modelId || versionId || nodeId || hostKey), modelName: model?.name || '模型未明确',
+        versionName: version?.versionName || (versionId ? '发布版本失效' : '尚未选择发布版本'),
+        nodeName: nodeId ? node?.valueId || data.params.find(p => p.id === node?.attributeId)?.name || '节点待重新选择' : '模型完整范围',
+        issue: '', keys: [],
+    };
+    if (!result.active) return result;
+    if (input.nodePending) {
+        result.issue = '原节点不能准确对应此发布快照，请重新选择该版本内的有效分支';
+        return result;
+    }
+    function accept(range: BenefitHostRange) {
+        const resolved = resolveBenefitRange(data, range);
+        result.issue = resolved.issue;
+        if (!resolved.issue) { result.range = range; result.keys = resolved.keys; }
+        return result;
+    }
+    if (hostKey) {
+        const option = listDeviceModels(data).find(o => o.key === hostKey);
+        if (!option || (modelId && option.host.productModelId !== modelId)) {
+            result.issue = '来源型号与当前模型不一致或已失效，请重新选择';
+            return result;
+        }
+        if (versionId || nodeId) {
+            const source = benefitSourceContext(data, {...input, hostKey: ''});
+            if (source.issue || !source.keys.includes(hostKey)) {
+                result.issue = source.issue || '来源型号不属于所选发布范围';
+                return result;
+            }
+        }
+        result.nodeName = option.label;
+        return accept({kind: 'host', hostKey});
+    }
+    if (!model) { result.issue = '来源模型引用失效，请返回来源核对'; return result; }
+    if (!versionId) { result.issue = '请选择当前模型的已发布版本，不会自动使用最新版本'; return result; }
+    if (!version) { result.issue = '所选发布版本已失效，请重新选择'; return result; }
+    if (nodeId && !node) {
+        result.issue = '原节点不属于此发布快照，请重新选择该版本内的有效分支';
+        return result;
+    }
+    const range: BenefitHostRange = {kind: 'snapshot', modelId, versionId, ...(nodeId ? {nodeId} : {})};
+    if (!resolveBenefitRange(data, range).issue) return accept(range);
+    // A concrete specification below a host identity can locate that host; never
+    // fall back from a missing or ambiguous node to the whole model.
+    const snapshot = benefitSnapshotHosts(data, modelId, versionId);
+    if (snapshot.issue) { result.issue = snapshot.issue; return result; }
+    let ancestor = node;
+    const seen = new Set<string>();
+    while (ancestor && !seen.has(ancestor.id)) {
+        seen.add(ancestor.id);
+        const identities = snapshot.entries.filter(e => e.nodeIds[e.nodeIds.length - 1] === ancestor!.id);
+        if (identities.length === 1) return accept({kind: 'host', hostKey: identities[0]!.key});
+        ancestor = nodes.find(n => n.id === ancestor!.parentId);
+    }
+    result.issue = '当前节点不能确定主机范围，请选择该发布版本内的有效分支';
+    return result;
+}
+
+/** Management relevance ignores enabled state, accessory ownership and SKU counts. */
+export function benefitGroupRelated(data: AppData, group: BenefitGroup, source: BenefitSourceContext) {
+    if (source.issue || !source.range) return false;
+    const keys = new Set(source.keys);
+    return (group.hostRanges || []).some(range => {
+        const resolved = resolveBenefitRange(data, range);
+        return !resolved.issue && resolved.keys.some(key => keys.has(key));
+    });
+}

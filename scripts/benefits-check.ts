@@ -2,13 +2,13 @@ import assert from 'node:assert/strict'
 import {createPinia,setActivePinia} from 'pinia'
 import {benefitsFixture} from './benefits-fixture'
 import {installCatalogTestLocks} from './catalog-storage-test-env'
-import {benefitCandidates,applicableBenefitGroups,benefitNodeHosts,benefitGroupCandidates,benefitPreviewDevices,benefitAccessoryReason,benefitRangeAvailability,benefitConfigurationImpact} from '../src/domain/benefits/query'
+import {benefitCandidates,applicableBenefitGroups,benefitNodeHosts,benefitGroupCandidates,benefitPreviewDevices,benefitAccessoryReason,benefitRangeAvailability} from '../src/domain/benefits/query'
 import {addBenefitLine,benefitClone,benefitDataProblems,parseBenefitPrice,previewBenefitDeviceChange,reviewBenefitSelection,saveBenefitGroup,saveBenefitSelection} from '../src/domain/benefits/selection'
 import {deviceHostKey,listDeviceModels,resolveDeviceSku} from '../src/domain/deviceResolution'
 import {canPermission,ensureRbac,permissionRegistry} from '../src/domain/rbac'
 import {normalizeStored,useCatalogStore} from '../src/stores/catalog'
 import {DATA_VERSION,STORAGE_KEY} from '../src/domain/types'
-import {benefitGroupProblems,benefitCategoryImpact,benefitSnapshotHosts,resolveBenefitRange,compactBenefitRanges} from '../src/domain/benefits/scope'
+import {benefitGroupProblems,benefitCategoryImpact,benefitSnapshotHosts,resolveBenefitRange,compactBenefitRanges,benefitSourceContext,benefitGroupRelated} from '../src/domain/benefits/scope'
 import {createSeed} from '../src/domain/seed'
 import type {BenefitHostRange,BenefitGroup,BenefitSelectionInput} from '../src/domain/benefits/types'
 const f=benefitsFixture(),{data,modelId,versionId,hosts,now}=f,a={kind:'sku' as const,skuId:'phone-a'},b={kind:'sku' as const,skuId:'phone-b'}
@@ -33,8 +33,8 @@ for(const sku of saleChange.skus)if(filmFamilies.has(sku.familyId))sku.status='o
 const remaining=benefitCandidates(saleChange,a)
 assert(applicableBenefitGroups(saleChange,remaining).some(g=>g.id===saleGroup.id))
 assert.deepEqual(benefitGroupCandidates(saleChange,saleGroup,remaining).map(c=>c.sku.id).sort(),['case-a-sku','case-sku'])
-assert.deepEqual(benefitConfigurationImpact(saleChange,saleGroup.categoryId!,saleGroup.hostRanges!,saleGroup.productTypeIds).remove,['type-film'])
-assert.equal(saveBenefitGroup(saleChange,{...group},0,()=> 'empty-type-new-group',now).ok,false)
+assert.match(benefitRangeAvailability(saleChange,saleGroup.categoryId!,saleGroup.hostRanges!).get('type-film')!.reason,/暂无可售商品/)
+assert.equal(saveBenefitGroup(benefitClone(saleChange),{...group},0,()=> 'empty-type-new-group',now).ok,true)
 for(const sku of saleChange.skus)if(['case-a-sku','case-sku'].includes(sku.id))sku.status='off_sale'
 assert.deepEqual(benefitGroupCandidates(saleChange,saleGroup,benefitCandidates(saleChange,a)),[])
 assert(!applicableBenefitGroups(saleChange,benefitCandidates(saleChange,a)).some(g=>g.id===saleGroup.id))
@@ -98,9 +98,38 @@ const availabilityB=benefitRangeAvailability(data,'cat-accessory-test',[{kind:'s
 assert.equal(availabilityB.get('type-film')!.candidates.length,0)
 assert(availabilityB.get('type-film')!.reason)
 assert.deepEqual(availabilityB.get('type-case')!.candidates.map(s=>s.id),['case-sku'])
-assert.deepEqual(benefitConfigurationImpact(data,'cat-accessory-test',[{kind:'snapshot',modelId,versionId,nodeId:'demo-brand-B'}],['type-case','type-film']).remove,['type-film'])
-assert.equal(saveBenefitGroup(data,{...group,hostRanges:[{kind:'snapshot',modelId,versionId,nodeId:'demo-brand-B'}]},0,()=> 'no-candidates',now).ok,false)
-assert(benefitRangeAvailability(data,'cat-accessory-test',[]).get('type-case')!.reason.includes('先确定'))
+assert.deepEqual(benefitCategoryImpact(data,'cat-accessory-test',['type-case','type-film']).remove,[])
+assert.equal(saveBenefitGroup(benefitClone(data),{...group,hostRanges:[{kind:'snapshot',modelId,versionId,nodeId:'demo-brand-B'}]},0,()=> 'no-candidates',now).ok,true)
+assert(benefitRangeAvailability(data,'cat-accessory-test',[]).get('type-case')!.reason.includes('请选择适用主机范围'))
+
+// Configure a legitimate type before its products exist; later goods appear without editing the group.
+const future=benefitClone(data)
+future.productTypes.push({...benefitClone(future.productTypes.find(t=>t.id==='type-film')!),id:'type-future',name:'稍后建档钢化膜'})
+assert(saveBenefitGroup(future,{...group,productTypeIds:['type-case','type-future']},0,()=> 'future',now).ok)
+const futureGroup=future.benefitGroups!.find(g=>g.id==='future')!,futureBefore=JSON.stringify(futureGroup)
+assert.match(benefitRangeAvailability(future,group.categoryId,group.hostRanges).get('type-future')!.reason,/暂无商品建档/)
+const film=benefitClone(future.skus.find(s=>s.id==='film-sku')!)
+future.families.push({...benefitClone(future.families.find(f=>f.id===film.familyId)!),id:'future-family',productTypeId:'type-future'})
+future.skus.push({...film,id:'future-sku',familyId:'future-family'})
+future.compatibilities.push(f.link('future-link','future-sku','a'))
+assert(benefitGroupCandidates(future,futureGroup,benefitCandidates(future,a)).some(c=>c.sku.id==='future-sku'))
+assert(!benefitGroupCandidates(future,futureGroup,benefitCandidates(future,b)).some(c=>c.sku.id==='future-sku'))
+assert.equal(JSON.stringify(futureGroup),futureBefore)
+future.productTypes.find(t=>t.id==='type-future')!.status='disabled'
+assert(!saveBenefitGroup(future,{...group,productTypeIds:['type-future']},0,()=> 'disabled',now).ok)
+assert(!saveBenefitGroup(future,{...group,productTypeIds:['missing']},0,()=> 'missing',now).ok)
+assert(!saveBenefitGroup(future,{...group,productTypeIds:['type-device']},0,()=> 'wrong-role',now).ok)
+// Source relevance uses range intersection, independently of candidate counts and enabled state.
+const source=benefitSourceContext(data,{modelId,versionId,nodeId:'demo-A'})
+assert.equal(source.issue,'')
+for(const range of [{kind:'type',productTypeId:'type-device'},{kind:'snapshot',modelId,versionId},{kind:'snapshot',modelId,versionId,nodeId:'demo-brand-A'},{kind:'host',hostKey:deviceHostKey(hosts.a)}] as BenefitHostRange[]){
+ assert(benefitGroupRelated(data,{...data.benefitGroups![0]!,enabled:false,productTypeIds:['type-future'],hostRanges:[range]},source))
+}
+assert(!benefitGroupRelated(data,bGroup,source))
+assert(benefitSourceContext(data,{modelId,nodeId:'demo-A'}).issue)
+assert(benefitSourceContext(data,{modelId,versionId,nodeId:'missing'}).issue)
+assert(benefitSourceContext(data,{modelId,versionId,nodeId:'demo-A',nodePending:true}).issue)
+
 const extra=benefitClone(data.skus.find(s=>s.id==='case-sku')!);extra.id='dynamic';data.skus.push(extra);data.compatibilities.push(f.link('dynamic-link',extra.id,'a'))
 assert(benefitCandidates(data,a).candidates.some(c=>c.sku.id==='dynamic'))
 const draft:BenefitSelectionInput={id:'',device:a,status:'draft',lines:[{skuId:'film-sku',quantity:2,unitPriceCents:1234},{skuId:'case-sku',quantity:1,unitPriceCents:0},{skuId:'phone-a',quantity:1,unitPriceCents:null}]}
