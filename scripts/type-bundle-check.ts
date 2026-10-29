@@ -1,0 +1,49 @@
+import assert from 'node:assert/strict'
+import {createPinia,setActivePinia} from 'pinia'
+import {nextTick} from 'vue'
+import {installCatalogTestLocks} from './catalog-storage-test-env'
+import {bundleFixture} from './type-bundle-fixture'
+import {copy,writeGroup,writeSale,priceCents,total,benefitStorageProblems} from '../src/domain/benefitSales/commands'
+import {saleQuery} from '../src/domain/benefitSales/query'
+import {deviceHostKey} from '../src/domain/deviceResolution'
+import {useCatalogStore,normalizeStored} from '../src/stores/catalog'
+import {DATA_VERSION,STORAGE_KEY} from '../src/domain/types'
+import type {SaleScope,SaleInput,GroupInput} from '../src/domain/benefitSales/types'
+const {data,hosts}=bundleFixture(),now='2026-10-29T08:00:00.000Z'
+const group:GroupInput={id:'',name:'跨分类综合组合',categoryId:'cat-device-test',productTypeIds:['type-device','type-film','type-charger','type-empty','type-cable','type-case'],enabled:true,sort:0}
+assert(writeGroup(data,group,0,()=> 'bundle-one',now).ok)
+const scope:SaleScope={mode:'group',groupId:'bundle-one',categoryId:group.categoryId,productTypeIds:[...group.productTypeIds],device:{kind:'sku',skuId:'phone-a'}}
+const ids=(s:SaleScope)=>saleQuery(data,s).candidates.map(c=>c.id).sort()
+assert.deepEqual(ids(scope),['case-sku','charger-sku','film-sku','phone-a'])
+assert.deepEqual(ids({...scope,device:{kind:'sku',skuId:'phone-b'}}),['case-sku','charger-sku','film-b','phone-b'])
+assert(!ids({...scope,device:{kind:'model',key:deviceHostKey(hosts.a)}}).includes('phone-a'))
+assert(!ids({...scope,device:null}).length)
+const draft:SaleInput={id:'',scope,lines:[{skuId:'film-sku',quantity:2,unitPriceCents:null},{skuId:'charger-sku',quantity:1,unitPriceCents:0}],status:'draft'}
+assert(writeSale(data,draft,0,()=> 'sale-one',now).ok)
+for(const bad of ['film-b','pending-sku','blocked-sku','cable-sku','off-sale-sku','mat-copy'])assert(!writeSale(data,{...draft,lines:[{skuId:bad,quantity:1,unitPriceCents:0}]},0,()=> 'invalid',now).ok)
+assert(!writeSale(data,{...draft,status:'confirmed'},0,()=> 'invalid',now).ok)
+assert.equal(priceCents(''),null);assert.equal(priceCents('0'),0);assert.equal(priceCents('12.34'),1234);assert.equal(priceCents('1.001'),undefined);assert(total([{skuId:'x',quantity:0,unitPriceCents:0}]).error)
+const confirmation=writeSale(data,{...draft,id:'sale-one',lines:draft.lines.map(l=>({...l,unitPriceCents:1234})),status:'confirmed'},1,()=> 'unused',now);assert(confirmation.ok)
+const frozen=JSON.stringify(data.benefitSalesLists![0]);data.skus.find(s=>s.id==='film-sku')!.skuName='后来的名称';data.compatibilities.find(d=>d.id==='decl-film-a')!.source='后来的依据';data.benefitTypeGroups![0]!.enabled=false
+assert.equal(JSON.stringify(data.benefitSalesLists![0]),frozen);assert(!writeSale(data,{...draft,id:'sale-one'},2,()=>'',now).ok)
+const free={...scope,mode:'free' as const,groupId:undefined};assert(writeSale(data,{...draft,scope:free},0,()=> 'free',now).ok)
+assert(!writeSale(data,draft,0,()=> 'disabled',now).ok)
+const newSku={...copy(data.skus.find(s=>s.id==='film-sku')!),id:'new-film'};data.skus.push(newSku);data.compatibilities.push({...copy(data.compatibilities.find(d=>d.id==='decl-film-a')!),id:'new-proof',accessorySkuId:'new-film',targetId:'new-film'});assert(ids(free).includes('new-film'));assert(!data.benefitTypeGroups![0]!.productTypeIds.includes('future-type'))
+assert.deepEqual(benefitStorageProblems(data),[])
+console.log('PASS cross-category/zero-SKU groups, A/B exclusive/shared candidates, pending/conflict/unknown/off-sale/MAT exclusions, ordinary phone admission, free mode, integer prices and immutable snapshots')
+const undo=installCatalogTestLocks(),disk=new Map<string,string>(),session=new Map<string,string>();let fail=false
+Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(k:string)=>disk.get(k)??null,setItem:(k:string,v:string)=>{if(fail&&k===STORAGE_KEY){fail=false;throw Error('quota test')}disk.set(k,String(v))},removeItem:(k:string)=>disk.delete(k)}})
+Object.defineProperty(globalThis,'sessionStorage',{configurable:true,value:{getItem:(k:string)=>session.get(k)??null,setItem:(k:string,v:string)=>session.set(k,String(v)),removeItem:(k:string)=>session.delete(k)}})
+let store:ReturnType<typeof useCatalogStore>|undefined
+try{
+ const seed=bundleFixture().data,rawOld=JSON.stringify([(seed as any).benefitGroups,(seed as any).benefitSelections]);disk.set(STORAGE_KEY,JSON.stringify({version:DATA_VERSION,data:seed}));session.set('iyge-rbac-simulated-user','u-admin');setActivePinia(createPinia());store=useCatalogStore();await nextTick();await store.waitForPersistence();assert.equal(store.data.benefitTypeGroups,undefined)
+ const before=disk.get(STORAGE_KEY);fail=true;assert.equal((await store.saveTypeBundle(group,0)).ok,false);assert.equal(disk.get(STORAGE_KEY),before);assert.equal(store.data.benefitTypeGroups,undefined)
+ const saved=await store.saveTypeBundle(group,0);assert(saved.ok&&'record' in saved);assert.equal((await store.saveTypeBundle({...group,id:saved.record.id},0)).ok,false)
+ const freeDraft={...draft,scope:free};assert.equal((await store.saveBundleSale(freeDraft,0)).ok,true)
+ assert.equal(JSON.stringify([(JSON.parse(disk.get(STORAGE_KEY)!).data).benefitGroups,(JSON.parse(disk.get(STORAGE_KEY)!).data).benefitSelections]),rawOld)
+ const exported=JSON.parse(store.exportJson());assert(normalizeStored(exported)?.benefitSalesLists?.length)
+ store.$dispose();session.set('iyge-rbac-simulated-user','test-sales');setActivePinia(createPinia());store=useCatalogStore();await nextTick();await store.waitForPersistence()
+ if(store.rbacEnforced){assert.throws(()=>store!.saveTypeBundle(group,0),/未授权/);assert(store.can('product:bundle-sale:create'));assert(!store.can('product:compatibility:update'))}
+ assert.equal((await store.saveBundleSale(freeDraft,0)).ok,true)
+ console.log('PASS real Store queue: failed write atomic, revision conflict, old namespaces preserved, refresh/import normalization, sales-only permissions and free sale')
+}finally{store?.$dispose();undo()}

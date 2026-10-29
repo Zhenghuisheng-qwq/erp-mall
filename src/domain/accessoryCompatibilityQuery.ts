@@ -1,3 +1,4 @@
+import {generalReferenceProblem,generalConditionProblem,generalFactProblem,type GeneralCompatibilityClaim,type CompatibilityEvidence} from './generalCompatibility'
 import { projectAttrs, shelfOf } from './logic'
 import { roleOfType } from './compatibility'
 import { compatibilityFamilyTypeId, compatibilityRecordRole, createDeviceResolutionContext, deviceHostKey, resolveDeviceSku, sameDeviceHost, validateCompatibilityHost } from './deviceResolution'
@@ -38,28 +39,26 @@ export function evaluateCompatibilityCondition(data: AppData, condition: Compati
   }
   return { condition, state: (Array.isArray(condition.value) ? condition.value.includes(actual) : actual === condition.value) ? 'met' : 'unmet', label }
 }
-function capabilityResult(data: AppData, capability: CompatibilityCapability, declarations: CompatibilityLink[], device: DeviceResolution): CapabilityEvaluation {
-  const confirmed = declarations.filter(link => declarationDefaults(link).verification === 'confirmed')
-  const applicable = confirmed.map(link => ({ link, conditions: declarationDefaults(link).conditions.map(condition => evaluateCompatibilityCondition(data, condition, device)) })).filter(item => !item.conditions.some(condition => condition.state === 'unmet'))
-  const deny = applicable.filter(item => declarationDefaults(item.link).conclusion === 'incompatible' && item.conditions.every(condition => condition.state === 'met'))
-  const unknownDeny = applicable.filter(item => declarationDefaults(item.link).conclusion === 'incompatible' && item.conditions.some(condition => condition.state === 'unknown'))
-  const allow = confirmed.filter(link => declarationDefaults(link).conclusion !== 'incompatible')
-  const applicableAllows = applicable.filter(item => declarationDefaults(item.link).conclusion !== 'incompatible')
-  const conditions = declarations.flatMap(link => declarationDefaults(link).conditions.map(condition => evaluateCompatibilityCondition(data, condition, device)))
-  const branches = allow.map(link => {
-    const rule = declarationDefaults(link), evaluated = rule.conditions.map(condition => evaluateCompatibilityCondition(data, condition, device))
-    return evaluated.some(item => item.state === 'unmet') ? 'incompatible' : rule.conclusion === 'conditional' || evaluated.some(item => item.state === 'unknown') ? 'conditional' : 'compatible'
-  })
-  const status = deny.length ? 'incompatible' : unknownDeny.length ? 'pending' : branches.includes('compatible') ? 'compatible' : branches.includes('conditional') ? 'conditional' : branches.length ? 'incompatible' : 'pending'
-  if (allow.some(link => declarationDefaults(link).conclusion === 'conditional' && !declarationDefaults(link).conditions.length)) conditions.push({ condition: { kind: 'manual', text: '有条件声明的使用前提尚未补全' }, state: 'unknown', label: '有条件声明的使用前提尚未补全，需确认' })
-  return { capability, status, conflict: Boolean(deny.length && applicableAllows.length), conditions, declarations }
+function capabilityResult(data: AppData, capability: CompatibilityCapability, declarations: CompatibilityLink[], device: DeviceResolution, general:GeneralCompatibilityClaim[]=[]): CapabilityEvaluation {
+  const modelRows=declarations.map(record=>({kind:'model' as const,record,rule:declarationDefaults(record),conditions:declarationDefaults(record).conditions.map(c=>evaluateCompatibilityCondition(data,c,device)),problem:''}))
+  const generalRows=general.map(record=>{const problem=generalReferenceProblem(data,record)||(!record.conditions.length?'必要条件尚未完善':'');const conditions:ConditionEvaluation[]=record.conditions.map(c=>{const invalid=generalConditionProblem(data,c)||generalFactProblem(data,c,device);return invalid?{condition:c,state:'unknown',label:invalid}:evaluateCompatibilityCondition(data,c,device)});if(problem)conditions.push({condition:{kind:'manual',text:problem},state:'unknown',label:problem});return {kind:'general' as const,record,rule:record,conditions,problem}})
+  const rows=[...modelRows,...generalRows],confirmed=rows.filter(r=>r.rule.verification==='confirmed')
+  const met=(r:typeof rows[number])=>!r.problem&&r.conditions.every(c=>c.state==='met')
+  const deny=confirmed.filter(r=>r.rule.conclusion==='incompatible'&&met(r))
+  // Preserve the existing model negative-unknown safeguard. A general rule only
+  // applies when all its prerequisites are proven; its unknowns are not negatives.
+  const unknownDeny=confirmed.filter(r=>r.kind==='model'&&r.rule.conclusion==='incompatible'&&!r.conditions.some(c=>c.state==='unmet')&&r.conditions.some(c=>c.state==='unknown'))
+  const allow=confirmed.filter(r=>r.rule.conclusion!=='incompatible')
+  const branches=allow.map(r=>r.kind==='general'?met(r)?r.rule.conclusion==='conditional'?'conditional':'compatible':'pending':r.conditions.some(c=>c.state==='unmet')?'incompatible':r.rule.conclusion==='conditional'||r.conditions.some(c=>c.state==='unknown')?'conditional':'compatible')
+  const status=deny.length?'incompatible':unknownDeny.length?'pending':branches.includes('compatible')?'compatible':branches.includes('conditional')?'conditional':branches.includes('incompatible')&&!branches.includes('pending')?'incompatible':'pending'
+  const positive=allow.filter(r=>r.kind==='general'?met(r):!r.conditions.some(c=>c.state==='unmet'))
+  const conditions=rows.flatMap(r=>r.conditions)
+  if(allow.some(r=>r.kind==='model'&&r.rule.conclusion==='conditional'&&!r.conditions.length))conditions.push({condition:{kind:'manual',text:'有条件声明的使用前提尚未补全'},state:'unknown',label:'有条件声明的使用前提尚未补全，需确认'})
+  const evidence:CompatibilityEvidence[]=rows.map(r=>({key:`${r.kind}:${r.record.id}`,kind:r.kind,record:r.record,scopeLabel:r.kind==='general'?(r.record as GeneralCompatibilityClaim).deviceTypeIds.map(id=>data.productTypes.find(t=>t.id===id)?.name||'类型已失效').join('、'):(r.record as CompatibilityLink).host.steps.map(s=>s.valueId).join(' · '),conditions:r.conditions,effective:r.rule.verification==='confirmed'&&met(r)&&!(r.rule.conclusion==='conditional'&&!r.conditions.length),reason:r.problem||(r.rule.verification!=='confirmed'?'声明尚未确认':r.conditions.some(c=>c.state==='unmet')?'必要条件不满足，此声明不提供适用证明':r.conditions.some(c=>c.state==='unknown')?'设备资料不足，无法核验':'条件满足')}))
+  return {capability,status,conflict:!!(deny.length&&positive.length),conditions,declarations,evidence}
 }
-function evaluateCapabilities(data: AppData, declarations: CompatibilityLink[], device: DeviceResolution) {
-  const order: CompatibilityCapability[] = ['basic', 'fast-charge', 'other']
-  return order.flatMap(capability => {
-    const matching = declarations.filter(link => declarationDefaults(link).capability === capability)
-    return matching.length ? [capabilityResult(data, capability, matching, device)] : []
-  })
+function evaluateCapabilities(data: AppData, declarations: CompatibilityLink[], device: DeviceResolution, general:GeneralCompatibilityClaim[]=[]):CapabilityEvaluation[] {
+  return (['basic','fast-charge','other'] as CompatibilityCapability[]).flatMap(capability=>{const matching=declarations.filter(l=>declarationDefaults(l).capability===capability),wide=general.filter(l=>l.capability===capability);return matching.length||wide.length?[capabilityResult(data,capability,matching,device,wide)]:[]})
 }
 function overallCapabilityStatus(capabilities: CapabilityEvaluation[]): AccessoryMatch['status'] {
   const basic = capabilities.find(item => item.capability === 'basic')
@@ -81,7 +80,7 @@ export function accessoryUseEvaluation(match: (Pick<AccessoryMatch, 'capabilitie
   const fastCharge = match?.capabilities.find(item => item.capability === 'fast-charge') || missingCapability('fast-charge')
   const required = options.requireFastCharge ? [basic, fastCharge] : [basic]
   const status = required.some(item => item.status === 'incompatible') ? 'incompatible' : required.some(item => item.status === 'pending') ? 'pending' : required.some(item => item.status === 'conditional') ? 'conditional' : 'compatible'
-  return { status, conflict: required.some(item => item.conflict), conditions: required.flatMap(item => item.conditions), declarations: [...new Map(required.flatMap(item => item.declarations).map(link => [link.id, link])).values()], basic, fastCharge, missingBasic: !basic.declarations.length, requiresFastCharge: Boolean(options.requireFastCharge) }
+  return { status, conflict: required.some(item => item.conflict), conditions: required.flatMap(item => item.conditions), declarations: [...new Map(required.flatMap(item => item.declarations).map(link => [link.id, link])).values()], evidence:[...new Map(required.flatMap(c=>c.evidence||[]).map(e=>[e.key,e])).values()], basic, fastCharge, missingBasic: !(basic.evidence?.length??basic.declarations.length), requiresFastCharge: Boolean(options.requireFastCharge) }
 }
 function declarationProblem(data: AppData, link: CompatibilityLink, context: DeviceResolutionContext, hostOptions: Map<string, DeviceResolutionContext['hostOptions'][number]>) {
   if (link.provenance?.template?.state === 'stale') return '规格已改变，模板兼容来源待重新确认。'
@@ -116,27 +115,38 @@ function queryResolvedDevice(data: AppData, device: DeviceResolution, options: {
     const target = compatibilityTarget(link), key = JSON.stringify([target.kind, target.id]), group = groups.get(key)
     if (group) group.push(link); else groups.set(key, [link])
   }
+  const generalBySku=new Map<string,GeneralCompatibilityClaim[]>()
+  result.generalDiagnostics=[]
+  for(const claim of data.generalCompatibilityClaims||[]){
+    if(!claim.deviceTypeIds.includes(device.host.productTypeId)){result.generalDiagnostics.push({skuId:claim.skuId,claimId:claim.id,reason:'当前设备不属于声明设备产品类型'});continue}
+    const problem=generalReferenceProblem(data,claim)
+    if(problem)result.generalDiagnostics.push({skuId:claim.skuId,claimId:claim.id,reason:problem})
+    const records=generalBySku.get(claim.skuId)||[];records.push(claim);generalBySku.set(claim.skuId,records)
+    const key=JSON.stringify(['sku',claim.skuId]);if(!groups.has(key))groups.set(key,[])
+  }
   const text = (options.keyword || '').trim().toLocaleLowerCase()
-  for (const declarations of groups.values()) {
-    const first = declarations[0]
-    if (!first) continue
-    const target = compatibilityTarget(first), sku = bySku.get(target.id), family = sku && byFamily.get(sku.familyId)
-    if (!sku || !family) continue
+  for (const [groupKey,declarations] of groups) {
+    const [kind,id]=JSON.parse(groupKey) as ['sku'|'material',string]
+    const target:AccessoryTarget={kind,id}, sku = bySku.get(target.id), family = sku && byFamily.get(sku.familyId)
+    if (!sku || !family || (target.kind==='sku'&&!context.realSkuIds.has(sku.id))) continue
     const productTypeId = family.productTypeId || compatibilityFamilyTypeId(data, family.id), productTypeName = byType.get(productTypeId)?.name || '未分类'
     const name = sku.skuName || sku.code, code = target.kind === 'material' ? sku.materialCode || sku.code : sku.code
     const spec = Object.entries(projectAttrs(family, sku)).filter(([, value]) => value.trim()).map(([key, value]) => `${key} ${value}`).join(' · ')
     if ((options.productTypeId && options.productTypeId !== productTypeId) || (text && !`${name} ${code} ${spec} ${productTypeName}`.toLocaleLowerCase().includes(text))) continue
-    const capabilities = evaluateCapabilities(data, declarations, device)
+    const general=target.kind==='sku'?generalBySku.get(sku.id)||[]:[]
+    const capabilities = evaluateCapabilities(data, declarations, device,general)
     const basic = capabilities.find(item => item.capability === 'basic') || missingCapability('basic'), status = overallCapabilityStatus(capabilities)
     const conditions = capabilities.flatMap(item => item.conditions)
     const reasons = [...new Set(declarations.flatMap(link => {
       const rule = declarationDefaults(link)
       return [link.host.scope === 'planning' ? `仅适用于当前规划规格 ${link.host.planningId}` : '适用于当前设备型号；型号级声明不限定容量和颜色', rule.provenance.kind === 'material-copy' ? `从物料 ${rule.provenance.materialSnapshot?.code || rule.provenance.materialId || '历史来源'} 的适用关系确认复制` : target.kind === 'sku' ? '来自销售 SKU 声明' : '来自物料 MAT 声明', rule.source]
     }))]
-    if (!basic.declarations.length) reasons.push('此处为特定能力结论，基本使用能力尚未单独维护。')
+    const evidence=capabilities.flatMap(c=>c.evidence||[])
+    for(const e of evidence.filter(e=>e.kind==='general'))reasons.push(`通用条件 · ${e.record.source} · ${e.reason}`,...e.conditions.map(c=>c.label+'：'+({met:'已满足',unmet:'未满足',unknown:'待核验'}[c.state])))
+    if (!(basic.evidence?.length??basic.declarations.length)) reasons.push('此处为特定能力结论，基本使用能力尚未单独维护。')
     if (conditions.some(item => item.state === 'unmet')) reasons.push('部分声明的设备属性条件不满足；请查看各条匹配依据。')
     const bucketStatus = target.kind === 'material' ? status : basic.status
-    const match: AccessoryMatch = { target, sku, name, code, spec, productTypeId, productTypeName, status, recommendable: (bucketStatus === 'compatible' || bucketStatus === 'conditional') && (target.kind === 'material' || (sku.status === 'on_sale' && shelfOf(family) === 'online')), conflict: capabilities.some(item => item.conflict), reasons, conditions, declarations, capabilities, basic }
+    const match: AccessoryMatch = { target, sku, name, code, spec, productTypeId, productTypeName, status, recommendable: (bucketStatus === 'compatible' || bucketStatus === 'conditional') && (target.kind === 'material' || (sku.status === 'on_sale' && shelfOf(family) === 'online')), conflict: capabilities.some(item => item.conflict), reasons, conditions, declarations, capabilities, basic, evidence }
     // Management keeps every capability and its conservative summary. Ordinary
     // sales recommendations, however, need their own basic-use declaration.
     if (bucketStatus === 'pending') result.pending.push(match)
@@ -144,7 +154,7 @@ function queryResolvedDevice(data: AppData, device: DeviceResolution, options: {
     else if (target.kind === 'material') result.materials.push(match)
     else if (match.recommendable) result.sales.push(match)
     else result.unavailable.push(match)
-    result.counts.declarations += declarations.length
+    result.counts.declarations += declarations.length+general.length
   }
   for (const key of ['sales', 'materials', 'pending', 'excluded', 'unavailable'] as const) result.counts[key] = result[key].length
   return result
@@ -156,7 +166,7 @@ export function queryModelAccessories(data: AppData, host: DeviceResolution['hos
   return queryResolvedDevice(data, { status: problem ? 'invalid' : 'resolved', skuId: '', host, candidates: [], message: problem, source: '指定主机型号', attributes: {}, sourceStamp: '' }, options)
 }
 export function queryAccessoryDevices(data: AppData, target: AccessoryTarget): ReverseCompatibilityResult {
-  const result: ReverseCompatibilityResult = { target, hosts: [], issues: [], counts: { models: 0, declarations: 0, devices: 0 } }
+  const result: ReverseCompatibilityResult = { target, hosts: [], generalDeclarations:target.kind==='sku'?(data.generalCompatibilityClaims||[]).filter(c=>c.skuId===target.id):[], generalDevices:[], issues: [], counts: { models: 0, declarations: 0, devices: 0 } }
   const context = createDeviceResolutionContext(data), options = context.hostOptions, hostOptions = new Map(options.map(option => [option.key, option])), groups = new Map<string, CompatibilityLink[]>()
   for (const link of data.compatibilities || []) {
     if (!link) { result.issues.push({ message: '声明结构无效，待处理。' }); continue }
@@ -175,19 +185,21 @@ export function queryAccessoryDevices(data: AppData, target: AccessoryTarget): R
       if (resolution.status !== 'resolved' || !resolution.host || !sameDeviceHost(resolution.host, first.host, false)) return []
       const applicable = declarations.filter(link => link.host.scope === 'model' || (resolution.planningId && link.host.planningId === resolution.planningId))
       if (!applicable.length) return []
-      const capabilities=evaluateCapabilities(data,applicable,resolution),status = overallCapabilityStatus(capabilities)
+      const capabilities=evaluateCapabilities(data,applicable,resolution,(result.generalDeclarations||[]).filter(c=>c.deviceTypeIds.includes(resolution.host!.productTypeId))),status = overallCapabilityStatus(capabilities)
       return [{ skuId: sku.id, code: sku.code, name: sku.skuName || sku.code, status, capabilities, planningId:resolution.planningId }]
     })
     // Each model can have different PLN facts. The summary stays conservative;
     // actual phone decisions are always evaluated above with their own scope.
     const modelDeclarations = declarations.filter(link => link.host.scope === 'model'), limited = declarations.some(link => link.host.scope === 'planning')
     const modelDevice: DeviceResolution = { status: 'resolved', skuId: '', host: option.host, candidates: [], message: '', source: '管理汇总', attributes: {}, sourceStamp: '' }
-    const capabilities = evaluateCapabilities(data, modelDeclarations, modelDevice), summaryStatus = overallCapabilityStatus(capabilities)
+    const capabilities = evaluateCapabilities(data, modelDeclarations, modelDevice,(result.generalDeclarations||[]).filter(c=>c.deviceTypeIds.includes(option.host.productTypeId))), summaryStatus = overallCapabilityStatus(capabilities)
     const status = limited && summaryStatus === 'compatible' ? 'conditional' : summaryStatus
     const scopeSummary = [limited ? '包含指定 PLN 的限定声明；具体设备须按其规格判定，不代表全型号适用' : '型号级声明，不限定容量和颜色；使用条件仍须核验', capabilities.some(item => item.capability === 'basic') ? '' : '基本使用能力尚未单独维护，不能由特定能力结论代替'].filter(Boolean).join('；')
     result.hosts.push({ key, host: option.host, label: option.label, declarations, devices, status, conflict: capabilities.some(item => item.conflict), scopeSummary, capabilities })
   }
-  result.counts = { models: result.hosts.length, declarations: result.hosts.reduce((sum, host) => sum + host.declarations.length, 0), devices: new Set(result.hosts.flatMap(host => host.devices.map(device => device.skuId))).size }
+  for(const claim of result.generalDeclarations||[]){const problem=generalReferenceProblem(data,claim);if(problem)result.issues.push({message:`通用条件：${problem}`})}
+  if(result.generalDeclarations?.length)for(const {sku,resolution} of allDevices){if(!resolution.host||resolution.status!=='resolved'||!result.generalDeclarations.some(c=>c.deviceTypeIds.includes(resolution.host!.productTypeId)))continue;const forward=queryResolvedDevice(data,resolution,{},context),match=[...forward.sales,...forward.pending,...forward.excluded,...forward.unavailable].find(m=>m.target.id===target.id&&m.target.kind===target.kind);if(match)result.generalDevices!.push({skuId:sku.id,name:sku.skuName||sku.code,capabilities:match.capabilities})}
+  result.counts = { models: result.hosts.length, declarations: result.hosts.reduce((sum, host) => sum + host.declarations.length, 0)+(result.generalDeclarations?.length||0), devices: new Set(result.hosts.flatMap(host => host.devices.map(device => device.skuId))).size }
   return result
 }
 

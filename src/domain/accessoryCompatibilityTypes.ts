@@ -1,3 +1,4 @@
+import type {CompatibilityEvidence,GeneralCompatibilityClaim} from './generalCompatibility'
 import type { CompatibilityHost, CompatibilityLink, Sku } from './types'
 
 export type AccessoryTargetKind = 'sku' | 'material'
@@ -70,6 +71,7 @@ export interface DeviceResolution {
 }
 export interface ConditionEvaluation { condition: CompatibilityCondition; state: 'met' | 'unmet' | 'unknown'; label: string }
 export interface CapabilityEvaluation {
+  evidence?: CompatibilityEvidence[]
   capability: CompatibilityCapability
   status: 'compatible' | 'conditional' | 'incompatible' | 'pending'
   conflict: boolean
@@ -77,6 +79,7 @@ export interface CapabilityEvaluation {
   declarations: CompatibilityLink[]
 }
 export interface AccessoryMatch {
+  evidence?: CompatibilityEvidence[]
   target: AccessoryTarget
   sku: Sku
   name: string
@@ -95,6 +98,7 @@ export interface AccessoryMatch {
   basic: CapabilityEvaluation
 }
 export interface AccessoryUseEvaluation {
+  evidence?: CompatibilityEvidence[]
   status: CapabilityEvaluation['status']
   conflict: boolean
   conditions: ConditionEvaluation[]
@@ -106,6 +110,7 @@ export interface AccessoryUseEvaluation {
 }
 export interface CompatibilityIssue { declarationId?: string; message: string }
 export interface AccessoryQueryResult {
+  generalDiagnostics?: {skuId:string;claimId:string;reason:string}[]
   device: DeviceResolution
   sales: AccessoryMatch[]
   materials: AccessoryMatch[]
@@ -116,6 +121,8 @@ export interface AccessoryQueryResult {
   counts: { sales: number; materials: number; pending: number; excluded: number; unavailable: number; declarations: number; models: number }
 }
 export interface ReverseCompatibilityResult {
+  generalDeclarations?: GeneralCompatibilityClaim[]
+  generalDevices?: {skuId:string;name:string;capabilities:CapabilityEvaluation[]}[]
   target: AccessoryTarget
   hosts: { key: string; host: CompatibilityHost; label: string; declarations: CompatibilityLink[]; devices: { skuId: string; code: string; name: string; status: AccessoryMatch['status']; capabilities: CapabilityEvaluation[]; planningId?: string }[]; status: AccessoryMatch['status']; conflict: boolean; scopeSummary: string; capabilities: CapabilityEvaluation[] }[]
   issues: CompatibilityIssue[]

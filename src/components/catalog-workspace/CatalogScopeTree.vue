@@ -6,7 +6,7 @@
       <li v-for="row in rows" :key="row.key" :style="{paddingLeft:`${row.depth*14}px`}">
         <button v-if="row.hasChildren" type="button" class="twist" :aria-label="`${row.expanded?'折叠':'展开'} ${row.name}`" :aria-expanded="row.expanded" @click="toggle(row.id)"><el-icon><ArrowDown v-if="row.expanded"/><ArrowRight v-else/></el-icon></button><span v-else class="twist"/>
         <button type="button" class="node" :data-catalog-tree-category="row.kind==='category'?row.id:undefined" :data-catalog-tree-type="row.kind==='product-type'?row.id:undefined" :aria-pressed="row.kind==='category'?!scopeTypeId&&categoryId===row.id:scopeTypeId===row.id" :title="`${row.path}（${row.id}）`" @click="row.kind==='category'?emit('select',row.id):emit('selectType',row.id)">
-          <el-icon><Folder v-if="row.kind==='category'"/><CollectionTag v-else/></el-icon><span class="name">{{row.name}}</span><small v-if="row.kind==='product-type'">类型</small><small v-if="row.disabled">停用</small>
+          <el-icon><Folder v-if="row.kind==='category'"/><CollectionTag v-else/></el-icon><span class="name">{{row.name}}</span><small v-if="row.kind==='product-type'">产品类型</small><small v-if="row.disabled">停用</small>
         </button>
       </li>
     </ul><p v-if="!rows.length" class="empty">没有匹配的分类或产品类型</p></div>

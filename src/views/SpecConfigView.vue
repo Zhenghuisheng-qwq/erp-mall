@@ -66,6 +66,7 @@
 
               <span v-if="compatibilityUnpublished">兼容配置尚未发布</span>
             </p>
+            <el-button v-if="store.canRoute({path:'/benefits/manage'})" data-model-bundles @click="router.push({path:'/benefits/manage',query:{model:templateId,version:requestedVersionId||undefined,returnTo:route.fullPath}})">权益包</el-button>
             <p class="meta-row"><el-button v-if="store.can('product:compatibility:read')" link type="primary" data-open-template-compatibility @click="openTemplateCompatibility()">适用关系</el-button></p>
           </div>
           <div class="studio-actions">
@@ -149,6 +150,7 @@
           </template>
           <span v-else class="ops-idle">{{ !canEditStructure ? '当前视图只读，不能改结构和命名规则' : '选中节点后，可以添加属性、属性值或条件属性' }}</span>
           <el-button v-if="!canEditStructure && selected && selected !== rootId" size="small" @click="namingOpen = true">查看命名规则</el-button>
+          <el-button v-if="selected&&store.canRoute({path:'/benefits/manage'})" size="small" data-node-bundles @click="router.push({path:'/benefits/manage',query:{model:templateId,version:requestedVersionId||undefined,node:selected===rootId?undefined:selected,returnTo:route.fullPath}})">权益包</el-button>
           <el-button v-if="selected" size="small" data-open-node-compatibility @click="openTemplateCompatibility(selected===rootId?'':selected)">适用关系</el-button>
         </div>
         <EmptyModelGuide

@@ -522,6 +522,10 @@ export interface Profile {
 }
 
 export interface AppData {
+  generalCompatibilityClaims?: import('./generalCompatibility').GeneralCompatibilityClaim[]
+  /** Type-combination format, isolated from retired raw benefit fields. */
+  benefitTypeGroups?: import('./benefitSales/types').BenefitGroup[]
+  benefitSalesLists?: import('./benefitSales/types').BenefitSale[]
   rbac?: import('./rbac').RbacState
   materialRelations?: import('./materialRelations').MaterialRelation[]
   materialContributions?: import('./materialRelations').MaterialContribution[]

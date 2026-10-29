@@ -5,10 +5,10 @@ import { templateAccessResource } from '../domain/rbac'
 /** Guard legacy in-place editors as well as commands. Every collection mutation is checked before applying it. */
 export function catalogPublicData(data: AppData, can: (code:string)=>boolean): AppData {
   const rootToken = {}, caches = new Map<string,WeakMap<object,WeakMap<object,any>>>(), originals = new WeakMap<object,object>()
-  const resource: Record<string,string> = {families:'product:spu',skus:'product:sku',categories:'product:category',productTypes:'product:type',templates:'product:template',templateParams:'product:template',mappings:'product:template',productSpecNodes:'product:model',specCanvases:'product:model',specModelVersions:'product:model',nodeCompatibilityRules:'product:model',templateCompatibilityConfigs:'product:model',templateCompatibilityOrigins:'product:compatibility',params:'product:dictionary',rules:'product:rule',brands:'product:brand',productGroups:'product:group',productPlans:'product:planning',planningRecords:'product:planning',materialReceipts:'product:material',materialRelations:'product:material',materialContributions:'product:material',compatibilities:'product:compatibility',deviceModels:'product:compatibility',deviceBindings:'product:compatibility',users:'system:user',feedbacks:'system:feedback',profile:'system:account'}
+  const resource: Record<string,string> = {generalCompatibilityClaims:'product:compatibility',benefitTypeGroups:'product:type-bundle',benefitSalesLists:'product:bundle-sale',families:'product:spu',skus:'product:sku',categories:'product:category',productTypes:'product:type',templates:'product:template',templateParams:'product:template',mappings:'product:template',productSpecNodes:'product:model',specCanvases:'product:model',specModelVersions:'product:model',nodeCompatibilityRules:'product:model',templateCompatibilityConfigs:'product:model',templateCompatibilityOrigins:'product:compatibility',params:'product:dictionary',rules:'product:rule',brands:'product:brand',productGroups:'product:group',productPlans:'product:planning',planningRecords:'product:planning',materialReceipts:'product:material',materialRelations:'product:material',materialContributions:'product:material',compatibilities:'product:compatibility',deviceModels:'product:compatibility',deviceBindings:'product:compatibility',users:'system:user',feedbacks:'system:feedback',profile:'system:account'}
   const uiKeys = new Set(['productListPages','productListViews','activeProductListViewId','columns','listViews','activeViewId','listQuery','productListMode','mode'])
   function commandOnly(root:string) {
-    if(['specModelVersions','materialReceipts','materialContributions','templateCompatibilityOrigins'].includes(root))throw Error('历史快照和来源记录只允许受控命令维护。')
+    if(['generalCompatibilityClaims','benefitTypeGroups','benefitSalesLists','specModelVersions','materialReceipts','materialContributions','templateCompatibilityOrigins'].includes(root))throw Error('历史快照和来源记录只允许受控命令维护。')
     if(root==='rbac'||root==='users'||root==='activeRole')throw Error('授权和用户只能通过受控保存命令修改；旧身份字段不再控制权限。')
   }
   function prefix(root:string,row?:any) {
@@ -142,7 +142,7 @@ export function catalogPublicData(data: AppData, can: (code:string)=>boolean): A
     owned.set(token,proxy);originals.set(proxy,value);return proxy
   }
   return new Proxy(data,{
-    get(target,key){const value=Reflect.get(target,key);return typeof key==='string'&&!key.startsWith('__v_')?wrap(value,key,undefined,Array.isArray(value)):value},
+    get(target,key){if(key==='benefitTypeGroups'&&!can('product:type-bundle:read')||key==='benefitSalesLists'&&!can('product:bundle-sale:read'))return undefined;const value=Reflect.get(target,key);return typeof key==='string'&&!key.startsWith('__v_')?wrap(value,key,undefined,Array.isArray(value)):value},
     set(target,key,input){
       const unwrapped=unwrap(input),value=Array.isArray(unwrapped)?unwrapped.map(unwrap):unwrapped
       if(typeof key==='string'){

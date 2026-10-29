@@ -108,7 +108,7 @@ import DeviceModelPicker from './DeviceModelPicker.vue'
 import TemplateCompatibilitySource from '../template-compatibility/TemplateCompatibilitySource.vue'
 import TemplateCompatibilitySyncDialog from '../template-compatibility/TemplateCompatibilitySyncDialog.vue'
 
-const props = defineProps<{ target?: AccessoryTarget; host?: CompatibilityHost; deviceSkuId?: string; active?: boolean; managedNavigation?: boolean }>()
+const props = defineProps<{ target?: AccessoryTarget; initialTargetIds?:string[]; host?: CompatibilityHost; deviceSkuId?: string; active?: boolean; managedNavigation?: boolean }>()
 const emit = defineEmits<{ updated: []; navigate: [tab:'results'|'legacy'] }>()
 const store = useCatalogStore()
 const contextTarget=ref(props.target?cloneCompatibility(props.target):undefined),contextHost=ref(props.host?cloneCompatibility(props.host):undefined),contextDevice=ref(props.deviceSkuId)
@@ -187,7 +187,7 @@ function relationKey(link: CompatibilityLink) { const target = compatibilityTarg
 function toggle(id: string) { selectedIds.value = selectedIds.value.includes(id) ? selectedIds.value.filter(item => item !== id) : [...selectedIds.value, id] }
 function reset() {
   editorEpoch++; expectedLinks.value=[];advanced.value=false
-  editId.value = ''; objectKind.value = contextTarget.value?.kind || 'sku'; targetIds.value = contextTarget.value ? [contextTarget.value.id] : []
+  editId.value = ''; objectKind.value = contextTarget.value?.kind || 'sku'; targetIds.value = props.initialTargetIds?.length ? [...props.initialTargetIds] : contextTarget.value ? [contextTarget.value.id] : []
   const presetHost = contextHost.value
   hostKeys.value = presetHost ? hostOptions.value.filter(item => hostKey(item.host) === hostKey(presetHost)).map(item => item.key) : []
   scope.value = 'model'; planningId.value = ''; conclusion.value = 'compatible'; verification.value = 'pending'; capability.value = 'basic'

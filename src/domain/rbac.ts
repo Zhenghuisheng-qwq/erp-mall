@@ -36,7 +36,10 @@ export const SUPER_ROLE_ID = 'role:super-admin'
 export const OPERATOR_ROLE_ID = 'role:operator'
 export const RECOVERY_PERMISSIONS = ['system:menu:read', 'system:menu:update', 'system:role:read', 'system:role:grant', 'system:user:read', 'system:user:bind', 'system:permission:read', 'system:permission:update']
 
+export const bundleShoppingReads=['product:category:read','product:type:read','product:sku:read','product:spu:read','product:compatibility:read']
 const resources: { module: string; resource: string; label: string; route: string; actions: string[] }[] = [
+  {module:'商品中心',resource:'type-bundle',label:'权益包',route:'/benefits/manage',actions:['create','update']},
+  {module:'商品中心',resource:'bundle-sale',label:'选购清单',route:'/benefits/shopping',actions:['create','update','confirm']},
   { module: '系统管理', resource: 'guide', label: '系统功能说明', route: '/guide', actions: ['update'] },
   { module: '商品中心', resource: 'workbench', label: '商品工作台', route: '/', actions: [] },
   { module: '商品中心', resource: 'spu', label: 'SPU', route: '/spus', actions: ['create','update','delete','publish'] },
@@ -85,6 +88,8 @@ export function permissionRegistry(): RbacPermission[] {
 /** Canonical access requirements for actual routes, independent of navigation visibility. */
 export function routePermissions(path: string, query: Record<string,unknown> = {}): string[] | null {
   const clean = path.split('?')[0] || '/'
+  if(clean==='/benefits/manage')return ['product:type-bundle:read','product:category:read','product:type:read']
+  if(clean==='/benefits/shopping')return ['product:bundle-sale:read',...bundleShoppingReads]
   // Retired maintenance routes redirect to the read-only module; keep stored permission codes compatible.
   if(clean==='/guide/manage'||clean==='/guide/learn')return ['system:guide:read']
   if(clean==='/guide'||/^\/guide\/(articles|learn)\/[^/]+$/.test(clean))return ['system:guide:read']
@@ -156,6 +161,11 @@ export function ensureRbac(data: AppData, legacyMenus: MenuNode[] = defaultMenuN
       }
     }
     if(saved&&saved.guideAccessVersion===undefined)saved.guideAccessVersion=1
+    if(saved&&Array.isArray(saved.permissions)&&Array.isArray(saved.roles)){
+      const additions=permissionRegistry().filter(p=>['type-bundle','bundle-sale'].includes(p.resource)&&!saved.permissions.some(old=>old.code===p.code))
+      saved.permissions.push(...additions)
+      for(const role of saved.roles)if(role.id===SUPER_ROLE_ID&&role.builtIn&&role.superAdmin)role.permissionCodes=[...new Set([...role.permissionCodes,...additions.map(p=>p.code)])]
+    }
     const problems = rbacProblems(data)
     if (problems.length) throw new Error(`授权数据校验失败：${problems.join(' ')}`)
     return
@@ -274,6 +284,9 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
     if (dictionary && name && !dictionary.values.includes(name)) codes.push('product:dictionary:update')
     return codes
   }
+  if(name==='commitGeneralCompatibility')return ['product:compatibility:read',...new Set((Array.isArray(args[0])?args[0]:[]).map((c:{kind?:string})=>`product:compatibility:${c.kind==='add'?'create':c.kind==='edit'?'update':'delete'}`))]
+  if(name==='saveTypeBundle')return [...save('type-bundle',Boolean(first?.id)),'product:category:read','product:type:read']
+  if(name==='saveBundleSale')return [...save('bundle-sale',Boolean(first?.id)),...bundleShoppingReads,...((first?.scope as {mode?:string}|undefined)?.mode==='group'?['product:type-bundle:read']:[]),...(first?.status==='confirmed'?['product:bundle-sale:confirm']:[])]
   if (name === 'saveRule') return save('rule',Boolean(data?.rules.some(rule => rule.id === first?.id)))
   if (name === 'saveTemplateScheme') {
     const id=typeof first?.id==='string'?first.id:''

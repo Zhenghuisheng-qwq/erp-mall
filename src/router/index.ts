@@ -14,6 +14,8 @@ const router = createRouter({
       path: '/',
       component: AdminLayout,
       children: [
+        {path:'benefits/manage',name:'type-bundle-management',component:()=>import('../views/TypeBundleView.vue'),meta:{title:'权益包管理'}},
+        {path:'benefits/shopping',name:'bundle-sale',component:()=>import('../views/BundleSaleView.vue'),meta:{title:'权益包选购'}},
         { path: 'guide', name: 'guide', component: () => import('../views/guide/GuideHomeView.vue'), meta: { title: '系统功能说明' } },
         { path: 'guide/manage', name: 'guide-manage', redirect: '/guide' },
         { path: 'guide/articles/:articleId', name: 'guide-article', component: () => import('../views/guide/GuideArticleView.vue'), meta: { title: '系统功能说明' } },
