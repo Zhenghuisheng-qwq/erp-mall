@@ -548,11 +548,6 @@ export function createSeed(): AppData {
       source: '仅供初始化演示：透明保护壳与演示 iPhone 的适用链，不代表真实商品核验',
       note: '演示依据', createdAt: now, updatedAt: now,
     })
-    data.benefitGroups = [{
-      id: 'demo-benefit-protection', name: '演示手机保护权益包', categoryId: 'c-phone-acc', productTypeIds: ['pt-case'],
-      hostRanges: [{kind: 'snapshot', modelId: 't-phone', versionId: 'phone-demo-v2', nodeId: 'sn-brand-apple'}],
-      enabled: true, sort: 0, revision: 1, createdAt: now, updatedAt: now,
-    }]
   }
   data.skus = data.skus.map((item) => {
     const owner = data.families.find((family) => family.id === item.familyId)

@@ -1,9 +1,8 @@
-import {benefitPages} from './manuals-benefits'
 import type { GuidePage } from '../types'
 import { catalogPages } from './manuals-catalog'
 
 export const guidePages: GuidePage[] = [
-  ...catalogPages,...benefitPages,
+  ...catalogPages,
   {
     "id": "page-home",
     "title": "商品工作台",

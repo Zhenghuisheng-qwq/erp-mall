@@ -97,4 +97,4 @@ npm run build
 实现、全部实际创建入口、数据保护和验收范围见 [模板兼容工作台报告](docs/template-compatibility-workbench.md)。核心检查运行 `npm run check:template-compatibility`，性能运行 `npm run check:template-compatibility:performance`。浏览器使用独立上下文及已安装的 Chrome，可配置 `BROWSER_CHANNEL`；视觉对照运行 `npm run check:template-compatibility:visual`，需要本轮开始前的完整源码快照（`TEMPLATE_COMPATIBILITY_BASELINE`）。缺失环境或基线会明确失败。
 
 
-旧权益包及销售选配配置已移除；商品模型、规格规划、SKU/MAT 和独立适用关系继续保留。
+旧权益包及销售选配运行代码、管理/选购页面、入口、专用权限和测试已移除，本阶段不实现新版。商品模型、规格规划、SKU/MAT 和正式适用关系继续保留。已有存储中的旧配置与确认快照作为未使用的原始字段随通用保存保留，不执行旧规则、不自动转换或清空；历史无效权限沿用既有退役权限兼容处理。

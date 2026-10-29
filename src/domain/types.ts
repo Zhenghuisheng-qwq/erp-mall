@@ -522,8 +522,6 @@ export interface Profile {
 }
 
 export interface AppData {
-  benefitGroups?: import('./benefits/types').BenefitGroup[]
-  benefitSelections?: import('./benefits/types').BenefitSelection[]
   rbac?: import('./rbac').RbacState
   materialRelations?: import('./materialRelations').MaterialRelation[]
   materialContributions?: import('./materialRelations').MaterialContribution[]

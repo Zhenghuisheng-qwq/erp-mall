@@ -202,7 +202,8 @@ try {
   ;(await store.importJson(JSON.stringify(dangling))); await nextTick(); await store.waitForPersistence()
   assert.ok(store.data.compatibilities.some(link => link.id === copied.id))
   assert.ok(queryDeviceAccessories(store.data, 'state-phone').issues.some(issue => issue.declarationId === copied.id))
-  const old = fixture(), originalLegacy = cloneCompatibility(old.compatibilities)
+  // Historical storage is JSON: normalize the fixture through the same serialization boundary.
+  const old = cloneCompatibility(fixture()), originalLegacy = cloneCompatibility(old.compatibilities)
   delete old.deviceBindings
   const normalized = normalizeStored({ version: DATA_VERSION, data: old })
   assert.ok(normalized)

@@ -29,8 +29,6 @@ const router = createRouter({
         { path: 'materials/new', name: 'material-new', component: () => import('../views/MaterialCreateView.vue'), meta: { title: '物料建档' } },
         { path: 'materials/:id', name: 'material-edit', component: () => import('../views/ProductEditView.vue'), beforeEnter: to => useCatalogStore().data.families.some(item => item.id === to.params.id && item.line === 'v3') || `/spus/${to.params.id}`, meta: { title: '物料管理' } },
         { path: 'import', name: 'import', component: () => import('../views/ProductIoView.vue'), meta: { title: '导入导出', group: '商品中心', mode: 'daily' } },
-        {path:'benefits/shopping',name:'benefit-shopping',component:()=>import('../views/BenefitShoppingView.vue'),meta:{title:'权益包选购'}},
-        {path:'benefits/manage',name:'benefit-management',component:()=>import('../views/BenefitManagementView.vue'),meta:{title:'权益包管理'}},
         { path: 'compatibility', name: 'compatibility', component: () => import('../views/CompatibilityView.vue'), meta: { title: '兼容性查询', group: '商品中心', mode: 'daily' } },
         { path: 'products/new', redirect: to => ({ path: '/spus/new', query: to.query }) },
         { path: 'products/:id', redirect: to => {
