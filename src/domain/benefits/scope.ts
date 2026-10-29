@@ -75,8 +75,10 @@ export function benefitSnapshotHosts(data: AppData, modelId: string, versionId: 
                 if (!attribute || attribute.nodeType !== 'ATTRIBUTE' || !node.valueId)
                     return { issue: '型号属性身份不明确', entries: [] };
                 const param = data.params.find(p => p.id === attribute.attributeId);
-                if (!param || (attribute.role === 'VARIANT' && !identityIds.has(param.id)))
-                    return { issue: '型号路径包含规格分歧，需先核对主机身份', entries: [] };
+                if (!param)
+                    return { issue: '型号属性引用失效，需先核对主机身份', entries: [] };
+                // Match deviceResolution's identity ancestry; COMMON / VARIANT
+                // controls attribute storage, not whether the host path is ambiguous.
                 steps.unshift({ attributeId: param.id, attributeName: param.name, valueId: node.valueId });
             }
             node = byId.get(node.parentId || '');

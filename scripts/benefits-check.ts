@@ -4,11 +4,11 @@ import {benefitsFixture} from './benefits-fixture'
 import {installCatalogTestLocks} from './catalog-storage-test-env'
 import {benefitCandidates,applicableBenefitGroups,benefitNodeHosts,benefitGroupCandidates,benefitPreviewDevices,benefitAccessoryReason,benefitRangeAvailability,benefitConfigurationImpact} from '../src/domain/benefits/query'
 import {addBenefitLine,benefitClone,benefitDataProblems,parseBenefitPrice,previewBenefitDeviceChange,reviewBenefitSelection,saveBenefitGroup,saveBenefitSelection} from '../src/domain/benefits/selection'
-import {deviceHostKey} from '../src/domain/deviceResolution'
+import {deviceHostKey,listDeviceModels,resolveDeviceSku} from '../src/domain/deviceResolution'
 import {canPermission,ensureRbac,permissionRegistry} from '../src/domain/rbac'
 import {normalizeStored,useCatalogStore} from '../src/stores/catalog'
 import {DATA_VERSION,STORAGE_KEY} from '../src/domain/types'
-import {benefitGroupProblems,benefitCategoryImpact,resolveBenefitRange,compactBenefitRanges} from '../src/domain/benefits/scope'
+import {benefitGroupProblems,benefitCategoryImpact,benefitSnapshotHosts,resolveBenefitRange,compactBenefitRanges} from '../src/domain/benefits/scope'
 import {createSeed} from '../src/domain/seed'
 import type {BenefitHostRange,BenefitGroup,BenefitSelectionInput} from '../src/domain/benefits/types'
 const f=benefitsFixture(),{data,modelId,versionId,hosts,now}=f,a={kind:'sku' as const,skuId:'phone-a'},b={kind:'sku' as const,skuId:'phone-b'}
@@ -25,6 +25,42 @@ assert(saveBenefitGroup(data,group,0,()=> 'g-model',now).ok)
 assert(saveBenefitGroup(data,{...group,name:'B 专属',productTypeIds:['type-case'],hostRanges:[{kind:'snapshot',modelId,versionId,nodeId:'demo-brand-B'}]},0,()=> 'g-b',now).ok)
 assert.equal(applicableBenefitGroups(data,benefitCandidates(data,a)).length,1)
 assert.equal(applicableBenefitGroups(data,benefitCandidates(data,b)).length,2)
+// A temporarily empty type must not suppress the other types in a saved group.
+const saleChange=benefitClone(data),saleGroup=saleChange.benefitGroups!.find(g=>g.id==='g-model')!
+const savedGroups=JSON.stringify(saleChange.benefitGroups)
+const filmFamilies=new Set(saleChange.families.filter(f=>f.productTypeId==='type-film').map(f=>f.id))
+for(const sku of saleChange.skus)if(filmFamilies.has(sku.familyId))sku.status='off_sale'
+const remaining=benefitCandidates(saleChange,a)
+assert(applicableBenefitGroups(saleChange,remaining).some(g=>g.id===saleGroup.id))
+assert.deepEqual(benefitGroupCandidates(saleChange,saleGroup,remaining).map(c=>c.sku.id).sort(),['case-a-sku','case-sku'])
+assert.deepEqual(benefitConfigurationImpact(saleChange,saleGroup.categoryId!,saleGroup.hostRanges!,saleGroup.productTypeIds).remove,['type-film'])
+assert.equal(saveBenefitGroup(saleChange,{...group},0,()=> 'empty-type-new-group',now).ok,false)
+for(const sku of saleChange.skus)if(['case-a-sku','case-sku'].includes(sku.id))sku.status='off_sale'
+assert.deepEqual(benefitGroupCandidates(saleChange,saleGroup,benefitCandidates(saleChange,a)),[])
+assert(!applicableBenefitGroups(saleChange,benefitCandidates(saleChange,a)).some(g=>g.id===saleGroup.id))
+// Candidates for another covered device must not make an empty package appear on A.
+saleChange.skus.push({...benefitClone(saleChange.skus.find(s=>s.id==='case-sku')!),id:'b-only-case',status:'on_sale'})
+saleChange.compatibilities.push(f.link('b-only-case-link','b-only-case','b'))
+assert(applicableBenefitGroups(saleChange,benefitCandidates(saleChange,b)).some(g=>g.id===saleGroup.id))
+assert(!applicableBenefitGroups(saleChange,benefitCandidates(saleChange,a)).some(g=>g.id===saleGroup.id))
+assert.equal(JSON.stringify(saleChange.benefitGroups),savedGroups)
+
+// A VARIANT ancestor can still identify an exact host, just as in deviceResolution.
+const variantData=benefitClone(data)
+variantData.specModelVersions.find(v=>v.id===versionId)!.nodesSnapshot.find(n=>n.id==='demo-brand')!.role='VARIANT'
+const variantHosts=benefitSnapshotHosts(variantData,modelId,versionId)
+assert.equal(variantHosts.issue,'')
+assert.deepEqual(variantHosts.entries.map(e=>e.key).sort(),listDeviceModels(variantData).filter(o=>o.versionIds.includes(versionId)).map(o=>o.key).sort())
+const variantDevice=resolveDeviceSku(variantData,a.skuId)
+assert.equal(variantDevice.status,'resolved')
+assert(variantHosts.entries.some(e=>e.key===deviceHostKey(variantDevice.host!)))
+assert(applicableBenefitGroups(variantData,benefitCandidates(variantData,a)).some(g=>g.id==='g-model'))
+const ambiguousSku=variantData.skus.find(s=>s.id===a.skuId)!
+ambiguousSku.sourceNodeIds=[]
+delete ambiguousSku.variantAttrs['品牌']
+delete ambiguousSku.variantAttrs['测试设备型号']
+assert.equal(resolveDeviceSku(variantData,a.skuId).status,'ambiguous')
+assert.deepEqual(applicableBenefitGroups(variantData,benefitCandidates(variantData,a)),[])
 // Category ownership is independent from host category. Snapshot branches do not expand with a new release.
 assert.equal(saveBenefitGroup(data,{...group,productTypeIds:['type-charger']},0,()=> 'bad',now).ok,false)
 assert.deepEqual(benefitCategoryImpact(data,'cat-charge',group.productTypeIds),{keep:[],remove:group.productTypeIds})

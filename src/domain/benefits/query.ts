@@ -47,10 +47,12 @@ export function benefitCandidates(data: AppData, device: BenefitDevice, resolved
     return { query, candidates, issue, modelId, hostKey: host ? deviceHostKey(host) : '', label };
 }
 export function benefitGroupMatches(data: AppData, group: BenefitGroup, context: ReturnType<typeof benefitCandidates>) {
-    return !context.issue && !!context.query.device.host && !benefitGroupProblems(data, group).length && benefitRangeMatches(data, group.hostRanges || [], context.query.device.host) && !benefitConfigurationImpact(data, group.categoryId || '', group.hostRanges || [], group.productTypeIds).remove.length;
+    // Structural scope validity is independent of each type's current sale candidates.
+    // Configuration admission remains in benefitConfigurationImpact / saveBenefitGroup.
+    return !context.issue && !!context.query.device.host && !benefitGroupProblems(data, group).length && benefitRangeMatches(data, group.hostRanges || [], context.query.device.host);
 }
 export function applicableBenefitGroups(data: AppData, context: ReturnType<typeof benefitCandidates>) {
-    return (data.benefitGroups || []).filter(g => g.enabled && benefitGroupMatches(data, g, context)).sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, 'zh'));
+    return (data.benefitGroups || []).filter(g => g.enabled && benefitGroupCandidates(data, g, context).length > 0).sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, 'zh'));
 }
 export function benefitGroupCandidates(data: AppData, group: BenefitGroup, context: ReturnType<typeof benefitCandidates>) {
     if (!benefitGroupMatches(data, group, context))
