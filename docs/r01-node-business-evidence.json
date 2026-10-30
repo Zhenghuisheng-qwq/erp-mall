@@ -34,14 +34,6 @@
       "exitCode": 0
     },
     {
-      "check": "template-compatibility-domain",
-      "exitCode": 0
-    },
-    {
-      "check": "template-compatibility-state",
-      "exitCode": 0
-    },
-    {
       "check": "sku-workbench-query",
       "exitCode": 0
     },
@@ -73,14 +65,6 @@
     },
     {
       "check": "editor-safety",
-      "exitCode": 0
-    },
-    {
-      "check": "template-compatibility",
-      "exitCode": 0
-    },
-    {
-      "check": "template-compatibility-import",
       "exitCode": 0
     }
   ],
@@ -184,11 +168,6 @@
     "src/stores/catalogPersistence.ts": {
       "sha256": "4ea296dc260846b45b8f252910db6be818498a3feb20db463e980926223ae878",
       "gitBlobVsCheckoutBytesEqual": true,
-      "textUnchangedIgnoringCRLF": true
-    },
-    "src/domain/templateCompatibilitySync.ts": {
-      "sha256": "a0e58393bf376346c2a97eebbe9ca11d3ba7ae0279d4033be5624c9831f5269a",
-      "gitBlobVsCheckoutBytesEqual": false,
       "textUnchangedIgnoringCRLF": true
     },
     "generateSkuFromModel": {

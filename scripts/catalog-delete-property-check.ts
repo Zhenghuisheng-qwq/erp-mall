@@ -25,7 +25,7 @@ function fixture(){
  const family={...clone(data.families[0]!),id:'delete-v2-family',line:'v2' as const,shelfStatus:'offline' as const,lifecycle:'ready' as const}
  data.families=[family,{...family,id:'delete-v3-family',line:'v3'}]
  data.skus=[{id:'delete-mat',recordKind:'material',materialCode:'MAT-DELETE',familyId:family.id,code:'MAT-CODE',oaSkuId:'',skuName:'MAT原名',supplierCode:'可删除次级信息',status:'on_sale',variantAttrs:{颜色:'红色'},projectedAttrs:{}},{id:'delete-sku',recordKind:'sku',familyId:'delete-v3-family',code:'SKU-CODE',oaSkuId:'',skuName:'SKU原名',status:'on_sale',variantAttrs:{颜色:'白色'},projectedAttrs:{}}]
- data.materialReceipts=[];data.materialRelations=[];data.materialContributions=[];data.compatibilities=[]
+ data.materialReceipts=[];data.materialRelations=[];data.materialContributions=[]
  const roles=[['mat-only',['product:material:read','product:material:update']],['sku-only',['product:sku:read','product:sku:update']],['both-records',['product:material:read','product:material:update','product:sku:read','product:sku:update']],['spu-only',['product:spu:read','product:spu:update']],['publisher',['product:spu:read','product:spu:update','product:spu:publish']]] as const
  for(const [id,codes]of roles){data.rbac!.roles.push({id,code:id,name:id,description:'deleteProperty actual Store fixture',enabled:true,permissionCodes:[...codes]});data.users.push({id,username:id,displayName:id,role:'operator',enabled:true,roleIds:[id]})}
  return data

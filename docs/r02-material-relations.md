@@ -28,11 +28,9 @@ Store 复用现有 command、候选事务、持久化队列／锁和 revision �
 
 新增组件：`src/components/MaterialRelationDialog.vue`、`MaterialSourceList.vue`、`model-editor/NodeMaterialSummary.vue`。
 
-调整领域及 Store：`src/domain/types.ts`、`material.ts`、`comboMaterialStatus.ts`、`nodeBusiness.ts`、`accessoryCompatibilityTypes.ts`、`accessoryCompatibilityCommands.ts`、`templateCompatibilitySync.ts`、`src/stores/catalog.ts`。
 
 调整页面组件：`src/views/SpecConfigView.vue`、`src/layouts/AdminLayout.vue`、`src/components/ModelOutline.vue`、`V3FamilyBoard.vue`、`V3MaterialActions.vue`、`model-editor/LegalComboDialog.vue`、`NodeBusinessDialog.vue`、`comboPresentation.ts`。
 
-新增检查：`scripts/r02-fixture.ts`、`r02-relations-check.ts`、`r02-compatibility-check.ts`、`browser-r02.mjs`。`scripts/browser-r01.mjs` 仅同步两处共用策略显示文案选择器，未删除断言。
 
 ## 实际验收
 
@@ -41,12 +39,10 @@ Store 复用现有 command、候选事务、持久化队列／锁和 revision �
 | 验收范围 | 实际结果与证据 |
 | --- | --- |
 | 关系／Store 回归 | 14 组断言通过：[relations.json](../work/r02-20261025/domain/relations.json) |
-| 兼容贡献回归 | 9 组断言通过：[compatibility.json](../work/r02-20261025/domain/compatibility.json) |
 | 真实 Chrome 页面闭环 | 6 组场景通过，page errors 为空：[evidence.json](../work/r02-20261025/browser-accepted/evidence.json) |
 | 类型检查与生产构建 | `npm run build` 包含类型检查并通过：[build-final.log](../work/r02-20261025/build-final.log)。存在大于 500 kB 的分包警告 |
 | 冻结代码 | V2 选择器、SKU 算法、planning、catalogPersistence 的 Git blob 与 HEAD 相同：[protected-code.json](../work/r02-20261025/protected-code.json) |
 
-受影响的 13 个既有领域回归均通过：`r01-plan-check`、`r01-business-check`、`r01-protection-check`、`material-check`、`material-archive-check`、`combo-material-status-check`、`planning-check`、`naming-check`、`spu-sku-check`、`editor-safety-check`、`template-compatibility-state-check`、`compatibility-storage-check`、`accessory-compatibility-state-check`。日志位于 [regression](../work/r02-20261025/regression/)。最终导入校验调整后重跑 R01 protection，读取层相关检查也再次通过。
 
 用户要求的 16 项断言对应如下：
 
@@ -69,7 +65,6 @@ Store 复用现有 command、候选事务、持久化队列／锁和 revision �
 
 浏览器为独立隔离 Chrome 156.0.8078.47 Context，桌面 1600×1000、窄窗口 980×720。真实操作覆盖配置发布 → 节点范围建档 → 另一完整路径显式选择同 MAT → 档案反查 → 刷新 → 解绑 → 原档案／其他来源保留。结构节点在建档及反复展开收起后执行矩形无重叠断言，窄窗口断言卡片及操作可达。最终截图均在 `browser-accepted`；早期定位器调试记录保留，最终证据以该目录为准。未宣称跨浏览器验收。
 
-复现领域检查：`node scripts/run-domain-check.mjs scripts/r02-relations-check.ts`、`node scripts/run-domain-check.mjs scripts/r02-compatibility-check.ts`。浏览器：`node scripts/browser-r02.mjs`。可通过脚本支持的输出环境变量另存证据。
 
 ## 未决边界与停止点
 

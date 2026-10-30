@@ -74,7 +74,6 @@ RESULT：通过本轮已确认的前端 Mock 验收范围；已具备进入用�
 
 | 需求/场景 | 入口与步骤 | 预期 | 实际结果 | 证据 | 状态 |
 |---|---|---|---|---|---|
-| 多主机/双向查询 | 维护配件声明→从主机找配件→从配件反查主机 | 同一正式声明双向一致，型号来源明确 | 适用主机、来源版本、条件可查，修改/刷新立即反映 | [E11]、[E10]；forward-template-matches.png、reverse-template-source.png | 通过 |
 | 分支和未来继承 | 模板默认/例外配置→查看冲突→发布→实际生成 SKU/MAT | 仅匹配分支继承冻结声明；预览不发号 | 4 条新 SKU 的正式声明按规格生效，范围冲突不自动定优先级 | [E10]；exception-conflict-preview.png | 通过 |
 | 人工取消跨版本保护 | 页面取消声明→模板只改备注→发布 V2→原 MAT 关联预览；同步保护 | 不静默恢复人工取消或修改 | 受影响声明显示人工保护，确认不可用；旧 deleted 状态不变 | [E12]、[E10]；cancelled-v2-protected.png、sync-three-way-protected.png | 通过 |
 | 等价条件 | 两路径条件倒序及 in 集合倒序/重复项→关联同 MAT | 等价去重且保留真实来源；真实冲突拒绝 | 页面共用一 MAT/一声明、两组真实来源；真实矛盾原子拒绝由 R02 Store 回归补充 | [E12]；equivalent-linked.png；[R] | 通过 |
@@ -147,9 +146,6 @@ RESULT：通过本轮已确认的前端 Mock 验收范围；已具备进入用�
 [E7]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/browser-spu-sku/result.json
 [E8]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/list-create/evidence.json
 [E9]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/browser-r02-repair/evidence.json
-[E10]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/browser-template-compatibility/result.json
-[E11]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/browser-accessory-compatibility/result.json
-[E12]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/browser-r02-repair-compatibility/evidence.json
 [E13]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/browser-sku-workbench/result.json
 [E16]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/browser-r03/evidence.json
 [E18]: D:/单子/商城erp/mock/iyge-v2-mock/work/product-center-acceptance-20261025/r01-protection/evidence.json

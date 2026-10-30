@@ -1,4 +1,4 @@
-import type {AccessoryTargetKind,CompatibilityConclusion,CompatibilityVerification,CompatibilityCapability,CompatibilityCondition,CompatibilityProvenance,DeviceModel,DeviceBinding} from './accessoryCompatibilityTypes'
+import type {AccessoryTargetKind,CompatibilityConclusion,CompatibilityVerification,CompatibilityCapability,CompatibilityCondition,CompatibilityProvenance} from './accessoryCompatibilityTypes'
 import type {GeneralCompatibilityClaim} from './generalCompatibility'
 
 import type { SkuViewConfig, SkuWorkbenchState } from './skuWorkbenchTypes'
@@ -52,7 +52,7 @@ export interface ProductType {
   status: 'enabled' | 'disabled'
   sort: number
   description: string
-  /** 显式业务用途；缺省为未指定。模板适用入口不根据名称或分类推测。 */
+  /** 显式业务用途；缺省为未指定。 */
   catalogRole?: 'host' | 'accessory' | 'other'
 }
 
@@ -479,6 +479,8 @@ export interface Profile {
 }
 
 export interface AppData {
+  /** Independent single-unit used goods; absent for untouched existing data. */
+  usedGoods?: import('./usedGoods').UsedGoods
   publicSpuPool?: import('./benefitSales/publicSpuPool').PublicSpuEntry[]
   /** One-time, user-requested replacement of the old product demo catalogue. */
   phoneDemoCatalogVersion?: 1
@@ -513,11 +515,11 @@ export interface AppData {
   planningRecords: PlanningRecord[]
   /** 建档请求回执。旧数据没有时保持空数组。 */
   materialReceipts: MaterialCreateReceipt[]
-  /** 明确型号／规格适用声明；通过兼容性工作台受控保存。 */
+  /** Retired storage extensions are opaque and preserved on ordinary saves; never evaluated. */
   compatibilities: CompatibilityLink[]
-  /** Existing device identities remain readable; no separate directory editor is exposed. */
-  deviceModels?: DeviceModel[]
-  deviceBindings?: DeviceBinding[]
+  /** Historical raw extensions only. */
+  deviceModels?: unknown
+  deviceBindings?: unknown
   /** 历史节点原始数据，不再参与发布、复制或撤销。 */
   nodeCompatibilityRules?: unknown
   rules: SpecRule[]
@@ -601,6 +603,7 @@ export interface TreeNode {
   familyId?: string
   children: TreeNode[]
 }
+
 
 export interface CompatibilityHost {
   scope: 'model' | 'planning'

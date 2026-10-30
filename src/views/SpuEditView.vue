@@ -16,8 +16,7 @@
         </div>
 
 
-        <div v-if="children.length&&store.canRoute({path:'/compatibility'})" class="row-actions" style="margin:12px 0"><el-select v-model="compatSkuIds" multiple placeholder="明确选择需要查看的实际 SKU" aria-label="适用设备实际SKU"><el-option v-for="s in children" :key="s.id" :value="s.id" :label="(s.skuName||s.code)+' · '+savedSkuSpec(family,s)"/></el-select><el-button v-if="productRole==='accessory'" :disabled="!compatSkuIds.length" @click="router.push({path:'/compatibility',query:{skuIds:compatSkuIds.join(','),returnTo:route.fullPath}})">适用设备</el-button><el-button v-if="productRole==='host'" :disabled="compatSkuIds.length!==1" @click="router.push({path:'/compatibility',query:{tab:'device',device:compatSkuIds[0],returnTo:route.fullPath}})">可用配件（选择一个规格）</el-button></div>
-        <el-table v-if="children.length" :data="children" size="small">
+        <div v-if="children.length" class="row-actions"><el-select v-model="selectedSkus" multiple placeholder="选择明确的实际SKU" aria-label="适用设备实际SKU"><el-option v-for="s in children" :key="s.id" :value="s.id" :label="(s.skuName||s.code)+' · '+savedSkuSpec(family,s)"/></el-select><el-button v-if="productRole==='accessory'&&store.canRoute({path:'/compatibility'})" :disabled="!selectedSkus.length" @click="router.push({path:'/compatibility',query:{skuIds:selectedSkus.join(','),returnTo:route.fullPath}})">适用设备</el-button><el-button v-if="productRole==='host'&&store.canRoute({path:'/benefits/shopping'})" :disabled="selectedSkus.length!==1" @click="router.push({path:'/benefits/shopping',query:{device:'sku:'+selectedSkus[0],returnTo:route.fullPath}})">去商城选购</el-button></div><el-table v-if="children.length" :data="children" size="small">
           <el-table-column label="SKU 编码"><template #default="{ row }">{{ row.code || '—' }}</template></el-table-column>
           <el-table-column label="SKU 名称"><template #default="{ row }"><el-button link @click="router.push({ path: `/skus/${row.id}`, query: { spu: family.id } })">{{ row.skuName || '未记录' }}</el-button></template></el-table-column>
           <el-table-column label="规格"><template #default="{ row }">{{ savedSkuSpec(family, row) }}</template></el-table-column>
@@ -49,8 +48,6 @@ import { useCatalogStore } from '../stores/catalog'
 const store = useCatalogStore()
 const route = useRoute()
 const router = useRouter()
-const compatSkuIds=ref<string[]>([])
-const productRole=computed(()=>store.data.productTypes.find(t=>t.id===familyProductTypeId(store.data,String(route.params.id||'')))?.catalogRole)
 const dirty = ref(false)
 const historyOpen = ref(false)
 useUnsavedCatalog(dirty)
@@ -66,4 +63,6 @@ function saved(id: string, addSku: boolean) {
   ElMessage.success('SPU 已保存，已有 SKU 和物料保持不变')
   router.push(addSku ? { path: '/skus/new', query: { spu: id } } : `/spus/${id}`)
 }
+const selectedSkus=ref<string[]>([])
+const productRole=computed(()=>store.data.productTypes.find(t=>t.id===familyProductTypeId(store.data,String(route.params.id||'')))?.catalogRole)
 </script>

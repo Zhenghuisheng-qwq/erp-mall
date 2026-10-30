@@ -319,24 +319,6 @@
       "formal": true
     },
     {
-      "id": "page-compatibility",
-      "title": "适用关系",
-      "patterns": [
-        "/compatibility"
-      ],
-      "articleId": "manual-compatibility",
-      "actionIds": [
-        "action-compatibility-bind",
-        "action-compatibility-declare",
-        "action-compatibility-sync",
-        "action-compatibility-cancel"
-      ],
-      "source": [
-        "src/views/CompatibilityView.vue"
-      ],
-      "formal": true
-    },
-    {
       "id": "page-brands",
       "title": "品牌中心",
       "patterns": [
@@ -1182,7 +1164,6 @@
       "ruleIds": [
         "rule-material-source",
         "rule-material-request",
-        "rule-compatibility-manual-protection",
         "rule-conflict"
       ]
     },
@@ -1197,51 +1178,6 @@
         "rule-material-source",
         "rule-material-request",
         "rule-model-history"
-      ]
-    },
-    {
-      "id": "action-compatibility-bind",
-      "title": "绑定明确设备型号",
-      "pageIds": [
-        "page-compatibility"
-      ],
-      "ruleIds": [
-        "rule-compatibility-binding",
-        "rule-permission"
-      ]
-    },
-    {
-      "id": "action-compatibility-declare",
-      "title": "维护适用声明",
-      "pageIds": [
-        "page-compatibility"
-      ],
-      "ruleIds": [
-        "rule-compatibility-binding",
-        "rule-compatibility-basis"
-      ]
-    },
-    {
-      "id": "action-compatibility-sync",
-      "title": "同步模板适用更新",
-      "pageIds": [
-        "page-compatibility"
-      ],
-      "ruleIds": [
-        "rule-compatibility-basis",
-        "rule-compatibility-manual-protection",
-        "rule-conflict"
-      ]
-    },
-    {
-      "id": "action-compatibility-cancel",
-      "title": "人工取消适用声明",
-      "pageIds": [
-        "page-compatibility"
-      ],
-      "ruleIds": [
-        "rule-compatibility-manual-protection",
-        "rule-permission"
       ]
     },
     {
@@ -1818,24 +1754,6 @@
       "id": "rule-view-conditions",
       "title": "筛选逻辑与手工顺序保持",
       "source": "src/domain/skuWorkbenchQuery.ts",
-      "status": "verified"
-    },
-    {
-      "id": "rule-compatibility-binding",
-      "title": "适用绑定须有明确对象与主机",
-      "source": "src/domain/deviceResolution.ts",
-      "status": "verified"
-    },
-    {
-      "id": "rule-compatibility-basis",
-      "title": "适用声明按有效依据维护",
-      "source": "src/domain/accessoryCompatibilityCommands.ts",
-      "status": "verified"
-    },
-    {
-      "id": "rule-compatibility-manual-protection",
-      "title": "人工修改与取消跨版本保留",
-      "source": "src/domain/materialRelationCommands.ts",
       "status": "verified"
     },
     {

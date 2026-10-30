@@ -471,12 +471,6 @@
       "exitCode": 0
     },
     {
-      "name": "compatibility",
-      "baseline": 15,
-      "after": 15,
-      "exitCode": 0
-    },
-    {
       "name": "excel-import",
       "baseline": 20,
       "after": 20,

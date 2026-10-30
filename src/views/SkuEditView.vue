@@ -4,9 +4,7 @@
     <el-empty v-if="!sku || !family || !draft" description="SKU 不存在或此记录属于物料，请从物料管理查看。" />
     <section v-else class="panel">
       <p>所属 SPU：<el-button link type="primary" @click="router.push(`/spus/${family.id}`)">{{ family.name }}</el-button></p>
-      <el-button v-if="store.canRoute({path:'/compatibility'})&&productRole==='accessory'" data-sku-compatibility @click="router.push({path:'/compatibility',query:{targetId:sku.id,returnTo:route.fullPath}})">适用设备</el-button>
-      <el-button v-if="store.canRoute({path:'/compatibility'})&&productRole==='host'" data-device-accessories @click="router.push({path:'/compatibility',query:{tab:'device',device:sku.id,returnTo:route.fullPath}})">可用配件</el-button>
-      <p>来源：{{ sourceText }} · 绑定版本：{{ versionName }}</p>
+      <div class="row-actions"><el-button v-if="store.canRoute({path:'/compatibility'})&&productRole==='accessory'" data-sku-compatibility @click="router.push({path:'/compatibility',query:{targetId:sku.id,returnTo:route.fullPath}})">适用设备</el-button><el-button v-if="productRole==='host'&&store.canRoute({path:'/benefits/shopping'})" data-device-shopping @click="router.push({path:'/benefits/shopping',query:{device:'sku:'+sku.id,returnTo:route.fullPath}})">去商城选购</el-button></div><p>来源：{{ sourceText }} · 绑定版本：{{ versionName }}</p>
 
 
 
@@ -43,7 +41,6 @@ watch(error, value => { if (!value) guideFailure.value=undefined })
 const saving = ref(false)
 const sku = computed(() => store.data.skus.find(item => item.id === route.params.id && isRealSku(store.data, item)))
 const family = computed(() => store.data.families.find(item => item.id === sku.value?.familyId))
-const productRole=computed(()=>store.data.productTypes.find(t=>t.id===familyProductTypeId(store.data,family.value?.id||''))?.catalogRole)
 const draft = ref<SkuDraft>()
 watch(() => route.params.id, () => { draft.value = sku.value ? { code: sku.value.code, skuName: sku.value.skuName, oaSkuId: sku.value.oaSkuId, status: sku.value.status, variantAttrs: { ...sku.value.variantAttrs } } : undefined; dirty.value = false }, { immediate: true })
 watch(draft, () => { dirty.value = true }, { deep: true, flush: 'sync' })
@@ -63,4 +60,5 @@ async function save() {
 }
 function back() { return router.push({ path: '/skus', query: typeof route.query.spu === 'string' ? { spu: route.query.spu } : {} }) }
 function recoverGuide(action:string) { if(action==='edit-input') requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.spu-form input, .el-dialog.is-in-viewport input, .el-dialog input, .panel input')?.focus()) }
+const productRole=computed(()=>store.data.productTypes.find(t=>t.id===familyProductTypeId(store.data,family.value?.id||''))?.catalogRole)
 </script>

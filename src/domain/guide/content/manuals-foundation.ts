@@ -78,12 +78,12 @@ export const foundationManuals: Record<string, GuideManualContent> = {
     features:[
       feature('models-create','新建模型','在明确产品类型下建立新模型草稿。','点“新建模型”，依次选分类/产品类型并填模型名，点“创建模型”。','成功打开新模型资料，再明确进入设计；不复制其他模型商品。',{primary:true,actionIds:['action-model-create']}),
       feature('models-open','查看或编辑模型','先查看模型资料，再明确进入设计。','商品资料管理切“商品模型”，点名称打开详情；选择准确版本查看设计，或明确进入当前草稿编辑。','模型读取即可看台账和详情；设计入口另需设计权限。版本失效不会换成最新版本。',{primary:true,actionIds:['action-model-edit']}),
-      feature('models-publish','发布模型','验证草稿并保存新的冻结版本。','通过“更多”或详情操作区明确发布，阅读成功/失败提示与规则卡。','通过词典、结构、业务配置和适用规则检查后创建发布快照。',{primary:true,actionIds:['action-model-publish']}),
-      feature('models-copy','复制模型','复制当前草稿结构和适用配置。','在“更多”或详情操作区选择“复制模型”并确认。','新模型从草稿开始，不复制商品或历史发布记录。',{actionIds:['action-model-copy']}),
+      feature('models-publish','发布模型','验证草稿并保存新的冻结版本。','通过“更多”或详情操作区明确发布，阅读成功/失败提示与规则卡。','通过词典、结构和业务配置检查后创建发布快照。',{primary:true,actionIds:['action-model-publish']}),
+      feature('models-copy','复制模型','复制当前草稿结构和业务配置。','在“更多”或详情操作区选择“复制模型”并确认。','新模型从草稿开始，不复制商品或历史发布记录。',{actionIds:['action-model-copy']}),
       feature('models-offline','下线模型','停止新商品继续使用该模型。','在“更多”或详情操作区选择“下线模型”并确认。','原子保存失败时原状态保留；历史商品继续读取创建时版本，下线不删除冻结快照。',{actionIds:['action-model-offline']}),
       feature('models-sku','查看关联商品','核对明确模型关联及已记录来源的 SPU、销售 SKU 与 MAT。','点台账或模型详情中的商品数量，在只读明细中按权限进入完整管理页面。','数量与明细使用相同 ID 集合；旧商品来源未记录时明确提示，不覆盖用户的商品保存视图。')
     ],
-    restrictions:[restriction('models-publish-invalid','词典引用、结构、命名/配置或适用配置有问题','发布被拒绝，不能把未通过的草稿当正式版本。','按规则卡定位设计器节点或配置，修正后发布。',['rule-model-dictionary','rule-model-structure','rule-node-config'],true),restriction('models-history','修改、复制或下线模型','已有版本和由它创建的商品保留原来源，不自动回填新规则。','新变更发布为新版本；查看老来源时读取对应快照。',['rule-model-history']),restriction('models-write','创建/复制/发布或状态落盘失败','成功提示未出现前不能当作完成，状态修改可能仍在内存。','依据保存提示处理；保留当前页并重试对应动作。',['rule-persistence'])]
+    restrictions:[restriction('models-publish-invalid','词典引用、结构、命名或业务配置有问题','发布被拒绝，不能把未通过的草稿当正式版本。','按规则卡定位设计器节点或配置，修正后发布。',['rule-model-dictionary','rule-model-structure','rule-node-config'],true),restriction('models-history','修改、复制或下线模型','已有版本和由它创建的商品保留原来源，不自动回填新规则。','新变更发布为新版本；查看老来源时读取对应快照。',['rule-model-history']),restriction('models-write','创建/复制/发布或状态落盘失败','成功提示未出现前不能当作完成，状态修改可能仍在内存。','依据保存提示处理；保留当前页并重试对应动作。',['rule-persistence'])]
   },
   'page-specs': {
     purpose:'用画布、清单或幕布编辑真实模型分支，并发布可追溯的合法组合与建档依据。',

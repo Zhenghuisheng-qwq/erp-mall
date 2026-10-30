@@ -72,11 +72,6 @@
       "title": "导入导出"
     },
     {
-      "pattern": "/compatibility",
-      "source": "src/views/CompatibilityView.vue",
-      "title": "适用关系"
-    },
-    {
       "pattern": "/check",
       "source": "src/views/CheckView.vue",
       "title": "商品质量检查"
@@ -322,14 +317,6 @@
       ]
     },
     {
-      "source": "src/views/CompatibilityView.vue",
-      "buttons": [],
-      "functions": [],
-      "storeCommands": [
-        "can"
-      ]
-    },
-    {
       "source": "src/views/FeedbackView.vue",
       "buttons": [
         "导入反馈包",
@@ -458,7 +445,6 @@
         "新建模型",
         "查看模型",
         "编辑模型",
-        "适用设备配置",
         "创建 SKU",
         "复制模型",
         "发布模型",
@@ -703,7 +689,6 @@
         "清空暂存"
       ],
       "functions": [
-        "openCompatibilityFamily",
         "onSkuSelect",
         "removeSkuMany",
         "applyPreset",
@@ -947,7 +932,6 @@
       "buttons": [
         "返回 SKU 管理",
         "{{ family.name }}",
-        "{{ compatibilityRole === 'host' ? '适用配件' : '适用主机' }}",
         "取消",
         "保存 SKU"
       ],
@@ -1011,7 +995,6 @@
         "清空暂存"
       ],
       "functions": [
-        "openCompatibility",
         "manualOrder",
         "orderResult",
         "displayRows",
@@ -1061,7 +1044,6 @@
     {
       "source": "src/views/SpecConfigView.vue",
       "buttons": [
-        "{{ viewing || !store.can('product:model:update') ? '查看适用设备' : '配置适用设备' }}",
         "返回总览",
         "进入编辑",
         "保存模型",
@@ -1077,12 +1059,10 @@
         "添加子属性",
         "添加属性值",
         "命名规则",
-        "节点适用配置",
         "删除",
         "添加条件属性",
         "添加属性值",
         "命名规则",
-        "节点适用配置",
         "删除",
         "查看命名规则",
         "业务配置",
@@ -1096,12 +1076,10 @@
         "添加属性值",
         "添加同级属性",
         "命名规则",
-        "节点适用配置",
         "删除节点",
         "添加同级属性值",
         "添加条件属性",
         "命名规则",
-        "节点适用配置",
         "删除节点",
         "新增属性：{{ attrQuery.trim() }}",
         "新增属性",
@@ -1141,7 +1119,6 @@
         "onDictEsc",
         "locateBusiness",
         "saveBusiness",
-        "openTemplateCompatibility",
         "validDialog",
         "invalidateEditorDialogs",
         "layoutOriginX",
@@ -1294,7 +1271,6 @@
         "新增 SKU",
         "管理物料（{{ materials.length }}）",
         "查看历史快照",
-        "适用配件",
         "{{ row.skuName || '未记录' }}"
       ],
       "functions": [

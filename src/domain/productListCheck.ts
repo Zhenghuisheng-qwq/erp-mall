@@ -16,9 +16,7 @@ function snapshot(data: AppData) {
     skus: data.skus,
     plans: data.planningRecords,
     receipts: data.materialReceipts,
-    versions: data.specModelVersions,
-    compatibilities: data.compatibilities,
-  })
+    versions: data.specModelVersions,  })
 }
 
 function family(partial: Partial<ProductFamily> & Pick<ProductFamily, 'id' | 'name'>): ProductFamily {

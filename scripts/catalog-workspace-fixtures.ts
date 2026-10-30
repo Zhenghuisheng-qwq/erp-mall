@@ -39,6 +39,6 @@ export function createCatalogWorkspaceFixture(): AppData {
     catalogSku('sku-legacy', 'spu-legacy'), catalogSku('sku-unassigned', 'spu-unassigned'), catalogSku('sku-bad-category', 'spu-bad-category'),
     catalogSku('sku-orphan', 'missing-family'), catalogSku('mat-orphan', 'missing-family', { recordKind: 'material', materialCode: 'MAT-ORPHAN' }),
   ]
-  data.materialReceipts = []; data.compatibilities = []; data.nodeCompatibilityRules = []; data.templateCompatibilityConfigs = []; data.templateCompatibilityOrigins = []
+  data.materialReceipts = [];
   return data
 }

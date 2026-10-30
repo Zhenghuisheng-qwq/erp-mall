@@ -1,9 +1,11 @@
+import {saveUsedSku as writeUsedSku,updateUsedStatus,removeUsedSku as deleteUsedSku,saveUsedGroup as writeUsedGroup,removeUsedGroup as deleteUsedGroup,saveUsedSpu as writeUsedSpu,removeUsedSpu as deleteUsedSpu,usedStorageProblems,type UsedInput,type UsedStatus,type UsedSpu,type UsedGoods} from '../domain/usedGoods'
+import {addCompatibilityExamples} from '../domain/benefitSales/compatibilityExamples'
+import {applyCompatibilityChanges,compatibilityImportProblems,type CompatibilityChange} from '../domain/accessoryCompatibilityCommands'
+import {applyGeneralChanges,generalStorageProblems,type GeneralChange} from '../domain/generalCompatibility'
+import {workspaceBasis} from '../domain/compatibilityWorkspace'
 import {supplementHuaweiProducts,phoneBrandKeys} from '../domain/benefitSales/phoneBrands'
 import {addPublicSpus,updatePublicSpu,removePublicSpu,publicPoolStorageProblems,publicSpuReferences,publicSpuProblem,commonSpusProblem} from '../domain/benefitSales/publicSpuPool'
 import {groupTypesProblem} from '../domain/benefitSales/query'
-import {applyCompatibilityChanges,compatibilityImportProblems,type CompatibilityChange} from '../domain/accessoryCompatibilityCommands'
-import {applyGeneralChanges,generalStorageProblems,type GeneralChange} from '../domain/generalCompatibility'
-import {compatibilityWorkspaceBasis} from '../domain/compatibilityWorkspace'
 import {cloneRecord} from '../domain/recordCopy'
 import {modelSpecificationContext} from '../domain/modelSourceContext'
 import {writeGroup,deleteGroup,writeSale,benefitStorageProblems} from '../domain/benefitSales/commands'
@@ -92,10 +94,7 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   if (!data?.families || !data.skus || !data.categories || !data.templates || !data.mappings || !data.templateParams) return null
   const version = parsed.version ?? 1
   if (version < 1 || version > DATA_VERSION) return null
-  if(data.compatibilities===undefined)data.compatibilities=[]
-  const compatibilityProblems=[...compatibilityImportProblems(data),...generalStorageProblems(data)]
-  if(compatibilityProblems.length)throw new Error(compatibilityProblems.join('；'))
-  const benefitProblems=[...benefitStorageProblems(data),...publicPoolStorageProblems(data)]
+  const benefitProblems=[...usedStorageProblems(data.usedGoods),...benefitStorageProblems(data),...publicPoolStorageProblems(data),...compatibilityImportProblems(data),...generalStorageProblems(data)]
   if(benefitProblems.length)throw new Error(benefitProblems.join('；'))
   const businessProblems = businessImportProblems(data)
   if (businessProblems.length) throw new Error(`节点业务配置结构校验失败：${businessProblems.join(' ')} 原始记录已保留。`)
@@ -459,6 +458,7 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   function exportJson() {
     const exported=cloneRecord(data)
+    if(!can('product:used-goods:read'))delete exported.usedGoods
     if(!can('product:type-bundle:read'))delete exported.benefitTypeGroups
     if(!can('product:type-bundle:read')&&!can('product:bundle-sale:read'))delete exported.publicSpuPool
     if(!can('product:bundle-sale:read'))delete exported.benefitSalesLists
@@ -481,7 +481,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     const next = normalizeStored(parsed, { persist: false })
     if (!next?.params) throwImportValidation('演示数据版本不匹配，当前数据没有被替换')
     if(next.productTypes.some(type=>!validProductTypePurpose(type.catalogRole)))throwImportValidation('产品类型业务用途无效，只接受主机／设备、配件、其他或未指定。')
-    for(const key of ['publicSpuPool','compatibilities','generalCompatibilityClaims','deviceModels','deviceBindings','templateCompatibilityConfigs','templateCompatibilityOrigins','nodeCompatibilityRules','materialContributions'] as const)if(next[key]===undefined&&data[key]!==undefined)Object.assign(next,{[key]:cloneRecord(data[key])})
+    for(const key of ['usedGoods','publicSpuPool','compatibilities','generalCompatibilityClaims','deviceModels','deviceBindings','templateCompatibilityConfigs','templateCompatibilityOrigins','nodeCompatibilityRules','materialContributions'] as const)if(next[key]===undefined&&data[key]!==undefined)Object.assign(next,{[key]:cloneRecord(data[key])})
     if(data.phoneDemoCatalogVersion!==undefined)next.phoneDemoCatalogVersion=data.phoneDemoCatalogVersion
     if(data.phoneDemoBrandsVersion!==undefined)next.phoneDemoBrandsVersion=data.phoneDemoBrandsVersion
     if(JSON.stringify(next.publicSpuPool)!==JSON.stringify(data.publicSpuPool)){
@@ -498,6 +498,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     for(const key of new Set([...Object.keys(data),...Object.keys(next)])){
       if(key==='rbac'||key==='users'||preferences.has(key)||JSON.stringify((data as any)[key])===JSON.stringify((next as any)[key]))continue
       if(key==='benefitSalesLists'&&JSON.stringify(next.benefitSalesLists)!==JSON.stringify(data.benefitSalesLists))throwImportValidation('请通过选购页保存清单，不能通过导入改写历史记录。')
+      if(key==='usedGoods')throwImportValidation('二手资料请通过二手工作台维护，本轮不支持导入覆盖单机状态历史。')
       const prefix=prefixes[key as keyof AppData]
       if(!prefix&&['compatibilities','generalCompatibilityClaims','deviceModels','deviceBindings','templateCompatibilityConfigs','templateCompatibilityOrigins','nodeCompatibilityRules','materialContributions','benefitPackages','benefitDeliveries','benefitFrameworks','salesOptionPlans','salesOptionBindings','salesProductRelations'].includes(key))continue
       if(!prefix)throwImportValidation(`导入含未登记的变更字段：${key}`)
@@ -1197,21 +1198,29 @@ export const useCatalogStore = defineStore('catalog', () => {
     const issues=rbacProblems(next);if(issues.length)return {ok:false,message:issues.join(' ')}
     return commitCandidate(next,{ok:true,message:'已恢复内置超级管理员的登记权限；其他角色及业务保持。'},['rbac'])
   }
+  type UsedResponse<T>=T extends unknown?Omit<T,'data'>:never
+  function commitUsed<T extends {ok:boolean;data?:UsedGoods;message?:string}>(result:T){const {data:used,...raw}=result;const value=raw as UsedResponse<T>;if(!result.ok||!used)return value;const next=cloneRecord(data);next.usedGoods=used;return commitCandidate(next,cloneRecord(value),['usedGoods'])}
   const api = {
+    saveUsedSku:(input:UsedInput,revision:number,requestId:string,isCurrent:()=>boolean=()=>true)=>{const value=cloneRecord(input);return command(()=>isCurrent()?commitUsed(writeUsedSku(data.usedGoods,value,revision,requestId,new Date().toISOString())):{ok:false,message:'编辑身份或页面已变化，未写入二手资料'})},
+    setUsedSkuStatus:(id:string,revision:number,status:UsedStatus)=>command(()=>commitUsed(updateUsedStatus(data.usedGoods,id,revision,status,new Date().toISOString()))),
+    removeUsedSku:(id:string,revision:number)=>command(()=>commitUsed(deleteUsedSku(data.usedGoods,id,revision))),
+    saveUsedGroup:(id:string,name:string,revision:number)=>command(()=>commitUsed(writeUsedGroup(data.usedGoods,id,name,revision,new Date().toISOString()))),
+    removeUsedGroup:(id:string,revision:number)=>command(()=>commitUsed(deleteUsedGroup(data.usedGoods,id,revision))),
+    saveUsedSpu:(id:string,input:Pick<UsedSpu,'name'|'brand'|'model'>,revision:number)=>{const value=cloneRecord(input);return command(()=>commitUsed(writeUsedSpu(data.usedGoods,id,value,revision,new Date().toISOString())))},
+    removeUsedSpu:(id:string,revision:number)=>command(()=>commitUsed(deleteUsedSpu(data.usedGoods,id,revision))),
+
     addPublicSpus:(ids:string[],basis:string,isCurrent:()=>boolean=()=>true)=>{const selected=[...ids];return command(()=>{if(!isCurrent())return {ok:false,message:'选择上下文已变化，未添加'};const next=cloneRecord(data);return commitCandidate(next,addPublicSpus(next,selected,basis,new Date().toISOString()),['publicSpuPool'])})},
     setPublicSpuEnabled:(id:string,enabled:boolean,revision:number)=>command(()=>{const next=cloneRecord(data);return commitCandidate(next,updatePublicSpu(next,id,enabled,revision,new Date().toISOString()),['publicSpuPool'])}),
     removePublicSpu:(id:string,revision:number)=>command(()=>{const next=cloneRecord(data);return commitCandidate(next,removePublicSpu(next,id,revision),['publicSpuPool'])}),
-    saveCompatibilityWorkspace:(changes:CompatibilityChange[],general:GeneralChange[],basis:string,isCurrent:()=>boolean=()=>true)=>{
-      const commands=cloneRecord(changes),conditions=cloneRecord(general),owner=effectiveUserId.value,preview=previewUserId.value
-      return command(()=>{
-        if(!isCurrent()||owner!==effectiveUserId.value||preview!==previewUserId.value||basis!==compatibilityWorkspaceBasis(data))return {ok:false,message:'商品、设备或适用资料已变化，请重新打开核对；输入保留。'}
-        if(!commands.length&&!conditions.length)return {ok:false,message:'没有需要保存的适用资料变更。'}
-        const next=cloneRecord(data);next.compatibilities ||= []
-        const explicit=applyCompatibilityChanges(next,commands,()=>uid('compat'),new Date().toISOString());if(!explicit.ok)return {ok:false,message:explicit.message||'明确型号资料无效，未保存'}
-        if(conditions.length){const result=applyGeneralChanges(next,conditions,()=>uid('general'),new Date().toISOString());if(!result.ok)return {ok:false,message:result.message||'通用条件无效，未保存'}}
-        return commitCandidate(next,{ok:true,message:'适用资料已保存'},['compatibilities','generalCompatibilityClaims'])
-      })
-    },
+    installCompatibilityExamples:()=>command(()=>{const next=cloneRecord(data);return commitCandidate(next,addCompatibilityExamples(next),['compatibilities','generalCompatibilityClaims'])}),
+    saveCompatibilityWorkspace:(skuIds:string[],changes:CompatibilityChange[],general:GeneralChange[],basis:string,isCurrent:()=>boolean=()=>true)=>{const selected=[...skuIds],commands=cloneRecord(changes),conditions=cloneRecord(general),owner=effectiveUserId.value,preview=previewUserId.value;return command(()=>{
+      if(!isCurrent()||owner!==effectiveUserId.value||preview!==previewUserId.value||basis!==workspaceBasis(data,selected))return {ok:false,message:'当前商品的适用资料已变化，请重新核对；输入保留。'}
+      if(!selected.length||new Set(selected).size!==selected.length||selected.some(id=>{const sku=data.skus.find(s=>s.id===id);return !sku||!isRealSku(data,sku)}))return {ok:false,message:'请明确选择真实销售SKU，不能使用MAT代替。'}
+      if(!commands.length&&!conditions.length)return {ok:false,message:'没有需要保存的修改。'}
+      const targets=[...commands.flatMap(c=>c.kind==='add'?[c.draft.target.id]:[data.compatibilities?.find(r=>r.id===c.id)?.targetId||data.compatibilities?.find(r=>r.id===c.id)?.accessorySkuId||'',...(c.kind==='edit'?[c.draft.target.id]:[])]),...conditions.flatMap(c=>c.kind==='add'?[c.draft.skuId]:[data.generalCompatibilityClaims?.find(r=>r.id===c.id)?.skuId||'',...(c.kind==='edit'?[c.draft.skuId]:[])])];if(targets.some(id=>!selected.includes(id)))return {ok:false,message:'变更超出当前明确选择的SKU。'}
+      const next=cloneRecord(data);next.compatibilities||=[];const first=commands.length?applyCompatibilityChanges(next,commands,()=>uid('compat'),new Date().toISOString()):{ok:true as const,message:''};if(!first.ok)return first;const second=conditions.length?applyGeneralChanges(next,conditions,()=>uid('general'),new Date().toISOString()):{ok:true as const,message:''};if(!second.ok)return second;
+      return commitCandidate(next,{ok:true,message:'适用资料已保存'},['compatibilities','generalCompatibilityClaims'])
+    })},
     saveBundleSale:(input:SaleInput,revision:number,isCurrent:()=>boolean=()=>true)=>{const value=cloneRecord(input);return command(()=>{if(!isCurrent())return {ok:false,message:'选购身份或上下文已变化，输入保留'};const next=cloneRecord(data);return commitCandidate(next,writeSale(next,value,revision,()=>uid('sale'),new Date().toISOString()),['benefitSalesLists'])})},
 
     saveTypeBundle:(input:GroupInput,revision:number,isCurrent:()=>boolean=()=>true)=>{const value=cloneRecord(input);return command(()=>{if(!isCurrent())return {ok:false,message:'编辑上下文已改变，输入保留'};const next=cloneRecord(data);return commitCandidate(next,writeGroup(next,value,revision,()=>uid('bundle'),new Date().toISOString()),['benefitTypeGroups'])})},

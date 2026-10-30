@@ -1,6 +1,6 @@
 import type {AppData} from '../types'
 import {cloneRecord} from '../recordCopy'
-export const phoneDemoNameKeys=['params','productTypes','templates','specCanvases','specModelVersions','planningRecords','families','skus','benefitTypeGroups','compatibilities','generalCompatibilityClaims','brands'] as const
+export const phoneDemoNameKeys=['params','productTypes','templates','specCanvases','specModelVersions','planningRecords','families','skus','benefitTypeGroups','brands'] as const
 const owned=(id:string)=>id.startsWith('demo18-')||id.startsWith('huawei-')
 const label=(text:string)=>text.replace(/（18演示）|（演示）/g,'').replace(/\s*·\s*(?:18演示|演示)(?=$|\s*·)/g,'').trim()
 /** Rename only the owned sample records and their display aliases; IDs and confirmed snapshots are untouched. */
@@ -15,10 +15,6 @@ export function cleanPhoneDemoNames(current:AppData){
   for(const plan of next.planningRecords)if(plan.productModelId.startsWith('demo18-'))plan.steps.forEach(s=>{s.attributeName=label(s.attributeName)})
   for(const family of next.families)if(owned(family.id))family.commonAttrs=attrs(family.commonAttrs)
   for(const sku of next.skus)if(owned(sku.id)){if(sku.skuName)sku.skuName=label(sku.skuName);sku.variantAttrs=attrs(sku.variantAttrs);sku.projectedAttrs=attrs(sku.projectedAttrs)}
-  for(const row of [...next.compatibilities,...(next.generalCompatibilityClaims||[])])if(owned(row.id)){
-   if(row.source==='仅供 ERP 软件演示：型号及规格均为模拟数据，不代表真实供应商核验或商品承诺。')row.source='内部流程验证资料：用于系统功能验收，不构成真实供应商适用承诺。'
-   if(row.note==='仅演示必要接口事实核验，不推测快充')row.note='仅核验必要接口事实，不推测快充'
-  }
   for(const brand of next.brands)if(brand.id==='brand-demo18-apple'&&brand.description==='软件演示品牌')brand.description='手机品牌'
   const changed=JSON.stringify(phoneDemoNameKeys.map(key=>current[key]))!==JSON.stringify(phoneDemoNameKeys.map(key=>next[key]))
   return {ok:true as const,next,changed}

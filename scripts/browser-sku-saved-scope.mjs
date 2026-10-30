@@ -7,7 +7,7 @@ import { createTestRuntime, removeTestRuntime } from './test-runtime.mjs'
 const runtime = createTestRuntime('sku-saved-scope'), errors = []
 let browser, server, groups = 0
 const mark = name => { groups++; console.log(`PASS ${name}`) }
-const business = data => JSON.stringify([data.families, data.skus, data.specModelVersions, data.planningRecords, data.compatibilities, data.materialRelations])
+const business = data => JSON.stringify([data.families, data.skus, data.specModelVersions, data.planningRecords, data.materialRelations])
 try {
   browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'chrome', headless: true })
   for (const strict of [false, true]) {
@@ -94,35 +94,6 @@ try {
         assert.equal(business(await read()), originalBusiness)
         mark(`${strict ? 'strict' : 'default'} actual unchecked save keeps no permanent scope after leaving temporary SPU`)
       }
-      await context.close()
-    }
-    {
-      const { data } = createCatalogProductFixture(); ensureRbac(data); ensureProductListPages(data); ensureSkuWorkbench(data)
-      data.compatibilities = data.compatibilities.filter(link => link.id !== 'decl-charger-basic')
-      const onlyFast = data.compatibilities.find(link => link.id === 'decl-charger-fast'); assert(onlyFast)
-      onlyFast.conclusion = 'compatible'; onlyFast.conditions = []
-      const context = await browser.newContext({ viewport: { width: 1366, height: 1000 }, locale: 'zh-CN', reducedMotion: 'reduce' })
-      await context.addInitScript(({ data, version }) => { if (location.protocol === 'http:' && !localStorage.getItem('iyge-v2-mock-db')) localStorage.setItem('iyge-v2-mock-db', JSON.stringify({ version, data })) }, { data, version: DATA_VERSION })
-      const page = await context.newPage(); page.setDefaultTimeout(12000); page.on('pageerror', error => errors.push(String(error)))
-      await page.goto(base + '/skus', { waitUntil: 'networkidle' }); await page.locator('[data-sku-workbench]').waitFor()
-      await page.evaluate(async () => { window.__store = (await import('/src/stores/catalog.ts')).useCatalogStore(); await window.__store.waitForPersistence() })
-      const before = await page.evaluate(() => localStorage.getItem('iyge-v2-mock-db'))
-      const phoneRow = page.locator('.el-table__row').filter({ has: page.locator('[data-order-row="phone-a"]') })
-      await phoneRow.getByRole('button', { name: '更多 SKU 操作 PHONE-A', exact: true }).click()
-      await page.getByRole('menuitem', { name: '适用配件', exact: true }).click()
-      const drawer = page.locator('[data-accessory-drawer]'); await drawer.waitFor()
-      await drawer.locator('[data-accessory-match="case-sku"]').waitFor()
-      assert.equal(await drawer.locator('[data-accessory-match="charger-sku"]').count(), 0)
-      assert.match(await drawer.locator('[data-accessory-match="case-sku"] .match-status').innerText(), /基本使用：适用/)
-      mark(`${strict ? 'strict' : 'default'} real device drawer recommends ordinary basic-only accessory and excludes fast-only from sales`)
-      await drawer.getByRole('tab', { name: /待处理/ }).click()
-      const ability = drawer.locator('[data-accessory-match="charger-sku"]'); await ability.waitFor()
-      assert.match(await ability.locator('.match-status').innerText(), /基本使用：待确认/)
-      assert.match(await ability.locator('.match-status').innerText(), /能力资料汇总：有条件适用/)
-      assert.match(await ability.locator('.capability-line').innerText(), /快充[\s\S]*适用/)
-      await ability.locator('summary').click(); assert.match(await ability.locator('.evidence-row').innerText(), /销售 SKU|快充/)
-      assert.equal(await page.evaluate(() => localStorage.getItem('iyge-v2-mock-db')), before)
-      mark(`${strict ? 'strict' : 'default'} fast-only remains inspectable in management pending, with basic pending and separate capability evidence; reading writes nothing`)
       await context.close()
     }
     await server.close(); server = undefined

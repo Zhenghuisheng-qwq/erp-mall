@@ -4,16 +4,14 @@ import {specPublishProblems} from '../logic'
 import {freezeBusinessNodes} from '../nodeBusiness'
 import {legalPlanningCombinations,reconcilePlanningRecords} from '../planning'
 import {saveSpu,previewSkuAppend,appendSkuBatch,editSku} from '../spuSku'
-import {resolveDeviceSku} from '../deviceResolution'
 import {resolveSkuModelSource} from '../modelSourceContext'
 import {writeGroup} from './commands'
-import {saleQuery,groupTypesProblem} from './query'
+import {groupTypesProblem} from './query'
 
 const prefix='demo18-',time='2026-10-30T08:00:00.000Z'
-export const phone18DemoKeys=['categories','productTypes','params','templates','templateParams','mappings','productSpecNodes','specCanvases','specModelVersions','planningRecords','families','skus','compatibilities','generalCompatibilityClaims','benefitTypeGroups'] as const
+export const phone18DemoKeys=['categories','productTypes','params','templates','templateParams','mappings','productSpecNodes','specCanvases','specModelVersions','planningRecords','families','skus','benefitTypeGroups'] as const
 export const phone18Models=['phone','case','film','charger'] as const
 const modelId=(kind:string)=>`${prefix}model-${kind}`,familyId=(kind:string)=>`${prefix}spu-${kind}`
-const source='内部流程验证资料：用于系统功能验收，不构成真实供应商适用承诺。'
 export type Axis={id:string;name:string;values:string[];common?:boolean;identity?:boolean}
 const axes={
  brand:{id:'demo18-brand',name:'品牌',values:['Apple'],common:true},
@@ -43,9 +41,6 @@ function checkInstalled(data:AppData){
  }
  const group=data.benefitTypeGroups?.find(g=>g.id==='demo18-bundle-full')
  if(!group||groupTypesProblem(data,group.categoryId,group.productTypeIds))return '权益包的分类与类型需要核对'
- for(const phone of data.skus.filter(s=>s.familyId===familyId('phone'))){const query=saleQuery(data,{mode:'group',categoryId:group.categoryId,groupId:group.id,productTypeIds:group.productTypeIds,device:{kind:'sku',skuId:phone.id}})
-  for(const kind of ['case','film','charger'])if(!query.candidates.some(c=>data.skus.find(s=>s.id===c.id)?.familyId===familyId(kind)))return `设备 ${phone.code} 的${kind}适用资料需要核对`
- }
  return ''
 }
 /** Add an entire, detached demo chain using the existing publish, planning and V2 SKU paths. */
@@ -92,12 +87,8 @@ export function installPhone18Demo(current:AppData){
     const published=editSku(next,skuId,{...sku,code,skuName:`${name} · ${Object.values(sku.variantAttrs).join(' / ')}`,status:'on_sale'},time);if(!published.ok)throw Error(published.message)
    }
   }
-  const phone=next.skus.find(s=>s.familyId===familyId('phone'))!,device=resolveDeviceSku(next,phone.id)
-  if(!device.host||device.status!=='resolved')throw Error('手机型号未能唯一解析')
-  for(const kind of ['case','film'])for(const sku of next.skus.filter(s=>s.familyId===familyId(kind)))next.compatibilities.push({id:`${prefix}claim-${sku.id}`,accessorySkuId:sku.id,targetKind:'sku',targetId:sku.id,host:cloneRecord(device.host!),capability:'basic',conclusion:'compatible',verification:'confirmed',conditions:[],source,note:'18 Pro Max 型号专属适用资料',createdAt:time,updatedAt:time})
-  for(const sku of next.skus.filter(s=>s.familyId===familyId('charger')))(next.generalCompatibilityClaims||=[]).push({id:`${prefix}general-${sku.id}`,skuId:sku.id,deviceTypeIds:[typeIds.phone!],capability:'basic',conditions:[{kind:'attribute',attributeId:axes.port.id,operator:'eq',value:'USB-C'}],conclusion:'compatible',verification:'confirmed',source,note:'仅核验必要接口事实，不推测快充',revision:1,createdAt:time,updatedAt:time})
   for(const [id,name,types,sort] of [['demo18-bundle-full','手机充电保护权益包',[typeIds.phone!,typeIds.case!,typeIds.film!,typeIds.charger!],-40],['demo18-bundle-protect','手机基础保护权益包',[typeIds.phone!,typeIds.case!,typeIds.film!],-30]] as const){const result=writeGroup(next,{id:'',name,categoryId,productTypeIds:[...types],enabled:true,sort},0,()=>id,time);if(!result.ok)throw Error(result.message)}
   const problem=checkInstalled(next);if(problem)throw Error(problem)
-  return {ok:true as const,next,added:10,message:'已创建 18 Pro Max 完整链路：4 个已发布模型、10 个在售 SKU、正式适用资料和 2 个权益包。'}
+  return {ok:true as const,next,added:10,message:'已创建 18 Pro Max 完整链路：4 个已发布模型、10 个在售 SKU和 2 个权益包。'}
  }catch(error){return fail(error instanceof Error?error.message:String(error))}
 }

@@ -1,3 +1,4 @@
+import {projectAttrs} from './logic'
 import {familyProductTypeId} from './productIdentity'
 import {modelSpecificationContext} from './modelSourceContext'
 import { hostFrom, hostIdentityKey, roleOfType } from './compatibility'
@@ -90,11 +91,7 @@ export function listDeviceModels(data: AppData): DeviceModelOption[] {
       if (planningId && !previous.planningIds.includes(planningId)) previous.planningIds.push(planningId)
       return
     }
-    options.set(key, { key, host: modelHost, label: label || host.steps.map(step => step.valueId).join(' '), productTypeName: data.productTypes.find(type => type.id === host.productTypeId)?.name || '未分类', source, versionIds: versionId ? [versionId] : [], planningIds: planningId ? [planningId] : [] })
-  }
-  for (const model of Array.isArray(data.deviceModels) ? data.deviceModels : []) {
-    if (!model || typeof model.id !== 'string' || typeof model.name !== 'string' || typeof model.productTypeId !== 'string') continue
-    add({ scope: 'model', productTypeId: model.productTypeId, productModelId: `device:${model.id}`, identityKey: `device:${model.id}`, steps: [{ attributeId: 'device-model', attributeName: '设备型号', valueId: model.name }] }, 'manual', '', '', model.name)
+    options.set(key, { key, host: modelHost, label: label || host.steps.map(step=>step.valueId).filter((value,index,values)=>!values.slice(index+1).some(next=>next.startsWith(value+' '))).join(' '), productTypeName: data.productTypes.find(type => type.id === host.productTypeId)?.name || '未分类', source, versionIds: versionId ? [versionId] : [], planningIds: planningId ? [planningId] : [] })
   }
   for (const version of data.specModelVersions) {
     const typeId = modelType(data, version.templateId)
@@ -119,7 +116,7 @@ export function validateCompatibilityHost(data: AppData, host: CompatibilityHost
   if (!host || !['model', 'planning'].includes(host.scope) || typeof host.productTypeId !== 'string' || typeof host.productModelId !== 'string' || typeof host.identityKey !== 'string' || !Array.isArray(host.steps) || !host.steps.length || host.steps.some(step => !step || typeof step.attributeId !== 'string' || typeof step.valueId !== 'string')) return '主机型号配置无效。'
   const option = options.find(item => sameDeviceHost(item.host, host, false))
   if (!option) return '主机型号引用已失效，请重新选择有效型号。'
-  if (host.productModelId.startsWith('device:') ? host.identityKey !== host.productModelId : host.identityKey !== hostIdentityKey(host.steps)) return '主机型号身份与属性引用不一致。'
+  if (host.identityKey !== hostIdentityKey(host.steps)) return '主机型号身份与属性引用不一致。'
   if (host.scope === 'planning' && (!host.planningId || !option.planningIds.includes(host.planningId))) return '指定 PLN 不属于当前主机型号。'
   if (host.scope === 'model' && host.planningId) return '型号级声明不能携带规格 PLN。'
   return ''
@@ -151,12 +148,10 @@ export function resolveDeviceSku(data: AppData, skuId: string, context?: DeviceR
   function invalid(message: string) { return { ...result, status: 'invalid' as const, message } }
   if (!sku || !family || !(context ? context.realSkuIds.has(sku.id) : isRealSku(data, sku))) return invalid('设备 SKU 引用已失效或不是销售 SKU。')
   if (compatibilityFamilyRole(data, family.id) !== 'host') return invalid('当前记录未配置为主机产品类型。')
-  if (data.deviceBindings !== undefined && !Array.isArray(data.deviceBindings)) return invalid('设备绑定配置结构失效，请先处理配置。')
   const actual = actualAttributes(data, family, sku)
   result.attributes = actual.attributes
   if (actual.conflicts.length) return invalid(`公共属性与 SKU 规格矛盾：${actual.conflicts.join('、')}。请先处理来源。`)
-  const all = context?.hostOptions || listDeviceModels(data), bindings = (Array.isArray(data.deviceBindings) ? data.deviceBindings : []).filter(item => item && item.skuId === skuId), binding = bindings[0]
-  if (bindings.length > 1) return invalid('当前设备存在多条显式型号绑定，请先处理冲突。')
+  const all = context?.hostOptions || listDeviceModels(data)
   const source = sku.creationSource
   const versionIds = [...new Set([source?.modelVersionId, sku.modelVersionId, family.modelVersionId].filter((id): id is string => Boolean(id)))]
   if (versionIds.length > 1) return invalid('SKU 与 SPU 绑定的发布版本矛盾，请先处理来源。')
@@ -195,24 +190,10 @@ export function resolveDeviceSku(data: AppData, skuId: string, context?: DeviceR
     result.candidates = host ? all.filter(option => sameDeviceHost(option.host, host, false)) : []
     result.source = source?.kind === 'template' ? '模板属性 · 型号身份' : '公共属性与 SKU 规格 · 型号身份'
   }
-  if (binding) {
-    result.binding = binding
-    if (binding.host?.productTypeId !== familyType(data, family)) return invalid('显式绑定的设备产品类型与当前 SKU 不一致，请重新选择。')
-    if (binding.host.scope !== 'model') return invalid('显式设备绑定必须选择型号，不能以绑定替代具体 PLN 的规格核验。')
-    const problem = validateCompatibilityHost(data, binding.host, all)
-    if (problem || binding.sourceStamp !== sourceStamp) return invalid(problem || '设备来源在绑定后发生变化，请核对并重新确认绑定。')
-    const contradictions = binding.host.steps.some(step => actual.attributes[step.attributeId] && actual.attributes[step.attributeId] !== step.valueId)
-    if (contradictions || (versionId && result.candidates.length && !result.candidates.some(option => sameDeviceHost(option.host, binding.host, false)))) return invalid('显式绑定与设备来源矛盾，请核对绑定，未切换到其他型号。')
-    result.host = { ...binding.host, scope: 'model', planningId: undefined }
-    result.status = 'resolved'; result.message = ''; result.source = '人工显式绑定'
-    const model = (Array.isArray(data.deviceModels) ? data.deviceModels : []).find(item => item && `device:${item.id}` === binding.host.productModelId)
-    if (model && model.attributes && typeof model.attributes === 'object' && !Array.isArray(model.attributes)) {
-      if (Object.entries(model.attributes).some(([id, value]) => actual.attributes[id] && actual.attributes[id] !== value)) return invalid('设备实际属性与绑定型号的已维护属性矛盾，请核对后重新确认。')
-      result.attributes = { ...model.attributes, ...result.attributes }
-    }
-    return result
-  }
   if (result.candidates.length === 1) { result.status = 'resolved'; result.host = result.candidates[0]?.host; result.message = '' }
   else if (result.candidates.length > 1) { result.status = 'ambiguous'; result.message = '存在多个可能型号，请明确选择设备型号。' }
   return result
 }
+
+/** Read-only projection of the existing catalogue; no separately authored device directory. */
+export function catalogDeviceOptions(data:AppData){return {models:listDeviceModels(data),skus:data.skus.filter(s=>isRealSku(data,s)&&compatibilityRecordRole(data,s.id)==='host').map(s=>{const f=data.families.find(f=>f.id===s.familyId)!;return {id:s.id,name:s.skuName||f.name,code:s.code,spec:Object.entries(projectAttrs(f,s)).map(([k,v])=>(data.params.find(p=>p.id===k)?.name||k)+' '+v).join(' · ')}})}}

@@ -4,15 +4,11 @@ import type {AppData} from '../types'
 import type {SaleScope,SaleDevice} from './types'
 import {isRealSku} from '../catalogIdentity'
 import {projectAttrs,shelfOf} from '../logic'
-import {listDeviceModels} from '../deviceResolution'
-import {queryDeviceAccessories,queryModelAccessories,accessoryUseEvaluation} from '../accessoryCompatibilityQuery'
+import {listDeviceModels,catalogDeviceOptions} from '../deviceResolution'
+import {queryDeviceAccessories,queryModelAccessories,accessoryUseEvaluation,accessorySaleProblem} from '../accessoryCompatibilityQuery'
 import type {AccessoryMatch} from '../accessoryCompatibilityTypes'
-export function categoryProblem(data:AppData,id:string){
- const seen=new Set<string>();let current:string|null=id
- while(current){const rows=data.categories.filter(c=>c.id===current);if(rows.length!==1||seen.has(current))return '分类不存在或层级引用无效';seen.add(current);current=rows[0]!.parentId}
- return seen.size?'':'请选择归属分类'
-}
-export function typeProblem(data:AppData,id:string){const rows=data.productTypes.filter(t=>t.id===id);if(rows.length!==1)return '产品类型不存在或身份冲突';const t=rows[0]!;return t.status!=='enabled'?'产品类型已停用':categoryProblem(data,t.categoryId)}
+export {categoryAvailabilityProblem as categoryProblem,productTypeAvailabilityProblem as typeProblem} from '../productTypePurpose'
+import {categoryAvailabilityProblem as categoryProblem,productTypeAvailabilityProblem as typeProblem} from '../productTypePurpose'
 export function typesProblem(data:AppData,ids:string[]){return !Array.isArray(ids)||!ids.length?'请选择参与的产品类型':new Set(ids).size!==ids.length?'产品类型不能重复':ids.map(id=>typeProblem(data,id)).find(Boolean)||''}
 export function groupTypesProblem(data:AppData,categoryId:string,ids:string[]){
  const problem=categoryProblem(data,categoryId)||typesProblem(data,ids)
@@ -22,7 +18,7 @@ export function groupTypesProblem(data:AppData,categoryId:string,ids:string[]){
 }
 export function saleLabel(data:AppData,id:string){const s=data.skus.find(x=>x.id===id),f=data.families.find(x=>x.id===s?.familyId);return {name:s?.skuName||f?.name||'商品已失效',code:s?.code||'',spec:s&&f?Object.entries(projectAttrs(f,s)).map(([k,v])=>`${data.params.find(p=>p.id===k)?.name||k} ${v}`).join(' · '):''}}
 export function saleProblem(data:AppData,id:string,requireRole=true){const rows=data.skus.filter(s=>s.id===id),s=rows[0],f=data.families.find(f=>f.id===s?.familyId);if(rows.length!==1||!s||!f||!isRealSku(data,s))return '不是有效的真实销售商品';const role=data.productTypes.find(t=>t.id===familyProductTypeId(data,f.id))?.catalogRole||'';return typeProblem(data,familyProductTypeId(data,f.id))||(requireRole&&!['host','accessory','other'].includes(role)?'商品用途尚未明确':'')||(s.status!=='on_sale'||shelfOf(f)!=='online'?'商品当前不可售':'')}
-export function deviceOptions(data:AppData){return {skus:data.skus.filter(s=>isRealSku(data,s)&&data.productTypes.find(t=>t.id===familyProductTypeId(data,s.familyId))?.catalogRole==='host').map(s=>({id:s.id,...saleLabel(data,s.id)})),models:listDeviceModels(data)}}
+export const deviceOptions=catalogDeviceOptions
 export function deviceKey(device:SaleDevice){return device?device.kind==='sku'?`sku:${device.skuId}`:`model:${device.key}`:''}
 export function deviceFromKey(key:string):SaleDevice{return key.startsWith('sku:')?{kind:'sku',skuId:key.slice(4)}:key.startsWith('model:')?{kind:'model',key:key.slice(6)}:null}
 export function saleTypesProblem(data:AppData,scope:SaleScope){
@@ -59,11 +55,7 @@ function evaluate(data:AppData,scope:SaleScope,error:string,query:ReturnType<typ
     if(query?.device.host&&typeProblem(data,query.device.host.productTypeId))reason='设备产品类型已失效或停用'
     else if(!query||query.device.status!=='resolved')reason=query?.device.message||'请先选择明确的本次使用设备'
     else if(invalid.has(s.id))reason='适用资料存在失效引用，需核对'
-    else if(use.conflict)reason='正式适用资料存在阻断冲突'
-    else if(use.missingBasic)reason=query.generalDiagnostics?.find(d=>d.skuId===s.id)?.reason||'尚无当前设备的已确认基本适用依据'
-    else if(use.status==='incompatible')reason='存在生效的明确不适用依据'
-    else if(use.status==='pending'||use.status==='conditional'&&!(use.basic.evidence?use.basic.evidence.some(e=>e.effective&&e.record.conclusion!=='incompatible'):use.conditions.every(c=>c.state==='met'))){reason=use.evidence?.filter(e=>e.kind==='general'&&!e.effective).map(e=>[e.reason,...e.conditions.filter(c=>c.state!=='met').map(c=>c.label)].join('；')).join('；')||'必要条件或适用资料待核验';unknown=true}
-    else if(use.status!=='compatible'&&use.status!=='conditional')reason='当前暂无已确认可选商品'
+    else {reason=accessorySaleProblem(match);if(reason&&use.status!=='incompatible')unknown=true}
    }
    if(reason)g.diagnostics.push({id:s.id,name:saleLabel(data,s.id).name,reason})
    else if(seen.has(s.id))covered++

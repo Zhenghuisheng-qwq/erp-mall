@@ -13,7 +13,7 @@ const scoped:Record<string,string[]>={
  'src/domain/material.ts':['resolveV3MaterialSpec','verifySteps','createV3Material','createTemporaryMaterial','deletedReceiptResult'],
  'src/domain/spuSku.ts':['saveSpu','previewSkuAppend','appendSkuBatch','editSku','skuConfigurationProblem'],
  'src/domain/materialRelationCommands.ts':['previewMaterialScope','executeMaterialRelation','revokeMaterialRelation'],
- 'src/stores/catalog.ts':['command','commitCandidate','commitCreated','commitDeviceBinding','importJson','publishSpecModel','commitCategoryMove'],
+ 'src/stores/catalog.ts':['command','commitCandidate','commitCreated','importJson','publishSpecModel','commitCategoryMove'],
  'src/stores/catalogPersistence.ts':['run','write'],
 }
 const sites:{source:string;function:string;line:number;syntax:string;binding:'explicit'|'legacy-unknown'|'callback'|'pass-through';branchId?:string}[]=[]

@@ -62,7 +62,6 @@
 ## 商品模型设计
 
 - 页面：`src/views/SpecConfigView.vue`。
-- 实际处理函数：storedFold、setTreeFold、setRailFold、toggleCategory、clearOpenModel、belongsToLeaf、selectCategory、focusType、openModel、createModelFor、editContext、sameContext、validContext、captureAddAnchor、dictSelects、selectExpanded、closeDictDropdown、onDictEsc、locateBusiness、saveBusiness、openTemplateCompatibility、validDialog、invalidateEditorDialogs、layoutOriginX、freshNodes、placeFreshNodes、manualHold、ensureTreeLayout、reflowTree、ensureCanvas、attributeSourceLabel、attributeValueText、attributeHint、outlineOptions、applyOutlineCreate、rememberAttrQuery、rememberValueQuery、beginCreateAttribute、beginCreateValue、resetValueComposer、applyOutlineChoice、openHostConfig、ruleMark、nodeTitle、valueOptions、attributeOptions、childCount、matchesView、nodeOpen、isShown、visibleAnchor、viewChildCount、pathIds、toggleMap、paint、measuredBox、treeBusPath、closeFloating、revealAncestors、onNodeClick、canvasSize、contentBounds、frameCanvas、fitAll、zoomReset、onZoomCommand、toggleAllBranches、revealNode、onNodesReady、onNodeDoubleClick、beginEdit、cueOutline、outlineIds、orderSiblings、finishUndo、pushUndo、cancelUndo、undoOutline、attachParam、ensureParam、linkAttribute、renameOutline、addOutline、removeOutline、promoteOutline、shiftOutline、openNodeDraft、confirmNodeDraft、moveOutline、commitInline、openNodeMenu、onNodeMenu、runMenu、illegalStructure、onNodeDragStart、onNodeDragStop、hitNode、reparent、reparentUnchecked、onViewportMove、onMoveEnd、tidy、useManualLayout、setExpanded、toggleExpand、queryText、sessionValue、carriedOverview、setOverviewView、setOverviewRoot、restoreOverviewMemory、setSurface、openFromOverview、backToOverview、enterEdit、saveModel、recoverPublish、publish、markWorkingDraft、openAttributeAt、resetAttrComposer、openGlobalRename、saveGlobalName、openValuePicker、openBindAttribute、nextSort、insertAttributeNodes、createDictionaryAttribute、createDictionaryValueForNode、rebindPickedValue、addAttribute、addValues、descendantIds、remove、openCopyCurrent、openCopyPicker、confirmCopy、pickNode、focusBoard、openMaterialDetail、visibleSelectableIds、selectAllCombos、invertComboSelection、openComboMaterial、batchCreateMaterials、markGrade、openTemporary、visibleOverlay、shortcutBlocked、isTypingTarget、onKey。
 - Store 调用：can、copyProductModel、createMaterial、createProductModel、flushPersistence、markPlanningGrades、publishSpecModel、removeSpecNode、saveModelDraft、saveNodeBusiness。
 - 本页关键说明：在结构、大纲、幕布中维护同一模型树，配置节点命名、业务与合法组合。
 - 核对的状态差异：属性直接子级不能混挂属性和值；分支顺序按真实树保留；显示关联物料只控制展示。
@@ -89,7 +88,6 @@
 ## SPU 管理
 
 - 页面：`src/views/ProductListView.vue`。
-- 实际处理函数：openCompatibilityFamily、onSkuSelect、removeSkuMany、applyPreset、removePreset、realSkus、realCount、brandText、saleCount、materialSummary、planSource、warn、switchDisplayView、onKeyword、quickState、chosen、setExposedValue、quickText、setQuickText、toggleCategory、clearCategory、removeSummary、clearFilters、kindOf、fieldOptions、operatorsFor、liveQuery、touchFilters、addCondition、changeFilterField、changeFilterOperator、categoryConditionId、categoryConditionIds、textValue、setConditionValue、removeCondition、dateRange、setDate、toggleGroup、onSortMode、stageLabel、toggleColumn、moveColumn、manageView、resetColumns、openCreate、confirmCreate、openSettings、confirmRename、confirmCopy、confirmDelete、saveFilter、familyRole、compatTitle、compatTarget、copyFamily、removeFamily、onFamilySelect、flushListChanges、setShelfMany、removeMany、removeSku、copySku、onSelect、batchStatus。
 - Store 调用：can、defaultColumns、flushPersistence、patchSku、removeFamily、removeSku、setSkuStatus。
 - 本页关键说明：以商品主体为单位查询、分组和维护，并分批追加其下 SKU。
 - 核对的状态差异：显式手动列宽/冻结和旧视图保留；品牌汇总与规格品牌是不同字段；发布商品不能直接删除。
@@ -156,10 +154,7 @@
 - 本页关键说明：在物料所属主体内查看指定档案、来源、范围关联和允许维护字段。
 - 核对的状态差异：指定记录必须匹配主体；范围覆盖按完整 PLN 去重，不按展示文字合并。
 
-<a id="page-compatibility"></a>
-## 适用关系
 
-- 页面：`src/views/CompatibilityView.vue`。
 - 实际处理函数：由复用组件和 computed 读取处理；见 source 文件。
 - Store 调用：can。
 - 本页关键说明：按设备型号与真实对象维护双向适用声明，并保留原物料维护入口。
@@ -232,7 +227,6 @@
 ## SPU 列配置与视图
 
 - 页面：`src/views/ProductListView.vue`。
-- 实际处理函数：openCompatibilityFamily、onSkuSelect、removeSkuMany、applyPreset、removePreset、realSkus、realCount、brandText、saleCount、materialSummary、planSource、warn、switchDisplayView、onKeyword、quickState、chosen、setExposedValue、quickText、setQuickText、toggleCategory、clearCategory、removeSummary、clearFilters、kindOf、fieldOptions、operatorsFor、liveQuery、touchFilters、addCondition、changeFilterField、changeFilterOperator、categoryConditionId、categoryConditionIds、textValue、setConditionValue、removeCondition、dateRange、setDate、toggleGroup、onSortMode、stageLabel、toggleColumn、moveColumn、manageView、resetColumns、openCreate、confirmCreate、openSettings、confirmRename、confirmCopy、confirmDelete、saveFilter、familyRole、compatTitle、compatTarget、copyFamily、removeFamily、onFamilySelect、flushListChanges、setShelfMany、removeMany、removeSku、copySku、onSelect、batchStatus。
 - Store 调用：can、defaultColumns、flushPersistence、patchSku、removeFamily、removeSku、setSkuStatus。
 - 本页关键说明：通过列配置 query 直接打开 SPU 列/分组/排序设置；与 SPU 列表共用配置。
 - 核对的状态差异：不擅自覆盖自定义旧视图；展示列不改变 SPU/SKU 身份。
@@ -559,22 +553,18 @@
 
 真实步骤：从档案查看有效来源 → 选允许解除的新增关系 → 确认解除。结果：新增关系撤销，原始建档与历史回执保留。失败：原始建档事实不作为普通新增关系删除。
 
-<a id="action-compatibility-bind"></a>
 ### 绑定明确设备型号
 
 真实步骤：核对目标身份与型号来源 → 选择合法主机型号并保存绑定。结果：后续声明查询有明确设备上下文。失败：非法或歧义绑定改选正式型号，不按文字自动合并。
 
-<a id="action-compatibility-declare"></a>
 ### 维护适用声明
 
 真实步骤：选择配件和主机粒度 → 填基本结论、能力、条件及依据 → 保存并双向查询。结果：正式结论带来源；在售状态另行显示。失败：冲突/缺依据处理真实声明，不把 MAT 当 SKU。
 
-<a id="action-compatibility-sync"></a>
 ### 同步模板适用更新
 
 真实步骤：检查模板更新 → 预览新增/变化/冲突 → 确认允许的贡献范围。结果：管理来源按规则同步，人工决定保持。失败：新依据使旧预览失效；人工保护需保留，不能自动恢复。
 
-<a id="action-compatibility-cancel"></a>
 ### 人工取消适用声明
 
 真实步骤：查看当前声明和来源 → 明确取消并保存。结果：贡献记录标记人工取消，历史来源保留。失败：后续只改备注/依据/核验状态不解除人工保护。
@@ -908,7 +898,6 @@
 - 拒绝：失效字段扩大查询、在分组/字段排序冲突时继续拖排。
 - 静态核对：对应当前条件/保护分支，未修改规则来配合说明。
 
-<a id="rule-compatibility-binding"></a>
 ### 适用绑定须有明确对象与主机
 
 - 实现依据：`src/domain/deviceResolution.ts`。
@@ -916,15 +905,12 @@
 - 拒绝：型号歧义、目标不存在、错误身份或非法绑定。
 - 静态核对：对应当前条件/保护分支，未修改规则来配合说明。
 
-<a id="rule-compatibility-basis"></a>
 ### 适用声明按有效依据维护
 
-- 实现依据：`src/domain/accessoryCompatibilityCommands.ts`。
 - 允许：结论、能力、条件和来源通过真实校验，预览依据仍有效。
 - 拒绝：真实矛盾结论/条件、过期 basis 或错误目标。
 - 静态核对：对应当前条件/保护分支，未修改规则来配合说明。
 
-<a id="rule-compatibility-manual-protection"></a>
 ### 人工修改与取消跨版本保留
 
 - 实现依据：`src/domain/materialRelationCommands.ts`。

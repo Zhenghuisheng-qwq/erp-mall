@@ -84,7 +84,7 @@ export function fixture(branches = 2, capacities = 2, colors = 2, packs = 2) {
   return {
     params, templateParams: [{ templateId: 'm', paramId: 'capacity', role: 'variant', required: false }],
     templates: [{ id: 'm', name: 'Fixture', enabled: true, parentId: null, structureOrder: [] }],
-    productSpecNodes: nodes, planningRecords: [], specModelVersions: [], nodeCompatibilityRules: [],
+    productSpecNodes: nodes, planningRecords: [], specModelVersions: [],
     families: [], skus: [], productPlans: [], specCanvases: [], rules: [], categories: [], mappings: [],
   }
 }

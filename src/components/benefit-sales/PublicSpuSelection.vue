@@ -1,7 +1,7 @@
 <template>
  <div class="public-selection">
   <div class="heading"><strong>公共商品（SPU）</strong><el-button :disabled="disabled" size="small" data-select-common-spus @click="opened=true;error=''">添加公共商品</el-button></div>
-  <p v-if="!modelValue?.length" class="muted">可从全局公共池引用其他分类的商品，使用时逐个规格核验适用与在售状态。</p>
+  <p v-if="!modelValue?.length" class="muted">可从全局公共池引用其他分类的商品，商品沿用原档案，配套商品按当前设备核验后选择。</p>
   <div v-for="id in modelValue||[]" :key="id" class="selected-row" :data-common-spu="id"><div><strong>{{data.families.find(f=>f.id===id)?.name||'SPU 引用失效'}}</strong><small>{{row(id)?.typeName||'类型失效'}} · {{row(id)?.skuCount||0}} 个销售规格</small><small v-if="publicReferenceProblem(data,id)" class="warning">{{publicReferenceProblem(data,id)}}，请明确移除或由管理员处理</small></div><el-button text :disabled="disabled" @click="emit('update:modelValue',(modelValue||[]).filter(x=>x!==id))">移除</el-button></div>
   <PublicSpuPicker v-model:open="opened" :data="data" :model-value="modelValue||[]" pool-only :error="error" @confirm="apply"/>
  </div>

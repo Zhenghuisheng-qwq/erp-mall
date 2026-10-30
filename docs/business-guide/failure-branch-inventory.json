@@ -376,69 +376,6 @@
       "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
     },
     {
-      "id": "compatibility.bind.target",
-      "actionId": "action-compatibility-bind",
-      "ruleId": "rule-compatibility-binding",
-      "kind": "business",
-      "source": "src/stores/catalog.ts:commitDeviceBinding/target",
-      "exact": true,
-      "validation": "default:device MAT/nonhost target; strict:device MAT/nonhost target"
-    },
-    {
-      "id": "compatibility.bind.type",
-      "actionId": "action-compatibility-bind",
-      "ruleId": "rule-compatibility-binding",
-      "kind": "business",
-      "source": "src/stores/catalog.ts:commitDeviceBinding/type",
-      "exact": true,
-      "validation": "default:device binding mismatched type; strict:device binding mismatched type"
-    },
-    {
-      "id": "compatibility.bind.scope",
-      "actionId": "action-compatibility-bind",
-      "ruleId": "rule-compatibility-binding",
-      "kind": "business",
-      "source": "src/stores/catalog.ts:commitDeviceBinding/scope",
-      "exact": true,
-      "validation": "default:device binding requires model scope; strict:device binding requires model scope"
-    },
-    {
-      "id": "compatibility.bind.basis",
-      "actionId": "action-compatibility-bind",
-      "ruleId": "rule-compatibility-basis",
-      "kind": "conflict",
-      "source": "src/stores/catalog.ts:commitDeviceBinding/source-stamp",
-      "exact": true,
-      "validation": "default:device binding source stamp changed; strict:device binding source stamp changed"
-    },
-    {
-      "id": "compatibility.bind.replace",
-      "actionId": "action-compatibility-bind",
-      "ruleId": "rule-compatibility-binding",
-      "kind": "business",
-      "source": "src/stores/catalog.ts:commitDeviceBinding/replace-confirmation",
-      "exact": true,
-      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
-    },
-    {
-      "id": "compatibility.sync.basis",
-      "actionId": "action-compatibility-sync",
-      "ruleId": "rule-compatibility-basis",
-      "kind": "conflict",
-      "source": "src/domain/templateCompatibilitySync.ts:applyTemplateCompatibilitySync/basis",
-      "exact": true,
-      "validation": "default:compatibility sync actual stale preview; strict:compatibility sync actual stale preview"
-    },
-    {
-      "id": "compatibility.sync.manual",
-      "actionId": "action-compatibility-sync",
-      "ruleId": "rule-compatibility-manual-protection",
-      "kind": "business",
-      "source": "src/domain/templateCompatibilitySync.ts:applyTemplateCompatibilitySync/manual-protection",
-      "exact": true,
-      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
-    },
-    {
       "id": "import.material.basis",
       "actionId": "action-json-import",
       "ruleId": "rule-conflict",
@@ -556,24 +493,6 @@
       "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
     },
     {
-      "id": "material.scope.manual-origin",
-      "actionId": "action-material-create",
-      "ruleId": "rule-compatibility-manual-protection",
-      "kind": "business",
-      "source": "src/domain/materialRelationCommands.ts:previewMaterialScope/protected-origin",
-      "exact": true,
-      "validation": "Source binding present; this specific branch has no dedicated Store assertion yet."
-    },
-    {
-      "id": "material.scope.manual-contribution",
-      "actionId": "action-material-create",
-      "ruleId": "rule-compatibility-manual-protection",
-      "kind": "business",
-      "source": "src/domain/materialRelationCommands.ts:previewMaterialScope/protected-contribution",
-      "exact": true,
-      "validation": "default:human cancelled contribution remains protected after V2 note change; strict:human cancelled contribution remains protected after V2 note change"
-    },
-    {
       "id": "command.permission",
       "actionId": "action-rbac-authorize",
       "ruleId": "rule-permission",
@@ -593,15 +512,6 @@
     }
   ],
   "gaps": [
-    {
-      "id": "gap.legacy.string",
-      "actionId": "action-business-save",
-      "kind": "unknown",
-      "source": "legacy string-valued validation helpers (dictionary/model/material compatibility/reference checks)",
-      "exact": false,
-      "validation": "not precisely bound",
-      "note": "Original message retained; no message matching or inferred business rule."
-    },
     {
       "id": "gap.material.path",
       "actionId": "action-business-save",
@@ -1225,29 +1135,6 @@
       "binding": "legacy-unknown"
     },
     {
-      "source": "src/domain/templateCompatibilitySync.ts",
-      "function": "applyTemplateCompatibilitySync",
-      "line": 386,
-      "syntax": "return rejectGuide('compatibility.sync.basis', '预览后商品、声明或版本已变化，请重新预览；未写入任何内容。')",
-      "binding": "explicit",
-      "branchId": "compatibility.sync.basis"
-    },
-    {
-      "source": "src/domain/templateCompatibilitySync.ts",
-      "function": "applyTemplateCompatibilitySync",
-      "line": 387,
-      "syntax": "return rejectGuide('compatibility.sync.manual', '所选整组含人工修改、删除或相反结论保护，不能整组覆盖；请先维护对应声明并重新预览。')",
-      "binding": "explicit",
-      "branchId": "compatibility.sync.manual"
-    },
-    {
-      "source": "src/domain/templateCompatibilitySync.ts",
-      "function": "applyTemplateCompatibilitySync",
-      "line": 389,
-      "syntax": "return { ok: false, message: conflicts.join('；') + '。请维护对应声明并重新预览，未写入任何内容。' }",
-      "binding": "legacy-unknown"
-    },
-    {
       "source": "src/stores/catalog.ts",
       "function": "command",
       "line": 329,
@@ -1326,53 +1213,6 @@
     },
     {
       "source": "src/stores/catalog.ts",
-      "function": "commitDeviceBinding",
-      "line": 674,
-      "syntax": "return rejectGuide('compatibility.bind.target', '请选择真实的主机销售 SKU，不能绑定 MAT 或配件。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
-      "binding": "explicit",
-      "branchId": "compatibility.bind.target"
-    },
-    {
-      "source": "src/stores/catalog.ts",
-      "function": "commitDeviceBinding",
-      "line": 675,
-      "syntax": "return rejectGuide('compatibility.bind.type', '设备型号与当前 SKU 的产品类型不一致，请选择相同主机类型的型号。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
-      "binding": "explicit",
-      "branchId": "compatibility.bind.type"
-    },
-    {
-      "source": "src/stores/catalog.ts",
-      "function": "commitDeviceBinding",
-      "line": 676,
-      "syntax": "return rejectGuide('compatibility.bind.scope', '绑定设备型号时请选择型号级目标，规划范围由设备自己的来源确认。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
-      "binding": "explicit",
-      "branchId": "compatibility.bind.scope"
-    },
-    {
-      "source": "src/stores/catalog.ts",
-      "function": "commitDeviceBinding",
-      "line": 678,
-      "syntax": "return { ok: false, message: problem }",
-      "binding": "legacy-unknown"
-    },
-    {
-      "source": "src/stores/catalog.ts",
-      "function": "commitDeviceBinding",
-      "line": 680,
-      "syntax": "return rejectGuide('compatibility.bind.basis', '设备来源已变化，请重新打开型号配置后确认。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
-      "binding": "explicit",
-      "branchId": "compatibility.bind.basis"
-    },
-    {
-      "source": "src/stores/catalog.ts",
-      "function": "commitDeviceBinding",
-      "line": 682,
-      "syntax": "return rejectGuide('compatibility.bind.replace', '这条设备已有绑定；重新绑定会改变查询适用配件的型号，请明确确认原绑定及影响。', {savedState:'unchanged',recovery:['repreview','edit-input']})",
-      "binding": "explicit",
-      "branchId": "compatibility.bind.replace"
-    },
-    {
-      "source": "src/stores/catalog.ts",
       "function": "importJson",
       "line": 809,
       "syntax": "throw failureError(message,branchFailure('import.json.parse',message,{savedState:'unchanged',recovery:['edit-input','feedback']}))",
@@ -1420,14 +1260,6 @@
       "source": "src/stores/catalog.ts",
       "function": "importJson",
       "line": 819,
-      "binding": "explicit",
-      "branchId": "import.json.validation"
-    },
-    {
-      "source": "src/stores/catalog.ts",
-      "function": "importJson",
-      "line": 821,
-      "syntax": "throwImportValidation(`适用关系导入校验失败：${compatibilityProblems.join(' ')} 当前数据没有被替换。`)",
       "binding": "explicit",
       "branchId": "import.json.validation"
     },

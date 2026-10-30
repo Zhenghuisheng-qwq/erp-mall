@@ -1,3 +1,4 @@
+import {productTypeAvailabilityProblem} from './productTypePurpose'
 import {familyProductTypeId} from './productIdentity'
 import {generalReferenceProblem,generalConditionProblem,generalFactProblem,type GeneralCompatibilityClaim,type CompatibilityEvidence} from './generalCompatibility'
 import { projectAttrs, shelfOf } from './logic'
@@ -83,6 +84,8 @@ export function accessoryUseEvaluation(match: (Pick<AccessoryMatch, 'capabilitie
   const status = required.some(item => item.status === 'incompatible') ? 'incompatible' : required.some(item => item.status === 'pending') ? 'pending' : required.some(item => item.status === 'conditional') ? 'conditional' : 'compatible'
   return { status, conflict: required.some(item => item.conflict), conditions: required.flatMap(item => item.conditions), declarations: [...new Map(required.flatMap(item => item.declarations).map(link => [link.id, link])).values()], evidence:[...new Map(required.flatMap(c=>c.evidence||[]).map(e=>[e.key,e])).values()], basic, fastCharge, missingBasic: !(basic.evidence?.length??basic.declarations.length), requiresFastCharge: Boolean(options.requireFastCharge) }
 }
+/** Single normal-sales gate shared by the workspace, preview and shopping. */
+export function accessorySaleProblem(match:Parameters<typeof accessoryUseEvaluation>[0]){const use=accessoryUseEvaluation(match);if(use.conflict)return '适用资料存在冲突';if(use.missingBasic)return '基本使用尚未确认';if(use.status==='incompatible')return '存在明确不适用依据';if(use.status==='pending')return '资料待核验';if(use.status==='conditional'&&!(use.basic.evidence?use.basic.evidence.some(e=>e.effective&&e.record.conclusion!=='incompatible'):use.conditions.every(c=>c.state==='met')))return '必要条件尚未确认';return ''}
 function declarationProblem(data: AppData, link: CompatibilityLink, context: DeviceResolutionContext, hostOptions: Map<string, DeviceResolutionContext['hostOptions'][number]>) {
   if (link.provenance?.template?.state === 'stale') return '规格已改变，模板兼容来源待重新确认。'
   if (link.targetId !== undefined && link.targetKind === undefined) return '配件对象类型缺失，请明确销售 SKU 或物料。'
@@ -125,6 +128,7 @@ function queryResolvedDevice(data: AppData, device: DeviceResolution, options: {
     const records=generalBySku.get(claim.skuId)||[];records.push(claim);generalBySku.set(claim.skuId,records)
     const key=JSON.stringify(['sku',claim.skuId]);if(!groups.has(key))groups.set(key,[])
   }
+  for(const sku of data.skus)if(context.realSkuIds.has(sku.id)&&compatibilityRecordRole(data,sku.id)==='accessory'){const key=JSON.stringify(['sku',sku.id]);if(!groups.has(key))groups.set(key,[])}
   const text = (options.keyword || '').trim().toLocaleLowerCase()
   for (const [groupKey,declarations] of groups) {
     const [kind,id]=JSON.parse(groupKey) as ['sku'|'material',string]
@@ -146,13 +150,17 @@ function queryResolvedDevice(data: AppData, device: DeviceResolution, options: {
     for(const e of evidence.filter(e=>e.kind==='general'))reasons.push(`通用条件 · ${e.record.source} · ${e.reason}`,...e.conditions.map(c=>c.label+'：'+({met:'已满足',unmet:'未满足',unknown:'待核验'}[c.state])))
     if (!(basic.evidence?.length??basic.declarations.length)) reasons.push('此处为特定能力结论，基本使用能力尚未单独维护。')
     if (conditions.some(item => item.state === 'unmet')) reasons.push('部分声明的设备属性条件不满足；请查看各条匹配依据。')
+    const brokenReference=productTypeAvailabilityProblem(data,productTypeId)||result.issues.some(i=>{const c=data.compatibilities?.find(c=>c.id===i.declarationId);return c&&(c.targetId||c.accessorySkuId)===sku.id})&&'适用资料存在失效引用'
+    const saleProblem=target.kind==='sku'?(brokenReference||accessorySaleProblem({capabilities,basic})):''
     const bucketStatus = target.kind === 'material' ? status : basic.status
     const match: AccessoryMatch = { target, sku, name, code, spec, productTypeId, productTypeName, status, recommendable: (bucketStatus === 'compatible' || bucketStatus === 'conditional') && (target.kind === 'material' || (sku.status === 'on_sale' && shelfOf(family) === 'online')), conflict: capabilities.some(item => item.conflict), reasons, conditions, declarations, capabilities, basic, evidence }
+    match.blockingReason=saleProblem||undefined
     // Management keeps every capability and its conservative summary. Ordinary
     // sales recommendations, however, need their own basic-use declaration.
     if (bucketStatus === 'pending') result.pending.push(match)
     else if (bucketStatus === 'incompatible') result.excluded.push(match)
     else if (target.kind === 'material') result.materials.push(match)
+    else if (saleProblem){match.recommendable=false;match.reasons.push(saleProblem);result.pending.push(match)}
     else if (match.recommendable) result.sales.push(match)
     else result.unavailable.push(match)
     result.counts.declarations += declarations.length+general.length

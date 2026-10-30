@@ -465,18 +465,6 @@
         "sha256": "ce9cdbcb0b621b0b75dc67c05ff1fbd68274240449f103fb1562ad1dc0c19640"
       },
       {
-        "path": "src/domain/compatibility.ts",
-        "sha256": "479de66d7c0c1838dbb5aa4920138b6d08e0e19d310b96f98ae62db0ffc446aa"
-      },
-      {
-        "path": "src/domain/compatibilityCheck.ts",
-        "sha256": "a6bcd7c73da6e351aedf1239509856fbbe6602f596c154b96b9de8727b6a588a"
-      },
-      {
-        "path": "src/domain/compatibilitySamples.ts",
-        "sha256": "43860eede1900949acbe84f0dfc212e4dca845395e93992edf67840ca2d0e848"
-      },
-      {
         "path": "src/domain/consistencyCheck.ts",
         "sha256": "a1075781b50edc0ad477d1eddb3da471747cbec25f1825814e3137b3d9f0c5ef"
       },
@@ -543,10 +531,6 @@
       {
         "path": "src/domain/namingCheck.ts",
         "sha256": "f1f967fb10f06d3783414faa9ce8675313d03e516ac7943e12d6d71bbd4c4ec0"
-      },
-      {
-        "path": "src/domain/nodeCompatibility.ts",
-        "sha256": "7280de343310a0b3783823f9767659560220fdd7e20557570b6b3c090b0c6f50"
       },
       {
         "path": "src/domain/outlineEdit.ts",
@@ -637,7 +621,6 @@
   "productionFileSha256": {
     "src/views/SpecConfigView.vue": "9584ce6596240353434af4b50cc7f0b60ec3a34cf41a6c504782f7e5a302d392",
     "src/components/model-editor/LegalComboDialog.vue": "0474059b641fa67e5d4d66cdb17874112a879b624a92f925715ec12dbeae9f11",
-    "src/components/model-editor/NodeHostDialog.vue": "346e856ff20fbc3d145e01c83d982231b2a190404bdea8836d8cb2764d18879d",
     "src/components/model-editor/comboPresentation.ts": "059b4ca35acc6b40b2cb7d8a0bca0de68cc772c97fe4ca3dbeb9928ce27da7a8",
     "src/components/model-editor/useComboSelection.ts": "cc91311541b4ea5431ae677b942527c5e370b14f7eff67d9ad46fee83f44211a"
   }

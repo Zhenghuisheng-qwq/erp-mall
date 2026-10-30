@@ -5,14 +5,11 @@ import {freezeBusinessNodes} from '../nodeBusiness'
 import {legalPlanningCombinations,reconcilePlanningRecords} from '../planning'
 import {saveSpu,previewSkuAppend,appendSkuBatch,editSku} from '../spuSku'
 import {createV3Material} from '../material'
-import {resolveDeviceSku} from '../deviceResolution'
 import {resolveSkuModelSource} from '../modelSourceContext'
 import {nodesFor,type Axis} from './phone18Demo'
-import {saleQuery} from './query'
 
-export const phoneBrandKeys=['phoneDemoBrandsVersion','params','templates','productSpecNodes','specCanvases','specModelVersions','planningRecords','families','skus','compatibilities','materialReceipts','materialRelations','materialContributions','brands'] as const satisfies readonly (keyof AppData)[]
+export const phoneBrandKeys=['phoneDemoBrandsVersion','params','templates','productSpecNodes','specCanvases','specModelVersions','planningRecords','families','skus','materialReceipts','materialRelations','materialContributions','brands'] as const satisfies readonly (keyof AppData)[]
 const time='2026-10-30T10:00:00.000Z'
-export const phoneProductSource='内部流程验证资料：用于系统功能验收，不构成真实供应商适用承诺。'
 const axis=(key:string,name:string,values:string[],common=false):Axis=>({id:`demo18-${key}`,name,values,common})
 const fields={
  brand:axis('brand','品牌',['华为'],true),series:axis('series','系列',['Mate 70'],true),model:axis('model','型号',['Mate 70 Pro'],true),
@@ -73,14 +70,6 @@ export function supplementHuaweiProducts(current:AppData){
     if(!made.ok)throw Error(made.message)
     next.skus.find(s=>s.id===made.skuId)!.status='on_sale';Object.assign(next.families.find(f=>f.id===made.familyId)!,{lifecycle:'ready',shelfStatus:'online'})
    }
-  }
-  const device=resolveDeviceSku(next,'huawei-sku-phone-1')
-  if(!device.host||device.status!=='resolved')throw Error('华为型号未能唯一识别')
-  for(const kind of ['case','film'])for(const sku of next.skus.filter(s=>s.familyId===`huawei-spu-${kind}`))next.compatibilities.push({id:`huawei-claim-${sku.id}`,accessorySkuId:sku.id,targetKind:'sku',targetId:sku.id,host:cloneRecord(device.host),capability:'basic',conclusion:'compatible',verification:'confirmed',conditions:[],source:phoneProductSource,note:'Mate 70 Pro 型号专属适用资料',createdAt:time,updatedAt:time})
-  // Chargers reuse existing verified general claims. Do not broaden or replace an administrator's restrictions.
-  for(const phone of next.skus.filter(s=>s.familyId==='huawei-spu-phone')){
-   const result=saleQuery(next,{mode:'free',categoryId:'c-phone',productTypeIds:['pt-case','pt-film','pt-leaf-c-charge'],device:{kind:'sku',skuId:phone.id}})
-   for(const kind of ['case','film','charger'])if(!result.candidates.some(c=>c.id.startsWith(kind==='charger'?'demo18-sku-charger-':`huawei-sku-${kind}-`)))throw Error(`华为 ${kind} 缺少有效适用资料，请核对现有声明后重试`)
   }
   if(!next.brands.some(b=>b.name==='华为')){
    if(next.brands.some(b=>b.id==='brand-huawei'))throw Error('华为品牌标识已被其他品牌占用')

@@ -1,12 +1,11 @@
 import type {GuideArticle,GuideManualContent,GuidePage} from '../types'
-const features=[
- {id:'compat-product',title:'给商品添加适用设备',description:'左侧按分类和产品类型查找真实销售 SKU，未维护的商品也能找到。',operation:'在商品适用台账选择配件 SKU，多选明确型号，填写一次共同依据后点“保存适用资料”。SPU 分组可明确选择本组实际 SKU。',result:'同一商品资料被多个权益包复用；取消勾选可选择删除声明或明确不适用，未勾选本身不代表不适用。',primary:true},
- {id:'compat-general',title:'维护通用适用条件',description:'明确型号和通用条件可同时存在。设备类型只限制范围，不能单独证明适用。',operation:'展开“通用适用条件”，添加设备类型、必要参数等于/属于指定值、结论、核验状态与资料依据。',result:'已核验且必要条件能够证实满足才进入正常候选；未知保持待核验，明确不适用及冲突继续阻断。',primary:true},
- {id:'compat-preview',title:'区分未保存预览与已保存结果',description:'选择实际设备提供规格事实；只选择型号时缺少的事实保持未知。',operation:'在下方选择预览设备，切换“未保存预览”或“当前已保存结果”。保存前检查必要条件和销售准入。',result:'两个视角都调用正式查询；预览不写入数据。基本使用与快充分别核验。'},
- {id:'compat-device',title:'从设备查询可用商品',description:'正向维护和反向查询读取同一份关系。',operation:'切换“按设备查询”，选择实际设备；默认按产品类型查看已确认且可售商品，其他原因在次要视角查看。',result:'停售是销售状态，待核验是资料不足，明确不适用是有效排除依据，三者含义不同。',primary:true},
- {id:'compat-sale',title:'在权益包中实际选购',description:'权益包只保存参与的产品类型，不绑定兼容关系。',operation:'在权益包选购选择设备、选包或自由组合，添加可用商品并填写数量和报价。适用详情可到同一工作台维护，再返回选购。',result:'返回刷新候选并保留未保存数量与报价；加入手机需明确点击。保存失败保留输入；确认清单冻结当时资料。'},
- {id:'compat-guard',title:'保存、权限与历史保护',description:'查看候选和维护资料分别授权。',operation:'批量资料核对后统一保存；失败保留输入重试。关闭、离开和刷新会保护未保存修改。',result:'不部分提交，不自动改写已有结论或历史确认清单；切换身份清理工作台编辑。'}
-]
 export const compatibilityPages:GuidePage[]=[{id:'page-compatibility',title:'兼容性管理',patterns:['/compatibility'],articleId:'manual-compatibility',actionIds:[],formal:true}]
-export const compatibilityManuals:Record<string,GuideManualContent>={'page-compatibility':{purpose:'在一个工作台维护商品适用资料、预览结果及按设备反向查询。',features,restrictions:[]}}
-export const compatibilityArticles:GuideArticle[]=[{id:'manual-compatibility',title:'兼容性管理',kind:'page',summary:'商品台账、明确型号、通用条件、实际设备查询与权益包选购。',aliases:['适用设备','可用配件','通用条件'],pageIds:['page-compatibility'],actionIds:[],ruleIds:[],related:[],sections:features.map(f=>({id:f.id,title:f.title,paragraphs:[f.description,f.operation,f.result]}))}]
+const features=[
+ {id:'list',title:'查看适用关系',description:'商品中心的兼容性分组进入兼容性管理。',operation:'按产品类型或商品、规格、型号关键词筛选，直接查看商品对应的适用型号。',result:'一条销售SKU可以关联多个型号；没有设置型号的商品也能找到。'},
+ {id:'edit',title:'选择商品，勾选型号，保存',description:'常规维护只选择具体商品和适用型号。',operation:'点击新增适用关系，选择产品类型，勾选需要维护的SKU，再搜索和勾选型号，点保存关联。单条关系可直接点编辑。',result:'不要求填写资料说明或配置技术条件；维护人应按实际产品资料确认，系统不从品牌和商品名称推断适用。'},
+ {id:'batch',title:'批量新增与替换',description:'批量编辑默认新增适用型号，保护各商品原有差异。',operation:'在列表多选商品后点批量编辑。新增适用型号保留原有其他型号；明确选择替换适用型号时，用本次选择替换普通型号关联，取消内容保存前确认。',result:'只修改明确选中的商品。特殊声明、明确限制及其他已保存资料不被普通编辑器覆盖。'},
+ {id:'unlink',title:'取消关联',description:'取消关联回到没有该型号确认依据，不等于明确不适用。',operation:'在编辑窗口取消勾选并采用替换方式保存，或在列表点击取消关联并确认。',result:'不删除商品或设备，不修改其他商品及冻结清单。已存在明确不适用记录时，普通新增不会覆盖。'},
+ {id:'sale',title:'在权益包选购中使用',description:'商城沿用已有设备选择与商品清单。',operation:'进入权益包选购，选择设备后自由组合或采用已有权益包，点商品＋加入，再填写数量和报价。',result:'适用关系集中维护一次；公共池共享商品仍按正式适用结果核验。维护返回保留输入，确认历史保持冻结。'}
+]
+export const compatibilityManuals:Record<string,GuideManualContent>={'page-compatibility':{purpose:'集中维护商品与设备型号的直接关联，操作只需选择和保存。',features,restrictions:[]}}
+export const compatibilityArticles:GuideArticle[]=[{id:'manual-compatibility',title:'兼容性管理',kind:'page',summary:'关系查询、商品与型号多选、批量新增/替换和取消关联。',aliases:['/compatibility','适用设备'],pageIds:['page-compatibility'],actionIds:[],ruleIds:[],related:[],sections:features.map(f=>({id:f.id,title:f.title,paragraphs:[f.description,f.operation,f.result]}))}]

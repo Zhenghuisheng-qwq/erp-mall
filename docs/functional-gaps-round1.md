@@ -159,8 +159,6 @@ node scripts/run-domain-check.mjs scripts/spu-sku-check.ts
 node scripts/run-domain-check.mjs scripts/product-list-query-check.ts
 node scripts/run-domain-check.mjs scripts/planning-check.ts
 node scripts/run-domain-check.mjs scripts/material-check.ts
-node scripts/run-domain-check.mjs scripts/template-compatibility-domain-check.ts
-node scripts/run-domain-check.mjs scripts/template-compatibility-state-check.ts
 node scripts/browser-sku-workbench.mjs
 npm run typecheck
 npm run build

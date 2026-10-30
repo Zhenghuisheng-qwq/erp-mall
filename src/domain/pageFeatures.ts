@@ -151,11 +151,11 @@ const sheets: Record<string, LegacyFeatureSheet> = {
     ['family', '按整款查看', '查看'],
     ['matrix', '规格矩阵', '查看'],
   ]),
+  '/compatibility':sheet('兼容性管理',[['list','适用关系列表','查看'],['edit','选择商品与型号','维护'],['save','保存或取消关联','维护']]),
   '/check': sheet('商品质量检查', [
     ['list', '查看问题', '检查'],
     ['fix', '去修改', '检查'],
   ]),
-  '/compatibility': sheet('兼容性管理', [['ledger','商品适用台账','维护'],['models','维护适用设备','维护'],['device','按设备查询','查询']]),
   '/import': sheet('导入导出', [
     ['template', '下载模板', '表格'],
     ['export', '导出商品', '表格'],

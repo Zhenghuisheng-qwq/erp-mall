@@ -39,7 +39,8 @@ export function defaultMenuNodes(): MenuNode[] {
     group('model', '商品模型配置', 'product', 3, ADMIN),
     group('operate', '商品运营', 'product', 4, BOTH),
     group('analysis', '商品分析', 'product', 5, BOTH),
-    page('/compatibility', '兼容性', 'product', 5.5, BOTH),
+    group('compatibility-group','兼容性','product',7,BOTH),
+    page('/compatibility','兼容性管理','compatibility-group',1,BOTH),
     group('benefits', '权益包', 'product', 6, BOTH),
     page('/benefits/manage', '权益包管理', 'benefits', 1, BOTH),
     page('/benefits/shopping', '权益包选购', 'benefits', 2, BOTH),
@@ -136,7 +137,6 @@ export function sanitizeMenu(nodes: MenuNode[]): MenuNode[] {
     }
   }
   // Only the explanation entrance changes ownership; all other saved menu nodes keep their configuration.
-  const compatibilityPage=byId.get('page:/compatibility');if(compatibilityPage&&['兼容性查询','兼容性维护','适用关系'].includes(compatibilityPage.title))compatibilityPage.title='兼容性'
   const shoppingPage=byId.get('page:/benefits/shopping');if(shoppingPage?.title==='历史选购清单')shoppingPage.title='权益包选购'
   const guidePage = byId.get('page:/guide')!
   guidePage.parentId = 'guide'
@@ -146,6 +146,7 @@ export function sanitizeMenu(nodes: MenuNode[]): MenuNode[] {
     const nextSort = Math.min(...[...byId.values()].filter(node => node.kind === 'center' && node.id !== 'guide' && node.sort > systemSort).map(node => node.sort))
     byId.get('guide')!.sort = Number.isFinite(nextSort) ? (systemSort + nextSort) / 2 : systemSort + 1
   }
+  const compatibilityPage=byId.get('page:/compatibility');if(compatibilityPage){compatibilityPage.parentId='compatibility-group';compatibilityPage.title='兼容性管理'}
   const list = [...byId.values()]
   const known = new Set(list.map((item) => item.id))
   for (const item of list) {

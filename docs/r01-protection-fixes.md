@@ -37,9 +37,6 @@
 | `r01-business-check.ts` | 全部通过，覆盖继承、限制、冲突、发布冻结、编号保留、JSON 恢复与外部更新保护。 |
 | `editor-safety-check.ts` | 7 项通过，含共享词典、改名/值创建撤销及历史快照保留。 |
 | `functional-gaps-round3-check.ts` | 全部通过。 |
-| `compatibility-storage-check.ts` | 全部通过，含导入/恢复失败原子性与存储锁保护。 |
-| `template-compatibility-state-check.ts` | 14 项通过。 |
-| `accessory-compatibility-state-check.ts` | 全部通过，含既有导入权限与校验回归。 |
 | `npm run typecheck` | 通过。 |
 | `npm run build` | 类型检查及生产构建通过；Vite 提示部分 chunk 超过 500 kB。 |
 | `git diff --check` | 通过。 |

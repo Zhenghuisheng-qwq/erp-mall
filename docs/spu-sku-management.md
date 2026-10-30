@@ -15,7 +15,6 @@ RESULT：**READY**。2026-10-22 完成。本轮约定的创建、追加、维护
 | 原调用链 / 风险 | 本轮处理 |
 |---|---|
 | `ProductEditView / ProductPlanView → catalog.saveBundle` 会整体替换 Family 的子数组 | 新流程分别调用 `saveSpu / appendSkus / editSku`。兼容 `saveBundle` 先在副本校验，再写入；未出现在草稿中的记录保留，不能借保存删除其他 SKU 或 MAT。旧编辑器处理失败结果，不再误报成功。 |
-| `catalog.removeSku` 删除最后一条后自动删除 Family | 去掉自动删除父级；保留原适用关系检查和 MAT 删除回执。SPU 删除单独检查子记录及阻止删除的关联，不级联。 |
 | 记录类型依赖 `family.line`，V3 主体下所有记录容易被算成 MAT | 集中判定并增加可选 `recordKind`。V3 主体可以显式追加真实 SKU；物料页、模型数量、适用物料候选使用统一判定。 |
 | 商品规划直接创建新 Family，并用 `family.productPlanId` 阻止再次生成 | 改为先选择兼容 SPU，再预览及追加；每条新 SKU 保存来源。保留旧 Family 的单规划关联；有来源引用的规划拒绝删除。 |
 | 双模式列表共用分页、视图及查询容器 | 两套页面设置独立持久化；迁移每个旧视图的两套配置，保留排序、列、筛选和选择状态。 |
@@ -30,7 +29,6 @@ SPU 仍为 `ProductFamily`，真实 SKU 仍以单个 `familyId` 关联有效 SPU
 - **保存 SPU**：允许空 SPU；只保存主体公共信息。已有 SKU、MAT 或历史身份时锁定分类、类型、模型版本及公共属性，不自动重生成子记录。名称、OA 编号和现有商品状态可维护。
 - **追加 SKU**：只接受有效父级。预览区分新增、已存在和无效，新增默认选中；按当前 SPU 内规格属性身份去重，不按名称、不跨 SPU 去重。提交重新计算、校验候选和已有记录，全部校验后一次追加；旧记录顺序不变，没有新增时不写入、不更新时间。
 - **单条编辑**：只更新指定真实 SKU，不更换 `familyId`。保留来源及版本；有模型节点或规划来源的规格身份锁定，普通模板规格修改也检查规则和重复。状态批量操作限定真实 SKU。
-- **删除**：SKU 删除后保留 SPU；SPU 有 SKU、MAT 或阻止删除的适用关系时明确拒绝，相关管理入口仍在列表和详情中。没有新增级联删除。
 - **生成来源**：新 SKU 的 `creationSource` 记录生成方式、模板、模型版本、规划 ID/名称和创建时间；规划来源还有既有 `sourceNodeIds`。追加不覆盖 `family.productPlanId`，旧记录可按父级历史规划解释，未记录的来源显示未记录。
 - **历史模型**：使用 SPU 绑定的发布快照。失效版本拒绝生成；不会自动换成最新版本。版本 14 数据不会再触发旧版的“缺失版本回填最新”逻辑。模型生成复用合法组合与原 SKU 生成函数，一次预览内复用模型展开结果，没有长期缓存或数量截断。
 
@@ -42,7 +40,6 @@ SPU 仍为 `ProductFamily`，真实 SKU 仍以单个 `familyId` 关联有效 SPU
 | `/spus/new`、`/spus/:id` | 新建及详情编辑；保存空 SPU、保存并新增 SKU；查看子 SKU、物料和绑定的历史节点快照。 |
 | `/skus`、`/skus?spu=ID` | SKU 管理及指定 SPU 的临时范围，显示“当前查看”“查看 SPU”“查看全部 SKU”。 |
 | `/skus/new`、`?spu=ID` | 先选择 SPU，再手工创建、按模板范围或按模型批量预览、确认追加。支持流程内新建 SPU；取消内联表单保留原 SKU 输入；切换主体前确认丢弃未保存规格。 |
-| `/skus/new?template=ID`、`?plan=ID` | 属性方案、模型、规划的真实按钮进入同一流程；优先兼容主体并解释不兼容原因。规划兼容性检查分类、类型、模型、版本及公共属性。 |
 | `/skus/:id` | 单 SKU 编辑；保存/取消返回原 SKU 列表范围。 |
 | `/materials/new`、`/materials/:id` | 独立物料建档和档案管理，复用 V3 建档、临时物料及物料管理组件。不是“创建 SKU”的别名。 |
 | `/products`、`/products/new` | 分别转到 SPU 列表、新建 SPU，保留查询参数。 |
@@ -69,7 +66,6 @@ SPU 仍为 `ProductFamily`，真实 SKU 仍以单个 `familyId` 关联有效 SPU
 | `components/catalog/SpuPicker.vue`、`SkuFields.vue` | 只读主体搜索/兼容说明、规格表单。规格表单编辑父页面的本地草稿，不能直接写业务记录。 |
 | `views/SkuEditView.vue`、`useUnsavedCatalog.ts` | 单条维护及离开未保存流程的提示；模型/规划来源和父级不可任意改写。 |
 | `domain/spuSku.ts`、`stores/catalog.ts` | 纯预览、身份/规则校验、原子追加与明确写入边界；ID 避让、删除及存储仍由 store 协调。 |
-| `domain/catalogIdentity.ts` | 真实 SKU / MAT 判定唯一入口；列表、V3 档案和适用关系候选共用。 |
 
 ## 实际验证与证据
 
@@ -85,7 +81,6 @@ SPU 仍为 `ProductFamily`，真实 SKU 仍以单个 `familyId` 关联有效 SPU
 | `npm run check:spu-sku` | 新增 19 组领域检查、12 个浏览器流程检查点通过；`work/spu-sku/final-spu-sku.log`。 |
 | `node scripts/browser-spu-sku.mjs` | 增补“退出临时 SPU 范围恢复第 2 页”断言后完整重跑通过；最终结果、完整有序业务快照和诊断在 `work/spu-sku/browser/result.json`，日志为 `final-browser.log`。 |
 | `npm run check:integration` | 最终代码 4a–4e 全通过，13 个业务检查点全通过；`work/spu-sku/integration.log`、`final-integration/result.json`、`states.json`、`diagnostics.json`。 |
-| `node scripts/run-domain-check.mjs scripts/compatibility-check.ts` | 15 项通过，包含真实物料表关联；`work/spu-sku/compatibility.log`。 |
 | `node scripts/run-domain-check.mjs scripts/excel-import-check.ts` | 20 项通过；真实工作簿含 1234 个公式、物料表无合并单元格，正式导入 583 条、重复预览识别已导入 583 条；`work/spu-sku/excel-import.log`。 |
 | `node node_modules/typescript/bin/tsc --ignoreConfig --noEmit --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck --strict --types node scripts/spu-sku-check.ts scripts/spu-sku-fixtures.ts` | 新检查和夹具的独立严格类型检查通过；`work/spu-sku/check-types.log`。 |
 | `git diff --check` | 通过；最终补丁和文件清单见下面的本地交付。 |
@@ -94,7 +89,6 @@ SPU 仍为 `ProductFamily`，真实 SKU 仍以单个 `familyId` 关联有效 SPU
 
 ```powershell
 $env:ERP_MATERIAL_XLSX = 'D:\自己的数据目录\1.1 手机 Apple.xlsx'
-node scripts/run-domain-check.mjs scripts/compatibility-check.ts
 node scripts/run-domain-check.mjs scripts/excel-import-check.ts
 ```
 

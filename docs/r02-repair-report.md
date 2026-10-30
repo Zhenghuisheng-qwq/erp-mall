@@ -37,9 +37,6 @@ RESULT：READY（仅针对本次 R02 补修）
 
 ## 修改文件
 
-- 领域：`src/domain/materialRelationCommands.ts`、`materialRelations.ts`、`templateCompatibility.ts`、`material.ts`。
-- 页面和组件：`src/views/ProductListView.vue`、`SpecConfigView.vue`、`src/components/V3FamilyBoard.vue`、`compatibility/LegacyMaterialCompatibility.vue`。
-- 新回归：`scripts/r02-repair-check.ts`、`browser-r02-repair.mjs`、`browser-r02-repair-compatibility.mjs`。
 - 原 `scripts/browser-r02.mjs` 同步显式打开物料显示开关，保留原验收断言。
 
 ## 实际验收证据
@@ -50,9 +47,7 @@ RESULT：READY（仅针对本次 R02 补修）
 | --- | --- |
 | 新增真实 Store 回归 | 13 组通过，[store-checks.json](../work/r02-repair-20261025/store-checks.json) |
 | R02 关系领域检查 | 14 组通过，[relations.json](../work/r02-repair-20261025/domain/relations.json) |
-| R02 兼容领域检查 | 9 组通过，[compatibility.json](../work/r02-repair-20261025/domain/compatibility.json) |
 | 独立 Chrome 主流程 | 8 组通过，[evidence.json](../work/r02-repair-20261025/browser/evidence.json) |
-| 独立 Chrome 兼容补修 | 2 组通过，[evidence.json](../work/r02-repair-20261025/browser-compatibility/evidence.json) |
 | 类型检查、生产构建 | 通过；最终 `npm run build` 包含类型检查，[build-final.log](../work/r02-repair-20261025/build-final.log) |
 | 冻结代码 | V2 选择器、SKU 算法、规划算法、catalogPersistence 与 HEAD blob 相同，[protected-code.json](../work/r02-repair-20261025/protected-code.json) |
 
@@ -62,13 +57,10 @@ RESULT：READY（仅针对本次 R02 补修）
 
 - `r01-plan-check`、`r01-business-check`、`r01-protection-check`。
 - `material-check`、`material-archive-check`、`combo-material-status-check`。
-- `template-compatibility-domain-check`、`template-compatibility-state-check`、`compatibility-storage-check`。
 
-Chrome 156.0.8078.47 使用全新隔离 Context，桌面 1600×1000 和窄窗口 980×720。通过真实页面验证等价条件关联、取消声明、修改模板备注、保存并发布 V2、再关联预览保护；商品列表实际显示 3→4→3；三视图显示开关；原范围创建、刷新反查、解绑、双页冲突、失败重试和布局检查继续通过。两个成功报告均无 pageerror。关键截图：[V2 人工保护](../work/r02-repair-20261025/browser-compatibility/cancelled-v2-protected.png)、[4 条规划摘要](../work/r02-repair-20261025/browser/digest-4.png)。
 
 首次沙箱浏览器访问 localhost 被拒绝，取得工具执行权限后隔离 Chrome 验收通过，不记为业务失败或跳过。生产构建仍有大于 500 kB 分包提示，浏览器日志有既有 Vue Flow 参数弃用提示；没有宣称零警告。
 
-复现新增 Store 检查：`node scripts/run-domain-check.mjs scripts/r02-repair-check.ts`；两项浏览器脚本分别为 `node scripts/browser-r02-repair.mjs`、`node scripts/browser-r02-repair-compatibility.mjs`。
 
 ## 剩余限制与停止点
 

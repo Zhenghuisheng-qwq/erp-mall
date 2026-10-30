@@ -90,7 +90,6 @@ RESULT：**READY**。本次约定范围可以收口；不代表全项目无问�
 | 列、分组、排序、保存视图 | `ProductListViewTools.vue` 负责控件及搜索/拖动瞬态；页面接事件进入 `domain/productListViews.ts` / query 的原函数。视图管理确认弹窗仍在页面。 |
 | 手工排序 | `useProductListManualOrder.ts` 管临时勾选和暂存确认，`ProductListView.vue` 注入持久化命令。不要把暂存写入 store；跨页插入与恢复跑 browser-4d。 |
 | 合法组合 | `SpecConfigView.vue` 管模型/版本、过滤、业务动作与 watch；`LegalComboDialog.vue` 展示；`useComboSelection.ts` 管唯一勾选 ref；`comboPresentation.ts` 做只读映射。实际创建仍走 `V3MaterialActions → catalog.createMaterial`。 |
-| 节点适用配置 | `NodeHostDialog.vue` 发出 toggle/remove/save；`SpecConfigView.openHostConfig/saveDraftHosts/dropDraftHost` 管草稿状态和写入，领域规则在 `nodeCompatibility.ts`。移除是既有即时草稿写入，关闭不是撤销已保存/已移除关系。 |
 | 组合预览与发布 | `draftComboPreview.ts` 只读，`planning.ts` 保留身份/角色/顺序/编号；发布仍由 `catalog.publishSpecModel` 进入。不要在展示组件实现另一套计算。 |
 
 日常核心检查：已有依赖时运行 `npm run check:frontend`、`npm run check:integration`、`npm run typecheck`、`npm run build`、`git diff --check`。新环境按 lockfile 执行 `npm ci`，另需安装 Chrome；使用 Edge 可设置 `$env:BROWSER_CHANNEL='msedge'`。没有浏览器会失败，不会跳过。核心领域/集成入口不要求历史快照。

@@ -3,7 +3,7 @@
     <PageHead title="SKU 管理" desc="按规则查看真实规格商品，将常用配置保存为本机视图。">
       <el-button @click="router.push('/spus')">SPU 管理</el-button>
       <el-button type="primary" @click="router.push({ path: '/skus/new', query: scopeId ? { spu: scopeId } : {} })" :disabled="!(store.can('product:sku:create'))">新增 SKU</el-button>
-    </PageHead>
+    <GoodsModeSwitch/></PageHead>
     <div v-if="scopeId" class="scope-banner" data-spu-scope>
       <div>当前查看：<strong>{{ scopeFamily?.name || '已删除的 SPU' }}</strong> 的 SKU <span class="muted">· {{ scopeId }}</span>
         <p class="muted">此范围与视图条件同时满足；保存视图时默认不包含当前范围。</p>
@@ -95,6 +95,7 @@
 </template>
 
 <script setup lang="ts">
+import GoodsModeSwitch from '../components/used-goods/GoodsModeSwitch.vue'
 import { clearSkuFilterValues } from '../domain/skuQuickFilters'
 import { categoryFilterCaption } from '../domain/categoryTree'
 import RuleExplanation from '../components/guide/RuleExplanation.vue'

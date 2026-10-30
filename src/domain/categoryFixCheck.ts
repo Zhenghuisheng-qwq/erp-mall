@@ -36,9 +36,7 @@ function world(): AppData {
     skus: [
       { id: 'sku-1', familyId: 'fam-mvc9fhvg-36', code: '', oaSkuId: '', status: 'draft', variantAttrs: { 颜色: '白色' }, projectedAttrs: {}, skuName: '白色壳', planningId: 'PLN-000013', materialCode: 'MAT-000002' },
       { id: 'sku-2', familyId: 'fam-mvc9fhvg-36', code: '', oaSkuId: '', status: 'draft', variantAttrs: { 颜色: '黑色' }, projectedAttrs: {}, skuName: '黑色壳', planningId: 'PLN-000005', materialCode: 'MAT-000003' },
-    ],
-    compatibilities: [],
-    params: [],
+    ],    params: [],
     templates: [],
     rules: [],
     mappings: [],

@@ -4,7 +4,7 @@
       <el-button @click="router.push(mode === 'spu' ? '/skus' : '/spus')">{{ mode === 'spu' ? 'SKU 管理' : 'SPU 管理' }}</el-button>
       <el-button v-if="mode === 'spu'" @click="router.push('/materials/new')" :disabled="!(store.can('product:material:create'))">物料建档</el-button>
       <el-button type="primary" @click="router.push(mode === 'spu' ? '/spus/new' : { path: '/skus/new', query: scopeId ? { spu: scopeId } : {} })" :disabled="!(store.can(mode === 'spu' ? 'product:spu:create' : 'product:sku:create'))">{{ mode === 'spu' ? '新建 SPU' : '新增 SKU' }}</el-button>
-    </PageHead>
+    <GoodsModeSwitch/></PageHead>
     <div v-if="scopeId" class="panel" style="margin-bottom: 12px" data-spu-scope>
       当前查看：{{ scopeFamily?.name || '已删除的 SPU' }} 的 SKU
       <el-button v-if="scopeFamily" link type="primary" @click="router.push(`/spus/${scopeId}`)">查看 SPU</el-button>
@@ -232,6 +232,7 @@
 </template>
 
 <script setup lang="ts">
+import GoodsModeSwitch from '../components/used-goods/GoodsModeSwitch.vue'
 import { categoryFilterCaption } from '../domain/categoryTree'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, reactive, ref, watch } from 'vue'

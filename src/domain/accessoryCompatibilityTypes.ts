@@ -33,21 +33,6 @@ export interface CompatibilityProvenance {
 }
 
 /** Existing historical explicit identities; new model choices come from product metadata. */
-export interface DeviceModel {
-  id: string
-  name: string
-  productTypeId: string
-  attributes: Record<string, string>
-  createdAt: string
-  updatedAt: string
-}
-export interface DeviceBinding {
-  skuId: string
-  host: CompatibilityHost
-  sourceStamp: string
-  createdAt: string
-  updatedAt: string
-}
 export interface DeviceModelOption {
   key: string
   host: CompatibilityHost
@@ -67,7 +52,6 @@ export interface DeviceResolution {
   source: string
   attributes: Record<string, string>
   sourceStamp: string
-  binding?: DeviceBinding
 }
 export interface ConditionEvaluation { condition: CompatibilityCondition; state: 'met' | 'unmet' | 'unknown'; label: string }
 export interface CapabilityEvaluation {
@@ -79,6 +63,7 @@ export interface CapabilityEvaluation {
   declarations: CompatibilityLink[]
 }
 export interface AccessoryMatch {
+  blockingReason?: string
   evidence?: CompatibilityEvidence[]
   target: AccessoryTarget
   sku: Sku

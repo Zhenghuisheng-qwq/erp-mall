@@ -1,3 +1,4 @@
+import {addCompatibilityExamples} from './benefitSales/compatibilityExamples'
 import {completePhoneBenefitDemo} from './benefitSales/demo'
 import {replacePhoneCatalogDemo} from './benefitSales/phoneCatalogDemo'
 import { arrangeSpecPositions } from './logic'
@@ -552,7 +553,7 @@ export function createSeed(includePhoneBenefits=true): AppData {
     })
     return { ...item, projectedAttrs: projected }
   })
-  if(includePhoneBenefits){const result=replacePhoneCatalogDemo(data,defaultColumns(),emptyQuery());if(!result.ok)throw new Error(result.message);return result.next}
+  if(includePhoneBenefits){const result=replacePhoneCatalogDemo(data,defaultColumns(),emptyQuery());if(!result.ok)throw new Error(result.message);addCompatibilityExamples(result.next);return result.next}
   return data
 }
 

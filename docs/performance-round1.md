@@ -85,14 +85,12 @@ V2 共用链：`logic.ts` 的 `planSkuLines` → `expandVariantPaths` → `expan
 | round5 | 27 | 27 |
 | naming | 24 | 24 |
 | grade | 13 | 13 |
-| compatibility | 15 | 15 |
 | excel-import | 20 | 20 |
 | 合计 | 244 | 244 |
 
 实际执行的领域检查命令为以下循环形式，每个脚本在独立进程运行，均 exit 0；`verify.ts` 在两版均通过。原始日志位于忽略的 `work/performance-round1/`。
 
 ```powershell
-$checks = @('planning','draft-combo','material','material-archive','consistency','combo-material-status','round1','round2','round5','naming','grade','compatibility','excel-import')
 foreach ($check in $checks) { node scripts/run-domain-check.mjs "scripts/$check-check.ts" }
 node scripts/run-domain-check.mjs scripts/verify.ts
 node scripts/run-domain-check.mjs scripts/round3-check.ts --baseline

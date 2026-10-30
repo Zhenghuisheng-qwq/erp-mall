@@ -149,41 +149,10 @@ export function applyCompatibilityChanges(data: AppData, changes: CompatibilityC
   return { ok: true, preview, createdIds }
 }
 
-export function previewMaterialCopy(data: AppData, materialId: string, skuId: string): CompatibilityPreview & { changes: CompatibilityChange[] } {
-  const material = data.skus.find(item => item.id === materialId), sku = data.skus.find(item => item.id === skuId)
-  const links = (data.compatibilities || []).filter(link => (link.targetKind || 'material') === 'material' && (link.targetId || link.accessorySkuId) === materialId)
-  const changes: CompatibilityChange[] = links.map(link => {
-    const original = declarationDraft(link)
-    return { kind: 'add', draft: { ...original, target: { kind: 'sku', id: skuId }, provenance: {
-      kind: 'material-copy', detail: '用户确认从指定物料复制；副本独立维护，不是 BOM 或动态继承。', materialId,
-      materialSnapshot: { id: materialId, code: material?.materialCode || material?.code || '', name: material?.skuName || '' }, declarationId: link.id,
-      declarationSnapshot: { id: link.id, host: cloneRecord(link.host), note: link.note, conclusion: original.conclusion, verification: original.verification, capability: original.capability, conditions: cloneRecord(original.conditions), source: original.source, createdAt: link.createdAt, updatedAt: link.updatedAt },
-    } } }
-  })
-  const preview = previewCompatibilityChanges(data, changes)
-  const error = !material || !isMaterialArchive(data, material) ? '请选择真实源物料 MAT。' : !sku || !isRealSku(data, sku) ? '请选择真实目标销售 SKU。' : !links.length ? '源物料尚无可复制的正式声明。' : ''
-  if (error) { preview.invalid++; preview.canCommit = false; preview.items.push({ change: { kind: 'remove', id: '' }, state: 'invalid', message: error }) }
-  return { ...preview, changes }
-}
-
 /** Validate import schema and identity, retaining dangling references for repair instead of guessing replacements. */
 export function compatibilityImportProblems(data: AppData): string[] {
   const problems: string[] = []
-  if (data.deviceModels !== undefined && !Array.isArray(data.deviceModels)) problems.push('设备型号列表必须是数组。')
-  if (data.deviceBindings !== undefined && !Array.isArray(data.deviceBindings)) problems.push('设备绑定列表必须是数组。')
-  const duplicate = (ids: string[], label: string) => { if (new Set(ids).size !== ids.length) problems.push(`${label}身份重复。`) }
-  if (Array.isArray(data.deviceModels)) {
-    duplicate(data.deviceModels.map(model => model?.id), '设备型号')
-    data.deviceModels.forEach(model => { if (!object(model) || ![model.id, model.name, model.productTypeId, model.createdAt, model.updatedAt].every(string) || !model.id || !object(model.attributes) || Object.values(model.attributes).some(value => !string(value))) problems.push('设备型号结构无效。') })
-  }
-  if (Array.isArray(data.deviceBindings)) {
-    duplicate(data.deviceBindings.map(binding => binding?.skuId), '设备绑定')
-    data.deviceBindings.forEach(binding => {
-      if (!object(binding) || ![binding.skuId, binding.sourceStamp, binding.createdAt, binding.updatedAt].every(string) || !hostShape(binding.host)) { problems.push('设备绑定结构无效。'); return }
-      const sku = data.skus.find(item => item.id === binding.skuId)
-      if (sku && !isRealSku(data, sku)) problems.push('设备绑定不能指向 MAT。')
-    })
-  }
+  const duplicate=(ids:unknown[],label:string)=>{if(new Set(ids).size!==ids.length)problems.push(label+'标识重复')}
   if (Array.isArray(data.compatibilities)) {
     duplicate(data.compatibilities.map(link => link?.id), '兼容声明')
     data.compatibilities.forEach(link => {
