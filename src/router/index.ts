@@ -14,6 +14,7 @@ const router = createRouter({
       path: '/',
       component: AdminLayout,
       children: [
+        {path:'benefits/public-pool',name:'public-spu-pool',component:()=>import('../views/PublicSpuPoolView.vue'),meta:{title:'公共商品池'}},
         {path:'benefits/manage',name:'type-bundle-management',component:()=>import('../views/TypeBundleView.vue'),meta:{title:'权益包管理'}},
         {path:'benefits/shopping',name:'bundle-sale',component:()=>import('../views/BundleSaleView.vue'),meta:{title:'权益包选购'}},
         { path: 'guide', name: 'guide', component: () => import('../views/guide/GuideHomeView.vue'), meta: { title: '系统功能说明' } },

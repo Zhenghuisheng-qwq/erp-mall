@@ -50,6 +50,7 @@ export function saveSpu(data: AppData, family: ProductFamily, now: string): Resu
 }
 
 export function spuRemovalBlock(data: AppData, id: string) {
+  if(data.publicSpuPool?.some(entry=>entry.spuId===id)||data.benefitTypeGroups?.some(group=>group.commonSpuIds?.includes(id)))return '不能删除：仍被公共商品池或权益包引用，请先明确处理引用；不会级联移除。'
   const children = data.skus.filter(item => item.familyId === id)
   if (children.length) {
     const materials = children.filter(item => isMaterialArchive(data, item)).length

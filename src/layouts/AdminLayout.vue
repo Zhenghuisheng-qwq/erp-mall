@@ -19,21 +19,22 @@
             <el-icon :size="16"><Sunny v-if="theme === 'dark'" /><Moon v-else /></el-icon>
           </button>
           <el-dropdown :disabled="dataBusy">
-            <el-button size="small" :loading="dataBusy">演示数据</el-button>
+            <el-button size="small" :loading="dataBusy">本机数据</el-button>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="resetCurrent">重置当前模块</el-dropdown-item>
-                <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="supplement18Demo">重建手机四类型演示数据（清理旧商品）</el-dropdown-item>
-                <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="resetAll">重置全部演示数据</el-dropdown-item>
-                <el-dropdown-item v-if="store.can('product:export:execute')" :disabled="dataBusy" @click="download">导出演示数据</el-dropdown-item>
-                <el-dropdown-item v-if="store.can('product:import:execute')" :disabled="dataBusy" @click="pickFile">导入演示数据</el-dropdown-item>
+                <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="supplementHuawei">补充华为手机及配件</el-dropdown-item>
+                <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="supplement18Demo">重建手机商品资料（清理旧商品）</el-dropdown-item>
+                <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="resetAll">重置全部本机数据</el-dropdown-item>
+                <el-dropdown-item v-if="store.can('product:export:execute')" :disabled="dataBusy" @click="download">导出本机数据</el-dropdown-item>
+                <el-dropdown-item v-if="store.can('product:import:execute')" :disabled="dataBusy" @click="pickFile">导入本机数据</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
           <input ref="fileRef" type="file" accept="application/json" hidden @change="onImport" />
         </div>
       </header>
-      <div class="demo-strip">演示数据只保存在这台浏览器里。不会连接客户数据库，也不会改线上商品。</div>
+      <div class="demo-strip">数据只保存在这台浏览器里，不连接客户数据库或线上商品。</div>
       <main class="content">
         <RuleExplanation v-if="store.persistenceState.failure" :failure="store.persistenceState.failure" :supported-recovery="[]" />
         <router-view :key="['spu-new', 'spu-edit', 'sku-new', 'sku-edit'].includes(String(route.name)) ? route.fullPath : route.name" />
@@ -119,19 +120,24 @@ const moduleOf = computed(() => {
   return 'system' as const
 })
 
+async function supplementHuawei(){
+ if(dataBusy.value)return
+ dataBusy.value=true
+ try{const result=await store.supplementHuaweiProducts();if(!result.ok)ElMessage.error(result.message);else ElMessage.success(result.message)}catch(e){ElMessage.error(e instanceof Error?e.message:'华为资料补充失败，原数据保留')}finally{dataBusy.value=false}
+}
 async function supplement18Demo(){
  if(dataBusy.value)return
  dataBusy.value=true
- try{const result=await store.rebuildPhoneCatalogDemo();if(!result.ok)ElMessage.error(result.message);else ElMessage.success(result.message)}catch(e){ElMessage.error(e instanceof Error?e.message:'演示创建失败，原数据保留')}finally{dataBusy.value=false}
+ try{const result=await store.rebuildPhoneCatalogDemo();if(!result.ok)ElMessage.error(result.message);else ElMessage.success(result.message)}catch(e){ElMessage.error(e instanceof Error?e.message:'商品创建失败，原数据保留')}finally{dataBusy.value=false}
 }
 async function resetAll() {
   if (dataBusy.value) return
   dataBusy.value = true
   try {
-    await ElMessageBox.confirm('全部演示数据会恢复到初始样例，本机改过的内容会丢掉。', '重置全部')
+    await ElMessageBox.confirm('全部本机数据会恢复到初始样例，本机改过的内容会丢掉。', '重置全部')
     const result = await store.resetAll()
     if (!result.ok) { ElMessage.error(result.message); return }
-    ElMessage.success('已恢复预设演示数据')
+    ElMessage.success('已恢复预设本机数据')
   } catch (cause) { if (cause !== 'cancel' && cause !== 'close') ElMessage.error(cause instanceof Error ? cause.message : '重置未完成，原数据保持。') }
   finally { dataBusy.value = false }
 }
@@ -169,7 +175,7 @@ async function onImport(event: Event) {
   dataBusy.value = true
   try {
     ;(await store.importJson(await file.text()))
-    importFailure.value=undefined;ElMessage.success('已导入演示数据')
+    importFailure.value=undefined;ElMessage.success('已导入本机数据')
   } catch (error) {
     importFailure.value=getFailure(error);ElMessage.error(error instanceof Error ? error.message : '导入失败')
   } finally { dataBusy.value = false; (event.target as HTMLInputElement).value = '' }

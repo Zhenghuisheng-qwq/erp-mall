@@ -8,8 +8,8 @@ const runtime=createTestRuntime('compatibility-workbench'),errors=[],checks=[],o
 let server,browser,page
 try{
  server=await createServer({cacheDir:resolve(runtime,'cache'),logLevel:'error',define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify('true')},server:{host:'127.0.0.1',port:0,hmr:false,watch:null,ws:false}})
- const {bundleFixture}=await server.ssrLoadModule('/scripts/type-bundle-fixture.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts'),{resolveDeviceSku,deviceHostKey,listDeviceModels}=await server.ssrLoadModule('/src/domain/deviceResolution.ts'),{createSeed}=await server.ssrLoadModule('/src/domain/seed.ts'),data=process.argv.includes('--phone18')||process.argv.includes('--bundle-list')?createSeed():bundleFixture().data
- const labels=process.argv.includes('--phone18')||process.argv.includes('--bundle-list')?[]:['s-iphone-blue','s-demo-iphone16'].map(id=>listDeviceModels(data).find(m=>m.key===deviceHostKey(resolveDeviceSku(data,id).host)).label)
+ const {bundleFixture}=await server.ssrLoadModule('/scripts/type-bundle-fixture.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts'),{resolveDeviceSku,deviceHostKey,listDeviceModels}=await server.ssrLoadModule('/src/domain/deviceResolution.ts'),{createSeed}=await server.ssrLoadModule('/src/domain/seed.ts'),data=process.argv.includes('--phone18')||process.argv.includes('--bundle-list')||process.argv.includes('--multi-brand')?createSeed():bundleFixture().data
+ const labels=process.argv.includes('--phone18')||process.argv.includes('--bundle-list')||process.argv.includes('--multi-brand')?[]:['s-iphone-blue','s-demo-iphone16'].map(id=>listDeviceModels(data).find(m=>m.key===deviceHostKey(resolveDeviceSku(data,id).host)).label)
  if(process.argv.includes('--bundle-list')){const {writeSale}=await server.ssrLoadModule('/src/domain/benefitSales/commands.ts');const group=data.benefitTypeGroups.find(g=>g.id==='demo18-bundle-full');const historical=writeSale(data,{id:'',scope:{mode:'group',categoryId:'c-phone',groupId:group.id,productTypeIds:[...group.productTypeIds],device:{kind:'sku',skuId:'demo18-sku-phone-1'}},lines:[{skuId:'demo18-sku-charger-1',quantity:1,unitPriceCents:9900}],status:'confirmed'},0,()=> 'bundle-list-history','2026-10-30T09:00:00Z');assert(historical.ok,historical.message)}
  await server.listen();const base=`http://127.0.0.1:${server.httpServer.address().port}`
  browser=await chromium.launch({channel:'chrome',headless:true});const context=await browser.newContext({viewport:{width:1550,height:1100},locale:'zh-CN'})
@@ -23,7 +23,42 @@ try{
  const mark=name=>{checks.push(name);console.log('PASS browser:',name)}
 
 
- if(process.argv.includes('--bundle-list')){
+ if(process.argv.includes('--multi-brand')){
+  const {deviceOptions}=await server.ssrLoadModule('/src/domain/benefitSales/query.ts'),devices=deviceOptions(data).skus
+  await page.goto(base+'/benefits/manage?category=c-phone',{waitUntil:'networkidle'});await settle();assert.doesNotMatch(await page.locator('body').innerText(),/演示/)
+  await page.locator('[data-new-bundle]').click();const dialog=page.getByRole('dialog',{name:'权益包配置',exact:true})
+  await dialog.getByRole('textbox',{name:'权益包名称',exact:true}).fill('双品牌手机权益包')
+  for(const type of ['pt-phone','pt-case','pt-film','pt-leaf-c-charge'])await dialog.locator('[data-type-choice="'+type+'"]').click()
+  const preview=dialog.locator('[data-bundle-preview]')
+  for(const brand of ['demo18','huawei']){
+   const device=devices.find(s=>s.id===brand+'-sku-phone-1')
+   await option(dialog.locator('.el-select').filter({has:page.getByRole('combobox',{name:'预览设备',exact:true})}),device.name+' · '+(device.spec||device.code))
+   assert.match(await preview.innerText(),brand==='huawei'?/Mate 70 Pro 手机壳/:/iPhone 18 Pro Max 手机壳/)
+   assert.doesNotMatch(await preview.innerText(),brand==='huawei'?/iPhone 18 Pro Max 手机壳/:/Mate 70 Pro 手机壳/)
+   assert.match(await preview.innerText(),/USB-C 充电器/)
+  }
+  await dialog.locator('[data-save-bundle]').click();await dialog.waitFor({state:'hidden'});await page.getByRole('row').filter({hasText:'双品牌手机权益包'}).getByRole('button',{name:'使用',exact:true}).click();await page.waitForURL(url=>url.pathname==='/benefits/shopping'&&url.searchParams.has('device'));await settle()
+  const group=new URL(page.url()).searchParams.get('group');assert(new URL(page.url()).searchParams.get('device').includes('huawei-sku-phone-1'))
+  for(const kind of ['case','film','charger']){
+   const id=(kind==='charger'?'demo18':'huawei')+'-sku-'+kind+'-1';assert.equal(await page.locator('[data-sale-add="'+id+'"]').count(),1)
+   await page.locator('[data-sale-add="'+id+'"]').click();await page.getByRole('textbox',{name:'报价 '+id}).fill(kind==='charger'?'129':'99')
+  }
+  assert.equal(await page.locator('[data-sale-line="huawei-sku-phone-1"]').count(),0);assert.equal(await page.locator('[data-sale-add="demo18-sku-case-1"]').count(),0)
+  await page.getByRole('spinbutton',{name:'数量 demo18-sku-charger-1'}).fill('2');await page.screenshot({path:resolve(output,'huawei-shopping.png'),fullPage:true})
+  const appleRoute='/benefits/shopping?group='+group+'&device=sku:demo18-sku-phone-1'
+  await page.evaluate(path=>{window.__brandRoute=document.querySelector('#app').__vue_app__.config.globalProperties.$router.push(path)},appleRoute)
+  await page.getByRole('button',{name:'取消，保留原内容',exact:true}).click();await page.evaluate(async()=>await window.__brandRoute);await page.locator('.el-message-box:visible').waitFor({state:'hidden'});await settle();assert(new URL(page.url()).searchParams.get('device').includes('huawei-sku-phone-1'));assert.equal(await page.locator('[data-sale-line="huawei-sku-case-1"]').count(),1)
+  await page.evaluate(path=>{window.__brandRoute=document.querySelector('#app').__vue_app__.config.globalProperties.$router.push(path)},appleRoute)
+  const impact=page.locator('.el-message-box');assert.match(await impact.innerText(),/Mate 70 Pro/);assert.match(await impact.innerText(),/充电器/)
+  await page.getByRole('button',{name:'应用切换并移除',exact:true}).click();await page.evaluate(async()=>await window.__brandRoute);await page.locator('.el-message-box:visible').waitFor({state:'hidden'});await settle()
+  assert.equal(await page.locator('[data-sale-line="huawei-sku-case-1"]').count(),0);assert.equal(await page.locator('[data-sale-add="huawei-sku-case-1"]').count(),0);assert.equal(await page.getByRole('spinbutton',{name:'数量 demo18-sku-charger-1'}).inputValue(),'2');assert.equal(Number(await page.getByRole('textbox',{name:'报价 demo18-sku-charger-1'}).inputValue()),129)
+  for(const kind of ['case','film']){const id='demo18-sku-'+kind+'-1';await page.locator('[data-sale-add="'+id+'"]').click();await page.getByRole('textbox',{name:'报价 '+id}).fill('99')}
+  assert.doesNotMatch(await page.locator('body').innerText(),/演示/);await page.screenshot({path:resolve(output,'apple-shopping.png'),fullPage:true})
+  await page.locator('[data-confirm-sale]').click();await settle();assert.match(await page.locator('[data-confirmed-sale]').innerText(),/456.00/)
+  await navigate('/catalog?view=models&categoryId=c-phone');await page.locator('[data-catalog-model-table]').waitFor();assert.equal(await page.locator('[data-catalog-model]').count(),4);assert.doesNotMatch(await page.locator('body').innerText(),/演示/)
+  const state=JSON.parse(await raw()).data;assert.equal(state.skus.filter(s=>s.recordKind==='sku').length,18);assert.equal(state.skus.filter(s=>s.recordKind==='material').length,18);assert.equal(state.specModelVersions.length,7)
+  await page.screenshot({path:resolve(output,'multi-brand-models.png'),fullPage:true});assert.deepEqual(errors,[]);mark('双品牌配置预览、按型号精筛、共用充电器、切换取消与确认保留报价、清单确认、四模型18SKU18MAT、页面无演示字样');writeFileSync(resolve(output,'multi-brand-result.json'),JSON.stringify({result:'PASS',checks,errors},null,2))
+ }else if(process.argv.includes('--bundle-list')){
   await page.setViewportSize({width:835,height:780});await page.goto(base+'/benefits/manage',{waitUntil:'networkidle'});await settle()
   const cards=page.locator('[data-bundle-cards]');assert(await cards.isVisible());assert.equal(await page.locator('[data-bundle-table]').isVisible(),false);assert.equal(await page.locator('.scope-panel').isVisible(),false);assert.equal(await cards.locator('[data-bundle-card]').count(),2)
   const card=cards.locator('[data-bundle-card="demo18-bundle-full"]');assert.match(await card.innerText(),/创建时间/);assert.match(await card.innerText(),/更新时间/);assert.match(await card.innerText(),/2026-10-30/)

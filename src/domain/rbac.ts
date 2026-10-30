@@ -87,6 +87,7 @@ export function permissionRegistry(): RbacPermission[] {
 /** Canonical access requirements for actual routes, independent of navigation visibility. */
 export function routePermissions(path: string, query: Record<string,unknown> = {}): string[] | null {
   const clean = path.split('?')[0] || '/'
+  if(clean==='/benefits/public-pool')return ['product:type-bundle:read','product:spu:read','product:sku:read','product:category:read','product:type:read']
   if(clean==='/benefits/manage')return ['product:type-bundle:read','product:category:read','product:type:read']
   if(clean==='/benefits/shopping')return ['product:bundle-sale:read','product:sku:read','product:spu:read','product:type:read','product:compatibility:read']
   // Retired maintenance routes redirect to the read-only module; keep stored permission codes compatible.
@@ -286,6 +287,10 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
   }
   if(name==='saveCompatibilityWorkspace')return ['product:compatibility:read','product:sku:read','product:type:read',...new Set([...(args[0] as {kind:string}[]||[]),...(args[1] as {kind:string}[]||[])].map(c=>'product:compatibility:'+(c.kind==='add'?'create':c.kind==='edit'?'update':'delete')))]
   if(name==='saveBundleSale')return [...save('bundle-sale',Boolean(first?.id)),'product:sku:read','product:spu:read','product:type:read','product:compatibility:read',...(first?.status==='confirmed'?['product:bundle-sale:confirm']:[])]
+  // Public pool maintenance reuses bundle configuration permissions; sales usage stays read-only.
+  if(name==='addPublicSpus')return ['product:type-bundle:read','product:type-bundle:create','product:spu:read']
+  if(name==='setPublicSpuEnabled')return ['product:type-bundle:read','product:type-bundle:update','product:spu:read']
+  if(name==='removePublicSpu')return ['product:type-bundle:read','product:type-bundle:delete','product:spu:read']
   if(name==='saveTypeBundle')return [...save('type-bundle',Boolean(first?.id)),'product:category:read','product:type:read']
   if(name==='removeTypeBundle')return ['product:type-bundle:read','product:type-bundle:delete']
   if (name === 'saveRule') return save('rule',Boolean(data?.rules.some(rule => rule.id === first?.id)))
@@ -316,7 +321,7 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
     commitCategoryMove:['product:category:update'],commitCategoryMoves:['product:category:update'],renameCategoryName:['product:category:update'],
     addCategory:['product:category:create'],copyCategory:['product:category:create'],moveCategory:['product:category:update'],shiftCategory:['product:category:update'],relocateCategory:['product:category:update'],updateCategory:['product:category:update'],removeCategory:['product:category:delete'],setCategoryMapping:['product:template:update'],removeGroup:['product:group:delete'],
     commitSpuPage:['product:view:update'],commitSkuPage:['product:sku:read'],saveView:['product:view:update'],applyView:['product:spu:read'],removeView:['product:view:update'],
-    exportJson:['product:export:execute'],importJson:['product:import:execute'],supplementPhoneDemo:['system:data:reset'],rebuildPhoneCatalogDemo:['system:data:reset'],supplementPhone18Demo:['system:data:reset'],resetAll:['system:data:reset'],resetModule:['system:data:reset'],
+    exportJson:['product:export:execute'],importJson:['product:import:execute'],supplementPhoneDemo:['system:data:reset'],supplementHuaweiProducts:['system:data:reset'],rebuildPhoneCatalogDemo:['system:data:reset'],supplementPhone18Demo:['system:data:reset'],resetAll:['system:data:reset'],resetModule:['system:data:reset'],
     importFeedbackPack:['system:feedback:import'],markFeedbacksExported:['system:feedback:export'],
     removeRbacRole:['system:role:delete'],grantRbacRole:['system:role:grant'],saveRbacPermission:['system:permission:update'],removeRbacUser:['system:user:delete'],saveMenuStructure:['system:menu:update'],resetMenuStructure:['system:menu:update'],
     saveMenuConfiguration:['system:menu:update'],resetMenuConfiguration:['system:menu:update'],saveRole:['system:role:update'],deleteRole:['system:role:delete'],grantRolePermissions:['system:role:grant'],savePermission:['system:permission:update'],saveUser:['system:user:update'],deleteUser:['system:user:delete'],bindUserRoles:['system:user:bind'],

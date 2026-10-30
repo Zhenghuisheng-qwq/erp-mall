@@ -479,8 +479,11 @@ export interface Profile {
 }
 
 export interface AppData {
+  publicSpuPool?: import('./benefitSales/publicSpuPool').PublicSpuEntry[]
   /** One-time, user-requested replacement of the old product demo catalogue. */
   phoneDemoCatalogVersion?: 1
+  /** One-time additive Apple/Huawei catalogue supplement. */
+  phoneDemoBrandsVersion?: 1
   generalCompatibilityClaims?: GeneralCompatibilityClaim[]
   /** Type-combination format, isolated from retired raw benefit fields. */
   benefitTypeGroups?: import('./benefitSales/types').BenefitGroup[]

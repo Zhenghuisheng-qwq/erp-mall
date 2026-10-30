@@ -1,4 +1,5 @@
-import {cleanPhoneDemoNames,phoneDemoNameKeys} from '../domain/benefitSales/phoneDemoNames'
+import {supplementHuaweiProducts,phoneBrandKeys} from '../domain/benefitSales/phoneBrands'
+import {addPublicSpus,updatePublicSpu,removePublicSpu,publicPoolStorageProblems,publicSpuReferences,publicSpuProblem,commonSpusProblem} from '../domain/benefitSales/publicSpuPool'
 import {groupTypesProblem} from '../domain/benefitSales/query'
 import {applyCompatibilityChanges,compatibilityImportProblems,type CompatibilityChange} from '../domain/accessoryCompatibilityCommands'
 import {applyGeneralChanges,generalStorageProblems,type GeneralChange} from '../domain/generalCompatibility'
@@ -34,7 +35,6 @@ import {
   updateCategoryNode,
   type DropPosition,
 } from '../domain/categoryTree'
-import { applyAccessoryCategoryFix, PHONE_CASE_CATEGORY_FIX } from '../domain/categoryFix'
 import { dictionaryRemovalBlock } from '../domain/dictionaryGuard'
 import { validProductTypePurpose } from '../domain/productTypePurpose'
 import { applyModelDictionaryBatch, modelDictionaryInputProblem, type ModelDictionaryBatchInput, type ModelDictionaryBatchResult } from '../domain/modelDictionaryCommands'
@@ -52,7 +52,6 @@ import { appendSkuBatch, editSku, previewSkuAppend, saveSpu, spuRemovalBlock, ty
 import { createTemporaryMaterial, createV3Material, renameV3Product, setPlanningGrades, tombstoneMaterialReceipts, updateV3Material } from '../domain/material'
 import type { MaterialChoice } from '../domain/material'
 import type { ProductGrade } from '../domain/types'
-import { arrangeSpecPositions } from '../domain/logic'
 import { activeProductListView, applyPresetToActiveView, currentModeQuery, ensureProductListViews } from '../domain/productListViews'
 import {supplementPhoneDemo,demoKeys} from '../domain/benefitSales/demo'
 import {replacePhoneCatalogDemo,phoneCatalogKeys} from '../domain/benefitSales/phoneCatalogDemo'
@@ -83,7 +82,7 @@ function renameSchemeColumn(columns: ColumnPref[] | undefined, mark: { changed: 
   })
 }
 
-/** 版本 1 没有分类启用状态。缺省视为启用，并写回版本 2。商品、方案、映射原样保留。 */
+/** Validate persisted records and normalize optional containers/UI preferences; never repair product rows on startup. */
 export function normalizeStored(parsed: StoredPayload, options: { persist?: boolean } = {}): AppData | null {
   // Compatibility option retained for callers; normalization never writes. The
   // store commits migrations under the same lock as every other business write.
@@ -96,18 +95,13 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   if(data.compatibilities===undefined)data.compatibilities=[]
   const compatibilityProblems=[...compatibilityImportProblems(data),...generalStorageProblems(data)]
   if(compatibilityProblems.length)throw new Error(compatibilityProblems.join('；'))
-  const benefitProblems=benefitStorageProblems(data)
+  const benefitProblems=[...benefitStorageProblems(data),...publicPoolStorageProblems(data)]
   if(benefitProblems.length)throw new Error(benefitProblems.join('；'))
   const businessProblems = businessImportProblems(data)
   if (businessProblems.length) throw new Error(`节点业务配置结构校验失败：${businessProblems.join(' ')} 原始记录已保留。`)
   const relationProblems = materialRelationImportProblems(data)
   if (relationProblems.length) throw new Error(`物料关联校验失败：${relationProblems.join(' ')} 原始记录已保留。`)
   const mark = { changed: version !== DATA_VERSION }
-  data.categories = data.categories.map((item) => {
-    if (typeof item.enabled === 'boolean') return item
-    mark.changed = true
-    return { ...item, enabled: true }
-  })
   renameSchemeColumn(data.columns, mark)
   data.listViews?.forEach((view) => renameSchemeColumn(view.columns, mark))
   if (!Array.isArray(data.productSpecNodes)) {
@@ -118,32 +112,6 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
     data.specCanvases = []
     mark.changed = true
   }
-  const templatesWithNodes = new Set(data.productSpecNodes.map((item) => item.templateId))
-  templatesWithNodes.forEach((templateId) => {
-    if (!data.specCanvases.some((item) => item.templateId === templateId)) {
-      // Existing nodes may need layout metadata, never a phone identity or a
-      // publication claim copied from the seed.
-      data.specCanvases.push({templateId,zoom:1,panX:0,panY:0,status:'draft',version:1,versionName:'',direction:'ltr'})
-      mark.changed = true
-    }
-  })
-  data.specCanvases.forEach((canvas) => {
-    if (canvas.direction === 'ltr' || canvas.direction === 'tree' || canvas.direction === 'logic' || canvas.direction === 'custom') return
-    arrangeSpecPositions(data.productSpecNodes.filter((item) => item.templateId === canvas.templateId))
-    canvas.direction = 'ltr'
-    mark.changed = true
-  })
-  const needsLayout = data.productSpecNodes.some((item) => typeof item.positionX !== 'number' || typeof item.positionY !== 'number')
-  if (needsLayout) {
-    templatesWithNodes.forEach((templateId) => arrangeSpecPositions(data.productSpecNodes.filter((item) => item.templateId === templateId)))
-    mark.changed = true
-  }
-  data.productSpecNodes.forEach((node) => {
-    if (node.nodeType !== 'ATTRIBUTE' || node.role === 'COMMON' || node.role === 'VARIANT') return
-    const bound = data.templateParams.find((item) => item.templateId === node.templateId && item.paramId === node.attributeId)
-    node.role = bound?.role === 'common' ? 'COMMON' : 'VARIANT'
-    mark.changed = true
-  })
   if (!Array.isArray(data.specModelVersions)) {
     data.specModelVersions = []
     mark.changed = true
@@ -154,32 +122,7 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
     data.productTypes = []
     mark.changed = true
   }
-  data.specCanvases.forEach((canvas) => {
-    if (!canvas.name) {
-      const template = data.templates.find((item) => item.id === canvas.templateId)
-      canvas.name = template?.name || '未命名模型'
-      mark.changed = true
-    }
-  })
-  if (!Array.isArray(data.brands)) {
-    const names = new Set<string>()
-    data.params.find((item) => item.name === '品牌')?.values.forEach((item) => names.add(item))
-    data.families.forEach((family) => {
-      if (family.commonAttrs['品牌']) names.add(family.commonAttrs['品牌'])
-    })
-    data.brands = [...names].map((name, index) => ({ id: `brand-${index + 1}`, name, logo: '', description: '', status: 'enabled' as const }))
-    mark.changed = true
-  }
-  data.families.forEach((family) => {
-    if (!family.shelfStatus) {
-      family.shelfStatus = family.lifecycle === 'ready' ? 'online' : 'draft'
-      mark.changed = true
-    }
-    if (!family.createdAt) {
-      family.createdAt = family.updatedAt
-      mark.changed = true
-    }
-  })
+  if (!Array.isArray(data.brands)) data.brands=[]
   if (!Array.isArray(data.productPlans)) {
     data.productPlans = []
     mark.changed = true
@@ -212,7 +155,6 @@ function loadData(raw: string | null): AppData {
     const data = normalizeStored(parsed, { persist: false })
     if (!data) throw new Error('已有数据的基础结构或版本无法读取。')
     loaded = data
-    applyAccessoryCategoryFix(data, PHONE_CASE_CATEGORY_FIX)
     return data
   } catch (error) {
     if (loaded) {
@@ -293,22 +235,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   if(needsAuthorizationMigration){
     void persistence.run(()=>{persistence.write(startupCandidate);Object.assign(data,startupCandidate);authorizationReady.value=true;explicitlyPersisted=JSON.stringify(data);return {ok:true}},message=>{migrationStorageError=`授权迁移未提交：${message}。原数据保留。`;return {ok:false,message}})
   } else if (JSON.stringify(JSON.parse(originalRaw!).data)!==explicitlyPersisted||JSON.parse(originalRaw!).version!==DATA_VERSION){explicitlyPersisted='';void persistLive()}
-  // The owner explicitly requested replacing the old mock catalogue. Apply once,
-  // under the existing storage lock, after authorization migration has finished.
-  if(data.phoneDemoCatalogVersion!==1){
-    void persistence.run(()=>{
-      if(!isAdmin.value)return {ok:false,message:'请由管理员执行手机四类型演示数据整理。'}
-      const result=replacePhoneCatalogDemo(data,defaultColumns(),emptyQuery())
-      return result.ok?commitCandidate(result.next,{ok:true,message:result.message},[...phoneCatalogKeys]):result
-    },message=>{migrationStorageError='手机演示数据整理未保存：'+message+'；原数据保留，可从演示数据菜单重试。';return {ok:false,message}})
-  }
-  if(data.phoneDemoCatalogVersion===1){
-    void persistence.run(()=>{
-      if(!isAdmin.value)return {ok:true}
-      const named=cleanPhoneDemoNames(data)
-      return named.ok?named.changed?commitCandidate(named.next,{ok:true},[...phoneDemoNameKeys]):{ok:true}:named
-    },message=>{migrationStorageError='名称整理未保存：'+message+'；原数据保留，可重试。';return {ok:false,message}})
-  }
+  // Existing business records are never rebuilt, renamed or supplemented on startup.
   function command<T extends { ok: boolean; message?: string }>(operation: () => T): Promise<T | CommandFailure> {
     const context=invocation
     const actionId=context?commandAction(context.name):'action-business-save'
@@ -533,6 +460,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   function exportJson() {
     const exported=cloneRecord(data)
     if(!can('product:type-bundle:read'))delete exported.benefitTypeGroups
+    if(!can('product:type-bundle:read')&&!can('product:bundle-sale:read'))delete exported.publicSpuPool
     if(!can('product:bundle-sale:read'))delete exported.benefitSalesLists
     return JSON.stringify({ version: DATA_VERSION, data:exported }, null, 2)
   }
@@ -548,20 +476,25 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (businessProblems.length) throwImportValidation(`节点业务配置结构校验失败：${businessProblems.join(' ')} 当前数据没有被替换。`)
     const relationProblems = materialRelationImportProblems(parsed.data)
     if (relationProblems.length) throwImportValidation(`物料关联校验失败：${relationProblems.join(' ')} 当前数据没有被替换。`)
-    const prefixes:Partial<Record<keyof AppData,string>>={compatibilities:'product:compatibility',generalCompatibilityClaims:'product:compatibility',benefitTypeGroups:'product:type-bundle',benefitSalesLists:'product:bundle-sale',families:'product:spu',skus:'product:sku',productSpecNodes:'product:model',specCanvases:'product:model',specModelVersions:'product:model',businessDefinitions:'product:model',materialRelations:'product:material',materialReceipts:'product:material',categories:'product:category',params:'product:dictionary',templates:'product:model',templateParams:'product:template',mappings:'product:template',productTypes:'product:type',rules:'product:rule',brands:'product:brand',productGroups:'product:group',planningRecords:'product:planning',productPlans:'product:planning',feedbacks:'system:feedback',profile:'system:account'}
+    const prefixes:Partial<Record<keyof AppData,string>>={compatibilities:'product:compatibility',generalCompatibilityClaims:'product:compatibility',publicSpuPool:'product:type-bundle',benefitTypeGroups:'product:type-bundle',benefitSalesLists:'product:bundle-sale',families:'product:spu',skus:'product:sku',productSpecNodes:'product:model',specCanvases:'product:model',specModelVersions:'product:model',businessDefinitions:'product:model',materialRelations:'product:material',materialReceipts:'product:material',categories:'product:category',params:'product:dictionary',templates:'product:model',templateParams:'product:template',mappings:'product:template',productTypes:'product:type',rules:'product:rule',brands:'product:brand',productGroups:'product:group',planningRecords:'product:planning',productPlans:'product:planning',feedbacks:'system:feedback',profile:'system:account'}
     for(const key of Object.keys(prefixes))if(key!=='profile'&&(parsed.data as any)[key]!==undefined&&!Array.isArray((parsed.data as any)[key]))throwImportValidation(`导入记录集合 ${key} 必须为数组，不能按空集合处理损坏内容。`)
     const next = normalizeStored(parsed, { persist: false })
     if (!next?.params) throwImportValidation('演示数据版本不匹配，当前数据没有被替换')
     if(next.productTypes.some(type=>!validProductTypePurpose(type.catalogRole)))throwImportValidation('产品类型业务用途无效，只接受主机／设备、配件、其他或未指定。')
-    for(const key of ['compatibilities','generalCompatibilityClaims','deviceModels','deviceBindings','templateCompatibilityConfigs','templateCompatibilityOrigins','nodeCompatibilityRules','materialContributions'] as const)if(next[key]===undefined&&data[key]!==undefined)Object.assign(next,{[key]:cloneRecord(data[key])})
+    for(const key of ['publicSpuPool','compatibilities','generalCompatibilityClaims','deviceModels','deviceBindings','templateCompatibilityConfigs','templateCompatibilityOrigins','nodeCompatibilityRules','materialContributions'] as const)if(next[key]===undefined&&data[key]!==undefined)Object.assign(next,{[key]:cloneRecord(data[key])})
     if(data.phoneDemoCatalogVersion!==undefined)next.phoneDemoCatalogVersion=data.phoneDemoCatalogVersion
+    if(data.phoneDemoBrandsVersion!==undefined)next.phoneDemoBrandsVersion=data.phoneDemoBrandsVersion
+    if(JSON.stringify(next.publicSpuPool)!==JSON.stringify(data.publicSpuPool)){
+      for(const row of data.publicSpuPool||[])if(!next.publicSpuPool?.some(e=>e.spuId===row.spuId)&&publicSpuReferences(next,row.spuId).length)throwImportValidation('不能通过导入移除仍被权益包引用的公共 SPU，请先处理引用。')
+      for(const row of next.publicSpuPool||[])if(row.enabled&&(!data.publicSpuPool?.some(e=>e.spuId===row.spuId&&e.enabled))){const issue=publicSpuProblem(next,row.spuId);if(issue)throwImportValidation(issue)}
+    }
     const authChanged=JSON.stringify([next.rbac,next.users])!==JSON.stringify([data.rbac,data.users])
     if(authChanged){
       if(!can('system:role:grant')||!can('system:user:bind')||!can('system:permission:update'))throwImportPermission('导入不能修改当前操作者无权维护的授权或用户角色绑定。')
       const own=effectivePermissions(data,effectiveUserId.value)
       if(!isAdmin.value&&next.rbac!.roles.some(role=>role.superAdmin||role.permissionCodes.some(code=>!isRetiredPermission(code)&&!own.has(code))))throwImportPermission('导入不能取得超级管理员身份或超出操作者委派范围。')
     }
-    const preferences=new Set(['mode','activeRole','productListPages','productListViews','activeProductListViewId','columns','listViews','activeViewId','listQuery','productListMode','phoneDemoCatalogVersion'])
+    const preferences=new Set(['mode','activeRole','productListPages','productListViews','activeProductListViewId','columns','listViews','activeViewId','listQuery','productListMode','phoneDemoCatalogVersion','phoneDemoBrandsVersion'])
     for(const key of new Set([...Object.keys(data),...Object.keys(next)])){
       if(key==='rbac'||key==='users'||preferences.has(key)||JSON.stringify((data as any)[key])===JSON.stringify((next as any)[key]))continue
       if(key==='benefitSalesLists'&&JSON.stringify(next.benefitSalesLists)!==JSON.stringify(data.benefitSalesLists))throwImportValidation('请通过选购页保存清单，不能通过导入改写历史记录。')
@@ -574,9 +507,9 @@ export const useCatalogStore = defineStore('catalog', () => {
       if(key==='specModelVersions'){if(!can('product:model:publish'))throwImportPermission('无权导入或改写模型发布快照。');continue}
       if(records){
         const previousRows=old||[],incomingRows=value||[]
-        const byId=(item:any)=>item.id||JSON.stringify(item)
+        const byId=(item:any)=>item.id||item.spuId||JSON.stringify(item)
         const keys=new Set([...previousRows,...incomingRows].map(byId))
-        for(const identity of keys){const a=previousRows.find((v:any)=>byId(v)===identity),b=incomingRows.find((v:any)=>byId(v)===identity);if(JSON.stringify(a)===JSON.stringify(b))continue;if(key==='benefitTypeGroups'&&b){const issue=groupTypesProblem(next,b.categoryId,b.productTypeIds);if(issue)throwImportValidation(issue)}if(key==='families'&&b&&!commandPermissions('saveSpu',[b],data).every(can))throwImportPermission('导入不能绕过商品编辑或发布权限。');if(key==='skus'&&a&&b&&isMaterialArchive(data,a)!==isMaterialArchive(next,b)&&(!can('product:sku:update')||!can('product:material:update')))throwImportPermission('导入不能跨越 SKU/MAT 身份权限。');const templateRow=(key==='templates'||key==='templateParams'||key==='mappings');const templateId=key==='templates'?(b||a)?.id:(b||a)?.templateId;const resource=templateRow?`product:${templateAccessResource(b?next:data,templateId||'')}`:key==='skus'&&((a||b)?.recordKind==='material'||(a||b)?.materialCode)?'product:material':prefix;const action=key==='templateParams'||key==='mappings'?'update':!a?'create':!b?'delete':'update';if(!can(`${resource}:${action}`))throwImportPermission(`导入被拒绝：没有 ${resource}:${action}，当前数据及会话未改变。`)}
+        for(const identity of keys){const a=previousRows.find((v:any)=>byId(v)===identity),b=incomingRows.find((v:any)=>byId(v)===identity);if(JSON.stringify(a)===JSON.stringify(b))continue;if(key==='benefitTypeGroups'&&b){const issue=groupTypesProblem(next,b.categoryId,b.productTypeIds)||commonSpusProblem(next,b.commonSpuIds||[]);if(issue)throwImportValidation(issue)}if(key==='families'&&b&&!commandPermissions('saveSpu',[b],data).every(can))throwImportPermission('导入不能绕过商品编辑或发布权限。');if(key==='skus'&&a&&b&&isMaterialArchive(data,a)!==isMaterialArchive(next,b)&&(!can('product:sku:update')||!can('product:material:update')))throwImportPermission('导入不能跨越 SKU/MAT 身份权限。');const templateRow=(key==='templates'||key==='templateParams'||key==='mappings');const templateId=key==='templates'?(b||a)?.id:(b||a)?.templateId;const resource=templateRow?`product:${templateAccessResource(b?next:data,templateId||'')}`:key==='skus'&&((a||b)?.recordKind==='material'||(a||b)?.materialCode)?'product:material':prefix;const action=key==='templateParams'||key==='mappings'?'update':!a?'create':!b?'delete':'update';if(!can(`${resource}:${action}`))throwImportPermission(`导入被拒绝：没有 ${resource}:${action}，当前数据及会话未改变。`)}
       }else if(!can(`${prefix}:update`))throwImportPermission(`导入被拒绝：没有 ${prefix}:update。`)
     }
     for(const saved of data.benefitSalesLists||[])if(saved.status==='confirmed'&&JSON.stringify(next.benefitSalesLists?.find(s=>s.id===saved.id))!==JSON.stringify(saved))throwImportValidation('不能通过导入修改或删除已确认清单。')
@@ -1265,6 +1198,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     return commitCandidate(next,{ok:true,message:'已恢复内置超级管理员的登记权限；其他角色及业务保持。'},['rbac'])
   }
   const api = {
+    addPublicSpus:(ids:string[],basis:string,isCurrent:()=>boolean=()=>true)=>{const selected=[...ids];return command(()=>{if(!isCurrent())return {ok:false,message:'选择上下文已变化，未添加'};const next=cloneRecord(data);return commitCandidate(next,addPublicSpus(next,selected,basis,new Date().toISOString()),['publicSpuPool'])})},
+    setPublicSpuEnabled:(id:string,enabled:boolean,revision:number)=>command(()=>{const next=cloneRecord(data);return commitCandidate(next,updatePublicSpu(next,id,enabled,revision,new Date().toISOString()),['publicSpuPool'])}),
+    removePublicSpu:(id:string,revision:number)=>command(()=>{const next=cloneRecord(data);return commitCandidate(next,removePublicSpu(next,id,revision),['publicSpuPool'])}),
     saveCompatibilityWorkspace:(changes:CompatibilityChange[],general:GeneralChange[],basis:string,isCurrent:()=>boolean=()=>true)=>{
       const commands=cloneRecord(changes),conditions=cloneRecord(general),owner=effectiveUserId.value,preview=previewUserId.value
       return command(()=>{
@@ -1324,6 +1260,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       return command(() => commitListPage('sku', copied, expectedPage, isCurrent, copiedGuard))
     },
     isAdmin,
+    supplementHuaweiProducts:()=>command(()=>{const result=supplementHuaweiProducts(data);return result.ok?commitCandidate(result.next,{ok:true,message:result.message},[...phoneBrandKeys]):result}),
     rebuildPhoneCatalogDemo:()=>command(()=>{const result=replacePhoneCatalogDemo(data,defaultColumns(),emptyQuery());return result.ok?commitCandidate(result.next,{ok:true,message:result.message},[...phoneCatalogKeys]):result}),
     supplementPhone18Demo:()=>command(()=>{
       const result=installPhone18Demo(data)
@@ -1423,7 +1360,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     (api as any)[name]=(...args:unknown[])=>{
       const codes=commandPermissions(name,args,data)
       if(!codes.every(can)){const message=`未授权操作：${codes.join('、')}。`;throw failureError(message,branchFailure('command.permission',message,{actionId:commandAction(name),savedState:'unchanged',context:{requiredPermissions:codes.join('、'),mode:RBAC_ENFORCEMENT_ENABLED?'enforced':'unrestricted'},recovery:['view-related','feedback']}))}
-      if((name==='resetAll'||name==='resetModule'||name==='supplementPhoneDemo'||name==='supplementPhone18Demo'||name==='rebuildPhoneCatalogDemo')&&!isAdmin.value)throw new Error('只有受保护的超级管理员可维护演示数据。')
+      if((name==='resetAll'||name==='resetModule'||name==='supplementPhoneDemo'||name==='supplementPhone18Demo'||name==='rebuildPhoneCatalogDemo'||name==='supplementHuaweiProducts')&&!isAdmin.value)throw new Error('只有受保护的超级管理员可维护演示数据。')
       const previous=invocation;invocation={codes,actor:effectiveUserId.value,name}
       try{return (original as (...a:unknown[])=>unknown)(...args)}finally{invocation=previous}
     }

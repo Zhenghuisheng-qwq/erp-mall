@@ -1,10 +1,11 @@
 import type {AppData,ColumnPref,ListQuery} from '../types'
 import {cloneRecord} from '../recordCopy'
 import {installPhone18Demo,phone18DemoKeys} from './phone18Demo'
+import {supplementHuaweiProducts} from './phoneBrands'
 import {createV3Material} from '../material'
 import {ensureProductListPages} from '../productListPages'
 
-export const phoneCatalogKeys=[...phone18DemoKeys,'productPlans','materialReceipts','materialRelations','materialContributions','deviceModels','deviceBindings','nodeCompatibilityRules','templateCompatibilityConfigs','templateCompatibilityOrigins','rules','brands','productGroups','columns','listQuery','listViews','activeViewId','productListViews','activeProductListViewId','productListPages','benefitSalesLists','phoneDemoCatalogVersion'] as const satisfies readonly (keyof AppData)[]
+export const phoneCatalogKeys=[...phone18DemoKeys,'productPlans','materialReceipts','materialRelations','materialContributions','deviceModels','deviceBindings','nodeCompatibilityRules','templateCompatibilityConfigs','templateCompatibilityOrigins','rules','brands','productGroups','columns','listQuery','listViews','activeViewId','productListViews','activeProductListViewId','productListPages','benefitSalesLists','phoneDemoCatalogVersion','phoneDemoBrandsVersion'] as const satisfies readonly (keyof AppData)[]
 /** Explicitly requested demo replacement; system identities and confirmed snapshots are retained. */
 export function replacePhoneCatalogDemo(current:AppData,columns:ColumnPref[],listQuery:ListQuery){
  const clean=cloneRecord(current)
@@ -13,8 +14,9 @@ export function replacePhoneCatalogDemo(current:AppData,columns:ColumnPref[],lis
   {id:'pt-film',name:'手机膜',categoryId:'c-phone',catalogRole:'accessory',sort:2,status:'enabled',description:''},
   {id:'pt-leaf-c-charge',name:'充电器',categoryId:'c-phone',catalogRole:'accessory',sort:3,status:'enabled',description:''},
   {id:'pt-phone',name:'手机',categoryId:'c-phone',catalogRole:'host',sort:4,status:'enabled',description:''}
- ],params:[],templates:[],templateParams:[],mappings:[],productSpecNodes:[],specCanvases:[],specModelVersions:[],planningRecords:[],productPlans:[],families:[],skus:[],compatibilities:[],generalCompatibilityClaims:[],deviceModels:[],deviceBindings:[],nodeCompatibilityRules:[],templateCompatibilityConfigs:[],templateCompatibilityOrigins:[],materialReceipts:[],materialRelations:[],materialContributions:[],rules:[],brands:[{id:'brand-demo18-apple',name:'Apple',logo:'',description:'软件演示品牌',status:'enabled'}],productGroups:[],benefitTypeGroups:[],benefitSalesLists:(current.benefitSalesLists||[]).filter(s=>s.status==='confirmed'),columns:cloneRecord(columns),listQuery:cloneRecord(listQuery),listViews:[],activeViewId:'',productListViews:[],activeProductListViewId:'',phoneDemoCatalogVersion:1})
+ ],params:[],templates:[],templateParams:[],mappings:[],productSpecNodes:[],specCanvases:[],specModelVersions:[],planningRecords:[],productPlans:[],families:[],skus:[],compatibilities:[],generalCompatibilityClaims:[],deviceModels:[],deviceBindings:[],nodeCompatibilityRules:[],templateCompatibilityConfigs:[],templateCompatibilityOrigins:[],materialReceipts:[],materialRelations:[],materialContributions:[],rules:[],brands:[{id:'brand-demo18-apple',name:'Apple',logo:'',description:'手机品牌',status:'enabled'}],productGroups:[],benefitTypeGroups:[],benefitSalesLists:(current.benefitSalesLists||[]).filter(s=>s.status==='confirmed'),columns:cloneRecord(columns),listQuery:cloneRecord(listQuery),listViews:[],activeViewId:'',productListViews:[],activeProductListViewId:'',phoneDemoCatalogVersion:1})
  delete clean.productListPages
+ delete clean.phoneDemoBrandsVersion
  const installed=installPhone18Demo(clean)
  if(!installed.ok)return installed
  const next=installed.next;let sequence=0
@@ -25,6 +27,7 @@ export function replacePhoneCatalogDemo(current:AppData,columns:ColumnPref[],lis
   // MAT retains its material identity even while its archive is available/online.
   material.status='on_sale';family.lifecycle='ready';family.shelfStatus='online'
  }
- ensureProductListPages(next)
- return {ok:true as const,next,message:'旧商品演示数据已清理。手机分类现有 4 个产品类型、4 个已发布模型、10 个在售 SKU、10 条已建档 MAT 和 2 个权益包。'}
+ const brands=supplementHuaweiProducts(next);if(!brands.ok)return brands
+ ensureProductListPages(brands.next)
+ return {ok:true as const,next:brands.next,message:'手机分类现有 4 个产品类型、4 个已发布模型、苹果与华为共 18 个在售 SKU、18 条已建档 MAT 和 2 个权益包。'}
 }

@@ -43,6 +43,7 @@ export function defaultMenuNodes(): MenuNode[] {
     group('benefits', '权益包', 'product', 6, BOTH),
     page('/benefits/manage', '权益包管理', 'benefits', 1, BOTH),
     page('/benefits/shopping', '权益包选购', 'benefits', 2, BOTH),
+    page('/benefits/public-pool', '公共商品池', 'benefits', 3, BOTH),
     page('/spus', 'SPU 管理', 'manage', 1, BOTH),
     page('/skus', 'SKU 管理', 'manage', 1.5, BOTH),
     page('/catalog', '商品资料管理', 'manage', 3, BOTH),

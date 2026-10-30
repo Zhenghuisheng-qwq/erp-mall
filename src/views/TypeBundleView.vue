@@ -1,6 +1,7 @@
 <template>
   <div class="bundle-page" :aria-busy="busy">
-    <PageHead title="权益包管理" desc="管理同一分类下的产品类型组合，按设备匹配可选商品。">
+    <PageHead title="权益包管理" desc="组合分类内产品类型与公共 SPU，按设备匹配可选商品。">
+      <el-button v-if="store.canRoute({path:'/benefits/public-pool'})" :disabled="busy" data-open-public-pool @click="router.push({path:'/benefits/public-pool',query:{returnTo:route.fullPath}})">公共商品池</el-button>
       <el-button v-if="returnTo" :disabled="busy" @click="router.push(returnTo)">返回来源</el-button>
       <el-button :disabled="busy" @click="router.push('/benefits/shopping')" v-if="store.canRoute({path:'/benefits/shopping'})">权益包选购</el-button>
       <el-button v-if="store.can('product:type-bundle:create')" type="primary" :icon="Plus" :disabled="busy" data-new-bundle @click="edit()">新建权益包</el-button>
@@ -49,6 +50,7 @@
         <el-form-item label="权益包名称"><el-input v-model="draft.name" maxlength="80" aria-label="权益包名称" /></el-form-item>
         <el-form-item label="归属分类"><el-select v-model="draft.categoryId" filterable aria-label="权益包归属分类"><el-option v-for="c in store.data.categories" :key="c.id" :value="c.id" :label="categoryName(c.id)" /></el-select></el-form-item>
         <el-form-item label="参与组合的产品类型"><TypeSetPicker v-model="draft.productTypeIds" :data="store.data" :category-id="draft.categoryId" category-only :disabled="!editable||busy" /></el-form-item>
+        <p class="muted">公共池中的启用商品会自动展示在所有权益包和自由组合中，无需在本包逐项添加。</p>
         <el-alert v-if="scopeProblem" :title="scopeProblem" type="warning" :closable="false" />
         <el-form-item label="试选设备，预览可组合商品"><CompatibilityDeviceSelect v-model="previewDevice" :data="store.data" /><p class="muted">设备只用于本次预览，不会保存为权益包的型号绑定。</p><div v-if="previewDevice&&!scopeProblem" class="bundle-preview" data-bundle-preview><section v-for="g in preview.groups" :key="g.id"><strong>{{g.name}}</strong><p v-if="!g.candidates.length">{{g.empty}}</p><p v-for="c in g.candidates" :key="c.id">{{c.name}} · {{c.spec}}</p></section></div></el-form-item>
         <el-form-item label="启用"><el-switch v-model="draft.enabled" /></el-form-item>
@@ -88,7 +90,7 @@ const previewDevice=ref(''),previewByGroup=ref<Record<string,string>>({})
 const opened=ref(false),draft=ref<GroupInput>(),revision=ref(0),initial=ref(''),error=ref(''),busy=ref(false),deletingId=ref(''),listError=ref('')
 let alive=true
 const scopeProblem=computed(()=>draft.value?groupTypesProblem(store.data,draft.value.categoryId,draft.value.productTypeIds):'')
-const preview=computed(()=>saleQuery(store.data,{mode:'free',categoryId:draft.value?.categoryId||'',productTypeIds:draft.value?.productTypeIds||[],device:deviceFromKey(previewDevice.value)}))
+const preview=computed(()=>saleQuery(store.data,{mode:'free',categoryId:draft.value?.categoryId||'',productTypeIds:draft.value?.productTypeIds||[],commonSpuIds:draft.value?.commonSpuIds,device:deviceFromKey(previewDevice.value)}))
 const editable=computed(()=>store.can(`product:type-bundle:${draft.value?.id?'update':'create'}`))
 const dateFormatter=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Singapore',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'})
 function timeParts(value:string){const date=new Date(value);if(!Number.isFinite(date.getTime()))return {date:'未记录',time:''};const parts=dateFormatter.formatToParts(date),part=(name:string)=>parts.find(p=>p.type===name)?.value||'';return {date:`${part('year')}-${part('month')}-${part('day')}`,time:`${part('hour')}:${part('minute')}`}}
