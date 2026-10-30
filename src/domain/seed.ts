@@ -1,3 +1,4 @@
+import {completePhoneBenefitDemo} from './benefitSales/demo'
 import { arrangeSpecPositions } from './logic'
 import { buildDefaultView } from './productListViews'
 import { resolveDeviceSku } from './deviceResolution'
@@ -333,7 +334,7 @@ function sku(
   return { id, familyId, code: '', oaSkuId, status, variantAttrs, projectedAttrs: {} }
 }
 
-export function createSeed(): AppData {
+export function createSeed(includePhoneBenefits=true): AppData {
   const columns = defaultColumns()
   const listQuery = emptyQuery()
   const data: AppData = {
@@ -549,6 +550,7 @@ export function createSeed(): AppData {
       note: '演示依据', createdAt: now, updatedAt: now,
     })
   }
+  if(includePhoneBenefits)completePhoneBenefitDemo(data)
   data.skus = data.skus.map((item) => {
     const owner = data.families.find((family) => family.id === item.familyId)
     if (!owner) return item

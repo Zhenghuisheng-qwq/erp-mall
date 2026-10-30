@@ -59,6 +59,7 @@ import type { MaterialChoice } from '../domain/material'
 import type { ProductGrade } from '../domain/types'
 import { arrangeSpecPositions } from '../domain/logic'
 import { activeProductListView, applyPresetToActiveView, currentModeQuery, ensureProductListViews } from '../domain/productListViews'
+import {supplementPhoneDemo,demoKeys} from '../domain/benefitSales/demo'
 import { createSeed, defaultColumns, emptyQuery } from '../domain/seed'
 import { DATA_VERSION, STORAGE_KEY, type AppData, type Category, type ColumnPref, type FeedbackItem, type ListQuery, type ListView, type ParamDef, type ProductFamily, type ProductGroup, type ProductType, type Sku, type SpecRule, type Brand, type UserRole } from '../domain/types'
 
@@ -1490,6 +1491,11 @@ export const useCatalogStore = defineStore('catalog', () => {
     saveDeviceModel: (...args: Parameters<typeof saveDeviceModel>) => command<CompatibilityCommandResult>(() => saveDeviceModel(...args)),
     removeDeviceModel: (...args: Parameters<typeof removeDeviceModel>) => command<CompatibilityCommandResult>(() => removeDeviceModel(...args)),
     isAdmin,
+    supplementPhoneDemo:()=>command(()=>{
+      const before=normalizeStored({version:DATA_VERSION,data:createSeed(false)},{persist:false})!,after=normalizeStored({version:DATA_VERSION,data:createSeed()},{persist:false})!
+      const result=supplementPhoneDemo(data,before,after)
+      return result.ok?commitCandidate(result.next,{ok:true,message:result.message},[...demoKeys]):result
+    }),
     resetAll: () => command(resetAll),
     resetModule: (...args: Parameters<typeof resetModule>) => command(() => resetModule(...args)),
     exportJson,
@@ -1579,7 +1585,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     (api as any)[name]=(...args:unknown[])=>{
       const codes=commandPermissions(name,args,data)
       if(!codes.every(can)){const message=`未授权操作：${codes.join('、')}。`;throw failureError(message,branchFailure('command.permission',message,{actionId:commandAction(name),savedState:'unchanged',context:{requiredPermissions:codes.join('、'),mode:RBAC_ENFORCEMENT_ENABLED?'enforced':'unrestricted'},recovery:['view-related','feedback']}))}
-      if((name==='resetAll'||name==='resetModule')&&!isAdmin.value)throw new Error('只有受保护的超级管理员可重置演示数据。')
+      if((name==='resetAll'||name==='resetModule'||name==='supplementPhoneDemo')&&!isAdmin.value)throw new Error('只有受保护的超级管理员可重置演示数据。')
       const previous=invocation;invocation={codes,actor:effectiveUserId.value,name}
       try{return (original as (...a:unknown[])=>unknown)(...args)}finally{invocation=previous}
     }

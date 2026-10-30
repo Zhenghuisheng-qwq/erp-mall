@@ -27,7 +27,7 @@
  </section>
 </template>
 <script setup lang="ts">
-import {computed,ref,watch} from 'vue'
+import {computed,ref,watch,onBeforeUnmount} from 'vue'
 import {onBeforeRouteLeave,onBeforeRouteUpdate} from 'vue-router'
 import {ElMessage,ElMessageBox} from 'element-plus'
 import {useCatalogStore} from '../../stores/catalog'
@@ -53,12 +53,15 @@ const existing=(id:string)=>(store.data.generalCompatibilityClaims||[]).filter(c
 const oppositeCount=computed(()=>store.data.compatibilities.filter(c=>targets.value.includes(c.targetId||c.accessorySkuId)&&form.value.deviceTypeIds.includes(c.host.productTypeId)&&(c.capability||'basic')===form.value.capability&&(c.conclusion==='incompatible')!==(form.value.conclusion==='incompatible')).length+(store.data.generalCompatibilityClaims||[]).filter(c=>c.id!==editing.value?.id&&targets.value.includes(c.skuId)&&c.deviceTypeIds.some(id=>form.value.deviceTypeIds.includes(id))&&c.capability===form.value.capability&&(c.conclusion==='incompatible')!==(form.value.conclusion==='incompatible')).length)
 function signature(){return JSON.stringify([targets.value,form.value,editing.value?.id])}
 function open(c?:GeneralCompatibilityClaim){editing.value=c?copy(c):undefined;targets.value=c?[c.skuId]:[...(props.skuIds||[])];form.value=c?{deviceTypeIds:[...c.deviceTypeIds],capability:c.capability,conditions:copy(c.conditions),conclusion:c.conclusion,verification:c.verification,source:c.source,note:c.note}:blank();basis.value=JSON.stringify(store.data.generalCompatibilityClaims||[]);baseline.value=signature();previewDevice.value=props.deviceSkuId?`sku:${props.deviceSkuId}`:props.modelKey?`model:${props.modelKey}`:'';error.value='';opened.value=true}
-async function discard(){if(saving.value)return false;if(!opened.value||signature()===baseline.value)return true;try{await ElMessageBox.confirm('适用资料有未保存修改，确定放弃？','未保存资料',{confirmButtonText:'放弃修改',cancelButtonText:'继续编辑'});return true}catch{return false}}
+function beforeUnload(e:BeforeUnloadEvent){if(opened.value&&(saving.value||signature()!==baseline.value)){e.preventDefault();e.returnValue=''}}
+window.addEventListener('beforeunload',beforeUnload)
+onBeforeUnmount(()=>window.removeEventListener('beforeunload',beforeUnload))
+async function discard(){if(saving.value)return false;if(!opened.value||signature()===baseline.value)return true;try{await ElMessageBox.confirm('适用资料有未保存修改，确定放弃？','未保存资料',{confirmButtonText:'放弃修改',cancelButtonText:'继续编辑'});opened.value=false;return true}catch{return false}}
 async function close(done:()=>void){if(await discard())done()}
 async function changeMode(value:string|number|boolean|undefined){if(await discard()&&(!modelManager.value||await modelManager.value.canDiscard())){opened.value=false;mode.value=String(value)}}
 onBeforeRouteLeave(discard);onBeforeRouteUpdate(discard)
-watch(()=>[store.activeUserId,store.previewUserId],()=>{opened.value=false;targets.value=[];editing.value=undefined;form.value=blank()})
-async function save(){saving.value=true;error.value='';const stamp=signature();try{const result=await store.commitGeneralCompatibility(changes.value,basis.value,()=>signature()===stamp);if(!result.ok){error.value=result.message||'保存失败';return}opened.value=false;ElMessage.success('适用范围已保存')}catch(e){error.value=String(e)}finally{saving.value=false}}
+watch(()=>[store.activeUserId,store.previewUserId],()=>{opened.value=false;targets.value=[];editing.value=undefined;form.value=blank();error.value='';previewDevice.value='';baseline.value='';basis.value=''})
+async function save(){saving.value=true;error.value='';const owner=JSON.stringify([store.activeUserId,store.previewUserId]),stamp=signature();try{const result=await store.commitGeneralCompatibility(changes.value,basis.value,()=>owner===JSON.stringify([store.activeUserId,store.previewUserId])&&signature()===stamp);if(owner!==JSON.stringify([store.activeUserId,store.previewUserId]))return;if(!result.ok){error.value=result.message||'保存失败';return}opened.value=false;ElMessage.success('适用范围已保存')}catch(e){if(owner===JSON.stringify([store.activeUserId,store.previewUserId]))error.value=String(e)}finally{saving.value=false}}
 async function remove(c:GeneralCompatibilityClaim){try{await ElMessageBox.confirm('只删除此声明，已确认清单的历史依据保持不变。','删除适用声明');const result=await store.commitGeneralCompatibility([{kind:'remove',id:c.id,revision:c.revision}],JSON.stringify(store.data.generalCompatibilityClaims||[]));if(!result.ok)ElMessage.error(result.message||'删除失败')}catch(e){if(e!=='cancel'&&e!=='close')ElMessage.error(String(e))}}
 </script>
 <style scoped>.tools{display:flex;gap:12px;margin:16px 0}.tools .el-input{max-width:450px}.claim{padding:14px 0;border-bottom:1px solid var(--el-border-color)}.muted{color:var(--el-text-color-secondary)}.condition{display:flex;gap:8px;margin:10px 0}.condition .el-select{min-width:0;flex:1}.conditions,.preview{padding:12px 0}p{line-height:1.6;margin:6px 0}.el-tag{margin-right:10px}.el-dialog .el-select{min-width:220px}@media(max-width:700px){.condition{flex-wrap:wrap}.condition .el-select{min-width:150px}}</style>

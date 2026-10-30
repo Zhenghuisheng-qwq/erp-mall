@@ -23,6 +23,7 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="resetCurrent">重置当前模块</el-dropdown-item>
+                <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="supplementDemo">补充手机选配演示数据</el-dropdown-item>
                 <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="resetAll">重置全部演示数据</el-dropdown-item>
                 <el-dropdown-item v-if="store.can('product:export:execute')" :disabled="dataBusy" @click="download">导出演示数据</el-dropdown-item>
                 <el-dropdown-item v-if="store.can('product:import:execute')" :disabled="dataBusy" @click="pickFile">导入演示数据</el-dropdown-item>
@@ -125,6 +126,11 @@ const moduleOf = computed(() => {
   return 'system' as const
 })
 
+async function supplementDemo(){
+ if(dataBusy.value)return
+ dataBusy.value=true
+ try{const result=await store.supplementPhoneDemo();if(!result.ok)ElMessage.error(result.message);else ElMessage.success(result.message)}catch(e){ElMessage.error(e instanceof Error?e.message:'演示补充失败，原数据保留')}finally{dataBusy.value=false}
+}
 async function resetAll() {
   if (dataBusy.value) return
   dataBusy.value = true

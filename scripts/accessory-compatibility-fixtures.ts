@@ -5,7 +5,7 @@ import type { DeviceModel } from '../src/domain/accessoryCompatibilityTypes'
 
 export const ACCESSORY_TEST_TIME = '2026-10-23T04:00:00.000Z'
 export function createAccessoryCompatibilityFixture() {
-  const data: AppData = createSeed()
+  const data: AppData = createSeed(false)
   const ids = { phoneA: 'phone-a', phoneB: 'phone-b', phoneUnbound: 'phone-unbound', familyDevice: 'family-device', caseSku: 'case-sku', filmSku: 'film-sku', chargerSku: 'charger-sku', cableSku: 'cable-sku', copySku: 'copy-sku', pendingSku: 'pending-sku', blockedSku: 'blocked-sku', offSaleSku: 'off-sale-sku', matCopy: 'mat-copy', matOnly: 'mat-only', modelA: 'model-a', modelB: 'model-b' }
   data.categories = [{ id: 'cat-device-test', name: '独立测试设备', parentId: null, enabled: true, sort: 1 }, { id: 'cat-accessory-test', name: '独立测试配件', parentId: null, enabled: true, sort: 2 }]
   data.productTypes = [

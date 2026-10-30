@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import {createPinia,setActivePinia} from 'pinia'
 import {nextTick} from 'vue'
 import {installCatalogTestLocks} from './catalog-storage-test-env'
+import {createSeed} from '../src/domain/seed'
+import {phoneDemoTypes,supplementPhoneDemo} from '../src/domain/benefitSales/demo'
 import {bundleFixture} from './type-bundle-fixture'
 import {copy,writeGroup,writeSale,priceCents,total,benefitStorageProblems} from '../src/domain/benefitSales/commands'
 import {saleQuery} from '../src/domain/benefitSales/query'
@@ -46,4 +48,15 @@ try{
  if(store.rbacEnforced){assert.throws(()=>store!.saveTypeBundle(group,0),/未授权/);assert(store.can('product:bundle-sale:create'));assert(!store.can('product:compatibility:update'))}
  assert.equal((await store.saveBundleSale(freeDraft,0)).ok,true)
  console.log('PASS real Store queue: failed write atomic, revision conflict, old namespaces preserved, refresh/import normalization, sales-only permissions and free sale')
+ store.$dispose();session.set('iyge-rbac-simulated-user','u-admin');disk.set(STORAGE_KEY,JSON.stringify({version:DATA_VERSION,data:createSeed(false)}));setActivePinia(createPinia());store=useCatalogStore();await nextTick();await store.waitForPersistence()
+ const beforeDemo=disk.get(STORAGE_KEY);fail=true;assert.equal((await store.supplementPhoneDemo()).ok,false);assert.equal(disk.get(STORAGE_KEY),beforeDemo);assert.equal(store.data.benefitTypeGroups,undefined)
+ const supplement=await store.supplementPhoneDemo();assert.equal(supplement.ok,true,supplement.message)
+ const demoSaved=disk.get(STORAGE_KEY);const repeatDemo=await store.supplementPhoneDemo();assert.equal(repeatDemo.ok,true,repeatDemo.message);assert.equal(disk.get(STORAGE_KEY),demoSaved)
+ const fresh=createSeed(),demoScope:SaleScope={mode:'group',groupId:'demo-phone-basic',categoryId:'c-phone',productTypeIds:phoneDemoTypes,device:{kind:'sku',skuId:'s-iphone-blue'}}
+ assert(phoneDemoTypes.every(id=>fresh.productTypes.find(t=>t.id===id)?.categoryId==='c-phone'));assert(!fresh.categories.some(c=>c.parentId==='c-phone'))
+ for(const source of [fresh,store.data]){const a=saleQuery(source,demoScope).candidates.map(c=>c.id),b=saleQuery(source,{...demoScope,device:{kind:'sku',skuId:'s-demo-iphone16'}}).candidates.map(c=>c.id);for(const id of ['s-case-clear','s-film-1','s-demo-charger','s-demo-earphones'])assert(a.includes(id),`A missing ${id}`);for(const id of ['s-demo-case16','s-demo-film16','s-demo-charger','s-demo-earphones'])assert(b.includes(id),`B missing ${id}`);assert(!a.includes('s-demo-case16'));assert(!b.includes('s-case-clear'))}
+ const demoBefore=normalizeStored({version:DATA_VERSION,data:createSeed(false)},{persist:false})!,after=normalizeStored({version:DATA_VERSION,data:fresh},{persist:false})!,modified=copy(demoBefore);modified.families.find(f=>f.id==='f-iphone')!.name='用户自行维护的手机';const modifiedStamp=JSON.stringify(modified);assert(!supplementPhoneDemo(modified,demoBefore,after).ok);assert.equal(JSON.stringify(modified),modifiedStamp)
+ const adopted=copy(demoBefore);adopted.families.push({...copy(adopted.families.find(f=>f.id==='f-case')!),id:'user-real-case',origin:'created'});assert(!supplementPhoneDemo(adopted,demoBefore,after).ok);const referenced=copy(demoBefore);referenced.benefitTypeGroups=[{id:'user-types',name:'用户组合',categoryId:'c-film',productTypeIds:['pt-leaf-c-film'],enabled:true,sort:0,revision:1,createdAt:now,updatedAt:now}];assert(!supplementPhoneDemo(referenced,demoBefore,after).ok)
+ console.log('PASS full demo A/B phone, four accessory groups, one shared charger, exact-ID supplement idempotency, modified records protected and quota failure atomic')
+
 }finally{store?.$dispose();undo()}
