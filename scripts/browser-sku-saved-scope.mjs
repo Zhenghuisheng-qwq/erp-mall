@@ -12,7 +12,7 @@ try {
   browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'chrome', headless: true })
   for (const strict of [false, true]) {
     server = await createServer({ cacheDir: resolve(runtime, strict ? 'vite-strict' : 'vite-default'), logLevel: 'error', define: { 'import.meta.env.VITE_RBAC_ENFORCEMENT': JSON.stringify(String(strict)) }, server: { host: '127.0.0.1', port: 0, hmr: false, watch: null, ws: false } })
-    const { createAccessoryCompatibilityFixture } = await server.ssrLoadModule('/scripts/accessory-compatibility-fixtures.ts')
+    const { createCatalogProductFixture } = await server.ssrLoadModule('/scripts/catalog-product-fixture.ts')
     const { ensureProductListPages } = await server.ssrLoadModule('/src/domain/productListPages.ts')
     const { ensureSkuWorkbench, defaultSkuConfig, SYSTEM_SKU_VIEW_ID } = await server.ssrLoadModule('/src/domain/skuWorkbenchState.ts')
     const { ensureRbac } = await server.ssrLoadModule('/src/domain/rbac.ts')
@@ -21,7 +21,7 @@ try {
     await server.listen()
     const base = `http://127.0.0.1:${server.httpServer.address().port}`
     for (const shape of ['OR', 'nested OR', 'AND']) {
-      const { data } = createAccessoryCompatibilityFixture(); ensureRbac(data); ensureProductListPages(data); ensureSkuWorkbench(data)
+      const { data } = createCatalogProductFixture(); ensureRbac(data); ensureProductListPages(data); ensureSkuWorkbench(data)
       const config = defaultSkuConfig()
       const rules = [{ kind: 'rule', id: 'original-status', field: 'status', operator: 'eq', value: 'on_sale' }, { kind: 'rule', id: 'original-name', field: 'name', operator: 'contains', value: 'phone-a' }]
       config.conditions = { kind: 'group', id: 'root', logic: shape === 'AND' ? 'all' : 'any', children: shape === 'nested OR' ? [{ kind: 'group', id: 'original-group', logic: 'any', children: rules }] : rules }
@@ -97,7 +97,7 @@ try {
       await context.close()
     }
     {
-      const { data } = createAccessoryCompatibilityFixture(); ensureRbac(data); ensureProductListPages(data); ensureSkuWorkbench(data)
+      const { data } = createCatalogProductFixture(); ensureRbac(data); ensureProductListPages(data); ensureSkuWorkbench(data)
       data.compatibilities = data.compatibilities.filter(link => link.id !== 'decl-charger-basic')
       const onlyFast = data.compatibilities.find(link => link.id === 'decl-charger-fast'); assert(onlyFast)
       onlyFast.conclusion = 'compatible'; onlyFast.conditions = []

@@ -30,8 +30,8 @@ const router = createRouter({
         { path: 'skus/:id', name: 'sku-edit', component: () => import('../views/SkuEditView.vue'), meta: { title: '编辑 SKU' } },
         { path: 'materials/new', name: 'material-new', component: () => import('../views/MaterialCreateView.vue'), meta: { title: '物料建档' } },
         { path: 'materials/:id', name: 'material-edit', component: () => import('../views/ProductEditView.vue'), beforeEnter: to => useCatalogStore().data.families.some(item => item.id === to.params.id && item.line === 'v3') || `/spus/${to.params.id}`, meta: { title: '物料管理' } },
+        { path: 'compatibility', name: 'compatibility', component: () => import('../views/CompatibilityView.vue'), meta: {title:'兼容性管理',group:'商品中心',mode:'daily'} },
         { path: 'import', name: 'import', component: () => import('../views/ProductIoView.vue'), meta: { title: '导入导出', group: '商品中心', mode: 'daily' } },
-        { path: 'compatibility', name: 'compatibility', component: () => import('../views/CompatibilityView.vue'), meta: { title: '兼容性查询', group: '商品中心', mode: 'daily' } },
         { path: 'products/new', redirect: to => ({ path: '/spus/new', query: to.query }) },
         { path: 'products/:id', redirect: to => {
           const data = useCatalogStore().data

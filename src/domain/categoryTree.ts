@@ -266,7 +266,6 @@ export function productTypeCategoryMoveMessage(data: {
   productPlans?: { productTypeId: string }[]
   families: { id: string; productTypeId?: string }[]
   skus: { id: string; familyId: string }[]
-  compatibilities?: { accessorySkuId: string; host: { productTypeId: string } }[]
 }, productTypeId: string, nextCategoryId: string, categoryLabel = '') {
   const type = data.productTypes.find((item) => item.id === productTypeId)
   if (!type) return '产品类型不存在。'
@@ -282,10 +281,9 @@ export function productTypeCategoryMoveMessage(data: {
   const families = data.families.filter((item) => item.productTypeId === productTypeId)
   const familyIds = new Set(families.map((item) => item.id))
   const materials = data.skus.filter((item) => familyIds.has(item.familyId)).length
-  const links = (data.compatibilities || []).filter((item) => item.host.productTypeId === productTypeId || data.skus.some((sku) => familyIds.has(sku.familyId) && sku.id === item.accessorySkuId)).length
-  if (!modelIds.size && !published && !planning && !families.length && !materials && !links) return ''
+  if (!modelIds.size && !published && !planning && !families.length && !materials) return ''
   const where = categoryLabel || next.name
-  return `不能改到「${where}」。已有 ${modelIds.size} 个商品模型、${published} 个已发布版本、${planning} 条规划、${families.length} 款商品、${materials} 条物料、${links} 条适用关系。这些记录仍使用原来的分类。本次不会改写发布快照、规划编号和物料编码。`
+  return `不能改到「${where}」。已有 ${modelIds.size} 个商品模型、${published} 个已发布版本、${planning} 条规划、${families.length} 款商品、${materials} 条物料。这些记录仍使用原来的分类。本次不会改写发布快照、规划编号和物料编码。`
 }
 
 export function relocateCategoryNodes(categories: Category[], id: string, targetId: string, position: DropPosition, typedCategoryIds: ReadonlySet<string> = new Set()) {

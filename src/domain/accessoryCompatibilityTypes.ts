@@ -32,7 +32,7 @@ export interface CompatibilityProvenance {
   declarationSnapshot?: { id: string; host: CompatibilityHost; note: string; conclusion: CompatibilityConclusion; verification: CompatibilityVerification; capability: CompatibilityCapability; conditions: CompatibilityCondition[]; source: string; createdAt: string; updatedAt: string }
 }
 
-/** A small explicitly maintained device catalogue; identity is its id, never its name. */
+/** Existing historical explicit identities; new model choices come from product metadata. */
 export interface DeviceModel {
   id: string
   name: string

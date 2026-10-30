@@ -41,7 +41,6 @@ const sheets: Record<string, LegacyFeatureSheet> = {
   '/skus': sheet('SKU 管理', [
     ['sku.workbench.filters', '高级筛选与常用筛选', '视图'],
     ['sku.workbench.views', '保存与恢复视图', '视图'],
-    ['sku.workbench.compatibility', '适用关系', '业务'],
   ]),
   '/skus/new': sheet('新增 SKU', [
     ['sku.create.source', '选择 SPU 与生成来源', '创建'],
@@ -118,8 +117,6 @@ const sheets: Record<string, LegacyFeatureSheet> = {
     ['grade', '标记商品档次', '物料'],
     ['temp', '创建临时物料', '物料'],
     ['spec.naming.node', '命名规则入口', '规则'],
-    ['host', '节点适用配置', '规则'],
-    ['spec.compatibility.template', '配置适用设备', '规则'],
     ['spec.materials.inline', '完整结构关联物料', '物料'],
   ]),
   '/params': sheet('属性词典', [
@@ -158,11 +155,7 @@ const sheets: Record<string, LegacyFeatureSheet> = {
     ['list', '查看问题', '检查'],
     ['fix', '去修改', '检查'],
   ]),
-  '/compatibility': sheet('适用关系', [
-    ['link', '关联主机', '关系'],
-    ['add', '添加配件', '关系'],
-    ['remove', '取消关联', '关系'],
-  ]),
+  '/compatibility': sheet('兼容性管理', [['ledger','商品适用台账','维护'],['models','维护适用设备','维护'],['device','按设备查询','查询']]),
   '/import': sheet('导入导出', [
     ['template', '下载模板', '表格'],
     ['export', '导出商品', '表格'],

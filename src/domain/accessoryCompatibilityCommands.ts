@@ -1,12 +1,11 @@
 import { isMaterialArchive, isRealSku } from './catalogIdentity'
-import { roleOfType } from './compatibility'
 import { compatibilityRecordRole, sameDeviceHost, validateCompatibilityHost } from './deviceResolution'
 import { declarationDefaults } from './accessoryCompatibilityQuery'
-import { templateClaimContentSignature } from './templateCompatibility'
+import {cloneRecord} from './recordCopy'
 import { conditionProblem } from './compatibilityValidation'
 export { conditionProblem } from './compatibilityValidation'
 import type { AppData, CompatibilityHost, CompatibilityLink } from './types'
-import type { AccessoryTarget, CompatibilityCapability, CompatibilityConclusion, CompatibilityCondition, CompatibilityProvenance, CompatibilityVerification, DeviceModel } from './accessoryCompatibilityTypes'
+import type { AccessoryTarget, CompatibilityCapability, CompatibilityConclusion, CompatibilityCondition, CompatibilityProvenance, CompatibilityVerification } from './accessoryCompatibilityTypes'
 
 export interface DeclarationDraft {
   target: AccessoryTarget
@@ -32,11 +31,10 @@ export interface CompatibilityPreview {
   canCommit: boolean
 }
 export interface CompatibilityCommandResult { ok: boolean; message?: string; preview?: CompatibilityPreview; createdIds?: string[]; id?: string }
-export const cloneCompatibility = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
 /** Missing new fields are legacy MAT statements, not inferred sales statements. */
 export function declarationDraft(link: CompatibilityLink): DeclarationDraft {
-  return cloneCompatibility({ ...declarationDefaults(link), host: link.host, note: link.note || '' })
+  return cloneRecord({ ...declarationDefaults(link), host: link.host, note: link.note || '' })
 }
 
 function stable(value: unknown): string {
@@ -96,12 +94,12 @@ export function declarationProblem(data: AppData, draft: DeclarationDraft): stri
 }
 
 function asLink(draft: DeclarationDraft, id: string, now: string, createdAt = now): CompatibilityLink {
-  return { id, accessorySkuId: draft.target.id, targetKind: draft.target.kind, targetId: draft.target.id, host: cloneCompatibility(draft.host), conclusion: draft.conclusion, verification: draft.verification, capability: draft.capability, conditions: cloneCompatibility(draft.conditions), source: draft.source.trim(), note: draft.note.trim(), provenance: cloneCompatibility(draft.provenance || { kind: 'manual', detail: draft.source.trim() }), createdAt, updatedAt: now }
+  return { id, accessorySkuId: draft.target.id, targetKind: draft.target.kind, targetId: draft.target.id, host: cloneRecord(draft.host), conclusion: draft.conclusion, verification: draft.verification, capability: draft.capability, conditions: cloneRecord(draft.conditions), source: draft.source.trim(), note: draft.note.trim(), provenance: cloneRecord(draft.provenance || { kind: 'manual', detail: draft.source.trim() }), createdAt, updatedAt: now }
 }
 
 /** Read-only preview. Every accepted row is compared with earlier rows in the same batch. */
 export function previewCompatibilityChanges(data: AppData, changes: CompatibilityChange[]): CompatibilityPreview {
-  const items: CompatibilityPreviewItem[] = [], trial = cloneCompatibility(data.compatibilities || [])
+  const items: CompatibilityPreviewItem[] = [], trial = cloneRecord(data.compatibilities || [])
   if (!Array.isArray(changes)) return { items, added: 0, edited: 0, removed: 0, skipped: 0, conflicts: 0, invalid: 1, canCommit: false }
   changes.forEach((change, index) => {
     const append = (state: CompatibilityPreviewItem['state'], message: string) => items.push({ change, state, message })
@@ -117,9 +115,7 @@ export function previewCompatibilityChanges(data: AppData, changes: Compatibilit
     if (change.kind === 'edit' && !original) { append('invalid', '待编辑声明已不存在，请重新打开。'); return }
     const others = trial.filter(link => link.id !== original?.id).map(declarationDraft).filter(draft => sameRange(draft, change.draft))
     if (others.some(draft => opposite(draft.conclusion, change.draft.conclusion))) { append('conflict', '同一对象、型号范围和能力已有相反结论；不会自动覆盖。'); return }
-    const sameExistingClaim = (draft: DeclarationDraft) => original?.provenance?.kind === 'template'
-      ? templateClaimContentSignature({ ...draft, id: '' }) === templateClaimContentSignature({ ...change.draft, id: '' })
-      : sameClaim(draft, change.draft)
+    const sameExistingClaim = (draft: DeclarationDraft) => sameClaim(draft, change.draft) && draft.source === change.draft.source && draft.note === change.draft.note
     if (others.some(sameExistingClaim)) { append('duplicate', '同范围、同能力和条件的声明已存在，跳过重复。'); return }
     if (original) {
       const next = asLink(change.draft, original.id, original.updatedAt, original.createdAt)
@@ -161,21 +157,13 @@ export function previewMaterialCopy(data: AppData, materialId: string, skuId: st
     return { kind: 'add', draft: { ...original, target: { kind: 'sku', id: skuId }, provenance: {
       kind: 'material-copy', detail: '用户确认从指定物料复制；副本独立维护，不是 BOM 或动态继承。', materialId,
       materialSnapshot: { id: materialId, code: material?.materialCode || material?.code || '', name: material?.skuName || '' }, declarationId: link.id,
-      declarationSnapshot: { id: link.id, host: cloneCompatibility(link.host), note: link.note, conclusion: original.conclusion, verification: original.verification, capability: original.capability, conditions: cloneCompatibility(original.conditions), source: original.source, createdAt: link.createdAt, updatedAt: link.updatedAt },
+      declarationSnapshot: { id: link.id, host: cloneRecord(link.host), note: link.note, conclusion: original.conclusion, verification: original.verification, capability: original.capability, conditions: cloneRecord(original.conditions), source: original.source, createdAt: link.createdAt, updatedAt: link.updatedAt },
     } } }
   })
   const preview = previewCompatibilityChanges(data, changes)
   const error = !material || !isMaterialArchive(data, material) ? '请选择真实源物料 MAT。' : !sku || !isRealSku(data, sku) ? '请选择真实目标销售 SKU。' : !links.length ? '源物料尚无可复制的正式声明。' : ''
   if (error) { preview.invalid++; preview.canCommit = false; preview.items.push({ change: { kind: 'remove', id: '' }, state: 'invalid', message: error }) }
   return { ...preview, changes }
-}
-
-export function deviceModelProblem(data: AppData, model: Pick<DeviceModel, 'name' | 'productTypeId' | 'attributes'>): string {
-  if (!string(model.name) || !model.name.trim()) return '请填写设备型号名称。'
-  const type = data.productTypes.find(item => item.id === model.productTypeId)
-  if (!type || type.status !== 'enabled' || roleOfType(data, type.id) !== 'host') return '请选择有效的主机产品类型。'
-  if (!object(model.attributes) || Object.entries(model.attributes).some(([id, value]) => !data.params.some(param => param.id === id) || !string(value))) return '型号属性必须使用有效属性及文本值。'
-  return ''
 }
 
 /** Validate import schema and identity, retaining dangling references for repair instead of guessing replacements. */

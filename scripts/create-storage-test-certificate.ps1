@@ -1,4 +1,4 @@
-param([string]$OutputPath = 'work/compatibility-refinement/concurrency-tls/localhost-test.pfx')
+param([string]$OutputPath = 'work/storage-concurrency-tls/localhost-test.pfx')
 $ErrorActionPreference = 'Stop'
 # Standalone test credential only. No system certificate store is read or changed.
 $resolvedOutput = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $OutputPath))

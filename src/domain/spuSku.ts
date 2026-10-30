@@ -1,7 +1,6 @@
 import { rejectGuide } from './guide/failure'
 import { boundParams, generateSkuFromModel, inspectFamily, modelSpecColumns, planSkuLines, projectAttrs } from './logic'
 import { legalPlanningCombinations } from './planning'
-import { compatibilityFamilyBlock } from './compatibility'
 import { isMaterialArchive, isRealSku } from './catalogIdentity'
 import type { AppData, ProductFamily, Sku } from './types'
 
@@ -25,7 +24,7 @@ const projected = (family: ProductFamily, draft: SkuDraft) => projectAttrs(famil
 const blankDraft = (attrs: Record<string, string>, name = ''): SkuDraft => ({ code: '', oaSkuId: '', skuName: name, status: 'draft', variantAttrs: { ...attrs } })
 
 export function spuIdentityLocked(data: AppData, family: ProductFamily) {
-  return data.skus.some(item => item.familyId === family.id) || Boolean(family.productPlanId || family.commonSignature || compatibilityFamilyBlock(data, family.id))
+  return data.skus.some(item => item.familyId === family.id) || Boolean(family.productPlanId || family.commonSignature)
 }
 
 export function saveSpu(data: AppData, family: ProductFamily, now: string): Result<{ id: string }> {
@@ -56,7 +55,7 @@ export function spuRemovalBlock(data: AppData, id: string) {
     const materials = children.filter(item => isMaterialArchive(data, item)).length
     return `不能删除：还有 ${children.length - materials} 条 SKU、${materials} 条物料。请先到 SKU 管理或物料管理处理；不会级联删除。`
   }
-  return compatibilityFamilyBlock(data, id)
+  return ''
 }
 
 export function skuFields(data: AppData, family: ProductFamily) {
@@ -95,7 +94,7 @@ function modelRows(data: AppData, family: ProductFamily) {
   })
 }
 
-export function planSpuCompatibility(data: AppData, family: ProductFamily, planId: string) {
+export function planSpuSourceProblem(data: AppData, family: ProductFamily, planId: string) {
   const plan = data.productPlans.find(item => item.id === planId)
   if (!plan) return '规划已不存在。'
   if (plan.modelVersionId && !data.specModelVersions.some(item => item.id === plan.modelVersionId && item.templateId === plan.productModelId)) return '规划绑定的历史版本已不存在。'
@@ -114,7 +113,7 @@ export function planSpuCompatibility(data: AppData, family: ProductFamily, planI
 export function previewSkuAppend(data: AppData, familyId: string, input: SkuGeneration): { problem: string; rows: SkuCandidate[] } {
   const family = data.families.find(item => item.id === familyId)
   if (!family) return { problem: '请先选择一个有效 SPU。', rows: [] }
-  const problem = skuConfigurationProblem(data, family) || (input.kind === 'plan' ? planSpuCompatibility(data, family, input.planId || '') : '')
+  const problem = skuConfigurationProblem(data, family) || (input.kind === 'plan' ? planSpuSourceProblem(data, family, input.planId || '') : '')
   if (problem) return { problem, rows: [] }
   const modeled = family.modelVersionId ? modelRows(data, family) : undefined
   let drafts: SkuDraft[] = []

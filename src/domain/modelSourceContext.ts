@@ -1,13 +1,24 @@
 import {isRealSku} from './catalogIdentity'
 import {actualSkuAttributes} from './actualSkuAttributes'
-import {createEmptyTemplateCompatibilityConfig,createTemplateCompatibilityContext} from './templateCompatibility'
+import {legalPlanningCombinations} from './planning'
+import type {SpecModelVersion} from './types'
 import type {AppData} from './types'
 export interface SkuModelSourceResolution {state:'resolved'|'legacy'|'invalid';skuId:string;modelId:string;versionId:string;identityKey:string;message:string}
 
-/** Read frozen model nodes and roles independently of compatibility declarations. */
+/** Read only frozen structural metadata from older publications; never interpret retired declarations. */
+export function specificationMetadata(version?:SpecModelVersion){
+ const raw=version?.templateCompatibilitySnapshot as {attributeRoles?:SpecModelVersion['attributeRoles'];attributeNames?:SpecModelVersion['attributeNames']}|undefined
+ return {attributeRoles:(version?.attributeRoles||(Array.isArray(raw?.attributeRoles)?raw.attributeRoles:[])).filter(r=>r&&typeof r.attributeNodeId==='string'&&(r.role==='COMMON'||r.role==='VARIANT')),attributeNames:(version?.attributeNames||(Array.isArray(raw?.attributeNames)?raw.attributeNames:[])).filter(r=>r&&typeof r.attributeId==='string'&&typeof r.name==='string')}
+}
 export function modelSpecificationContext(data:AppData,modelId:string,versionId?:string|null){
-  const source={...data,templateCompatibilityConfigs:[],specModelVersions:data.specModelVersions.map(version=>version.id===versionId&&version.templateCompatibilitySnapshot?{...version,templateCompatibilitySnapshot:{...version.templateCompatibilitySnapshot,config:createEmptyTemplateCompatibilityConfig(modelId)}}:version)}
-  return createTemplateCompatibilityContext(source,{modelId,versionId:versionId||undefined,config:createEmptyTemplateCompatibilityConfig(modelId)})
+ const version=versionId?data.specModelVersions.find(v=>v.id===versionId&&v.templateId===modelId):undefined
+ const issues:{message:string}[]=[]
+ if(versionId&&!version)issues.push({message:'指定发布版本不存在，不会使用当前草稿或其他版本。'})
+ const metadata=specificationMetadata(version),roles=new Map(metadata.attributeRoles.map(r=>[r.attributeNodeId,r.role])),names=new Map(metadata.attributeNames.map(a=>[a.attributeId,a.name]))
+ const nodes=(version?version.nodesSnapshot:versionId?[]:data.productSpecNodes.filter(n=>n.templateId===modelId)).map(n=>n.nodeType==='ATTRIBUTE'&&roles.has(n.id)?{...n,role:roles.get(n.id)!}:n)
+ const combinations=issues.length?[]:legalPlanningCombinations(data,modelId,nodes)
+ if(metadata.attributeNames.length)for(const combo of combinations){for(const step of combo.steps){step.attributeName=names.get(step.attributeId)||step.attributeId;step.roleSource=metadata.attributeRoles.find(r=>r.attributeNodeId===step.attributeNodeId)?.roleSource||step.roleSource;}combo.label=combo.steps.map(s=>`${s.attributeName} ${s.valueId}`).join(' · ')}
+ return {modelId,versionId:versionId||'',nodes,byNode:new Map(nodes.map(n=>[n.id,n])),combinations,issues}
 }
 
 export function resolveSkuModelSource(data:AppData,skuId:string):SkuModelSourceResolution {
@@ -37,9 +48,8 @@ export function resolveSkuModelSource(data:AppData,skuId:string):SkuModelSourceR
     matches=matches.filter(combo=>combo.identityKey===record.identityKey)
   }
   // Attribute identity is accepted only by actual dictionary id; ambiguous legacy names do not infer a match.
-  const actual=actualSkuAttributes(data,family,sku,version.templateCompatibilitySnapshot?.attributeNames||[])
+  const actual=actualSkuAttributes(data,family,sku,specificationMetadata(version).attributeNames)
   matches=matches.filter(combo=>combo.steps.every(step=>!actual.conflicts.includes(step.attributeId)&&(actual.attributes[step.attributeId]===undefined||actual.attributes[step.attributeId]===step.valueId)))
   if(matches.length!==1)return {...result,message:`来源规格无法唯一解析（命中 ${matches.length} 个合法规格），请核对真实节点和属性来源。`}
   return {...result,state:'resolved',identityKey:matches[0]!.identityKey,message:''}
 }
-

@@ -4,20 +4,23 @@
     <el-empty v-if="!sku || !family || !draft" description="SKU 不存在或此记录属于物料，请从物料管理查看。" />
     <section v-else class="panel">
       <p>所属 SPU：<el-button link type="primary" @click="router.push(`/spus/${family.id}`)">{{ family.name }}</el-button></p>
+      <el-button v-if="store.canRoute({path:'/compatibility'})&&productRole==='accessory'" data-sku-compatibility @click="router.push({path:'/compatibility',query:{targetId:sku.id,returnTo:route.fullPath}})">适用设备</el-button>
+      <el-button v-if="store.canRoute({path:'/compatibility'})&&productRole==='host'" data-device-accessories @click="router.push({path:'/compatibility',query:{tab:'device',device:sku.id,returnTo:route.fullPath}})">可用配件</el-button>
       <p>来源：{{ sourceText }} · 绑定版本：{{ versionName }}</p>
-      <el-button v-if="compatibilityRole !== 'other'" data-detail-compatibility @click="compatibilityOpen = true">{{ compatibilityRole === 'host' ? '适用配件' : '适用主机' }}</el-button>
-      <el-button v-if="compatibilityRole==='host'&&store.canRoute({path:'/benefits/shopping'})" data-device-bundle @click="router.push({path:'/benefits/shopping',query:{device:`sku:${sku.id}`,returnTo:route.fullPath}})">用此设备选配</el-button>
-      <el-button v-if="compatibilityRole==='accessory'&&store.can('product:compatibility:read')" data-sku-range @click="router.push({path:'/compatibility',query:{tab:'ranges',targetId:sku.id,returnTo:route.fullPath}})">适用设备 / 适用范围</el-button>
+
+
+
       <div style="max-width: 760px"><SkuFields :disabled="!(store.can('product:sku:update'))" v-model="draft" :family="family" :spec-locked="Boolean(sku.sourceNodeIds?.length || sku.planningId || sku.creationSource?.kind === 'plan')" /></div>
       <RuleExplanation v-if="guideFailure" :failure="guideFailure" :supported-recovery="['edit-input']" @recover="recoverGuide" />
       <p v-else-if="error" class="issue-error" role="alert">{{ error }}</p>
       <div class="row-actions"><el-button @click="back">取消</el-button><el-button type="primary" :loading="saving" @click="save" :disabled="!(store.can('product:sku:update'))">保存 SKU</el-button></div>
     </section>
 
-    <AccessoryCompatibilityDrawer v-model="compatibilityOpen" :sku-id="sku?.id || ''" />
+
   </div>
 </template>
 <script setup lang="ts">
+import {familyProductTypeId} from '../domain/productIdentity'
 import RuleExplanation from '../components/guide/RuleExplanation.vue'
 import { getFailure } from '../domain/guide/failure'
 import type { GuideFailure } from '../domain/guide/types'
@@ -26,8 +29,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import PageHead from '../components/PageHead.vue'
 import SkuFields from '../components/catalog/SkuFields.vue'
-import AccessoryCompatibilityDrawer from '../components/compatibility/AccessoryCompatibilityDrawer.vue'
-import { compatibilityRecordRole } from '../domain/deviceResolution'
 import { useUnsavedCatalog } from '../components/catalog/useUnsavedCatalog'
 import { isRealSku } from '../domain/catalogIdentity'
 import type { SkuDraft } from '../domain/spuSku'
@@ -40,10 +41,9 @@ const error = ref('')
 const guideFailure = ref<GuideFailure>()
 watch(error, value => { if (!value) guideFailure.value=undefined })
 const saving = ref(false)
-const compatibilityOpen = ref(false)
 const sku = computed(() => store.data.skus.find(item => item.id === route.params.id && isRealSku(store.data, item)))
-const compatibilityRole = computed(() => compatibilityRecordRole(store.data, sku.value?.id || ''))
 const family = computed(() => store.data.families.find(item => item.id === sku.value?.familyId))
+const productRole=computed(()=>store.data.productTypes.find(t=>t.id===familyProductTypeId(store.data,family.value?.id||''))?.catalogRole)
 const draft = ref<SkuDraft>()
 watch(() => route.params.id, () => { draft.value = sku.value ? { code: sku.value.code, skuName: sku.value.skuName, oaSkuId: sku.value.oaSkuId, status: sku.value.status, variantAttrs: { ...sku.value.variantAttrs } } : undefined; dirty.value = false }, { immediate: true })
 watch(draft, () => { dirty.value = true }, { deep: true, flush: 'sync' })

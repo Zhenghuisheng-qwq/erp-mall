@@ -39,15 +39,12 @@ export function defaultMenuNodes(): MenuNode[] {
     group('model', '商品模型配置', 'product', 3, ADMIN),
     group('operate', '商品运营', 'product', 4, BOTH),
     group('analysis', '商品分析', 'product', 5, BOTH),
+    page('/compatibility', '兼容性', 'product', 5.5, BOTH),
     group('benefits', '权益包', 'product', 6, BOTH),
     page('/benefits/manage', '权益包管理', 'benefits', 1, BOTH),
     page('/benefits/shopping', '权益包选购', 'benefits', 2, BOTH),
-    group('compatibility-group', '兼容性', 'product', 7, BOTH),
     page('/spus', 'SPU 管理', 'manage', 1, BOTH),
     page('/skus', 'SKU 管理', 'manage', 1.5, BOTH),
-    {...page('/compatibility?tab=results', '兼容性查询', 'compatibility-group', 1, BOTH), id:'page:/compatibility'},
-    page('/compatibility?tab=workbench', '兼容性维护', 'compatibility-group', 2, BOTH),
-    {...page('/compatibility?tab=legacy', '原物料兼容性（高级）', 'compatibility-group', 3, BOTH), hidden:true},
     page('/catalog', '商品资料管理', 'manage', 3, BOTH),
     {...page('/categories', '整理分类（旧入口）', 'manage', 3, BOTH), hidden: true},
     {...page('/product-types', '产品类型（旧入口）', 'manage', 4, BOTH), hidden: true},
@@ -138,6 +135,8 @@ export function sanitizeMenu(nodes: MenuNode[]): MenuNode[] {
     }
   }
   // Only the explanation entrance changes ownership; all other saved menu nodes keep their configuration.
+  const compatibilityPage=byId.get('page:/compatibility');if(compatibilityPage&&['兼容性查询','兼容性维护','适用关系'].includes(compatibilityPage.title))compatibilityPage.title='兼容性'
+  const shoppingPage=byId.get('page:/benefits/shopping');if(shoppingPage?.title==='历史选购清单')shoppingPage.title='权益包选购'
   const guidePage = byId.get('page:/guide')!
   guidePage.parentId = 'guide'
   if (['业务指南', '系统功能说明'].includes(guidePage.title)) guidePage.title = '系统说明'
@@ -297,7 +296,6 @@ export function menuRouteForLocation(path: string, query: { panel?: unknown; tab
   if (['/products','/spus','/skus'].includes(path) && query.panel === 'columns') return '/products?panel=columns'
   if (/^\/(products|spus|materials)(\/|$)/.test(path)) return '/spus'
   if (/^\/skus(\/|$)/.test(path)) return '/skus'
-  if(path==='/compatibility')return `/compatibility?tab=${query.tab==='workbench'||query.tab==='legacy'?'workbench':query.tab==='results'?'results':query.legacy||query.model||query.manage?'workbench':'results'}`
   return path || '/'
 }
 export function accessRoute(role: UserRole, path: string, nodes = loadMenu()) {

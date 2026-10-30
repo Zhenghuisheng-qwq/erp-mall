@@ -15,7 +15,6 @@ import { normalizeStored, useCatalogStore } from '../src/stores/catalog'
 import { DATA_VERSION, STORAGE_KEY } from '../src/domain/types'
 import { canAccessLocation, sanitizeMenu, MENU_KEY, defaultMenuNodes } from '../src/domain/menuConfig'
 import { planSkuLines } from '../src/domain/logic'
-import { accessoryCandidates } from '../src/domain/compatibility'
 
 // Preserve undefined as well as values and array order when checking input immutability.
 const clone = <T>(value: T): T => Array.isArray(value) ? value.map(item => clone(item)) as T : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, clone(item)])) as T : value
@@ -200,7 +199,6 @@ storage.set(MENU_KEY, JSON.stringify({ version: 1, nodes: menu }))
 for (const path of ['/spus', '/skus', '/spus/new', '/skus/new', '/materials/new', '/products/old']) assert.equal(canAccessLocation('operator', path), false)
 assert.equal(canAccessLocation('admin', '/skus/new'), true)
 pass('菜单迁移继承旧权限；新增、旧链接和物料路由权限一致')
-assert.ok(accessoryCandidates(data, 'pt-case').every(item => isMaterialArchive(data, data.skus.find(sku => sku.id === item.skuId)!)))
 assert.deepEqual(data.planningRecords, original.planningRecords)
 assert.deepEqual(data.materialReceipts, original.materialReceipts)
 assert.deepEqual(data.specModelVersions[0], original.specModelVersions[0])

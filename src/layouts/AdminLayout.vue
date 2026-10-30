@@ -1,6 +1,6 @@
 <template>
-  <div class="layout" :class="{ 'compact-workbench': temporaryCompact }" :inert="dataBusy" :aria-busy="dataBusy" data-nav="flyout">
-    <RailNav :groups="groups" :active="active" :current-group="currentPlace.group" :temporary-compact="temporaryCompact" />
+  <div class="layout" :inert="dataBusy" :aria-busy="dataBusy" data-nav="flyout">
+    <RailNav :groups="groups" :active="active" :current-group="currentPlace.group" />
     <section class="main">
       <RuleExplanation v-if="importFailure" :failure="importFailure" :supported-recovery="[]" />
       <header class="topbar">
@@ -23,7 +23,7 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="resetCurrent">重置当前模块</el-dropdown-item>
-                <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="supplementDemo">补充手机选配演示数据</el-dropdown-item>
+                <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="supplement18Demo">重建手机四类型演示数据（清理旧商品）</el-dropdown-item>
                 <el-dropdown-item v-if="store.isAdmin" :disabled="dataBusy" @click="resetAll">重置全部演示数据</el-dropdown-item>
                 <el-dropdown-item v-if="store.can('product:export:execute')" :disabled="dataBusy" @click="download">导出演示数据</el-dropdown-item>
                 <el-dropdown-item v-if="store.can('product:import:execute')" :disabled="dataBusy" @click="pickFile">导入演示数据</el-dropdown-item>
@@ -52,7 +52,6 @@ import { computed, markRaw, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Component } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { menuRouteForLocation, menuRevision, railModel } from '../domain/menuConfig'
-import {compatibilityPageTitle} from '../domain/compatibilityNavigation'
 import { useCatalogStore } from '../stores/catalog'
 import { isSuperAdmin } from '../domain/rbac'
 import PageAssist from '../components/PageAssist.vue'
@@ -68,12 +67,6 @@ const catalogReturn = computed(() => !['/catalog','/categories','/specs'].includ
 const canSwitchUser=computed(()=>isSuperAdmin(store.data,store.activeUserId))
 const dataBusy = ref(false)
 const importFailure=ref<GuideFailure>()
-const workbenchMedia = window.matchMedia('(max-width: 700px)')
-const narrowWorkbench = ref(workbenchMedia.matches)
-const temporaryCompact = computed(() => narrowWorkbench.value && route.path === '/compatibility')
-const updateWorkbenchMedia = (event: MediaQueryListEvent) => { narrowWorkbench.value = event.matches }
-onMounted(() => workbenchMedia.addEventListener('change', updateWorkbenchMedia))
-onBeforeUnmount(() => workbenchMedia.removeEventListener('change', updateWorkbenchMedia))
 const theme = ref<AppTheme>(readTheme())
 const themeTitle = computed(() => (theme.value === 'dark' ? '当前暗黑模式，切换为明亮模式' : '当前明亮模式，切换为暗黑模式'))
 function onToggleTheme() {
@@ -82,7 +75,7 @@ function onToggleTheme() {
   applyTheme(next)
 }
 const fileRef = ref<HTMLInputElement>()
-const title = computed(() => route.path==='/compatibility'?compatibilityPageTitle(route.query.tab):String(route.meta.title || '商品配置'))
+const title = computed(() => String(route.meta.title || '商品配置'))
 const active = computed(() => menuRouteForLocation(route.path, route.query))
 
 const groups = computed(() => {
@@ -117,7 +110,7 @@ watch(()=>[store.persistenceState.external,store.activeUserId,store.previewUserI
 
 const moduleOf = computed(() => {
   const path = route.path
-  if (path.startsWith('/products') || path.startsWith('/spus') || path.startsWith('/skus') || path.startsWith('/materials') || path.startsWith('/import') || path.startsWith('/compatibility') || path === '/' || path.startsWith('/check') || path.startsWith('/overview')) return 'products' as const
+  if (path.startsWith('/products') || path.startsWith('/spus') || path.startsWith('/skus') || path.startsWith('/materials') || path.startsWith('/import') || path === '/' || path.startsWith('/check') || path.startsWith('/overview')) return 'products' as const
   if (path.startsWith('/categories') || path.startsWith('/mappings') || path === '/catalog' && (!route.query.view || route.query.view === 'categories' || route.query.view === 'types')) return 'categories' as const
   if (path.startsWith('/templates') || path.startsWith('/specs') || path.startsWith('/models') || path === '/catalog') return 'templates' as const
   if (path.startsWith('/params')) return 'params' as const
@@ -126,10 +119,10 @@ const moduleOf = computed(() => {
   return 'system' as const
 })
 
-async function supplementDemo(){
+async function supplement18Demo(){
  if(dataBusy.value)return
  dataBusy.value=true
- try{const result=await store.supplementPhoneDemo();if(!result.ok)ElMessage.error(result.message);else ElMessage.success(result.message)}catch(e){ElMessage.error(e instanceof Error?e.message:'演示补充失败，原数据保留')}finally{dataBusy.value=false}
+ try{const result=await store.rebuildPhoneCatalogDemo();if(!result.ok)ElMessage.error(result.message);else ElMessage.success(result.message)}catch(e){ElMessage.error(e instanceof Error?e.message:'演示创建失败，原数据保留')}finally{dataBusy.value=false}
 }
 async function resetAll() {
   if (dataBusy.value) return
@@ -189,9 +182,4 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 </script>
 
 <style scoped>
-.compact-workbench .content { padding:12px 12px 24px; }
-.compact-workbench .topbar { height:auto; min-height:56px; flex-wrap:wrap; padding:6px 8px; gap:4px 8px; }
-.compact-workbench .topbar>.row-actions { gap:4px; justify-content:flex-end; }
-.compact-workbench .topbar-left { flex:1; }
-.compact-workbench .demo-strip { padding:8px 12px; font-size:12px; line-height:1.5; }
 </style>

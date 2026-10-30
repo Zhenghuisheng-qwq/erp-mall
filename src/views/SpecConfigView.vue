@@ -61,13 +61,9 @@
               <span class="meta-type">{{ productTypeText }}</span>
             </p>
             <p v-if="!viewing && publishImpact" class="meta-row">{{ publishImpact }}</p>
-            <p class="meta-row" data-model-compatibility-summary>
-              <span>适用设备：{{ compatibilitySummary }}</span>
 
-              <span v-if="compatibilityUnpublished">兼容配置尚未发布</span>
-            </p>
             <el-button v-if="store.canRoute({path:'/benefits/manage'})" data-model-bundles @click="router.push({path:'/benefits/manage',query:{model:templateId,version:requestedVersionId||undefined,returnTo:route.fullPath}})">权益包</el-button>
-            <p class="meta-row"><el-button v-if="store.can('product:compatibility:read')" link type="primary" data-open-template-compatibility @click="openTemplateCompatibility()">适用关系</el-button></p>
+            <p class="meta-row"></p>
           </div>
           <div class="studio-actions">
             <el-button v-if="fromOverview" @click="backToOverview">返回总览</el-button>
@@ -151,7 +147,7 @@
           <span v-else class="ops-idle">{{ !canEditStructure ? '当前视图只读，不能改结构和命名规则' : '选中节点后，可以添加属性、属性值或条件属性' }}</span>
           <el-button v-if="!canEditStructure && selected && selected !== rootId" size="small" @click="namingOpen = true">查看命名规则</el-button>
           <el-button v-if="selected&&store.canRoute({path:'/benefits/manage'})" size="small" data-node-bundles @click="router.push({path:'/benefits/manage',query:{model:templateId,version:requestedVersionId||undefined,node:selected===rootId?undefined:selected,returnTo:route.fullPath}})">权益包</el-button>
-          <el-button v-if="selected" size="small" data-open-node-compatibility @click="openTemplateCompatibility(selected===rootId?'':selected)">适用关系</el-button>
+
         </div>
         <EmptyModelGuide
           v-else-if="showEmptyGuide"
@@ -399,14 +395,12 @@
         <el-button text @click="runMenu('add-value')">添加属性值</el-button>
         <el-button text @click="runMenu('sibling')">添加同级属性</el-button>
         <el-button text @click="runMenu('naming')">命名规则</el-button>
-        <el-button text @click="runMenu('hosts')">适用关系</el-button>
         <el-button text type="danger" @click="runMenu('delete')">删除节点</el-button>
       </template>
       <template v-else>
         <el-button text @click="runMenu('sibling')">添加同级属性值</el-button>
         <el-button text @click="runMenu('add-child')">添加条件属性</el-button>
         <el-button text @click="runMenu('naming')">命名规则</el-button>
-        <el-button text @click="runMenu('hosts')">适用关系</el-button>
         <el-button text type="danger" @click="runMenu('delete')">删除节点</el-button>
       </template>
     </div>
@@ -464,7 +458,7 @@
         <el-button type="primary" @click="confirmNodeDraft">确认</el-button>
       </template>
     </el-dialog>
-    <ModelCompatibilityDialog v-if="!requestedVersionId || requestedVersion" v-model="compatibilityOpen" :model-id="templateId" :version-id="requestedVersionId || null" :node-id="compatibilityNodeId||undefined" :readonly="viewing"/>
+
 
     <el-dialog v-model="copyOpen" title="复制模型" width="440px" :show-close="!copying" :close-on-click-modal="!copying" :close-on-press-escape="!copying">
       <p class="copy-label">原模型</p>
@@ -475,7 +469,7 @@
       <p v-if="copyPick && copyChoices.length === 0" class="muted">还没有可复制的模型。</p>
       <p class="copy-label">新模型名称</p>
       <el-input :disabled="copying" v-model="copyName" placeholder="例如：二手机模型" @keydown.enter="confirmCopy" />
-      <p class="muted">复制节点树、属性引用和当前草稿的适用设备配置。新模型从草稿开始，发布记录和商品仍属于原模型。</p>
+      <p class="muted">复制节点树、属性引用和普通业务配置。新模型从草稿开始，发布记录和商品仍属于原模型。</p>
       <template #footer>
         <el-button :disabled="copying" @click="copyOpen = false">取消</el-button>
         <el-button type="primary" :loading="copying" @click="confirmCopy">确认复制</el-button>
@@ -485,6 +479,7 @@
 </template>
 
 <script setup lang="ts">
+import {specificationMetadata} from "../domain/modelSourceContext"
 import RuleExplanation from '../components/guide/RuleExplanation.vue'
 import { getFailure } from '../domain/guide/failure'
 import type { GuideFailure } from '../domain/guide/types'
@@ -503,7 +498,6 @@ import StructureMaterials from '../components/model-editor/StructureMaterials.vu
 import LegalComboDialog from '../components/model-editor/LegalComboDialog.vue'
 import { presentComboRow, type MaterialLaunchMode } from '../components/model-editor/comboPresentation'
 import { useComboSelection } from '../components/model-editor/useComboSelection'
-import ModelCompatibilityDialog from '../components/template-compatibility/ModelCompatibilityDialog.vue'
 import TypeModelRail from '../components/model-editor/TypeModelRail.vue'
 import { categoryChain, visibleCategoryRows } from '../domain/categoryTree'
 import { catalogReturnLocation } from '../domain/catalogWorkspaceNavigation'
@@ -511,7 +505,6 @@ import { nearestNamingRule } from '../domain/naming'
 import { arrangeSpecPositions, categoryPath, latestPublishedVersion, layoutSpecTree, modelVersionsOf, sameSpecSnapshot, specNodeSize, specTreeAdvance, SPEC_LINK_GAP, SPEC_TREE_GAP, SPEC_TREE_ORIGIN_Y, SPEC_VALUE_TO_VALUE } from '../domain/logic'
 import { defaultOverviewCategoryId, overviewRootId as graphRootId } from '../domain/overviewGraph'
 import { attributeRenameDecision } from '../domain/dictionaryGuard'
-import { readTemplateCompatibilityConfig, templateCompatibilityContentSignature } from '../domain/templateCompatibility'
 import { outlineChoices } from '../domain/outlineEdit'
 import { commandPermissions, effectivePermissions } from '../domain/rbac'
 import {modelDictionaryBasis,previewModelDictionaryBatch,parseDictionaryValueLines,type ModelDictionaryAttribute,type ModelDictionaryBatchInput} from '../domain/modelDictionaryCommands'
@@ -758,7 +751,6 @@ function onDictEsc(event: KeyboardEvent) {
 }
 const copyOpen = ref(false)
 const copying = ref(false), modelSaving = ref(false)
-const compatibilityOpen=ref(false),compatibilityNodeId=ref('')
 const namingOpen = ref(false)
 const businessOpen = ref(false), businessBusy = ref(false), businessNodeId = ref('')
 onBeforeRouteLeave(() => !businessBusy.value&&!composerBusy.value)
@@ -861,21 +853,6 @@ const comboSummaryText = computed(() => {
 })
 const draftPreview = computed(() => previewDraftCombinations(store.data, templateId.value, nodes.value))
 const publishImpact = computed(() => publishImpactText(draftPreview.value))
-const compatibilityConfig = computed(() => requestedVersionId.value ? requestedVersion.value?.templateCompatibilitySnapshot?.config : readTemplateCompatibilityConfig(store.data, templateId.value))
-const compatibilityUnpublished = computed(() => {
-  if(requestedVersionId.value)return false
-  const latest = latestPublishedVersion(store.data, templateId.value)
-  return templateCompatibilityContentSignature(compatibilityConfig.value) !== templateCompatibilityContentSignature(latest?.templateCompatibilitySnapshot)
-})
-const compatibilitySummary = computed(() => {
-  const config = compatibilityConfig.value
-  if (!config || (!config.defaultRule.configured && !config.exceptions.length)) return '尚未配置'
-  const claims = [...config.defaultRule.claims, ...config.exceptions.flatMap(rule => rule.claims)]
-  const models = new Set(claims.map(item => `${item.host.productModelId}\u001f${item.host.identityKey}`)).size
-  const state = config.defaultRule.configured ? config.defaultRule.claims.length ? '全部规格使用默认配置' : '默认明确留空' : '默认尚未配置'
-  return `${models} 款设备 · ${state}${config.exceptions.length ? ` · ${config.exceptions.length} 项规格例外` : ''}`
-})
-function openTemplateCompatibility(nodeId = '') {compatibilityNodeId.value=nodeId;compatibilityOpen.value=true}
 
 const showDraftList = computed(() => !requestedVersionId.value && (draftPreview.value.problems.length > 0 || canvas.value.status !== 'published' || draftPreview.value.rows.length !== comboRows.value.length))
 const draftPreviewLine = computed(() => {
@@ -1262,10 +1239,6 @@ function rememberValueQuery(query: string) {
   valueQuery.value = query
 }
 function applyOutlineChoice(payload:{id:string;token:string}){openReferencePicker(payload.id);if(attributeOpen.value)attributePick.value=payload.token;if(valueOpen.value)valueBindPick.value=payload.token}
-function openHostConfig() {
-  if (viewing.value || !current.value) return
-  openTemplateCompatibility(selected.value)
-}
 function ruleMark(node: ProductSpecNode) {
   if (node.namingRule?.length) return '自有' as const
   if (!node.parentId) return '' as const
@@ -1273,7 +1246,7 @@ function ruleMark(node: ProductSpecNode) {
 }
 function nodeTitle(node: ProductSpecNode) {
   if (node.nodeType === 'VALUE') return node.valueId || '未命名取值'
-  if(requestedVersionId.value)return requestedVersion.value?.templateCompatibilitySnapshot?.attributeNames.find(item=>item.attributeId===node.attributeId)?.name || store.data.params.find(item=>item.id===node.attributeId)?.name || node.attributeId || '属性未记录'
+  if(requestedVersionId.value)return specificationMetadata(requestedVersion.value).attributeNames.find(item=>item.attributeId===node.attributeId)?.name || store.data.params.find(item=>item.id===node.attributeId)?.name || node.attributeId || '属性未记录'
   return attributeHint(node).bound ? store.data.params.find((item) => item.id === node.attributeId)?.name || '未绑定属性' : '未绑定属性'
 }
 function valueOptions(node: ProductSpecNode): FlowOption[] {
@@ -1651,7 +1624,6 @@ async function undoOutline() {
   if (!candidate.ok) { ElMessage.warning(candidate.message); return }
   store.data.productSpecNodes = candidate.nodes
   store.data.templateParams = candidate.bindings
-  store.data.nodeCompatibilityRules = candidate.nodeRules
   for (const change of entry.dictionary) {
     const index = store.data.params.findIndex(p => p.id === change.id)
     const restored = candidate.params.find(p => p.id === change.id)
@@ -1825,14 +1797,10 @@ function onNodeMenu(payload: { event: { preventDefault: () => void; clientX?: nu
   payload.event.preventDefault()
   openNodeMenu({ id: payload.node.id, x: payload.event.clientX || 0, y: payload.event.clientY || 0 })
 }
-function runMenu(action: 'add-attribute' | 'add-child' | 'add-value' | 'sibling' | 'rename' | 'delete' | 'bind' | 'naming' | 'hosts') {
+function runMenu(action: 'add-attribute' | 'add-child' | 'add-value' | 'sibling' | 'rename' | 'delete' | 'bind' | 'naming') {
   if (!canEditStructure.value) return
   menu.value.open = false
   const id = selected.value || rootId
-  if (action === 'hosts') {
-    openHostConfig()
-    return
-  }
   if (action === 'naming') {
     namingOpen.value = true
     return
@@ -2149,7 +2117,7 @@ function markWorkingDraft() {
     .slice()
     .sort((a, b) => a.version - b.version)
     .at(-1)
-  if (latest && sameSpecSnapshot(latest.nodesSnapshot, nodes.value) && !compatibilityUnpublished.value) {
+  if (latest && sameSpecSnapshot(latest.nodesSnapshot, nodes.value)) {
     row.status = 'published'
     row.version = latest.version
     row.versionName = latest.versionName
@@ -2415,7 +2383,7 @@ function visibleOverlay(selector: string) {
 }
 function shortcutBlocked() {
   if (modelSaving.value || copying.value || publishing.value || businessBusy.value||composerBusy.value) return true
-  if (attributeOpen.value || valueOpen.value || copyOpen.value || nodeDraftOpen.value || editingId.value || namingOpen.value || businessOpen.value || temporaryOpen.value || compatibilityOpen.value || comboManageOpen.value) return true
+  if (attributeOpen.value || valueOpen.value || copyOpen.value || nodeDraftOpen.value || editingId.value || namingOpen.value || businessOpen.value || temporaryOpen.value  || comboManageOpen.value) return true
   if (document.querySelector('.v3-material-dialog')) return true
   return visibleOverlay('.el-overlay-dialog, .el-message-box')
 }

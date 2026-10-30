@@ -1,8 +1,8 @@
-import type {AppData,ProductFamily,Sku} from '../types'
 import {resolveDeviceSku} from '../deviceResolution'
+import type {AppData,ProductFamily,Sku} from '../types'
 
 const time='2026-10-30T00:00:00.000Z'
-export const phoneDemoTypes=['pt-phone','pt-case','pt-film','pt-leaf-c-charge','pt-earphones']
+export const phoneDemoTypes=['pt-phone','pt-case','pt-film','pt-leaf-c-charge','pt-earphones','pt-demo-repair']
 /** Only called by fresh seed creation. Existing data uses the explicit, atomic supplement command. */
 export function completePhoneBenefitDemo(data:AppData){
  for(const [id,name,sort] of [['pt-case','手机壳',2],['pt-film','手机膜',3]] as const){const type=data.productTypes.find(t=>t.id===id)!;Object.assign(type,{name,categoryId:'c-phone',sort})}
@@ -34,22 +34,31 @@ export function completePhoneBenefitDemo(data:AppData){
   data.specCanvases.push({templateId,productTypeId:type,name,zoom:1,panX:0,panY:0,status:'draft',version:1,versionName:'',direction:'ltr'})
   data.families.push(family(`f-demo-${kind}`,name,type,templateId));data.skus.push(sku(`s-demo-${kind}`,`f-demo-${kind}`,name,color))
  }
+ data.productTypes.push({id:'pt-demo-repair',name:'手机维修零件（演示）',categoryId:'c-phone',catalogRole:'accessory',status:'enabled',sort:6,description:'完整建档与选购演示'})
+ data.params.push({id:'p-demo-repair-part',name:'维修部件（演示）',values:['扬声器模组'],valueGroups:[],participateInStructure:true})
+ data.templates.push({id:'t-demo-repair',name:'手机维修零件演示模型',parentId:'t-acc',enabled:true,structureOrder:['p-demo-repair-part']})
+ data.templateParams.push({templateId:'t-demo-repair',paramId:'p-demo-repair-part',role:'variant',required:true});data.mappings.push({templateId:'t-demo-repair',categoryId:'c-phone'})
+ const repairNodes=[{id:'demo-repair-attr',templateId:'t-demo-repair',parentId:null,nodeType:'ATTRIBUTE' as const,attributeId:'p-demo-repair-part',valueId:'',sort:1,role:'VARIANT' as const},{id:'demo-repair-speaker',templateId:'t-demo-repair',parentId:'demo-repair-attr',nodeType:'VALUE' as const,attributeId:'p-demo-repair-part',valueId:'扬声器模组',sort:1}]
+ data.productSpecNodes.push(...repairNodes);data.specCanvases.push({templateId:'t-demo-repair',productTypeId:'pt-demo-repair',name:'手机维修零件演示模型',zoom:1,panX:0,panY:0,status:'published',version:1,versionName:'V1'})
+ data.specModelVersions.push({id:'demo-repair-v1',templateId:'t-demo-repair',version:1,versionName:'V1',status:'published',nodesSnapshot:JSON.parse(JSON.stringify(repairNodes)),createdTime:time,publishTime:time})
+ data.families.push({...family('f-demo-repair','iPhone 17 扬声器模组 · 演示','pt-demo-repair','t-demo-repair'),modelVersionId:'demo-repair-v1'})
+ data.skus.push({...sku('s-demo-repair','f-demo-repair','iPhone 17 扬声器模组 · 演示',''),variantAttrs:{'p-demo-repair-part':'扬声器模组'},modelVersionId:'demo-repair-v1',sourceNodeIds:['demo-repair-speaker'],creationSource:{kind:'model',templateId:'t-demo-repair',modelVersionId:'demo-repair-v1',createdAt:time}})
  const source='仅供软件演示的适用资料，不代表真实供应商核验或实际商品承诺。'
- for(const [phone,targets] of [['s-iphone-blue',['s-case-clear','s-case-orange','s-film-1','s-demo-earphones']],['s-demo-iphone16',['s-demo-case16','s-demo-film16','s-demo-earphones']]] as const){
+ for(const [phone,targets] of [['s-iphone-blue',['s-case-clear','s-case-orange','s-film-1','s-demo-earphones','s-demo-repair']],['s-demo-iphone16',['s-demo-case16','s-demo-film16','s-demo-earphones']]] as const){
   const device=resolveDeviceSku(data,phone);if(device.status!=='resolved'||!device.host)throw new Error(`演示设备无法解析：${phone}`)
-  for(const target of targets){if(target==='s-case-clear')continue;data.compatibilities.push({id:`demo-benefit-${phone}-${target}`,accessorySkuId:target,targetKind:'sku',targetId:target,host:device.host,capability:'basic',conclusion:'compatible',verification:'confirmed',conditions:[],source,note:'演示依据',createdAt:time,updatedAt:time})}
+  for(const target of targets){data.compatibilities.push({id:`demo-benefit-${phone}-${target}`,accessorySkuId:target,targetKind:'sku',targetId:target,host:device.host,capability:'basic',conclusion:'compatible',verification:'confirmed',conditions:[],source,note:'演示依据',createdAt:time,updatedAt:time})}
  }
  data.generalCompatibilityClaims=[{id:'demo-benefit-general-charger',skuId:'s-demo-charger',deviceTypeIds:['pt-phone'],capability:'basic',conditions:[{kind:'attribute',attributeId:'p-demo-port',operator:'eq',value:'USB-C'}],conclusion:'compatible',verification:'confirmed',source,note:'仅演示基本使用，不承诺快充',revision:1,createdAt:time,updatedAt:time}]
  data.benefitTypeGroups=[{id:'demo-phone-basic',name:'手机基础权益包',categoryId:'c-phone',productTypeIds:[...phoneDemoTypes],enabled:true,sort:1,revision:1,createdAt:time,updatedAt:time}]
 }
 
-export const demoKeys=['categories','productTypes','params','templates','templateParams','mappings','specCanvases','specModelVersions','families','skus','compatibilities','generalCompatibilityClaims','benefitTypeGroups'] as const
+export const demoKeys=['categories','productTypes','params','templates','templateParams','mappings','specCanvases','productSpecNodes','specModelVersions','planningRecords','families','skus','compatibilities','generalCompatibilityClaims','benefitTypeGroups'] as const
 function stable(value:unknown):string{
  if(Array.isArray(value))return `[${value.map(stable).join(',')}]`
  if(value&&typeof value==='object')return '{'+Object.entries(value).filter(([,v])=>v!==undefined).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>JSON.stringify(k)+':'+stable(v)).join(',')+'}'
  return JSON.stringify(value)
 }
-function identity(key:string,row:Record<string,unknown>){return key==='templateParams'?`${row.templateId}:${row.paramId}`:key==='mappings'?String(row.templateId):key==='specCanvases'?String(row.templateId):String(row.id)}
+function identity(key:string,row:Record<string,unknown>){return key==='planningRecords'?String(row.planningId):key==='templateParams'?`${row.templateId}:${row.paramId}`:key==='mappings'?String(row.templateId):key==='specCanvases'?String(row.templateId):String(row.id)}
 /** Exact known seed records only. A conflict aborts the whole supplement; no fuzzy matching or partial writes. */
 export function supplementPhoneDemo(current:AppData,before:AppData,after:AppData){
  const next=JSON.parse(JSON.stringify(current)) as AppData,conflicts:string[]=[];let added=0,updated=0
@@ -62,6 +71,8 @@ export function supplementPhoneDemo(current:AppData,before:AppData,after:AppData
    const matches=live.filter(r=>identity(key,r)===id),found=matches[0]
    if(matches.length>1){conflicts.push(`${key}/${id}`);continue}
    if(found&&stable(found)===stable(row))continue
+   const priorBundle=key==='benefitTypeGroups'&&id==='demo-phone-basic'&&stable(found)===stable({...row,productTypeIds:phoneDemoTypes.filter(t=>t!=='pt-demo-repair')})
+   if(priorBundle){live[live.indexOf(found!)]=JSON.parse(JSON.stringify(row));updated++;continue}
    if(found&&(!previous||stable(found)!==stable(previous))){conflicts.push(`${key}/${id}`);continue}
    if(!found){live.push(JSON.parse(JSON.stringify(row)));added++}else if(changed){live[live.indexOf(found)]=JSON.parse(JSON.stringify(row));updated++}
   }

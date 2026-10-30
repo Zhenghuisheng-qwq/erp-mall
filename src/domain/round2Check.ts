@@ -2,7 +2,6 @@ import { installCatalogTestLocks } from '../../scripts/catalog-storage-test-env'
 installCatalogTestLocks()
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
-import { listHostModels } from './compatibility'
 import { createTemporaryMaterial, createV3Material, temporaryAttributeFields } from './material'
 import { createSeed } from './seed'
 import { useCatalogStore } from '../stores/catalog'
@@ -36,7 +35,6 @@ export async function runRound2Checks() {
   const dictBefore = store.data.params.map((item) => `${item.id}:${item.values.join(',')}`).join('|')
   const published = (await store.publishSpecModel('t-phone'))
   const apple = store.data.planningRecords.find((item) => item.productModelId === 't-phone' && item.status === 'active' && item.steps.some((step) => step.valueId === 'Apple') && item.steps.some((step) => step.valueId === '黑色'))
-  const huawei = store.data.planningRecords.find((item) => item.productModelId === 't-phone' && item.status === 'active' && item.steps.some((step) => step.valueId === '华为'))
   let seq = 0
   const nextId = (prefix: string) => `${prefix}-r2-${++seq}`
   const input = (planningId: string, requestId: string) => ({
@@ -58,16 +56,6 @@ export async function runRound2Checks() {
   const planAfterDelete = store.data.planningRecords.find((item) => item.planningId === apple?.planningId)
   const left = store.data.skus.filter((item) => item.planningId === apple?.planningId)
   check('delete-keeps-plan', removed === '' && planAfterDelete?.status === 'active' && left.length === 1 && left[0]?.id === (second.ok ? second.skuId : ''), `${removed || '已删除'} 剩余 ${left.map((item) => item.materialCode).join(',')}`)
-  if (second.ok) {
-    store.data.compatibilities.push({ id: 'compat-r2', accessorySkuId: second.skuId, host: { scope: 'model', productTypeId: 'pt-phone', productModelId: 't-phone', identityKey: 'r2', steps: [] }, note: '', createdAt: '2026-10-16T08:01:00.000Z', updatedAt: '2026-10-16T08:01:00.000Z' })
-  }
-  const blocked = second.ok ? store.removeSku(second.skuId) : '没有第二条'
-  check('compat-blocks', blocked.includes('不能删除') && store.data.skus.some((item) => item.id === (second.ok ? second.skuId : '')), blocked)
-  const hosts = listHostModels(store.data)
-  const appleHost = hosts.find((item) => item.modelName === 'iPhone 17')
-  const mateHost = hosts.find((item) => item.series === 'Mate' || item.modelName === 'Mate')
-  const huaweiMade = huawei ? createV3Material(store.data, input(huawei.planningId, 'huawei-file')) : { ok: false as const, message: '没有华为规划' }
-  check('huawei-identity-gap', Boolean(huawei && !huawei.steps.some((step) => step.attributeName === '型号') && huawei.steps.some((step) => step.attributeName === '系列' && step.valueId === 'Mate') && !mateHost && appleHost && huaweiMade.ok), `主机清单 ${hosts.map((item) => item.modelName || item.label).join('、') || '空'}；华为建档 ${huaweiMade.ok ? huaweiMade.materialCode : huaweiMade.message}`)
   const watchType = store.data.productTypes.find((item) => item.categoryId === 'c-watch')
   const fields = watchType ? temporaryAttributeFields(store.data, { categoryId: 'c-watch', productTypeId: watchType.id }) : []
   const versionsBeforeTemp = JSON.stringify(store.data.specModelVersions)

@@ -17,18 +17,11 @@
     "check:sku-views": "node scripts/run-domain-check.mjs scripts/sku-workbench-query-check.ts && node scripts/run-domain-check.mjs scripts/sku-workbench-state-check.ts && node scripts/browser-sku-workbench.mjs",
     "check:sku-views:performance": "node scripts/run-domain-check.mjs scripts/sku-workbench-performance.ts",
     "check:sku-views:fixes": "node scripts/run-domain-check.mjs scripts/sku-workbench-grouping-fix-check.ts && node scripts/run-domain-check.mjs scripts/sku-workbench-migration-fix-check.ts && node scripts/run-domain-check.mjs scripts/sku-workbench-restore-fix-check.ts && node scripts/browser-sku-workbench-fixes.mjs",
-    "check:accessory-compatibility": "node scripts/run-domain-check.mjs scripts/accessory-compatibility-query-check.ts && node scripts/run-domain-check.mjs scripts/accessory-compatibility-state-check.ts && node scripts/browser-accessory-compatibility.mjs",
-    "check:template-compatibility": "node scripts/run-domain-check.mjs scripts/template-compatibility-domain-check.ts && node scripts/run-domain-check.mjs scripts/template-compatibility-state-check.ts && node scripts/browser-template-compatibility.mjs && node scripts/browser-template-compatibility-import.mjs",
-    "check:template-compatibility:performance": "node scripts/run-domain-check.mjs scripts/template-compatibility-performance.ts && node scripts/run-domain-check.mjs scripts/template-compatibility-batch-performance.ts",
-    "check:template-compatibility:visual": "node scripts/template-compatibility-visual-check.mjs",
-    "check:compatibility-refinement:domain": "node scripts/run-domain-check.mjs scripts/compatibility-refinement-sync-check.ts && node scripts/run-domain-check.mjs scripts/compatibility-storage-check.ts && node scripts/run-domain-check.mjs scripts/catalog-async-save-check.ts",
-    "check:compatibility-refinement:performance": "node scripts/template-compatibility-edit-performance.mjs",
-    "check:compatibility-refinement:browser": "node scripts/browser-compatibility-concurrency.mjs && node scripts/browser-catalog-async-save-check.mjs && node scripts/browser-compatibility-refinement.mjs",
     "check:r01": "node scripts/run-domain-check.mjs scripts/r01-plan-check.ts && node scripts/run-domain-check.mjs scripts/r01-business-check.ts",
     "check:r01:browser": "node scripts/browser-r01.mjs",
     "check:catalog": "node scripts/run-domain-check.mjs scripts/catalog-workspace-query-check.ts && node scripts/run-domain-check.mjs scripts/catalog-workspace-state-check.ts && node scripts/run-domain-check.mjs scripts/catalog-workspace-navigation-check.ts && node scripts/run-domain-check.mjs scripts/catalog-model-management-check.ts && node scripts/run-domain-check.mjs scripts/catalog-category-projection-check.ts && node scripts/run-domain-check.mjs scripts/catalog-workspace-navigation-check.ts --strict && node scripts/run-domain-check.mjs scripts/catalog-model-management-check.ts --strict && node scripts/browser-catalog-category-tree.mjs && node scripts/browser-catalog-workspace.mjs && node scripts/browser-catalog-ledgers.mjs && node scripts/browser-catalog-version-context.mjs",
     "check:type-bundles": "node scripts/run-domain-check.mjs scripts/type-bundle-check.ts --strict && node scripts/browser-type-bundles.mjs",
-    "check:general-compatibility": "node scripts/run-domain-check.mjs scripts/general-compatibility-check.ts --strict && node scripts/browser-general-compatibility.mjs"
+    "check:catalog-save": "node scripts/run-domain-check.mjs scripts/catalog-async-save-check.ts && node scripts/browser-catalog-async-save-check.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",

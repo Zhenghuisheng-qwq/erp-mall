@@ -1,9 +1,10 @@
+import {compatibilityPages} from './manuals-compatibility'
 import {bundlePages} from './manuals-type-bundles'
 import type { GuidePage } from '../types'
 import { catalogPages } from './manuals-catalog'
 
 export const guidePages: GuidePage[] = [
-  ...bundlePages,...catalogPages,
+  ...compatibilityPages,...bundlePages,...catalogPages,
   {
     "id": "page-home",
     "title": "商品工作台",
@@ -246,21 +247,6 @@ export const guidePages: GuidePage[] = [
       "action-material-edit",
       "action-material-relation",
       "action-material-unlink"
-    ],
-    "formal": true
-  },
-  {
-    "id": "page-compatibility",
-    "title": "兼容性查询",
-    "patterns": [
-      "/compatibility"
-    ],
-    "articleId": "manual-compatibility",
-    "actionIds": [
-      "action-compatibility-bind",
-      "action-compatibility-declare",
-      "action-compatibility-sync",
-      "action-compatibility-cancel"
     ],
     "formal": true
   },

@@ -61,6 +61,7 @@
 </template>
 
 <script setup lang="ts">
+import {specificationMetadata} from '../domain/modelSourceContext'
 import { computed, ref, watch } from 'vue'
 import { legalPlanningCombinations } from '../domain/planning'
 import { modelSpecificationContext } from '../domain/modelSourceContext'
@@ -76,7 +77,7 @@ const store = useCatalogStore()
 const selectedVersion=computed(()=>props.versionId?store.data.specModelVersions.find(item=>item.id===props.versionId&&item.templateId===props.templateId):undefined)
 const versionProblem=computed(()=>props.versionId&&!selectedVersion.value?'指定发布版本不存在或不属于此模型；未使用当前草稿替代。':'')
 const readOnly=computed(()=>props.readonly||Boolean(props.versionId))
-const frozenNames=computed(()=>new Map(selectedVersion.value?.templateCompatibilitySnapshot?.attributeNames.map(item=>[item.attributeId,item.name])||[]))
+const frozenNames=computed(()=>new Map(specificationMetadata(selectedVersion.value).attributeNames.map(item=>[item.attributeId,item.name])||[]))
 const historicalContext=computed(()=>props.versionId&&selectedVersion.value?modelSpecificationContext(store.data,props.templateId,props.versionId):undefined)
 const parts = ref<DraftPart[]>([])
 const fixedText = ref('')

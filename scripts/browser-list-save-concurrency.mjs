@@ -14,7 +14,7 @@ try {
  browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'chrome',headless:true})
  for(const strict of process.env.LIST_STRICT?[process.env.LIST_STRICT==='true']:[false,true]) {
   server=await createServer({cacheDir:resolve(runtime,strict?'strict':'default'),logLevel:'error',define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify(String(strict))},server:{host:'127.0.0.1',port:0,watch:null,hmr:false,ws:false}})
-  const {createAccessoryCompatibilityFixture}=await server.ssrLoadModule('/scripts/accessory-compatibility-fixtures.ts')
+  const {createCatalogProductFixture}=await server.ssrLoadModule('/scripts/catalog-product-fixture.ts')
   const {ensureProductListPages}=await server.ssrLoadModule('/src/domain/productListPages.ts')
   const {emptyModeQuery}=await server.ssrLoadModule('/src/domain/productListQuery.ts')
   const {defaultSkuConfig,createSkuSavedView,SYSTEM_SKU_VIEW_ID}=await server.ssrLoadModule('/src/domain/skuWorkbenchState.ts')
@@ -24,7 +24,7 @@ try {
   const {DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
   await server.listen();const base=`http://127.0.0.1:${server.httpServer.address().port}`
   for(const mode of process.env.LIST_MODE?[process.env.LIST_MODE]:['spu','sku']) {
-   const {data}=createAccessoryCompatibilityFixture();ensureRbac(data);ensureProductListPages(data)
+   const {data}=createCatalogProductFixture();ensureRbac(data);ensureProductListPages(data)
    data.categories=[{id:'host',name:'主机',parentId:null,enabled:true,sort:0},{id:'phone',name:'手机',parentId:'host',enabled:true,sort:1},{id:'tablet',name:'平板',parentId:'host',enabled:true,sort:2},...data.categories]
    data.families.find(f=>f.id==='family-device').categoryId='phone';data.families.find(f=>f.id==='family-unbound').categoryId='tablet'
    const firstSpu=data.productListPages.spu.views[0];firstSpu.name='连续操作视图';firstSpu.categoryFilterLayout='sidebar';firstSpu.spuQuery=emptyModeQuery('spu');firstSpu.spuQuery.exposed=['attr:attr-brand','name']

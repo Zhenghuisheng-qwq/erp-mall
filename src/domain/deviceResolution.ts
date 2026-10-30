@@ -1,3 +1,5 @@
+import {familyProductTypeId} from './productIdentity'
+import {modelSpecificationContext} from './modelSourceContext'
 import { hostFrom, hostIdentityKey, roleOfType } from './compatibility'
 import { isMaterialArchive, isRealSku } from './catalogIdentity'
 import { legalPlanningCombinations } from './planning'
@@ -9,12 +11,8 @@ export function sameDeviceHost(left: CompatibilityHost, right: CompatibilityHost
   return deviceHostKey(left) === deviceHostKey(right) && (!includeScope || (left.scope === right.scope && (left.planningId || '') === (right.planningId || '')))
 }
 export function compatibilityFamilyRole(data: AppData, familyId: string): 'host' | 'accessory' | 'other' {
-  const typeId = compatibilityFamilyTypeId(data, familyId)
+  const typeId = familyProductTypeId(data, familyId)
   return typeId ? roleOfType(data, typeId) : 'other'
-}
-export function compatibilityFamilyTypeId(data: AppData, familyId: string) {
-  const family = data.families.find(item => item.id === familyId)
-  return family ? familyType(data, family) : ''
 }
 export function compatibilityRecordRole(data: AppData, skuId: string) {
   const sku = data.skus.find(item => item.id === skuId)
@@ -179,7 +177,7 @@ export function resolveDeviceSku(data: AppData, skuId: string, context?: DeviceR
     if (sku.sourceNodeIds?.some(id => byNode.get(id)?.nodeType !== 'VALUE')) return invalid('SKU 来源节点在绑定历史快照中已失效。')
     const requiredNodes = sku.sourceNodeIds || []
     let versionCombos = context?.combinations.get(version.id)
-    if (!versionCombos) { versionCombos = legalPlanningCombinations(data, modelId, version.nodesSnapshot); context?.combinations.set(version.id, versionCombos) }
+    if (!versionCombos) { versionCombos = modelSpecificationContext(data, modelId, version.id).combinations; context?.combinations.set(version.id, versionCombos) }
     const combos = versionCombos.filter(combo => requiredNodes.every(id => combo.steps.some(step => step.valueNodeId === id)) && combo.steps.every(step => !actual.attributes[step.attributeId] || actual.attributes[step.attributeId] === step.valueId))
     if (!combos.length) return invalid('当前规格与绑定的历史快照不一致，请检查来源。')
     const keys = new Set(combos.flatMap(combo => { const chain = stepChain(data, combo.steps); return chain ? [deviceHostKey(hostFrom(familyType(data, family), modelId, chain))] : [] }))

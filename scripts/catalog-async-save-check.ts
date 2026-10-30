@@ -4,13 +4,13 @@ import { resolve } from 'node:path'
 import { createPinia, setActivePinia } from 'pinia'
 import { effectScope, ref } from 'vue'
 import { installCatalogTestLocks } from './catalog-storage-test-env'
-import { createTemplateCompatibilityFixture } from './template-compatibility-fixtures'
+import { createSeed } from '../src/domain/seed'
 import { useCatalogStore } from '../src/stores/catalog'
 import { useSkuWorkbench } from '../src/components/product-list/useSkuWorkbench'
 import { DATA_VERSION, STORAGE_KEY, type ProductListPageState } from '../src/domain/types'
 
 installCatalogTestLocks()
-const disk = new Map<string, string>(), data = createTemplateCompatibilityFixture().data
+const disk = new Map<string, string>(), data = createSeed()
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: (key: string) => disk.get(key) ?? null, setItem: (key: string, value: string) => disk.set(key, value) } })
 disk.set(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data }))
 setActivePinia(createPinia())
@@ -54,6 +54,6 @@ assert.equal(JSON.stringify([store.data.families, store.data.skus, store.data.sp
 const loaded = JSON.parse(disk.get(STORAGE_KEY)!).data.productListPages.sku as ProductListPageState
 assert.deepEqual(loaded, copy(store.data.productListPages!.sku))
 mark('view-settings-only-and-disk-live-equality')
-const output = resolve(process.env.CATALOG_ASYNC_OUTPUT || 'work/compatibility-refinement/async-save')
+const output = resolve(process.env.CATALOG_ASYNC_OUTPUT || 'work/catalog-async-save')
 mkdirSync(output, { recursive: true }); writeFileSync(resolve(output, 'state.json'), JSON.stringify({ result: 'PASS', checks }, null, 2))
 scope.stop(); store.$dispose()

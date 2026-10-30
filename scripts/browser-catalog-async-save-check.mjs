@@ -3,14 +3,14 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createServer } from 'vite'
 import { chromium } from 'playwright-core'
-const output = resolve('work/compatibility-refinement/async-save/browser'); mkdirSync(output, { recursive: true })
+const output = resolve('work/catalog-async-save/browser'); mkdirSync(output, { recursive: true })
 const server = await createServer({ cacheDir: resolve(output, 'vite-cache'), server: { host: '127.0.0.1', port: 0, hmr: false, watch: null } })
 const checks = [], diagnostics = []
 let browser
 try {
-  const { createTemplateCompatibilityFixture } = await server.ssrLoadModule('/scripts/template-compatibility-fixtures.ts')
+  const { createSeed } = await server.ssrLoadModule('/src/domain/seed.ts')
   const { ensureProductListPages } = await server.ssrLoadModule('/src/domain/productListPages.ts')
-  const fixture = createTemplateCompatibilityFixture(), { data, modelId } = fixture
+  const data = createSeed(), modelId = 't-phone'
   data.activeRole = 'admin'; ensureProductListPages(data)
   data.productListPages.sku.skuWorkbench.activeId = 'sku-system-all'; data.productListPages.sku.skuWorkbench.defaultId = 'sku-system-all'
   if (!data.templates.some(item => item.id === modelId)) data.templates.push({ id: modelId, name: '独立异步保存模型', enabled: true, parentId: null, structureOrder: [] })
@@ -86,20 +86,7 @@ try {
     assert.equal(after.productListPages.sku.views.filter(view => view.name === '持锁SKU视图只保存一次').length, 1)
     mark('SKU-name-held-lock-one-view-and-SPU-isolation'); await ctx.close()
   }
-  {
-    const { ctx, page } = await context('/skus/phone-unbound')
-    await page.locator('[data-detail-compatibility]').click()
-    const drawer = page.locator('[data-accessory-drawer]:visible'); await drawer.waitFor(); await drawer.getByRole('button', { name: '配置设备型号', exact: true }).click()
-    const dialog = page.getByRole('dialog', { name: '配置设备型号', exact: true }); await option(page, dialog.locator('[data-binding-host]'), 'Orion A')
-    const before = await live(page), stored = await disk(page), bind = dialog.getByRole('button', { name: '确认绑定型号', exact: true })
-    await hold(page); await bind.click(); await waiting(page)
-    assert(await dialog.locator('[data-binding-host] input').isDisabled()); assert(await dialog.getByRole('button', { name: '关闭', exact: true }).isDisabled()); assert.equal(await disk(page), stored)
-    await bind.evaluate(button => { button.click(); button.click() }); await page.keyboard.press('Escape'); assert(await dialog.isVisible()); await release(page)
-    await dialog.waitFor({ state: 'hidden' }); await settle(page); const after = await live(page)
-    assert.equal(after.deviceBindings.filter(item => item.skuId === 'phone-unbound').length, 1); assert.deepEqual(after.compatibilities, before.compatibilities)
-    assert.equal(await page.evaluate(() => window.__actions.filter(name => name === 'commitDeviceBinding').length), 1)
-    mark('device-binding-held-lock-fields-close-escape-one-command'); await ctx.close()
-  }
+
   assert.deepEqual(diagnostics, [])
   writeFileSync(resolve(output, 'result.json'), JSON.stringify({ result: 'PASS', browser: browser.version(), barrier: 'actual navigator.locks held until UI disabled/duplicate checks finish', checks, diagnostics }, null, 2))
 } catch (error) { writeFileSync(resolve(output, 'result.json'), JSON.stringify({ result: 'FAIL', error: String(error), checks, diagnostics }, null, 2)); throw error }

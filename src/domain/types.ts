@@ -1,8 +1,7 @@
+import type {AccessoryTargetKind,CompatibilityConclusion,CompatibilityVerification,CompatibilityCapability,CompatibilityCondition,CompatibilityProvenance,DeviceModel,DeviceBinding} from './accessoryCompatibilityTypes'
+import type {GeneralCompatibilityClaim} from './generalCompatibility'
 
 import type { SkuViewConfig, SkuWorkbenchState } from './skuWorkbenchTypes'
-import type { AccessoryTargetKind, CompatibilityCapability, CompatibilityConclusion, CompatibilityCondition, CompatibilityProvenance, CompatibilityVerification, DeviceBinding, DeviceModel } from './accessoryCompatibilityTypes'
-import type { TemplateCompatibilityConfig, TemplateCompatibilitySnapshot } from './templateCompatibilityTypes'
-import type { TemplateCompatibilityOrigin } from './templateCompatibilitySync'
 
 export const DATA_VERSION = 16
 export const STORAGE_KEY = 'iyge-v2-mock-db'
@@ -122,7 +121,9 @@ export interface NamingPart {
 
 /** 一次发布冻结的模型节点。历史商品按 id 读取，不跟随后来的编辑树。 */
 export interface SpecModelVersion {
-  templateCompatibilitySnapshot?: TemplateCompatibilitySnapshot
+  templateCompatibilitySnapshot?: unknown
+  attributeRoles?: {attributeNodeId:string;role:'COMMON'|'VARIANT';roleSource?:'node'|'scheme'}[]
+  attributeNames?: {attributeId:string;name:string}[]
   id: string
   templateId: string
   version: number
@@ -308,50 +309,6 @@ export interface Sku {
   manualAttrs?: ManualAttr[]
 }
 
-/** 配件物料指向主机型号。不是规格属性，也不反向生成主机到配件的关系。 */
-export interface CompatibilityHost {
-  scope: 'model' | 'planning'
-  productTypeId: string
-  productModelId: string
-  /** 品牌到型号的属性 id 和取值。不含节点 id，也不含容量、颜色。 */
-  identityKey: string
-  steps: { attributeId: string; attributeName: string; valueId: string }[]
-  /** 只在指定某一条规格时才有。缺省表示整款型号。 */
-  planningId?: string
-}
-
-export interface CompatibilityLink {
-  id: string
-  /** Legacy links omit the target fields and continue to identify a MAT. */
-  accessorySkuId: string
-  targetKind?: AccessoryTargetKind
-  targetId?: string
-  conclusion?: CompatibilityConclusion
-  verification?: CompatibilityVerification
-  capability?: CompatibilityCapability
-  conditions?: CompatibilityCondition[]
-  source?: string
-  provenance?: CompatibilityProvenance
-  host: CompatibilityHost
-  note: string
-  createdAt: string
-  updatedAt: string
-}
-
-/**
- * 规划节点上的适用主机。只描述这个节点自己的配置。
- * modelVersionId 为空是当前草稿；发布时复制到版本上，不改旧版本。
- * 父子合并、覆盖、排除和历史物料回填还没有确认，不能从这里自动写到物料上。
- */
-export interface NodeCompatibilityRule {
-  id: string
-  templateId: string
-  nodeId: string
-  modelVersionId: string
-  hosts: CompatibilityHost[]
-  updatedAt: string
-}
-
 /** 一次建档请求的回执。相同 requestId 再次提交时返回原来的物料。旧数据可以没有生命周期字段。 */
 export interface MaterialCreateReceipt {
   requestId: string
@@ -522,17 +479,19 @@ export interface Profile {
 }
 
 export interface AppData {
-  generalCompatibilityClaims?: import('./generalCompatibility').GeneralCompatibilityClaim[]
+  /** One-time, user-requested replacement of the old product demo catalogue. */
+  phoneDemoCatalogVersion?: 1
+  generalCompatibilityClaims?: GeneralCompatibilityClaim[]
   /** Type-combination format, isolated from retired raw benefit fields. */
   benefitTypeGroups?: import('./benefitSales/types').BenefitGroup[]
   benefitSalesLists?: import('./benefitSales/types').BenefitSale[]
   rbac?: import('./rbac').RbacState
   materialRelations?: import('./materialRelations').MaterialRelation[]
-  materialContributions?: import('./materialRelations').MaterialContribution[]
+  materialContributions?: unknown
   businessDefinitions?: import('./nodeBusiness').BusinessDefinition[]
   /** Optional V15 extension. No historical SKU/MAT or declaration is backfilled on load. */
-  templateCompatibilityConfigs?: TemplateCompatibilityConfig[]
-  templateCompatibilityOrigins?: TemplateCompatibilityOrigin[]
+  templateCompatibilityConfigs?: unknown
+  templateCompatibilityOrigins?: unknown
   /** V14：两个管理页各自持有视图、筛选预设和分页；旧字段保留用于历史兼容。 */
   productListPages?: Record<ProductListMode, ProductListPageState>
   mode: AppMode
@@ -551,13 +510,13 @@ export interface AppData {
   planningRecords: PlanningRecord[]
   /** 建档请求回执。旧数据没有时保持空数组。 */
   materialReceipts: MaterialCreateReceipt[]
-  /** 配件适用哪些主机。旧数据没有时保持空数组，不改已有物料。 */
+  /** 明确型号／规格适用声明；通过兼容性工作台受控保存。 */
   compatibilities: CompatibilityLink[]
-  /** Optional preference-independent compatibility catalogue; no business record is synthesized. */
+  /** Existing device identities remain readable; no separate directory editor is exposed. */
   deviceModels?: DeviceModel[]
   deviceBindings?: DeviceBinding[]
-  /** 规划节点上的适用主机。旧数据没有时保持空数组，不回填历史物料。 */
-  nodeCompatibilityRules: NodeCompatibilityRule[]
+  /** 历史节点原始数据，不再参与发布、复制或撤销。 */
+  nodeCompatibilityRules?: unknown
   rules: SpecRule[]
   families: ProductFamily[]
   skus: Sku[]
@@ -638,4 +597,33 @@ export interface TreeNode {
   skuId?: string
   familyId?: string
   children: TreeNode[]
+}
+
+export interface CompatibilityHost {
+  scope: 'model' | 'planning'
+  productTypeId: string
+  productModelId: string
+  /** 品牌到型号的属性 id 和取值。不含节点 id，也不含容量、颜色。 */
+  identityKey: string
+  steps: { attributeId: string; attributeName: string; valueId: string }[]
+  /** 只在指定某一条规格时才有。缺省表示整款型号。 */
+  planningId?: string
+}
+
+export interface CompatibilityLink {
+  id: string
+  /** Legacy links omit the target fields and continue to identify a MAT. */
+  accessorySkuId: string
+  targetKind?: AccessoryTargetKind
+  targetId?: string
+  conclusion?: CompatibilityConclusion
+  verification?: CompatibilityVerification
+  capability?: CompatibilityCapability
+  conditions?: CompatibilityCondition[]
+  source?: string
+  provenance?: CompatibilityProvenance
+  host: CompatibilityHost
+  note: string
+  createdAt: string
+  updatedAt: string
 }

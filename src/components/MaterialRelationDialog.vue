@@ -11,14 +11,14 @@
         <p v-if="target && mode === 'link'">原始建档与现有关联：{{ targetSources }}</p>
         <el-form-item v-if="mode === 'create'" label="物料名称"><el-input v-model="name" aria-label="范围物料名称" placeholder="预览后采用建议名称；缺少字段时可人工填写" /></el-form-item>
       </el-form>
-      <el-button :disabled="mode === 'link' && !target" @click="preview">预览范围与兼容</el-button>
+      <el-button :disabled="mode === 'link' && !target" @click="preview">预览规格范围</el-button>
       <section v-if="result" data-material-scope-preview>
         <p>策略：{{ result.policyValue === 'shared' ? '共用物料' : result.policyValue === 'independent' ? '独立物料' : '待配置' }} · {{ result.policySources.join('；') }}</p>
         <p>实际确定规格：{{ result.prefix.map(s=>`${s.attributeName} ${s.valueId}`).join(' · ') }}</p>
-        <p>覆盖 {{ result.coverage.length }} 条完整规划。{{ form.scope === 'current' && form.kind === 'node' ? 'current 不扩散到下级；下列完整路径仅用于兼容核验。' : '按当前发布版本冻结范围。' }}</p>
-        <details><summary>逐条范围与兼容依据（{{ result.proof.length }} 条）</summary><div v-for="c in result.proof" :key="c.planningId">{{ c.planningId }} · {{ c.label }}</div><p>兼容贡献 {{ result.claims.length }} 条；同语义声明去重，全部路径来源保留。</p></details>
-        <details v-if="result.claims.length"><summary>查看本次适用声明</summary><p v-for="(c,index) in result.claims" :key="index">{{ c.planningId }} → {{ c.claim.host.steps.map(s=>s.valueId).join(' / ') }} · {{ c.claim.conclusion === 'compatible' ? '适用' : c.claim.conclusion === 'incompatible' ? '不适用' : '有条件适用' }} · {{ c.claim.source }} · {{ c.claim.note }}</p></details>
-        <p v-for="note in result.compatibilityNotes" :key="note">{{ note }}</p>
+        <p>覆盖 {{ result.coverage.length }} 条完整规划。{{ form.scope === 'current' && form.kind === 'node' ? 'current 不扩散到下级；下列完整路径仅用于核对规格来源。' : '按当前发布版本冻结范围。' }}</p>
+        <details><summary>逐条规格范围（{{ result.proof.length }} 条）</summary><div v-for="c in result.proof" :key="c.planningId">{{ c.planningId }} · {{ c.label }}</div></details>
+
+
         <p v-if="result.suggestion.message">命名：{{ result.suggestion.message }}</p>
         <p v-if="result.previous.length">新版本范围：新增 {{ result.added.join('、') || '无' }}；移出 {{ result.removed.join('、') || '无' }}。旧版本关联保持原样。</p>
         <RuleExplanation v-for="(failure,index) in result.failures" :key="index" :failure="failure" :supported-recovery="[]" /><el-alert v-for="problem in result.problems" :key="problem" :title="problem" type="error" :closable="false" />

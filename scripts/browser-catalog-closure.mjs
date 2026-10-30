@@ -35,8 +35,6 @@ try{
   const route=()=>page.evaluate(()=>window.__state('.content','AdminLayout').router.currentRoute.value.fullPath)
   const navigate=path=>page.evaluate(async path=>{const app=document.querySelector('#app').__vue_app__;await app.config.globalProperties.$router.push(path)},path)
   async function select(label,option,container=page){const field=container.locator('.el-select').filter({has:page.getByRole('combobox',{name:label,exact:true})});await field.locator('.el-select__wrapper').click();await page.getByRole('option',{name:option,exact:true}).click()}
-  const workspace=()=>page.getByRole('dialog',{name:'模型适用关系',exact:true})
-  const closeWorkspace=async()=>{await workspace().getByRole('button',{name:'关闭',exact:true}).last().click();await workspace().waitFor({state:'hidden'})}
   const state=()=>page.evaluate(()=>{const s=window.__state('.designer','SpecConfigView');return {model:s.templateId,requested:s.requestedVersionId,combo:s.comboVersionId,status:JSON.parse(JSON.stringify(s.comboStatus)),nodes:s.nodes.map(n=>({id:n.id,model:n.templateId}))}})
   async function showMaterials(){if(!await page.getByRole('checkbox',{name:'显示关联物料',exact:true}).isChecked())await page.locator('.structure-material-toggle .el-checkbox').click();await page.locator('[data-structure-materials]').waitFor()}
   async function assertContext(model,version){await settle();const s=await state();assert.equal(s.model,model);assert.equal(s.combo,version);assert(s.nodes.every(n=>n.model===model));if(version){assert.equal(s.status.versionId,version);assert(s.status.rows.length>0);assert(s.status.rows.every(row=>row.modelVersionId===version));assert(s.status.rows.every(row=>row.valueNodeIds.every(id=>id.startsWith(model))))}else{assert.equal(s.status.rows.length,0);assert.match(s.status.message,/发布模型/)}return s}
@@ -48,7 +46,6 @@ try{
    assert(changed.status.rows.some(row=>row.materials.some(card=>card.skuId==='closure-material'&&card.modelVersionId===bv.id)))
    assert.equal(new URL(page.url()).searchParams.has('version'),false);await showMaterials();assert.match(await page.locator('[data-structure-materials]').innerText(),/MAT-CLOSURE-B/)
    await page.locator(`.vue-flow__node[data-id="${b}-brand"]`).click();await page.getByRole('button',{name:'查看命名规则',exact:true}).click();assert.match(await page.getByRole('dialog',{name:'物料命名规则',exact:true}).innerText(),new RegExp(`${b}-V1`));await page.getByRole('dialog',{name:'物料命名规则',exact:true}).getByRole('button',{name:'关闭',exact:true}).click()
-   await page.locator('[data-open-template-compatibility]').click();await workspace().waitFor();assert.equal(await workspace().count(),1);await closeWorkspace()
    assert.equal(await raw(),before);mark(`versions/${strict}: historical A V1 → left rail B uses owned combinations, actual MAT, B naming and B workspace without writes`)
    await navigate(`/specs?template=${a}&version=${v1.id}&mode=view`);await page.locator('.model-line').filter({hasText:c}).click();await assertContext(c,'');await showMaterials();assert.match(await page.locator('[data-structure-materials]').innerText(),/未发布|发布模型/);assert.doesNotMatch(await page.locator('[data-structure-materials]').innerText(),/MAT-CLOSURE-B/);mark(`versions/${strict}: A historical → unpublished C has no stale combo, material or version context`)
    await navigate(`/specs?template=${a}&version=${v1.id}&mode=view`);await showMaterials();await select('物料发布版本',v2.versionName);await assertContext(a,v2.id)
@@ -124,12 +121,6 @@ try{
     await page.getByRole('button',{name:'保存模型',exact:true}).click();await settle();await page.getByRole('button',{name:'发布模型',exact:true}).click();await settle()
     const versions=JSON.parse(await raw()).data.specModelVersions.filter(v=>v.templateId===modelId);assert.equal(versions.length,1);created[role].version=versions[0].id
     await page.reload({waitUntil:'networkidle'})
-    await page.locator('[data-open-template-compatibility]').click()
-    const compatibilityDialog=page.getByRole('dialog',{name:'模型适用关系',exact:true});await compatibilityDialog.waitFor()
-    if(role==='host')await page.locator('[data-host-template-device]').waitFor()
-    if(role==='accessory')assert.match(await compatibilityDialog.innerText(),/模板默认|适用设备|适用机型/)
-    if(role==='unknown'||role==='other')assert.match(await compatibilityDialog.innerText(),/产品类型用途未指定或为其他/)
-    await compatibilityDialog.getByRole('button',{name:'关闭',exact:true}).click();mark(`purpose/${strict}: new ${role} type → published model → independent compatibility direction`)
    }
    const now=JSON.parse(await raw()).data;for(const key of ['families','skus','compatibilities'])assert.deepEqual(now[key],before[key])
    // Existing dependent type rejects purpose changes in the real form, preserving all input and disk.

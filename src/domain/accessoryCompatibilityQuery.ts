@@ -1,7 +1,8 @@
+import {familyProductTypeId} from './productIdentity'
 import {generalReferenceProblem,generalConditionProblem,generalFactProblem,type GeneralCompatibilityClaim,type CompatibilityEvidence} from './generalCompatibility'
 import { projectAttrs, shelfOf } from './logic'
 import { roleOfType } from './compatibility'
-import { compatibilityFamilyTypeId, compatibilityRecordRole, createDeviceResolutionContext, deviceHostKey, resolveDeviceSku, sameDeviceHost, validateCompatibilityHost } from './deviceResolution'
+import { compatibilityRecordRole, createDeviceResolutionContext, deviceHostKey, resolveDeviceSku, sameDeviceHost, validateCompatibilityHost } from './deviceResolution'
 import type { DeviceResolutionContext } from './deviceResolution'
 import type { AppData, CompatibilityLink } from './types'
 import type { AccessoryMatch, AccessoryQueryResult, AccessoryTarget, AccessoryUseEvaluation, CapabilityEvaluation, CompatibilityCapability, CompatibilityCondition, ConditionEvaluation, DeviceResolution, ReverseCompatibilityResult } from './accessoryCompatibilityTypes'
@@ -95,7 +96,7 @@ function declarationProblem(data: AppData, link: CompatibilityLink, context: Dev
   if (link.source !== undefined && typeof link.source !== 'string') return '声明依据格式无效。'
   const target = compatibilityTarget(link), sku = context.skus.get(target.id)
   if (!sku || (target.kind === 'sku' ? !context.realSkuIds.has(sku.id) : !context.materialIds.has(sku.id))) return '配件对象引用失效或销售 SKU/MAT 身份不符。'
-  const family = context.families.get(sku.familyId), typeId = family?.productTypeId || compatibilityFamilyTypeId(data, sku.familyId)
+  const family = context.families.get(sku.familyId), typeId = family?.productTypeId || familyProductTypeId(data, sku.familyId)
   if (!typeId || roleOfType(data, typeId) !== 'accessory') return '配件产品类型引用失效。'
   const knownHost = link.host ? hostOptions.get(deviceHostKey(link.host)) : undefined
   return validateCompatibilityHost(data, link.host, knownHost ? [knownHost] : []) || (link.conditions || []).map(condition => conditionProblem(data, condition)).find(Boolean) || ''
@@ -129,7 +130,7 @@ function queryResolvedDevice(data: AppData, device: DeviceResolution, options: {
     const [kind,id]=JSON.parse(groupKey) as ['sku'|'material',string]
     const target:AccessoryTarget={kind,id}, sku = bySku.get(target.id), family = sku && byFamily.get(sku.familyId)
     if (!sku || !family || (target.kind==='sku'&&!context.realSkuIds.has(sku.id))) continue
-    const productTypeId = family.productTypeId || compatibilityFamilyTypeId(data, family.id), productTypeName = byType.get(productTypeId)?.name || '未分类'
+    const productTypeId = family.productTypeId || familyProductTypeId(data, family.id), productTypeName = byType.get(productTypeId)?.name || '未分类'
     const name = sku.skuName || sku.code, code = target.kind === 'material' ? sku.materialCode || sku.code : sku.code
     const spec = Object.entries(projectAttrs(family, sku)).filter(([, value]) => value.trim()).map(([key, value]) => `${key} ${value}`).join(' · ')
     if ((options.productTypeId && options.productTypeId !== productTypeId) || (text && !`${name} ${code} ${spec} ${productTypeName}`.toLocaleLowerCase().includes(text))) continue

@@ -74,12 +74,11 @@ export const foundationManuals: Record<string, GuideManualContent> = {
     restrictions:[restriction('templates-bindings','参数不存在、重复绑定、顺序/角色字段无效或名称为空','整份方案及参数绑定均不提交。','保留抽屉，改用有效词典属性并修正重复/空项。',['rule-template-bindings']),restriction('templates-access','当前记录是商品模型或没有对应操作权限','按记录真实身份检查 model/template 权限，不按页面名称绕过。','到商品模型维护模型；普通方案使用方案权限。',['rule-permission']),restriction('templates-save','保存失败或取消影响确认','抽屉草稿保留，原方案与绑定不变。','修正提示后重试；不把关闭抽屉当作确认保存。',['rule-persistence'])]
   },
   'page-models': {
-    purpose:'按分类与产品类型管理模型草稿、发布版本、适用设备配置和使用数量。',
+    purpose:'按分类与产品类型管理模型草稿、发布版本和使用数量。',
     features:[
       feature('models-create','新建模型','在明确产品类型下建立新模型草稿。','点“新建模型”，依次选分类/产品类型并填模型名，点“创建模型”。','成功打开新模型资料，再明确进入设计；不复制其他模型商品。',{primary:true,actionIds:['action-model-create']}),
       feature('models-open','查看或编辑模型','先查看模型资料，再明确进入设计。','商品资料管理切“商品模型”，点名称打开详情；选择准确版本查看设计，或明确进入当前草稿编辑。','模型读取即可看台账和详情；设计入口另需设计权限。版本失效不会换成最新版本。',{primary:true,actionIds:['action-model-edit']}),
       feature('models-publish','发布模型','验证草稿并保存新的冻结版本。','通过“更多”或详情操作区明确发布，阅读成功/失败提示与规则卡。','通过词典、结构、业务配置和适用规则检查后创建发布快照。',{primary:true,actionIds:['action-model-publish']}),
-      feature('models-compatibility','查看适用关系','沿用准确模型、版本和范围打开已有工作区。','模型详情选择版本后进入“适用关系”；手机查看适配配件，配件查看适用机型，未知身份不按名称猜测。','工作草稿保持范围身份、私有存储和修订检查；来源版本不因新入口变化。'),
       feature('models-copy','复制模型','复制当前草稿结构和适用配置。','在“更多”或详情操作区选择“复制模型”并确认。','新模型从草稿开始，不复制商品或历史发布记录。',{actionIds:['action-model-copy']}),
       feature('models-offline','下线模型','停止新商品继续使用该模型。','在“更多”或详情操作区选择“下线模型”并确认。','原子保存失败时原状态保留；历史商品继续读取创建时版本，下线不删除冻结快照。',{actionIds:['action-model-offline']}),
       feature('models-sku','查看关联商品','核对明确模型关联及已记录来源的 SPU、销售 SKU 与 MAT。','点台账或模型详情中的商品数量，在只读明细中按权限进入完整管理页面。','数量与明细使用相同 ID 集合；旧商品来源未记录时明确提示，不覆盖用户的商品保存视图。')
@@ -97,7 +96,6 @@ export const foundationManuals: Record<string, GuideManualContent> = {
       feature('specs-layout','布局、缩放和展开','整理位置并查看大树。','用“自动布局／手工摆放／适应全部”、缩放菜单、小地图及“全部展开/收起”。','调整位置不改父子关系；自动布局才重新对齐手工位置。'),
       feature('specs-business','配置值节点业务','设置销售定位、物料策略和路径允许值。','选属性值节点点“业务配置”；选功能、范围、参数，点“保存节点配置”。','配置是值节点附属实例，不新增规格轴；目录复用不代表实例共用。',{primary:true,actionIds:['action-node-business-save']}),
       feature('specs-naming','设置命名规则','按字段与固定文字顺序生成物料命名预览。','节点“命名规则”；点击/拖入字段、插入文字并调整顺序，预览合法组合后保存。','只写当前草稿节点；自有规则整段覆盖继承规则，预览不建物料。',{actionIds:['action-node-naming-save']}),
-      feature('specs-hosts','适用设备默认与例外','配置模型层和分支层的适用设备。','模型头部“配置适用设备”或节点“节点适用配置”。','保存草稿后还需发布；多来源冲突需明确处理，不改人工取消决定。'),
       feature('specs-save-publish','保存与发布模型','区分保存草稿和生成正式版本。','点“保存模型”保存编辑；点“发布模型”验证并创建版本；“发布记录”查历史。','保存草稿不替换最近发布版本；发布保留树、词典、业务配置和来源快照。',{primary:true,actionIds:['action-model-edit','action-model-publish']}),
       feature('specs-combos','管理合法组合','按发布版本核对完整路径、PLN、物料与历史记录。','点“管理合法组合”；切版本、搜索、筛未建档，勾选后标核心/一般或批量创建物料。','草稿预览无正式规划编号；单条可查看、新建或关联已有 MAT，多个 MAT 可指向同一组合。'),
       feature('specs-node-materials','节点附近建档和反查','从较早值节点建立/关联 MAT 并查看覆盖范围。','选值节点点“节点范围建档／关联”；用“显示关联物料”控制三视图物料展示。','明确预览并确认当前/下级范围；显示开关不改物料关系，也不截断完整销售组合。',{actionIds:['action-material-relation']}),
@@ -108,7 +106,7 @@ export const foundationManuals: Record<string, GuideManualContent> = {
       restriction('specs-config','允许值失效、未知配置或多条不一致配置','显示不支持/冲突并阻止受影响发布，不自动覆盖或取交集。','保留原文，定位节点并明确调整；尚未确认的覆盖规则仍待业务确认。',['rule-node-config']),
         restriction('specs-dictionary-batch','本批任一取值超出当前路径允许范围，或创建词典项的权限不足','整批不提交，不能将路径禁用误作词典缺值，也不能静默放宽上级配置。','保留选择和输入，移除非法项或明确维护允许范围后重试。只引用已有词典项无需词典修改权限；新属性需创建权限，新值需词典修改权限。',['rule-node-config','rule-dictionary-reference','rule-permission']),
       restriction('specs-frozen','查看模式、历史版本或历史来源','只读冻结依据，布局和新草稿不重写原快照、编号及 MAT/SKU 身份。','要调整未来行为请进入草稿编辑并发布新版本。',['rule-model-history','rule-identity-separation']),
-      restriction('specs-material-source','未发布、规划停用、来源依据变化或人工兼容保护命中','不能凭草稿预览或确认版本范围绕过建档/人工保护。','核对具体版本、节点范围和预览；新操作使用新请求，保留旧来源。',['rule-material-source','rule-material-request','rule-compatibility-manual-protection']),
+      restriction('specs-material-source','未发布、规划停用或来源依据变化','不能凭草稿预览或确认版本范围绕过建档来源保护。','核对具体版本、节点范围和预览；新操作使用新请求，保留旧来源。',['rule-material-source','rule-material-request']),
       restriction('specs-unsaved','保存失败或准备离开尚未保存的编辑','保留编辑和错误提示；离开需明确确认，不把发布失败写成已发布。','先保存成功或明确放弃；打开页面说明不会触发业务离开。',['rule-persistence'])
     ],
     details:[{id:'specs-business-scope-detail',title:'路径允许值如何生效',actionIds:['action-node-business-save'],sections:[{id:'specs-business-scope-steps',title:'只限制目标路径',steps:['在 A 路径的值节点添加“允许值”配置，选择真实下级属性及该属性的允许词典值。','允许值使用“当前值及其下级”，核对生效来源；只约束 A 路径，不改全局候选或 B 路径。','即使某允许值尚未建立属性值节点，这条配置仍引用它；删除全局取值前会检查该引用。']}] }]

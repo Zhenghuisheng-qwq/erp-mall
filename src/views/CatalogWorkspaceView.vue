@@ -39,7 +39,7 @@
         </section>
       </div>
       <div v-if="unassignedItems.length" class="unassigned-strip"><span>无归属、引用失效或身份冲突</span><button v-for="kind in unassignedItems" :key="kind" type="button" @click="showMetric(kind,index.unassigned[kind],`无归属、引用失效或身份冲突 · ${metricLabels[kind]}`)">{{metricLabels[kind]}} {{index.unassigned[kind].count}}</button></div>
-      <CatalogModelDetail v-if="modelId && store.can('product:model:read')" ref="modelDetail" :model-id="modelId" :version="modelVersion" :return-to="route.fullPath" :index="index" @close="closeModel" @version="setModelVersion" @details="openDetails" />
+      <CatalogModelDetail v-if="modelId && store.can('product:model:read')" :model-id="modelId" :version="modelVersion" :return-to="route.fullPath" :index="index" @close="closeModel" @version="setModelVersion" @details="openDetails" />
     </template>
     <CatalogMetricDetails :index="index" :request="detailRequest" @close="closeDetails" @record="openRecord" />
     <el-drawer v-model="categoryDrawer" title="分类范围" size="min(320px,100vw)"><CatalogScopeTree v-if="store.can('product:category:read')" :categories="index.categories" :types="index.typeRows" :scope-type-id="scopeTypeId" :category-id="categoryId" :expanded-ids="prefs.expandedIds" @select="pickCategory" @select-type="pickTypeScope" @expand="changePreference({expandedIds:$event})" /></el-drawer>
@@ -93,7 +93,6 @@ const modelVersion=computed(()=>scalar(route.query.version)||scalar(route.query.
 const typeId=computed(()=>scalar(route.query.typeId)||(view.value==='types'?(scalar(route.query.type)||scalar(route.query.focus)||scalar(route.query.id)):''))
 const typeLedger=ref<InstanceType<typeof ProductTypeLedger>>(),modelLedger=ref<InstanceType<typeof ModelLedger>>()
 const categorySummary=ref<InstanceType<typeof CatalogCategorySummary>>()
-const modelDetail=ref<InstanceType<typeof CatalogModelDetail>>()
 const detailRequest=ref<CatalogDetailRequest|null>(null),categoryDrawer=ref(false),narrow=ref(window.innerWidth<900)
 let writeTimer:ReturnType<typeof setTimeout>|undefined,pendingWrite:{key:string;value:CatalogWorkspacePreferences}|undefined,content:HTMLElement|null=null,scrollTimer:ReturnType<typeof setTimeout>|undefined
 let restoringScroll=false,scrollRestoreEpoch=0,alive=true
@@ -107,8 +106,8 @@ function syncQueryPreferences(){if(route.path!=='/catalog'||!view.value)return;c
 function setColumn(key:string,visible:boolean){const columns=visible?[...prefs.value.columns,key]:prefs.value.columns.filter(value=>value!==key);changePreference({columns})}
 function setCategoryLayout(value:string|number|boolean){changePreference({categoryLayout:value==='list'?'list':'tree'})}
 function setTreeExpansion(open:boolean){categorySummary.value?.setTreeExpansion(open)}
-async function canChangeContext(){if(modelDetail.value&&!await modelDetail.value.canLeave())return false;const ledger=view.value==='types'?typeLedger.value:view.value==='models'?modelLedger.value:undefined;return !ledger||await ledger.canLeave()}
-function acceptContextChange(){modelDetail.value?.acceptContextChange();if(view.value==='types')typeLedger.value?.acceptContextChange();if(view.value==='models')modelLedger.value?.acceptContextChange()}
+async function canChangeContext(){const ledger=view.value==='types'?typeLedger.value:view.value==='models'?modelLedger.value:undefined;return !ledger||await ledger.canLeave()}
+function acceptContextChange(){if(view.value==='types')typeLedger.value?.acceptContextChange();if(view.value==='models')modelLedger.value?.acceptContextChange()}
 function cleanDetails(query:LocationQueryRaw){for(const key of ['modelId','typeId','version','versionId','template','focus','id','type','metric'])delete query[key];return query}
 async function switchView(next:CatalogView){if(next===view.value||!store.can(catalogViewPermissions[next]))return;if(!await canChangeContext())return;rememberScroll();acceptContextChange();const state=preferences.value.views[next];await router.push({path:'/catalog',query:cleanDetails({...route.query,view:next,scopeTypeId:next==='categories'?undefined:scopeTypeId.value||undefined,categoryId:next==='categories'&&scopeTypeId.value?(index.value.typeRows.find(row=>row.id===scopeTypeId.value&&row.scopeEligible)?.categoryIds[0]||categoryId.value||undefined):categoryId.value||undefined,q:state.keyword,keyword:undefined,search:undefined,status:state.status||undefined,sort:state.sort==='name'?undefined:state.sort,page:state.page===1?undefined:String(state.page)})})}
 async function pickCategory(id:string){if(id===categoryId.value&&!scopeTypeId.value){categoryDrawer.value=false;return}if(!await canChangeContext())return;rememberScroll();acceptContextChange();const query=cleanDetails({...route.query,view:view.value,categoryId:id||undefined,scopeTypeId:undefined,page:'1'});delete query.category;await router.push({path:'/catalog',query});categoryDrawer.value=false}

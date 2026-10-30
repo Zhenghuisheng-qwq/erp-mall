@@ -19,7 +19,6 @@ export function captureEditor(data: AppData, modelId: string) {
     nodes: data.productSpecNodes.filter(n => n.templateId === modelId),
     bindings: data.templateParams.filter(n => n.templateId === modelId),
     order: data.templates.find(n => n.id === modelId)?.structureOrder || [],
-    nodeRules: (data.nodeCompatibilityRules || []).filter(r => r.templateId === modelId && r.modelVersionId === ''),
     params: data.params,
   })
 }
@@ -39,7 +38,7 @@ function structural(nodes: ProductSpecNode[]) {
   return nodes.map(({ positionX, positionY, expanded, ...node }) => node)
 }
 export function sameEditorModel(a: Omit<EditorSnapshot, 'params'>, b: Omit<EditorSnapshot, 'params'>) {
-  return same(structural(a.nodes), structural(b.nodes)) && same(a.bindings, b.bindings) && same(a.order, b.order) && same(a.nodeRules, b.nodeRules)
+  return same(structural(a.nodes), structural(b.nodes)) && same(a.bindings, b.bindings) && same(a.order, b.order)
 }
 function contains(value: unknown, target: string): boolean {
   if (value === target) return true
@@ -78,7 +77,7 @@ export function prepareEditorUndo(data: AppData, entry: EditorHistoryEntry, mode
   })
   const nodes = [...data.productSpecNodes.filter(n => n.templateId !== modelId), ...restoredNodes]
   const bindings = [...data.templateParams.filter(n => n.templateId !== modelId), ...clone(entry.before.bindings)]
-  const external = withoutSkuAliasMetadata({ ...data, params: [], productSpecNodes: nodes.filter(n => n.templateId !== modelId), templateParams: bindings.filter(n => n.templateId !== modelId), templates: data.templates.filter(t => t.id !== modelId) })
+  const external = withoutSkuAliasMetadata({ ...data, compatibilities: [], generalCompatibilityClaims: undefined, deviceModels: undefined, deviceBindings: undefined, nodeCompatibilityRules: undefined, templateCompatibilityConfigs: undefined, templateCompatibilityOrigins: undefined, materialContributions: undefined, specModelVersions: data.specModelVersions.map(({templateCompatibilitySnapshot: _raw, ...version})=>version), params: [], productSpecNodes: nodes.filter(n => n.templateId !== modelId), templateParams: bindings.filter(n => n.templateId !== modelId), templates: data.templates.filter(t => t.id !== modelId) })
   const registeredFields = new Set(skuFields(data).map(field => field.id))
   for (const change of entry.dictionary) {
     const index = params.findIndex(p => p.id === change.id)
@@ -99,6 +98,5 @@ export function prepareEditorUndo(data: AppData, entry: EditorHistoryEntry, mode
     if (node.parentId && !entry.before.nodes.some(n => n.id === node.parentId)) return fail('父节点已不存在，未执行撤销。')
   }
   if (entry.before.bindings.some(b => !params.some(p => p.id === b.paramId)) || entry.before.order.some(id => !params.some(p => p.id === id))) return fail('模型属性关联已失效，未执行撤销。')
-  const nodeRules = [...(data.nodeCompatibilityRules || []).filter(r => r.templateId !== modelId || r.modelVersionId !== ''), ...clone(entry.before.nodeRules)]
-  return { ok: true as const, nodes, bindings, params, nodeRules, order: clone(entry.before.order) }
+  return { ok: true as const, nodes, bindings, params, order: clone(entry.before.order) }
 }

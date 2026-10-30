@@ -60,18 +60,10 @@
           <el-button type="primary" native-type="submit" :disabled="!store.can('product:material:update')">保存物料</el-button>
           <el-button :disabled="!store.can('product:material:update')" @click="regenerate">按当前规则生成名称</el-button>
         </div>
-        <h3 v-if="accessoryMode">适用主机</h3>
-        <template v-if="accessoryMode && active">
-          <p class="muted">已关联 {{ skuHosts.length }} 款主机。这是在维护适用关系，不是新建物料。</p>
-          <p v-for="item in skuHosts" :key="item.id">{{ item.label }}<span v-if="item.host.scope === 'planning'"> · 仅指定规格</span></p>
-          <p v-if="skuHosts.length === 0" class="muted">还没有适用主机。</p>
-          <el-button @click="router.push(`/compatibility?sku=${active.id}`)">添加适用主机</el-button>
-        </template>
-        <h3 v-if="familyHosts.length">适用配件</h3>
-        <p v-for="item in familyHosts" :key="item.key" class="muted">
-          {{ item.label }} · 已关联 {{ item.accessoryCount }} 条
-          <el-button link type="primary" @click="router.push({ path: '/compatibility', query: { model: item.host.productModelId, key: item.host.identityKey } })">管理适用配件</el-button>
-        </p>
+
+
+
+
       </form>
     </div>
   </div>
@@ -79,13 +71,11 @@
 </template>
 
 <script setup lang="ts">
-import { materialPlanningIds } from '../domain/materialRelations'
 import { ElMessage } from 'element-plus'
 import MaterialSourceList from './MaterialSourceList.vue'
 import { isMaterialArchive } from '../domain/catalogIdentity'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { catalogRole, hostLabel, linksOfSku, listHostModels, roleOfType } from '../domain/compatibility'
 import { categoryPath, modelVersionById, shelfOf, shelfText, specCanvasOf } from '../domain/logic'
 import { materialNameOriginLabel, suggestMaterialName } from '../domain/naming'
 import type { Sku } from '../domain/types'
@@ -107,9 +97,9 @@ const identity = computed(() => {
   const current = family.value
   if (!current) return { label: '未标记', note: '' }
   const type = store.data.productTypes.find((item) => item.id === current.productTypeId)
-  const role = current.productTypeId ? roleOfType(store.data, current.productTypeId) : catalogRole(store.data, current.categoryId)
+  const role = type?.catalogRole
   const label = role === 'host' ? '主机' : role === 'accessory' ? '配件' : '未标记'
-  const note = type?.catalogRole ? '来自产品类型的显式标记。' : '产品类型没有单独标记，目前沿用分类路径。'
+  const note = type?.catalogRole ? '来自产品类型的显式标记。' : '产品类型尚未指定业务用途。'
   return { label, note }
 })
 const modelId = computed(() => family.value?.productModelId || family.value?.templateId || '')
@@ -121,20 +111,6 @@ const filtered = computed(() => {
   return rows.slice().sort((a, b) => (a.materialCode || '').localeCompare(b.materialCode || ''))
 })
 const active = computed(() => materials.value.find((item) => item.id === activeId.value) || filtered.value[0])
-const accessoryMode = computed(() => {
-  const current = family.value
-  if (!current) return false
-  const role = current.productTypeId ? roleOfType(store.data, current.productTypeId) : catalogRole(store.data, current.categoryId)
-  return role === 'accessory'
-})
-const skuHosts = computed(() => (active.value ? linksOfSku(store.data, active.value.id) : []).map((item) => ({ ...item, label: hostLabel(item.host) })))
-const familyHosts = computed(() => {
-  if (!family.value) return []
-  const role = family.value.productTypeId ? roleOfType(store.data, family.value.productTypeId) : catalogRole(store.data, family.value.categoryId)
-  if (role !== 'host') return []
-  const plans = new Set(materials.value.flatMap(item=>materialPlanningIds(store.data,item.id)))
-  return listHostModels(store.data).filter((item) => item.planningIds.some((id) => plans.has(id)))
-})
 
 watch(family, (row) => {
   productName.value = row?.name || ''

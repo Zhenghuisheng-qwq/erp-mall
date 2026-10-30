@@ -104,15 +104,11 @@ function apply(data: AppData, candidate: ReturnType<typeof prepareEditorUndo>) {
 }
 {
   const data = fixture()
-  data.nodeCompatibilityRules = [{ id: 'a-rule', templateId: 'gaps-model', nodeId: 'g-cap-0', modelVersionId: '', hosts: [], updatedAt: 'before' }]
   const before = captureEditor(data, 'gaps-model')
   data.productSpecNodes = data.productSpecNodes.filter(n => n.id !== 'g-cap-0')
-  data.nodeCompatibilityRules = []
   const entry = editorEntry('gaps-model', 1, before, captureEditor(data, 'gaps-model'))!
-  data.nodeCompatibilityRules.push({ id: 'b-rule', templateId: 'b', nodeId: 'b-node', modelVersionId: '', hosts: [], updatedAt: 'later' })
   const result = prepareEditorUndo(data, entry, 'gaps-model', 1)
   assert(result.ok)
-  assert.deepEqual(result.nodeRules.map(r => r.id).sort(), ['a-rule', 'b-rule'])
   checks.push('delete undo restores its draft node rules without overwriting B rules')
 }
 {

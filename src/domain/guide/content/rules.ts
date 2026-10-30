@@ -416,7 +416,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "page-specs",
       "page-plans",
       "page-spu-edit",
-      "page-material-edit",
+      "page-material-edit"
     ],
     "actionIds": [
       "action-model-create",
@@ -431,7 +431,7 @@ export const guideRuleArticles: GuideArticle[] = [
       "action-planning-delete",
       "action-spu-history",
       "action-material-edit",
-      "action-material-unlink",
+      "action-material-unlink"
     ],
     "ruleIds": [],
     "related": [
@@ -1469,235 +1469,6 @@ export const guideRuleArticles: GuideArticle[] = [
     ]
   },
   {
-    "id": "rule-compatibility-binding",
-    "title": "适用绑定须有明确对象与主机",
-    "kind": "rule",
-    "summary": "避免名称猜测扩大适用范围",
-    "aliases": [
-      "适用绑定须有明确对象与主机",
-      "compatibility-binding"
-    ],
-    "pageIds": [
-      "page-compatibility",
-    ],
-    "actionIds": [
-      "action-compatibility-bind",
-      "action-compatibility-declare",
-    ],
-    "ruleIds": [],
-    "related": [
-      "manual-compatibility",
-    ],
-    "sections": [
-      {
-        "id": "conditions",
-        "title": "真实允许与禁止条件",
-        "table": {
-          "headers": [
-            "允许条件",
-            "禁止条件"
-          ],
-          "rows": [
-            [
-              "主机型号合法且目标是实际受支持的 SKU/MAT 粒度",
-              "型号歧义、目标不存在、错误身份或非法绑定"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "examples",
-        "title": "正确与失败示例",
-        "table": {
-          "headers": [
-            "正确示例",
-            "失败示例"
-          ],
-          "rows": [
-            [
-              "为配件销售 SKU 明确绑定主机型号",
-              "按手机名字自动把 MAT 关系算作销售兼容"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "impact",
-        "title": "影响范围",
-        "paragraphs": [
-          "适用于适用关系；不追溯重写已有快照或凭说明新增限制。"
-        ]
-      },
-      {
-        "id": "next",
-        "title": "当前下一步",
-        "paragraphs": [
-          "选正式设备型号并核对目标身份"
-        ]
-      },
-      {
-        "id": "mode",
-        "title": "适用权限模式",
-        "paragraphs": [
-          "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "rule-compatibility-basis",
-    "title": "适用声明按有效依据维护",
-    "kind": "rule",
-    "summary": "双向查询和维护共享同一事实依据",
-    "aliases": [
-      "适用声明按有效依据维护",
-      "compatibility-basis"
-    ],
-    "pageIds": [
-      "page-compatibility"
-    ],
-    "actionIds": [
-      "action-compatibility-declare",
-      "action-compatibility-sync"
-    ],
-    "ruleIds": [],
-    "related": [
-      "manual-compatibility"
-    ],
-    "sections": [
-      {
-        "id": "conditions",
-        "title": "真实允许与禁止条件",
-        "table": {
-          "headers": [
-            "允许条件",
-            "禁止条件"
-          ],
-          "rows": [
-            [
-              "结论、能力、条件和来源通过真实校验，预览依据仍有效",
-              "真实矛盾结论/条件、过期 basis 或错误目标"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "examples",
-        "title": "正确与失败示例",
-        "table": {
-          "headers": [
-            "正确示例",
-            "失败示例"
-          ],
-          "rows": [
-            [
-              "同结论同条件集合仅排列不同，保留真实来源",
-              "因为备注相同就合并两个矛盾主机结论"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "impact",
-        "title": "影响范围",
-        "paragraphs": [
-          "适用于适用关系；不追溯重写已有快照或凭说明新增限制。"
-        ]
-      },
-      {
-        "id": "next",
-        "title": "当前下一步",
-        "paragraphs": [
-          "处理冲突并重新预览，不无限重试旧候选"
-        ]
-      },
-      {
-        "id": "mode",
-        "title": "适用权限模式",
-        "paragraphs": [
-          "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "rule-compatibility-manual-protection",
-    "title": "人工修改与取消跨版本保留",
-    "kind": "rule",
-    "summary": "内容签名变化不等于来源身份变更",
-    "aliases": [
-      "人工修改与取消跨版本保留",
-      "compatibility-manual-protection"
-    ],
-    "pageIds": [
-      "page-compatibility"
-    ],
-    "actionIds": [
-      "action-material-relation",
-      "action-compatibility-sync",
-      "action-compatibility-cancel"
-    ],
-    "ruleIds": [],
-    "related": [
-      "manual-compatibility"
-    ],
-    "sections": [
-      {
-        "id": "conditions",
-        "title": "真实允许与禁止条件",
-        "table": {
-          "headers": [
-            "允许条件",
-            "禁止条件"
-          ],
-          "rows": [
-            [
-              "稳定规则/声明真实谱系相同则继承人工决定；无关新来源按原规则执行",
-              "只改 note/source/核验状态后重新生成已取消或改过声明"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "examples",
-        "title": "正确与失败示例",
-        "table": {
-          "headers": [
-            "正确示例",
-            "失败示例"
-          ],
-          "rows": [
-            [
-              "另一无关主机声明可以按规则执行",
-              "确认新版本范围就静默恢复已取消兼容"
-            ]
-          ]
-        }
-      },
-      {
-        "id": "impact",
-        "title": "影响范围",
-        "paragraphs": [
-          "适用于适用关系；不追溯重写已有快照或凭说明新增限制。"
-        ]
-      },
-      {
-        "id": "next",
-        "title": "当前下一步",
-        "paragraphs": [
-          "查看人工来源保护并保留决定，本轮没有显式恢复不重建"
-        ]
-      },
-      {
-        "id": "mode",
-        "title": "适用权限模式",
-        "paragraphs": [
-          "默认统一管理员与显式严格 RBAC 模式均保留业务约束。严格模式还需页面和动作权限；阅读规则不会授予权限。"
-        ]
-      }
-    ]
-  },
-  {
     "id": "rule-json-import",
     "title": "导入校验与当前角色保护",
     "kind": "rule",
@@ -1933,7 +1704,6 @@ export const guideRuleArticles: GuideArticle[] = [
     ],
     "actionIds": [
       "action-material-relation",
-      "action-compatibility-sync",
       "action-json-import",
       "action-table-import",
       "action-backup-export",
@@ -2028,8 +1798,6 @@ export const guideRuleArticles: GuideArticle[] = [
       "action-model-publish",
       "action-spu-save",
       "action-sku-save",
-      "action-compatibility-bind",
-      "action-compatibility-cancel",
       "action-json-import",
       "action-table-import",
       "action-backup-export",
@@ -2126,7 +1894,6 @@ export const guideRuleArticles: GuideArticle[] = [
     "pageIds": [
       "page-tree",
       "page-spus",
-      "page-compatibility",
       "page-groups",
       "page-overview",
       "page-check"
@@ -2144,8 +1911,7 @@ export const guideRuleArticles: GuideArticle[] = [
     "ruleIds": [],
     "related": [
       "manual-tree",
-      "manual-spus",
-      "manual-compatibility"
+      "manual-spus"
     ],
     "sections": [
       {
@@ -2184,7 +1950,7 @@ export const guideRuleArticles: GuideArticle[] = [
         "id": "impact",
         "title": "影响范围",
         "paragraphs": [
-          "适用于商品结构视图、SPU 管理、适用关系、运营分组、商品总览、商品质量检查；不追溯重写已有快照或凭说明新增限制。"
+          "适用于商品结构视图、SPU 管理、运营分组、商品总览、商品质量检查；不追溯重写已有快照或凭说明新增限制。"
         ]
       },
       {

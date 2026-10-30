@@ -12,9 +12,9 @@ try{
   browser=await chromium.launch({channel:'chrome',headless:true})
   for(const strict of [false,true]){
     const server=await createServer({cacheDir:`${runtime}/${strict?'strict':'default'}`,logLevel:'error',define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify(String(strict))},server:{host:'127.0.0.1',port:0,watch:null,hmr:false}});servers.push(server)
-    const {createAccessoryCompatibilityFixture}=await server.ssrLoadModule('/scripts/accessory-compatibility-fixtures.ts'),{normalizeStored}=await server.ssrLoadModule('/src/stores/catalog.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
+    const {createCatalogProductFixture}=await server.ssrLoadModule('/scripts/catalog-product-fixture.ts'),{normalizeStored}=await server.ssrLoadModule('/src/stores/catalog.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
     const {guidePages}=await server.ssrLoadModule('/src/domain/guide/registry.ts'),{guideManualContents}=await server.ssrLoadModule('/src/domain/guide/content/manuals.ts')
-    const fixture=createAccessoryCompatibilityFixture(),data=normalizeStored({version:DATA_VERSION,data:fixture.data})
+    const fixture=createCatalogProductFixture(),data=normalizeStored({version:DATA_VERSION,data:fixture.data})
     data.categories.push({id:'guide-move-source',name:'说明测试来源',parentId:null,sort:200,enabled:true},{id:'guide-move-child',name:'说明测试来源子类',parentId:'guide-move-source',sort:1,enabled:true},{id:'guide-move-source-b',name:'说明测试来源二',parentId:null,sort:201,enabled:true},{id:'guide-move-child-b',name:'说明测试来源二子类',parentId:'guide-move-source-b',sort:1,enabled:true},{id:'guide-move-target',name:'说明测试目标',parentId:null,sort:202,enabled:true})
     data.rbac.roles.push({id:'guide-reading-only',code:'guide-reading-only',name:'说明只读',description:'isolated browser fixture',enabled:true,permissionCodes:['system:guide:read']})
     data.users.push({id:'guide-reader',username:'guide-reader',displayName:'说明只读',enabled:true,role:'operator',roleIds:['guide-reading-only']})

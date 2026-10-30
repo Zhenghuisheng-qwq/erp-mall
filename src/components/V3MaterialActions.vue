@@ -20,8 +20,8 @@
       <div v-if="preview" :inert="saving" @keydown.tab.stop>
         <p class="spec">{{ preview.label }}</p>
         <p class="meta">规划编号 {{ preview.planningId }} · 模型版本 {{ preview.versionName }}</p>
-        <p v-if="compatibilitySummary" class="meta" data-material-template-summary>{{ compatibilitySummary }}</p>
-        <p v-if="compatibilityProblem" class="warn" role="alert">{{ compatibilityProblem }}</p>
+
+
         <p v-if="choices.length" class="warn">有多款商品都能放下这条规格，请选一款。不会按名称自动合并。</p>
         <el-radio-group v-if="choices.length" v-model="pickedFamilyId" class="choices">
           <el-radio v-for="item in choices" :key="item.id" :value="item.id">{{ item.name }}</el-radio>
@@ -90,9 +90,6 @@ import { materialsOfRecord } from '../domain/comboMaterialStatus'
 import { materialNameOriginLabel, suggestMaterialName } from '../domain/naming'
 import type { MaterialChoice } from '../domain/material'
 import { uid, useCatalogStore } from '../stores/catalog'
-import { roleOfType } from '../domain/compatibility'
-import { createTemplateCompatibilityContext, resolveTemplateCompatibility } from '../domain/templateCompatibility'
-import { templateCreationSummary } from './template-compatibility/creationPresentation'
 
 const props = defineProps<{
   productModelId: string
@@ -138,15 +135,6 @@ const resolved = computed(() => {
 })
 const preview = computed(() => (resolved.value && resolved.value.ok ? resolved.value.spec : null))
 const previewMessage = computed(() => (resolved.value && !resolved.value.ok ? resolved.value.message : ''))
-const compatibilityPreview = computed(() => {
-  if (!preview.value || roleOfType(store.data, props.productTypeId) !== 'accessory') return undefined
-  const context = createTemplateCompatibilityContext(store.data, { modelId: props.productModelId, versionId: props.modelVersionId })
-  const source = new Set(preview.value.sourceNodeIds)
-  const combo = context.combinations.find(item => item.steps.length === source.size && item.steps.every(step => source.has(step.valueNodeId)))
-  return combo ? resolveTemplateCompatibility(context, combo) : undefined
-})
-const compatibilitySummary = computed(() => compatibilityPreview.value ? templateCreationSummary([compatibilityPreview.value], preview.value?.versionName || '', 'MAT') : '')
-const compatibilityProblem = computed(() => compatibilityPreview.value && ['conflict', 'invalid'].includes(compatibilityPreview.value.state) ? compatibilityPreview.value.message : '')
 const count = computed(() => materials.value.length)
 const existingName = computed(() => {
   if (!preview.value) return ''

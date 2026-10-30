@@ -14,9 +14,6 @@ const suites=[
  ['browser-r01','R01_BROWSER_OUTPUT'],
  ['browser-spu-sku','SPU_SKU_OUTPUT_DIR'],
  ['browser-r02-repair','R02_BROWSER_OUTPUT'],
- ['browser-template-compatibility','TEMPLATE_BROWSER_OUTPUT'],
- ['browser-accessory-compatibility','ACCESSORY_BROWSER_OUTPUT'],
- ['browser-r02-repair-compatibility','R02_COMPAT_BROWSER_OUTPUT'],
  ['browser-sku-workbench','SKU_WORKBENCH_OUTPUT_DIR'],
 ]
 const evidenceDirs={'browser-product-center-type-model':'type-model','browser-product-center-list-create':'list-create','browser-product-center-naming':'naming-conflict','browser-product-center-supplement':'supplement'}

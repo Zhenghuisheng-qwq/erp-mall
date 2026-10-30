@@ -1,6 +1,5 @@
 import {r01Fixture} from './r01-fixture'
 import {freezeBusinessNodes} from '../src/domain/nodeBusiness'
-import {freezeTemplateCompatibility} from '../src/domain/templateCompatibility'
 import {reconcilePlanningRecords} from '../src/domain/planning'
 import {ensureRbac} from '../src/domain/rbac'
 import type {SpecModelVersion} from '../src/domain/types'
@@ -19,7 +18,7 @@ export function catalogClosureFixture(){
   for(const [modelId,number] of [[a,1],[a,2],[b,1]] as const){
     const attr=data.productSpecNodes.find(item=>item.id===`${modelId}-brand`)!
     attr.namingRule=[{kind:'text',text:`${modelId}-V${number}`}]
-    const version:SpecModelVersion={id:`${modelId}-v${number}`,templateId:modelId,version:number,versionName:`${modelId} V${number}`,status:'published',nodesSnapshot:freezeBusinessNodes(data,data.productSpecNodes.filter(item=>item.templateId===modelId)),createdTime:now,publishTime:now,templateCompatibilitySnapshot:freezeTemplateCompatibility(data,modelId)}
+    const version:SpecModelVersion={id:`${modelId}-v${number}`,templateId:modelId,version:number,versionName:`${modelId} V${number}`,status:'published',nodesSnapshot:freezeBusinessNodes(data,data.productSpecNodes.filter(item=>item.templateId===modelId)),createdTime:now,publishTime:now}
     versions.push(version);data.specModelVersions.push(version)
     data.planningRecords=reconcilePlanningRecords({records:data.planningRecords,data,productModelId:modelId,modelVersionId:version.id,nodes:version.nodesSnapshot,now}).records
   }
@@ -29,7 +28,7 @@ export function catalogClosureFixture(){
   data.families.push(family)
   data.skus.push({...structuredClone(data.skus[0]!),id:'closure-material',familyId:family.id,recordKind:'material',line:'v3',skuName:'B版本真实物料',materialCode:'MAT-CLOSURE-B',modelVersionId:bVersion.id,planningId:record.planningId})
   ensureRbac(data)
-  for(const [id,codes] of [['closure-create',['product:type:read','product:type:create','product:category:read']],['closure-read',['product:model-designer:read','product:model:read','product:type:read','product:category:read','product:compatibility:read']]] as const){
+  for(const [id,codes] of [['closure-create',['product:type:read','product:type:create','product:category:read']],['closure-read',['product:model-designer:read','product:model:read','product:type:read','product:category:read']]] as const){
     data.rbac!.roles.push({id,code:id,name:id,description:'isolated regression',enabled:true,permissionCodes:[...codes]})
     data.users.push({id,username:id,displayName:id,enabled:true,role:'operator',roleIds:[id]})
   }

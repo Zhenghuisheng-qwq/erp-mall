@@ -1,7 +1,7 @@
 <template>
   <div :inert="saving" :aria-busy="saving">
     <PageHead title="新增 SKU" desc="先确定所属 SPU，再填写或批量生成规格。预览和取消都不会写入业务数据。"><el-button @click="back">返回 SKU 管理</el-button></PageHead>
-    <p v-if="copy" class="muted" data-sku-copy-policy>已复制所选 SKU 的规格草稿。适用设备按目标 SPU 绑定的发布版本重新计算，原商品的人工适用设置仍保留在原商品。</p>
+    <p v-if="copy" class="muted" data-sku-copy-policy>已复制所选 SKU 的规格草稿。请核对目标 SPU 的模型版本与规格来源后创建。</p>
     <section class="panel" style="margin-bottom: 16px">
       <h2>1. 选择 SPU</h2>
       <SpuPicker :model-value="familyId" :plan-id="planId" :template-id="templateId" @change="selectFamily" />
@@ -29,8 +29,8 @@
     <section v-if="previewed" class="panel">
       <h2>3. 确认新增</h2>
       <p data-candidate-count>候选 {{ candidates.length }} 条，可新增 {{ count('new') }} 条，已存在 {{ count('existing') }} 条，无效 {{ count('invalid') }} 条。</p>
-      <p v-if="compatibilitySummary" class="muted" data-sku-template-summary>{{ compatibilitySummary }}</p>
-      <p v-for="item in compatibilityProblems" :key="item.key" class="issue-error" data-sku-template-problem>{{ attrsText(item.draft.variantAttrs) }}：{{ item.message }}</p>
+
+
       <RuleExplanation v-if="guideFailure" :failure="guideFailure" :supported-recovery="['edit-input']" @recover="recoverGuide" />
       <p v-else-if="error" class="issue-error" role="alert">{{ error }}</p>
       <p v-if="candidates.length && !count('new')" class="muted">没有可新增规格；已存在的记录不会重复创建。</p>
@@ -63,11 +63,9 @@ import { useUnsavedCatalog } from '../components/catalog/useUnsavedCatalog'
 import { categoryPath } from '../domain/logic'
 import { productTypeName } from '../domain/productList'
 import { newSpuDraft } from '../domain/spuDraft'
-import { planSpuCompatibility, previewSkuAppend, skuConfigurationProblem, skuFields, type SkuCandidate, type SkuDraft, type SkuGeneration } from '../domain/spuSku'
+import { planSpuSourceProblem, previewSkuAppend, skuConfigurationProblem, skuFields, type SkuCandidate, type SkuDraft, type SkuGeneration } from '../domain/spuSku'
 import type { ProductFamily } from '../domain/types'
 import { useCatalogStore } from '../stores/catalog'
-import { previewTemplateForSkuDrafts } from '../domain/templateCompatibilitySync'
-import { templateCreationSummary } from '../components/template-compatibility/creationPresentation'
 const store = useCatalogStore()
 const route = useRoute()
 const router = useRouter()
@@ -100,16 +98,9 @@ watch(spuOpen, open => { if (!open) inlineDirty.value = false })
 const problem = computed(() => {
   if (planId && !plan.value) return '规划已不存在，请返回规划页面重新选择。'
   if (!family.value) return familyId.value ? '预选 SPU 已不存在，请重新选择。' : ''
-  return skuConfigurationProblem(store.data, family.value) || (planId ? planSpuCompatibility(store.data, family.value, planId) : templateId && family.value.templateId !== templateId ? 'SPU 的模型或方案与当前来源不一致。' : '')
+  return skuConfigurationProblem(store.data, family.value) || (planId ? planSpuSourceProblem(store.data, family.value, planId) : templateId && family.value.templateId !== templateId ? 'SPU 的模型或方案与当前来源不一致。' : '')
 })
 const versionName = computed(() => store.data.specModelVersions.find(item => item.id === family.value?.modelVersionId)?.versionName || family.value?.modelVersionId || '未绑定发布模型')
-const compatibilityCandidates = computed(() => candidates.value.filter(row => row.state === 'new' && selected.value.includes(row.key)))
-const compatibilityPreviews = computed(() => previewTemplateForSkuDrafts(store.data, familyId.value, compatibilityCandidates.value.map(row => row.draft)))
-const compatibilitySummary = computed(() => templateCreationSummary(compatibilityPreviews.value, family.value?.modelVersionId ? versionName.value : '', 'SKU'))
-const compatibilityProblems = computed(() => compatibilityCandidates.value.flatMap((row, index) => {
-  const item = compatibilityPreviews.value[index]
-  return item && (item.state === 'invalid' || item.state === 'conflict') ? [{ ...row, message: item.message }] : []
-}))
 const attrsText = (attrs: Record<string, string>) => Object.entries(attrs).filter(([, value]) => value).map(([name, value]) => `${name}：${value}`).join(' / ')
 const count = (state: SkuCandidate['state']) => candidates.value.filter(row => row.state === state).length
 const allSelected = computed(() => count('new') > 0 && selected.value.length === count('new'))

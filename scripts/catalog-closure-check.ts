@@ -7,9 +7,6 @@ import {DATA_VERSION,STORAGE_KEY,type ProductType} from '../src/domain/types'
 import {RBAC_ENFORCEMENT_ENABLED} from '../src/domain/accessMode'
 import {catalogSearchKeyword,withCatalogSearch} from '../src/domain/catalogWorkspaceNavigation'
 import {legalComboMaterialStatus,resolveComboVersion} from '../src/domain/comboMaterialStatus'
-import {productTypePurposeChangeMessage} from '../src/domain/productTypePurpose'
-import {templateBusinessRole,templateHostChoices} from '../src/domain/templateHostCompatibility'
-import {createEmptyTemplateCompatibilityConfig} from '../src/domain/templateCompatibility'
 
 installCatalogTestLocks()
 const request=navigator.locks.request.bind(navigator.locks)
@@ -48,7 +45,6 @@ assert.equal(row(host).catalogRole,'host');assert.equal(row(accessory).catalogRo
 assert.equal(JSON.parse(raw()!).data.productTypes.find((type:ProductType)=>type.id===host).catalogRole,'host')
 const model=await store.createProductModel({productTypeId:host,name:'新主机最小结构'});assert(model.ok&&'templateId' in model)
 const id=(model as {templateId:string}).templateId
-assert.equal(templateBusinessRole(store.data,id),'host')
 const omitted={...row(host)};delete omitted.catalogRole
 assert((await store.commitProductType({...omitted,name:'普通编辑保留用途'},JSON.stringify(row(host)))).ok);assert.equal(row(host).catalogRole,'host')
 assert((await store.commitProductType({...row(other),catalogRole:undefined},JSON.stringify(row(other)))).ok);assert.equal(row(other).catalogRole,undefined)
@@ -62,17 +58,6 @@ assert.equal(raw(),before);assert.equal(JSON.stringify(store.data.productTypes),
 assert((await store.commitProductType({...row(unknown),catalogRole:'accessory'},JSON.stringify(row(unknown)))).ok);assert.equal(row(unknown).catalogRole,'accessory')
 assert.equal((await store.commitProductType({...row(host),catalogRole:'accessory'},'stale')).ok,false)
 mark('quota failure is atomic, latest retained input retries successfully, stale record rejects')
-
-// A bare publication is not directional evidence. Configured empty accessory rules are.
-const sample=structuredClone(data),type=sample.productTypes.find(item=>item.id==='r01-type')!
-sample.planningRecords=sample.planningRecords.filter(item=>![a,b].includes(item.productModelId));sample.skus=sample.skus.filter(item=>item.id!=='closure-material')
-assert.equal(productTypePurposeChangeMessage(sample,type.id,'accessory'),'')
-const config=createEmptyTemplateCompatibilityConfig(a);config.defaultRule.configured=true;sample.templateCompatibilityConfigs=[config]
-assert.match(productTypePurposeChangeMessage(sample,type.id,'other'),/配件适用配置/)
-assert.equal(productTypePurposeChangeMessage(sample,type.id,'accessory'),'')
-const protectedRaw=raw();assert.equal((await store.commitProductType({...row('r01-type'),catalogRole:'accessory'},JSON.stringify(row('r01-type')))).ok,false);assert.equal(raw(),protectedRaw);assert.equal(frozen(),protectedBefore)
-assert(templateHostChoices(store.data,{modelId:b,versionId:bv.id}).choices.length>0)
-mark('only actual directional consumers block change; publication alone permits correction; protected histories and persisted data remain exact')
 
 hold=true;let ready=new Promise<void>(resolve=>entered=resolve)
 const pending=store.commitProductType({...row(host),catalogRole:'accessory'},JSON.stringify(row(host)));await ready

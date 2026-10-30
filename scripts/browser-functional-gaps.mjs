@@ -111,7 +111,7 @@ try {
   await historyPanel.locator('.el-select__wrapper').first().click();await page.locator('.el-select-dropdown__item:visible').filter({hasText:'当前草稿'}).click();assert.equal(await historyPanel.locator('[data-material-combo]').count(),6)
   const fresh=historyPanel.locator('[data-material-combo]').filter({hasText:'草稿新增色'});assert.equal(await fresh.count(),2);assert.equal(await fresh.locator('[data-material-id]').count(),0);assert.match(await fresh.first().innerText(),/未分配 PLN/)
   await settle();assert.equal(JSON.stringify(await data()),historyBefore);mark('historical-only not filed; draft new combinations no invented PLN/MAT; readonly history')
-  const {createTemplateCompatibilityFixture}=await server.ssrLoadModule('/scripts/template-compatibility-fixtures.ts'),large=createTemplateCompatibilityFixture({styles:8,colors:32,packs:16})
+  const {createCatalogModelFixture}=await server.ssrLoadModule('/scripts/catalog-model-fixture.ts'),large=createCatalogModelFixture({styles:8,colors:32,packs:16})
   const largeContext=await browser.newContext({viewport:{width:1366,height:768},reducedMotion:'reduce'})
   await largeContext.addInitScript(data=>localStorage.setItem('iyge-v2-mock-db',JSON.stringify({version:15,data})),large.data)
   const largePage=await largeContext.newPage();observe(largePage);await largePage.goto(base+`/specs?template=${large.modelId}&mode=view`,{waitUntil:'networkidle'})

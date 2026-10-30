@@ -1,5 +1,11 @@
+import {cleanPhoneDemoNames,phoneDemoNameKeys} from '../domain/benefitSales/phoneDemoNames'
+import {groupTypesProblem} from '../domain/benefitSales/query'
+import {applyCompatibilityChanges,compatibilityImportProblems,type CompatibilityChange} from '../domain/accessoryCompatibilityCommands'
 import {applyGeneralChanges,generalStorageProblems,type GeneralChange} from '../domain/generalCompatibility'
-import {writeGroup,writeSale,benefitStorageProblems} from '../domain/benefitSales/commands'
+import {compatibilityWorkspaceBasis} from '../domain/compatibilityWorkspace'
+import {cloneRecord} from '../domain/recordCopy'
+import {modelSpecificationContext} from '../domain/modelSourceContext'
+import {writeGroup,deleteGroup,writeSale,benefitStorageProblems} from '../domain/benefitSales/commands'
 import type {GroupInput,SaleInput} from '../domain/benefitSales/types'
 import { branchFailure, rejectGuide, getFailure, failureError, failureForResult, unknownFailure, withFailure, createFailure } from '../domain/guide/failure'
 import type { GuideFailure } from '../domain/guide/types'
@@ -11,7 +17,7 @@ import { createRbacCommands } from './catalogRbac'
 import { catalogPublicData } from './catalogAccess'
 import { defineStore } from 'pinia'
 import { businessDefinitions, businessImportProblems, businessIssues, businessPath, configProblem, copyBusinessConfigs, freezeBusinessNodes, type BusinessDefinition, type NodeBusinessConfig } from '../domain/nodeBusiness'
-import { executeMaterialRelation, materialRelationImportProblems, markMaterialContributionChanges, revokeMaterialRelation } from '../domain/materialRelationCommands'
+import { executeMaterialRelation, materialRelationImportProblems, revokeMaterialRelation } from '../domain/materialRelationCommands'
 import { materialRelationBlock } from '../domain/materialRelations'
 import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { createCatalogPersistence } from './catalogPersistence'
@@ -30,12 +36,11 @@ import {
 } from '../domain/categoryTree'
 import { applyAccessoryCategoryFix, PHONE_CASE_CATEGORY_FIX } from '../domain/categoryFix'
 import { dictionaryRemovalBlock } from '../domain/dictionaryGuard'
-import { productTypePurposeChangeMessage, validProductTypePurpose } from '../domain/productTypePurpose'
+import { validProductTypePurpose } from '../domain/productTypePurpose'
 import { applyModelDictionaryBatch, modelDictionaryInputProblem, type ModelDictionaryBatchInput, type ModelDictionaryBatchResult } from '../domain/modelDictionaryCommands'
 import { captureEditor, editorEntry, prepareEditorUndo, type EditorHistoryEntry } from '../domain/editorHistory'
 import { blankVariantAttrs, categoryPath, descendantIds, familySkus, sameSpecSnapshot, specPublishProblems } from '../domain/logic'
 import { reconcilePlanningRecords } from '../domain/planning'
-import { compatibilityModelBlock, compatibilitySkuBlock } from '../domain/compatibility'
 import { ensureProductListPages } from '../domain/productListPages'
 import type { ProductListPageState } from '../domain/types'
 import { validateProductListPage, validateProductListModeQuery } from '../domain/productListQuery'
@@ -43,23 +48,15 @@ import { validateSkuConfig } from '../domain/skuWorkbenchQuery'
 import { validateListManualCommit, type ListManualGuard } from '../domain/listManualCommit'
 import { SYSTEM_SKU_VIEW_ID, validateSkuWorkbenchPageShape } from '../domain/skuWorkbenchState'
 import { isRealSku, isMaterialArchive } from '../domain/catalogIdentity'
-import { applyCompatibilityChanges, cloneCompatibility, compatibilityImportProblems, deviceModelProblem } from '../domain/accessoryCompatibilityCommands'
-import type { CompatibilityChange, CompatibilityCommandResult } from '../domain/accessoryCompatibilityCommands'
-import { compatibilityFamilyTypeId, compatibilityRecordRole, deviceSourceStamp, sameDeviceHost, validateCompatibilityHost } from '../domain/deviceResolution'
-import type { DeviceModel } from '../domain/accessoryCompatibilityTypes'
-import type { CompatibilityHost } from '../domain/types'
 import { appendSkuBatch, editSku, previewSkuAppend, saveSpu, spuRemovalBlock, type SkuDraft, type SkuGeneration } from '../domain/spuSku'
-import { draftHostRulesDiffer, forgetDraftNodeRules, freezeDraftNodeHosts } from '../domain/nodeCompatibility'
-import { applyTemplateCompatibilitySync, invalidateTemplateSpec, markTemplateManualChanges, materializeTemplateCompatibility, previewTemplateCompatibilitySync, templateCompatibilityOriginProblems, type TemplateSyncPreview } from '../domain/templateCompatibilitySync'
-import { createTemplateCompatibilityContext, freezeTemplateCompatibility, resolveTemplateCompatibility, templateCompatibilityContentSignature, templateCompatibilityImportProblems, validateTemplateCompatibilityConfig } from '../domain/templateCompatibility'
-import type { TemplateCompatibilityConfig } from '../domain/templateCompatibilityTypes'
-import { scrubSampleDictionary } from '../domain/compatibilitySamples'
 import { createTemporaryMaterial, createV3Material, renameV3Product, setPlanningGrades, tombstoneMaterialReceipts, updateV3Material } from '../domain/material'
 import type { MaterialChoice } from '../domain/material'
 import type { ProductGrade } from '../domain/types'
 import { arrangeSpecPositions } from '../domain/logic'
 import { activeProductListView, applyPresetToActiveView, currentModeQuery, ensureProductListViews } from '../domain/productListViews'
 import {supplementPhoneDemo,demoKeys} from '../domain/benefitSales/demo'
+import {replacePhoneCatalogDemo,phoneCatalogKeys} from '../domain/benefitSales/phoneCatalogDemo'
+import {installPhone18Demo,phone18DemoKeys} from '../domain/benefitSales/phone18Demo'
 import { createSeed, defaultColumns, emptyQuery } from '../domain/seed'
 import { DATA_VERSION, STORAGE_KEY, type AppData, type Category, type ColumnPref, type FeedbackItem, type ListQuery, type ListView, type ParamDef, type ProductFamily, type ProductGroup, type ProductType, type Sku, type SpecRule, type Brand, type UserRole } from '../domain/types'
 
@@ -96,16 +93,15 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   if (!data?.families || !data.skus || !data.categories || !data.templates || !data.mappings || !data.templateParams) return null
   const version = parsed.version ?? 1
   if (version < 1 || version > DATA_VERSION) return null
-  const generalProblems=generalStorageProblems(data)
-  if(generalProblems.length)throw new Error(generalProblems.join('；'))
+  if(data.compatibilities===undefined)data.compatibilities=[]
+  const compatibilityProblems=[...compatibilityImportProblems(data),...generalStorageProblems(data)]
+  if(compatibilityProblems.length)throw new Error(compatibilityProblems.join('；'))
   const benefitProblems=benefitStorageProblems(data)
   if(benefitProblems.length)throw new Error(benefitProblems.join('；'))
   const businessProblems = businessImportProblems(data)
   if (businessProblems.length) throw new Error(`节点业务配置结构校验失败：${businessProblems.join(' ')} 原始记录已保留。`)
   const relationProblems = materialRelationImportProblems(data)
   if (relationProblems.length) throw new Error(`物料关联校验失败：${relationProblems.join(' ')} 原始记录已保留。`)
-  const templateProblems = [...templateCompatibilityImportProblems(data), ...templateCompatibilityOriginProblems(data)]
-  if (templateProblems.length) throw new Error(`模板兼容数据校验失败：${templateProblems.join(' ')} 原始记录已保留。`)
   const mark = { changed: version !== DATA_VERSION }
   data.categories = data.categories.map((item) => {
     if (typeof item.enabled === 'boolean') return item
@@ -196,15 +192,6 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
     data.materialReceipts = []
     mark.changed = true
   }
-  if (!Array.isArray(data.compatibilities)) {
-    data.compatibilities = []
-    mark.changed = true
-  }
-  if (!Array.isArray(data.nodeCompatibilityRules)) {
-    data.nodeCompatibilityRules = []
-    mark.changed = true
-  }
-  if (scrubSampleDictionary(data)) mark.changed = true
   if (data.listQuery) {
     const defaults = emptyQuery()
     const next = { ...defaults, ...data.listQuery, attrFilters: data.listQuery.attrFilters || {} }
@@ -213,8 +200,6 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   }
   if (ensureProductListViews(data)) mark.changed = true
   if (ensureProductListPages(data)) mark.changed = true
-  const compatibilityProblems = compatibilityImportProblems(data)
-  if (compatibilityProblems.length) migrationStorageError = `适用关系配置有待处理项：${compatibilityProblems.join(' ')} 原始记录已保留，请修复或导出备份。`
   ensureRbac(data, loadMenu())
   return data
 }
@@ -250,8 +235,8 @@ export const useCatalogStore = defineStore('catalog', () => {
   ensureRbac(startupCandidate,loadMenu())
   const originalAuthorization = originalRaw ? JSON.parse(originalRaw).data?.rbac : undefined
   const needsAuthorizationMigration = !originalAuthorization || JSON.stringify(originalAuthorization) !== JSON.stringify(startupCandidate.rbac)
-  const startingData = cloneCompatibility(startupCandidate)
-  if(needsAuthorizationMigration){if(originalAuthorization)startingData.rbac=cloneCompatibility(originalAuthorization);else delete startingData.rbac;startingData.users=originalRaw?JSON.parse(originalRaw).data.users:startingData.users.map(u=>{const x={...u};delete x.roleIds;return x})}
+  const startingData = cloneRecord(startupCandidate)
+  if(needsAuthorizationMigration){if(originalAuthorization)startingData.rbac=cloneRecord(originalAuthorization);else delete startingData.rbac;startingData.users=originalRaw?JSON.parse(originalRaw).data.users:startingData.users.map(u=>{const x={...u};delete x.roleIds;return x})}
   const data = reactive<AppData>(startingData)
   const authorizationReady=ref(!needsAuthorizationMigration)
   const SESSION_KEY='iyge-rbac-simulated-user'
@@ -275,7 +260,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   type CommandContext={codes:string[];actor:string;name:string}
   let invocation:CommandContext|undefined
   let executingAction = 'action-business-save'
-  const commandAction = (name:string) => ({ commitCategoryMove:'action-category-move', commitCategoryMoves:'action-category-move', renameCategoryName:'action-category-rename', publishSpecModel:'action-model-publish', createMaterial:'action-material-create', createTemporary:'action-material-create', saveMaterialRelation:'action-material-create', saveSpu:'action-spu-save', saveBundle:'action-spu-save', appendSkus:'action-sku-save', editSku:'action-sku-save', commitDeviceBinding:'action-compatibility-bind', applyTemplateSync:'action-compatibility-sync', applyTemplateCompatibilitySync:'action-compatibility-sync', commitSkuPage:'action-view-save', importJson:'action-json-import', commitMaterialImport:'action-json-import', saveView:'action-view-save', saveSkuView:'action-view-save', saveRbacRole:'action-rbac-authorize', grantRbacRole:'action-rbac-authorize' } as Record<string,string>)[name] || 'action-business-save'
+  const commandAction = (name:string) => ({ commitCategoryMove:'action-category-move', commitCategoryMoves:'action-category-move', renameCategoryName:'action-category-rename', publishSpecModel:'action-model-publish', createMaterial:'action-material-create', createTemporary:'action-material-create', saveMaterialRelation:'action-material-create', saveSpu:'action-spu-save', saveBundle:'action-spu-save', appendSkus:'action-sku-save', editSku:'action-sku-save',  commitSkuPage:'action-view-save', importJson:'action-json-import', commitMaterialImport:'action-json-import', saveView:'action-view-save', saveSkuView:'action-view-save', saveRbacRole:'action-rbac-authorize', grantRbacRole:'action-rbac-authorize' } as Record<string,string>)[name] || 'action-business-save'
   const caughtFailure = (error:unknown,message:string,savedState:GuideFailure['savedState']='unconfirmed') => { const known=getFailure(error);return known?{...known,message,savedState}:unknownFailure(message,executingAction,savedState) }
   const publicData=catalogPublicData(data,can)
   const editorGeneration = ref(0)
@@ -308,6 +293,22 @@ export const useCatalogStore = defineStore('catalog', () => {
   if(needsAuthorizationMigration){
     void persistence.run(()=>{persistence.write(startupCandidate);Object.assign(data,startupCandidate);authorizationReady.value=true;explicitlyPersisted=JSON.stringify(data);return {ok:true}},message=>{migrationStorageError=`授权迁移未提交：${message}。原数据保留。`;return {ok:false,message}})
   } else if (JSON.stringify(JSON.parse(originalRaw!).data)!==explicitlyPersisted||JSON.parse(originalRaw!).version!==DATA_VERSION){explicitlyPersisted='';void persistLive()}
+  // The owner explicitly requested replacing the old mock catalogue. Apply once,
+  // under the existing storage lock, after authorization migration has finished.
+  if(data.phoneDemoCatalogVersion!==1){
+    void persistence.run(()=>{
+      if(!isAdmin.value)return {ok:false,message:'请由管理员执行手机四类型演示数据整理。'}
+      const result=replacePhoneCatalogDemo(data,defaultColumns(),emptyQuery())
+      return result.ok?commitCandidate(result.next,{ok:true,message:result.message},[...phoneCatalogKeys]):result
+    },message=>{migrationStorageError='手机演示数据整理未保存：'+message+'；原数据保留，可从演示数据菜单重试。';return {ok:false,message}})
+  }
+  if(data.phoneDemoCatalogVersion===1){
+    void persistence.run(()=>{
+      if(!isAdmin.value)return {ok:true}
+      const named=cleanPhoneDemoNames(data)
+      return named.ok?named.changed?commitCandidate(named.next,{ok:true},[...phoneDemoNameKeys]):{ok:true}:named
+    },message=>{migrationStorageError='名称整理未保存：'+message+'；原数据保留，可重试。';return {ok:false,message}})
+  }
   function command<T extends { ok: boolean; message?: string }>(operation: () => T): Promise<T | CommandFailure> {
     const context=invocation
     const actionId=context?commandAction(context.name):'action-business-save'
@@ -334,17 +335,17 @@ export const useCatalogStore = defineStore('catalog', () => {
       return result
     } catch (error) { const message=`无法保存到本机：${error instanceof Error ? error.message : String(error)}。当前数据未改变，操作草稿已保留，请重试。`;return withFailure({ok:false,message},caughtFailure(error,message,'unchanged')) }
   }
-  const creationKeys: (keyof AppData)[] = ['families', 'skus', 'planningRecords', 'materialReceipts', 'compatibilities', 'templateCompatibilityOrigins', 'materialRelations', 'materialContributions']
+  const creationKeys: (keyof AppData)[] = ['families', 'skus', 'planningRecords', 'materialReceipts', 'materialRelations']
   function saveMaterialRelation(input: Parameters<typeof executeMaterialRelation>[1]) {
-    const next = cloneCompatibility(data)
+    const next = cloneRecord(data)
     const result = executeMaterialRelation(next, input, uid)
     return commitCandidate(next, result, creationKeys)
   }
   function unlinkMaterialRelation(id: string, basis: string) {
-    const next = cloneCompatibility(data)
+    const next = cloneRecord(data)
     return commitCandidate(next, revokeMaterialRelation(next, id, basis), creationKeys)
   }
-  function commitCreated<T extends { ok: boolean; message?: string }>(next: AppData, result: T, ids: string[], now: string) {
+  function commitCreated<T extends { ok: boolean; message?: string }>(next: AppData, result: T, ids: string[], _now: string) {
     if (!result.ok) return failureForResult(result, executingAction, 'unchanged')
     for (const id of ids) {
       const sku = next.skus.find(s => s.id === id), family = next.families.find(f => f.id === sku?.familyId)
@@ -356,37 +357,12 @@ export const useCatalogStore = defineStore('catalog', () => {
       const issue = businessIssues(next, version.nodesSnapshot).find(i => path.has(i.nodeId))
       if (issue) return { ok: false as const, message: `当前规格的业务配置需要修正，未创建商品：${issue.message}`, choices: undefined, reason: undefined }
     }
-    const inherited = materializeTemplateCompatibility(next, ids, () => uid('compat'), now)
-    if (!inherited.ok) return { ok: false as const, message: inherited.message || '兼容声明生成失败，未创建商品或物料。', choices: undefined, reason: undefined }
     return commitCandidate(next, result, creationKeys)
-  }
-  function saveTemplateCompatibility(config: TemplateCompatibilityConfig, expectedRevision?: number) {
-    if (!data.templates.some(item => item.id === config.modelId) || !data.specCanvases.some(item => item.templateId === config.modelId)) return { ok: false, message: '模型或画布已不存在，未重新创建已删除模型的兼容配置；当前草稿保留。' }
-    const previous = data.templateCompatibilityConfigs?.find(item => item.modelId === config.modelId)
-    if ((expectedRevision ?? config.revision) !== (previous?.revision || 0)) return { ok: false, message: '模板兼容配置已更新，请重新打开后核对；当前草稿保留。' }
-    const issues = validateTemplateCompatibilityConfig(data, config)
-    if (issues.length) return { ok: false, message: issues.map(issue => issue.message).join(' ') }
-    if (previous && templateCompatibilityContentSignature(previous) === templateCompatibilityContentSignature(config)) return { ok: true }
-    const next = cloneCompatibility(data), record = cloneCompatibility(config)
-    record.revision = (previous?.revision || 0) + 1; record.updatedAt = new Date().toISOString()
-    next.templateCompatibilityConfigs = (next.templateCompatibilityConfigs || []).filter(item => item.modelId !== config.modelId)
-    next.templateCompatibilityConfigs.push(record)
-    const canvas = next.specCanvases.find(item => item.templateId === config.modelId)
-    if (canvas) {
-      const latest = next.specModelVersions.filter(item => item.templateId === config.modelId).sort((a, b) => a.version - b.version).at(-1)
-      canvas.status = 'draft'; canvas.version = (latest?.version || 0) + 1; canvas.versionName = `V${canvas.version}`; canvas.updatedAt = record.updatedAt
-    }
-    return commitCandidate(next, { ok: true }, ['templateCompatibilityConfigs', 'specCanvases'])
-  }
-  function applyTemplateSync(preview: TemplateSyncPreview, decisions: Record<string, 'take-template' | 'keep'>) {
-    const next = cloneCompatibility(data)
-    const result = applyTemplateCompatibilitySync(next, preview, decisions, () => uid('compat'), new Date().toISOString())
-    return commitCandidate(next, result, ['compatibilities', 'templateCompatibilityOrigins'])
   }
   function saveModelDraft(templateId: string, isCurrent: () => boolean = () => true) {
     if (!isCurrent()) return { ok: false, message: '编辑上下文已变化，本次保存已取消。' }
     if (!data.templates.some(item => item.id === templateId)) return { ok: false, message: '模型已不存在。' }
-    const next = cloneCompatibility(data), canvas = next.specCanvases.find(item => item.templateId === templateId)
+    const next = cloneRecord(data), canvas = next.specCanvases.find(item => item.templateId === templateId)
     if (canvas) canvas.updatedAt = new Date().toISOString()
     // The canvas may already be dirty in memory. Explicit save must still probe storage.
     try { persistence.write(next) }
@@ -398,7 +374,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   function saveNodeBusiness(modelId: string, nodeId: string, configs: NodeBusinessConfig[], expected: string) {
     const node = data.productSpecNodes.find(n => n.id === nodeId && n.templateId === modelId && n.nodeType === 'VALUE')
     if (!node || JSON.stringify(node) !== expected) return { ok: false, message: '节点或配置已变化，请重新打开核对；输入保留。' }
-    const records = cloneCompatibility(configs)
+    const records = cloneRecord(configs)
     const seen = new Set<string>(), instanceIds = new Set<string>()
     for (const record of records) {
       delete record.definitionSnapshot
@@ -413,7 +389,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       seen.add(record.definitionId)
       instanceIds.add(record.id)
     }
-    const next = cloneCompatibility(data)
+    const next = cloneRecord(data)
     next.productSpecNodes.find(n => n.id === nodeId)!.businessConfigs = records
     const canvas = next.specCanvases.find(c => c.templateId === modelId)
     if (canvas) { canvas.status = 'draft'; canvas.updatedAt = new Date().toISOString() }
@@ -424,23 +400,23 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (!old || old.kind !== input.kind || !input.name.trim() || typeof input.enabled !== 'boolean') return { ok: false, message: '定义身份和功能类型不能更换，请填写名称及可用状态。' }
     const allNodes = [...data.productSpecNodes, ...data.specModelVersions.flatMap(v => v.nodesSnapshot)]
     if (remove && allNodes.some(n => n.businessConfigs?.some(c => c.definitionId === old.id) || old.kind === 'naming' && n.namingRule?.length)) return { ok: false, message: '定义被草稿或历史发布版本引用，不能删除；可以停用以禁止新增实例。' }
-    const next = cloneCompatibility(data)
+    const next = cloneRecord(data)
     next.businessDefinitions = definitions.filter(d => d.id !== input.id).map(d => ({ ...d }))
     if (!remove) next.businessDefinitions.push({ ...old, name: input.name.trim(), description: input.description.trim(), enabled: input.enabled })
     return commitCandidate(next, { ok: true, message: '公共配置目录已保存，已引用实例和旧版本保持原义。' }, ['businessDefinitions'])
   }
   function materialImportBasis() {
-    return JSON.stringify([data.families, data.skus, data.planningRecords, data.materialReceipts, data.compatibilities, data.templateCompatibilityOrigins, data.specModelVersions, data.templateCompatibilityConfigs, data.categories, data.productTypes, data.params, data.templates, data.specCanvases, data.productSpecNodes, data.nodeCompatibilityRules])
+    return JSON.stringify([data.families, data.skus, data.planningRecords, data.materialReceipts, data.specModelVersions, data.categories, data.productTypes, data.params, data.templates, data.specCanvases, data.productSpecNodes])
   }
   function commitMaterialImport(candidate:AppData,expectedBasis:string){
     if(materialImportBasis()!==expectedBasis)return rejectGuide('import.material.basis','预览后商品或模型数据已变化，请重新预览导入；当前数据未改变。',{savedState:'unchanged',recovery:['repreview']})
-    const next=cloneCompatibility(data),existing=new Set(data.skus.map(item=>item.id))
-    for(const key of creationKeys){if(candidate[key]!==undefined){if(!Array.isArray(candidate[key]))return {ok:false,message:`导入候选 ${key} 结构无效。`};Object.assign(next,{[key]:cloneCompatibility(candidate[key])})}}
+    const next=cloneRecord(data),existing=new Set(data.skus.map(item=>item.id))
+    for(const key of creationKeys){if(candidate[key]!==undefined){if(!Array.isArray(candidate[key]))return {ok:false,message:`导入候选 ${key} 结构无效。`};Object.assign(next,{[key]:cloneRecord(candidate[key])})}}
     const changed=(a:unknown,b:unknown)=>JSON.stringify(a)!==JSON.stringify(b)
-    const prefix:Partial<Record<keyof AppData,string>>={families:'product:spu',planningRecords:'product:planning',compatibilities:'product:compatibility',templateCompatibilityOrigins:'product:compatibility',materialRelations:'product:material',materialContributions:'product:material',materialReceipts:'product:material'}
+    const prefix:Partial<Record<keyof AppData,string>>={families:'product:spu',planningRecords:'product:planning',materialRelations:'product:material',materialReceipts:'product:material'}
     for(const key of creationKeys){
       const before=(data[key]||[]) as {id?:string}[],after=(next[key]||[]) as {id?:string}[]
-      const identityOf=(row:{id?:string})=>row?.id||(key==='planningRecords'?(row as {planningId?:string})?.planningId:key==='materialReceipts'?(row as {requestId?:string})?.requestId:key==='templateCompatibilityOrigins'?(row as {key?:string})?.key:undefined)||JSON.stringify(row)
+      const identityOf=(row:{id?:string})=>row?.id||(key==='planningRecords'?(row as {planningId?:string})?.planningId:key==='materialReceipts'?(row as {requestId?:string})?.requestId:undefined)||JSON.stringify(row)
       type ImportRow=typeof before[number]
       const groups=new Map<string|undefined,{before:ImportRow[];after:ImportRow[]}>()
       for(const [side,rows]of [['before',before],['after',after]] as const)for(const row of rows){const identity=identityOf(row),group=groups.get(identity)||{before:[],after:[]};group[side].push(row);groups.set(identity,group)}
@@ -459,12 +435,12 @@ export const useCatalogStore = defineStore('catalog', () => {
         if(key==='skus'){
           for(const [source,row]of [[data,old],[next,record]] as const){if(!row)continue;const material=isMaterialArchive(source,row as Sku);if(!material)codes.push(`product:sku:${action}`);else if(action==='delete')codes.push('product:material:delete')}
         }else if(key==='families'){codes=record?commandPermissions('saveSpu',[record],data):['product:spu:delete']}
-        else if(['materialReceipts','materialContributions','materialRelations'].includes(key)){if(old)codes=[`${prefix[key]}:${action}`]}
+        else if(['materialReceipts','materialRelations'].includes(key)){if(old)codes=[`${prefix[key]}:${action}`]}
         else codes=[`${prefix[key]}:${action}`]
         if(!codes.every(can))return {ok:false,message:`物料导入含未经授权的其他资源修改（${key}）：${codes.filter(code=>!can(code)).join('、')}。本次未写入任何数据。`}
       }
     }
-    const problems=[...materialRelationImportProblems(next),...compatibilityImportProblems(next)]
+    const problems=[...materialRelationImportProblems(next)]
     if(problems.length)return {ok:false,message:`导入候选校验失败：${problems.join(' ')}`}
     return commitCreated(next,{ok:true},next.skus.filter(item=>!existing.has(item.id)).map(item=>item.id),new Date().toISOString())
   }
@@ -495,106 +471,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     return commitCandidate(candidate, { ok: true as const }, ['productListPages'])
   }
 
-  function compatibilityPermission(): CompatibilityCommandResult | undefined {
-    return undefined
-  }
-
-  /** Only these compatibility-owned arrays are changed, after the full payload is stored. */
-  function commitCompatibilityState(next: AppData, result: CompatibilityCommandResult): CompatibilityCommandResult {
-    if (!result.ok) return failureForResult(result, executingAction, 'unchanged')
-    const before = JSON.stringify([data.compatibilities, data.deviceModels, data.deviceBindings, data.templateCompatibilityOrigins, data.materialContributions])
-    if (before === JSON.stringify([next.compatibilities, next.deviceModels, next.deviceBindings, next.templateCompatibilityOrigins, next.materialContributions])) return result
-    try {
-      persistence.write(next)
-      data.compatibilities = next.compatibilities
-      if (next.deviceModels !== undefined) data.deviceModels = next.deviceModels
-      else delete data.deviceModels
-      if (next.deviceBindings !== undefined) data.deviceBindings = next.deviceBindings
-      else delete data.deviceBindings
-      if (next.templateCompatibilityOrigins !== undefined) data.templateCompatibilityOrigins = next.templateCompatibilityOrigins
-      else delete data.templateCompatibilityOrigins
-        if (next.materialContributions !== undefined) data.materialContributions = next.materialContributions
-        else delete data.materialContributions
-      explicitlyPersisted = JSON.stringify(data)
-      migrationStorageError = ''
-      return result
-    } catch (error) {
-      const message=`无法保存到本机：${error instanceof Error ? error.message : String(error)}。当前数据未改变，操作草稿已保留，请重试。`;return withFailure({...result,ok:false,message},caughtFailure(error,message,'unchanged'))
-    }
-  }
-
-  function commitCompatibilityChanges(changes: CompatibilityChange[], options: {isCurrent?:()=>boolean; expectedLinks?:{id:string;stamp:string}[];expectedBasis?:string} = {}): CompatibilityCommandResult {
-    if (options.isCurrent && !options.isCurrent()) return {ok:false,message:'编辑上下文已变化，本次没有保存，输入保留。'}
-    if (options.expectedBasis !== undefined && options.expectedBasis !== JSON.stringify(data.compatibilities) || options.expectedLinks?.some(link => JSON.stringify(data.compatibilities.find(item=>item.id===link.id)) !== link.stamp)) return {ok:false,message:'适用声明已变化，请重新核对变更预览；本次未保存。'}
-    const denied = compatibilityPermission()
-    if (denied) return denied
-    const next = cloneCompatibility(data)
-    const now = new Date().toISOString()
-    const result = applyCompatibilityChanges(next, changes, () => uid('compat'), now)
-    if (result.ok) markTemplateManualChanges(next, (result.preview?.items || []).filter(item => item.state === 'edit' || item.state === 'remove').map(item => item.change), now)
-    if (result.ok) markMaterialContributionChanges(next, (result.preview?.items || []).filter(item => item.state === 'edit' || item.state === 'remove').map(item => item.change))
-    return commitCompatibilityState(next, result)
-  }
-
-  function commitDeviceBinding(input: { skuId: string; host: CompatibilityHost; replaceExisting?: boolean; expectedSourceStamp?: string }): CompatibilityCommandResult {
-    const denied = compatibilityPermission()
-    if (denied) return denied
-    const sku = data.skus.find(item => item.id === input.skuId)
-    if (!sku || !isRealSku(data, sku) || compatibilityRecordRole(data, sku.id) !== 'host') return rejectGuide('compatibility.bind.target', '请选择真实的主机销售 SKU，不能绑定 MAT 或配件。', {savedState:'unchanged',recovery:['repreview','edit-input']})
-    if (input.host.productTypeId !== compatibilityFamilyTypeId(data, sku.familyId)) return rejectGuide('compatibility.bind.type', '设备型号与当前 SKU 的产品类型不一致，请选择相同主机类型的型号。', {savedState:'unchanged',recovery:['repreview','edit-input']})
-    if (input.host.scope !== 'model') return rejectGuide('compatibility.bind.scope', '绑定设备型号时请选择型号级目标，规划范围由设备自己的来源确认。', {savedState:'unchanged',recovery:['repreview','edit-input']})
-    const problem = validateCompatibilityHost(data, input.host)
-    if (problem) return { ok: false, message: problem }
-    const stamp = deviceSourceStamp(data, sku.id)
-    if (input.expectedSourceStamp !== undefined && stamp !== input.expectedSourceStamp) return rejectGuide('compatibility.bind.basis', '设备来源已变化，请重新打开型号配置后确认。', {savedState:'unchanged',recovery:['repreview','edit-input']})
-    const previous = data.deviceBindings?.find(binding => binding.skuId === sku.id)
-    if (previous && !input.replaceExisting) return rejectGuide('compatibility.bind.replace', '这条设备已有绑定；重新绑定会改变查询适用配件的型号，请明确确认原绑定及影响。', {savedState:'unchanged',recovery:['repreview','edit-input']})
-    if (previous && previous.sourceStamp === stamp && sameDeviceHost(previous.host, input.host)) return { ok: true }
-    const next = cloneCompatibility(data), now = new Date().toISOString()
-    next.deviceBindings = (next.deviceBindings || []).filter(binding => binding.skuId !== sku.id)
-    next.deviceBindings.push({ skuId: sku.id, host: cloneCompatibility(input.host), sourceStamp: stamp, createdAt: previous?.createdAt || now, updatedAt: now })
-    return commitCompatibilityState(next, { ok: true })
-  }
-
-  function clearDeviceBinding(skuId: string): CompatibilityCommandResult {
-    const denied = compatibilityPermission()
-    if (denied) return denied
-    const next = cloneCompatibility(data)
-    if (!next.deviceBindings?.some(binding => binding.skuId === skuId)) return { ok: true }
-    next.deviceBindings = next.deviceBindings.filter(binding => binding.skuId !== skuId)
-    return commitCompatibilityState(next, { ok: true })
-  }
-
-  function saveDeviceModel(input: { id?: string; name: string; productTypeId: string; attributes: Record<string, string> }): CompatibilityCommandResult {
-    const denied = compatibilityPermission()
-    if (denied) return denied
-    const problem = deviceModelProblem(data, input)
-    if (problem) return { ok: false, message: problem }
-    const previous = input.id ? data.deviceModels?.find(model => model.id === input.id) : undefined
-    if (input.id && !previous) return { ok: false, message: '设备型号已不存在，未重新创建已删除的记录。' }
-    if (previous && previous.productTypeId !== input.productTypeId && (data.compatibilities.some(link => link.host.productModelId === `device:${previous.id}`) || data.deviceBindings?.some(binding => binding.host.productModelId === `device:${previous.id}`))) return { ok: false, message: '型号已有正式声明或设备绑定，不能改变产品类型。' }
-    const next = cloneCompatibility(data), now = new Date().toISOString()
-    let id = previous?.id || uid('device')
-    while (!previous && next.deviceModels?.some(model => model.id === id)) id = uid('device')
-    const model: DeviceModel = { id, name: input.name.trim(), productTypeId: input.productTypeId, attributes: cloneCompatibility(input.attributes), createdAt: previous?.createdAt || now, updatedAt: now }
-    next.deviceModels = (next.deviceModels || []).filter(item => item.id !== id)
-    next.deviceModels.push(model)
-    return commitCompatibilityState(next, { ok: true, id })
-  }
-
-  function removeDeviceModel(id: string): CompatibilityCommandResult {
-    const denied = compatibilityPermission()
-    if (denied) return denied
-    if (data.compatibilities.some(link => link.host.productModelId === `device:${id}`) || data.deviceBindings?.some(binding => binding.host.productModelId === `device:${id}`)) return { ok: false, message: '型号仍有正式兼容声明或设备绑定，请先处理引用。' }
-    const next = cloneCompatibility(data)
-    if (!next.deviceModels?.some(model => model.id === id)) return { ok: true }
-    next.deviceModels = next.deviceModels.filter(model => model.id !== id)
-    return commitCompatibilityState(next, { ok: true })
-  }
-
   function unusedCatalogId(prefix: 'fam' | 'sku') {
     let id: string
-    do { id = uid(prefix) } while (data.families.some(item => item.id === id) || data.skus.some(item => item.id === id) || data.materialReceipts.some(item => item.skuId === id) || data.compatibilities.some(item => item.accessorySkuId === id))
+    do { id = uid(prefix) } while (data.families.some(item => item.id === id) || data.skus.some(item => item.id === id) || data.materialReceipts.some(item => item.skuId === id))
     return id
   }
 
@@ -602,17 +481,12 @@ export const useCatalogStore = defineStore('catalog', () => {
     editorGeneration.value += 1
     ensureProductListPages(next)
     Object.assign(data, next)
-    if (next.deviceModels === undefined) delete data.deviceModels
-    if (next.deviceBindings === undefined) delete data.deviceBindings
-    if (next.templateCompatibilityConfigs === undefined) delete data.templateCompatibilityConfigs
-    if (next.templateCompatibilityOrigins === undefined) delete data.templateCompatibilityOrigins
     if (next.materialRelations === undefined) delete data.materialRelations
-    if (next.materialContributions === undefined) delete data.materialContributions
   }
 
   function resetAll() {
     const next = createSeed()
-    next.rbac=cloneCompatibility(data.rbac);next.users=cloneCompatibility(data.users)
+    next.rbac=cloneRecord(data.rbac);next.users=cloneRecord(data.users)
     persistence.write(next, true)
     replaceAll(next)
     explicitlyPersisted = JSON.stringify(data)
@@ -620,7 +494,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function resetModule(name: ModuleName) {
-    const next = cloneCompatibility(data)
+    const next = cloneRecord(data)
     const fresh = createSeed()
     if (name === 'products') {
       next.families = fresh.families
@@ -657,7 +531,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function exportJson() {
-    const exported=cloneCompatibility(data)
+    const exported=cloneRecord(data)
     if(!can('product:type-bundle:read'))delete exported.benefitTypeGroups
     if(!can('product:bundle-sale:read'))delete exported.benefitSalesLists
     return JSON.stringify({ version: DATA_VERSION, data:exported }, null, 2)
@@ -674,26 +548,25 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (businessProblems.length) throwImportValidation(`节点业务配置结构校验失败：${businessProblems.join(' ')} 当前数据没有被替换。`)
     const relationProblems = materialRelationImportProblems(parsed.data)
     if (relationProblems.length) throwImportValidation(`物料关联校验失败：${relationProblems.join(' ')} 当前数据没有被替换。`)
-    const templateProblems = [...templateCompatibilityImportProblems(parsed.data), ...templateCompatibilityOriginProblems(parsed.data)]
-    if (templateProblems.length) throwImportValidation(`模板兼容导入校验失败：${templateProblems.join(' ')} 当前数据没有被替换。`)
-    const compatibilityProblems = compatibilityImportProblems(parsed.data)
-    if (compatibilityProblems.length) throwImportValidation(`适用关系导入校验失败：${compatibilityProblems.join(' ')} 当前数据没有被替换。`)
-    const prefixes:Partial<Record<keyof AppData,string>>={generalCompatibilityClaims:'product:compatibility',benefitTypeGroups:'product:type-bundle',benefitSalesLists:'product:bundle-sale',families:'product:spu',skus:'product:sku',productSpecNodes:'product:model',specCanvases:'product:model',specModelVersions:'product:model',businessDefinitions:'product:model',nodeCompatibilityRules:'product:model',materialRelations:'product:material',materialContributions:'product:material',materialReceipts:'product:material',compatibilities:'product:compatibility',deviceModels:'product:compatibility',deviceBindings:'product:compatibility',templateCompatibilityConfigs:'product:model',templateCompatibilityOrigins:'product:compatibility',categories:'product:category',params:'product:dictionary',templates:'product:model',templateParams:'product:template',mappings:'product:template',productTypes:'product:type',rules:'product:rule',brands:'product:brand',productGroups:'product:group',planningRecords:'product:planning',productPlans:'product:planning',feedbacks:'system:feedback',profile:'system:account'}
+    const prefixes:Partial<Record<keyof AppData,string>>={compatibilities:'product:compatibility',generalCompatibilityClaims:'product:compatibility',benefitTypeGroups:'product:type-bundle',benefitSalesLists:'product:bundle-sale',families:'product:spu',skus:'product:sku',productSpecNodes:'product:model',specCanvases:'product:model',specModelVersions:'product:model',businessDefinitions:'product:model',materialRelations:'product:material',materialReceipts:'product:material',categories:'product:category',params:'product:dictionary',templates:'product:model',templateParams:'product:template',mappings:'product:template',productTypes:'product:type',rules:'product:rule',brands:'product:brand',productGroups:'product:group',planningRecords:'product:planning',productPlans:'product:planning',feedbacks:'system:feedback',profile:'system:account'}
     for(const key of Object.keys(prefixes))if(key!=='profile'&&(parsed.data as any)[key]!==undefined&&!Array.isArray((parsed.data as any)[key]))throwImportValidation(`导入记录集合 ${key} 必须为数组，不能按空集合处理损坏内容。`)
     const next = normalizeStored(parsed, { persist: false })
     if (!next?.params) throwImportValidation('演示数据版本不匹配，当前数据没有被替换')
     if(next.productTypes.some(type=>!validProductTypePurpose(type.catalogRole)))throwImportValidation('产品类型业务用途无效，只接受主机／设备、配件、其他或未指定。')
+    for(const key of ['compatibilities','generalCompatibilityClaims','deviceModels','deviceBindings','templateCompatibilityConfigs','templateCompatibilityOrigins','nodeCompatibilityRules','materialContributions'] as const)if(next[key]===undefined&&data[key]!==undefined)Object.assign(next,{[key]:cloneRecord(data[key])})
+    if(data.phoneDemoCatalogVersion!==undefined)next.phoneDemoCatalogVersion=data.phoneDemoCatalogVersion
     const authChanged=JSON.stringify([next.rbac,next.users])!==JSON.stringify([data.rbac,data.users])
     if(authChanged){
       if(!can('system:role:grant')||!can('system:user:bind')||!can('system:permission:update'))throwImportPermission('导入不能修改当前操作者无权维护的授权或用户角色绑定。')
       const own=effectivePermissions(data,effectiveUserId.value)
       if(!isAdmin.value&&next.rbac!.roles.some(role=>role.superAdmin||role.permissionCodes.some(code=>!isRetiredPermission(code)&&!own.has(code))))throwImportPermission('导入不能取得超级管理员身份或超出操作者委派范围。')
     }
-    const preferences=new Set(['mode','activeRole','productListPages','productListViews','activeProductListViewId','columns','listViews','activeViewId','listQuery','productListMode'])
+    const preferences=new Set(['mode','activeRole','productListPages','productListViews','activeProductListViewId','columns','listViews','activeViewId','listQuery','productListMode','phoneDemoCatalogVersion'])
     for(const key of new Set([...Object.keys(data),...Object.keys(next)])){
       if(key==='rbac'||key==='users'||preferences.has(key)||JSON.stringify((data as any)[key])===JSON.stringify((next as any)[key]))continue
+      if(key==='benefitSalesLists'&&JSON.stringify(next.benefitSalesLists)!==JSON.stringify(data.benefitSalesLists))throwImportValidation('请通过选购页保存清单，不能通过导入改写历史记录。')
       const prefix=prefixes[key as keyof AppData]
-      if(!prefix&&['benefitPackages','benefitDeliveries','benefitFrameworks','salesOptionPlans','salesOptionBindings','salesProductRelations'].includes(key))continue
+      if(!prefix&&['compatibilities','generalCompatibilityClaims','deviceModels','deviceBindings','templateCompatibilityConfigs','templateCompatibilityOrigins','nodeCompatibilityRules','materialContributions','benefitPackages','benefitDeliveries','benefitFrameworks','salesOptionPlans','salesOptionBindings','salesProductRelations'].includes(key))continue
       if(!prefix)throwImportValidation(`导入含未登记的变更字段：${key}`)
       const old=(data as any)[key],value=(next as any)[key]
       const records=key!=='profile'
@@ -703,7 +576,7 @@ export const useCatalogStore = defineStore('catalog', () => {
         const previousRows=old||[],incomingRows=value||[]
         const byId=(item:any)=>item.id||JSON.stringify(item)
         const keys=new Set([...previousRows,...incomingRows].map(byId))
-        for(const identity of keys){const a=previousRows.find((v:any)=>byId(v)===identity),b=incomingRows.find((v:any)=>byId(v)===identity);if(JSON.stringify(a)===JSON.stringify(b))continue;if(key==='families'&&b&&!commandPermissions('saveSpu',[b],data).every(can))throwImportPermission('导入不能绕过商品编辑或发布权限。');if(key==='skus'&&a&&b&&isMaterialArchive(data,a)!==isMaterialArchive(next,b)&&(!can('product:sku:update')||!can('product:material:update')))throwImportPermission('导入不能跨越 SKU/MAT 身份权限。');const templateRow=(key==='templates'||key==='templateParams'||key==='mappings');const templateId=key==='templates'?(b||a)?.id:(b||a)?.templateId;const resource=templateRow?`product:${templateAccessResource(b?next:data,templateId||'')}`:key==='skus'&&((a||b)?.recordKind==='material'||(a||b)?.materialCode)?'product:material':prefix;const action=key==='templateParams'||key==='mappings'?'update':!a?'create':!b?'delete':'update';if(!can(`${resource}:${action}`))throwImportPermission(`导入被拒绝：没有 ${resource}:${action}，当前数据及会话未改变。`)}
+        for(const identity of keys){const a=previousRows.find((v:any)=>byId(v)===identity),b=incomingRows.find((v:any)=>byId(v)===identity);if(JSON.stringify(a)===JSON.stringify(b))continue;if(key==='benefitTypeGroups'&&b){const issue=groupTypesProblem(next,b.categoryId,b.productTypeIds);if(issue)throwImportValidation(issue)}if(key==='families'&&b&&!commandPermissions('saveSpu',[b],data).every(can))throwImportPermission('导入不能绕过商品编辑或发布权限。');if(key==='skus'&&a&&b&&isMaterialArchive(data,a)!==isMaterialArchive(next,b)&&(!can('product:sku:update')||!can('product:material:update')))throwImportPermission('导入不能跨越 SKU/MAT 身份权限。');const templateRow=(key==='templates'||key==='templateParams'||key==='mappings');const templateId=key==='templates'?(b||a)?.id:(b||a)?.templateId;const resource=templateRow?`product:${templateAccessResource(b?next:data,templateId||'')}`:key==='skus'&&((a||b)?.recordKind==='material'||(a||b)?.materialCode)?'product:material':prefix;const action=key==='templateParams'||key==='mappings'?'update':!a?'create':!b?'delete':'update';if(!can(`${resource}:${action}`))throwImportPermission(`导入被拒绝：没有 ${resource}:${action}，当前数据及会话未改变。`)}
       }else if(!can(`${prefix}:update`))throwImportPermission(`导入被拒绝：没有 ${prefix}:update。`)
     }
     for(const saved of data.benefitSalesLists||[])if(saved.status==='confirmed'&&JSON.stringify(next.benefitSalesLists?.find(s=>s.id===saved.id))!==JSON.stringify(saved))throwImportValidation('不能通过导入修改或删除已确认清单。')
@@ -737,10 +610,8 @@ export const useCatalogStore = defineStore('catalog', () => {
       const existing = trial.skus.find(item => item.id === sku.id)
       if (existing) {
         if (existing.familyId !== family.id) return { ok: false as const, message: '不能更换 SKU 所属 SPU。' }
-        const oldAttrs = JSON.stringify(existing.variantAttrs)
         const edited = editSku(trial, sku.id, sku, now)
         if (!edited.ok) return edited
-        if (oldAttrs !== JSON.stringify(sku.variantAttrs)) invalidateTemplateSpec(trial, sku.id, now)
       } else {
         const generation: SkuGeneration = { kind: 'manual', rows: [sku] }
         const preview = previewSkuAppend(trial, family.id, generation)
@@ -752,15 +623,14 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function appendSkus(familyId: string, generation: SkuGeneration, selectedKeys: string[]) {
-    const next = cloneCompatibility(data), now = new Date().toISOString()
+    const next = cloneRecord(data), now = new Date().toISOString()
     const result = appendSkuBatch(next, { familyId, generation, selectedKeys, now, nextId: () => unusedCatalogId('sku') })
     return commitCreated(next, result, result.ok ? result.ids : [], now)
   }
   function editSalesSku(id: string, draft: SkuDraft) {
-    const next = cloneCompatibility(data), before = next.skus.find(item => item.id === id), oldAttrs = before && JSON.stringify(before.variantAttrs), now = new Date().toISOString()
+    const next = cloneRecord(data), now = new Date().toISOString()
     const result = editSku(next, id, draft, now)
-    if (result.ok && oldAttrs !== JSON.stringify(draft.variantAttrs)) invalidateTemplateSpec(next, id, now)
-    return commitCandidate(next, result, ['families', 'skus', 'compatibilities', 'templateCompatibilityOrigins'])
+    return commitCandidate(next, result, ['families', 'skus'])
   }
 
   function removeFamily(id: string) {
@@ -784,8 +654,6 @@ export const useCatalogStore = defineStore('catalog', () => {
   function removeSku(id: string) {
     const relationBlock = materialRelationBlock(data, 'material', id)
     if (relationBlock) return relationBlock
-    const blocked = compatibilitySkuBlock(data, id)
-    if (blocked) return blocked
     const sku = data.skus.find((item) => item.id === id)
     if (!sku) return ''
     data.skus = data.skus.filter((item) => item.id !== id)
@@ -817,7 +685,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     const cleaned = [...new Set(values.map(value => value.trim()).filter(Boolean))]
     const addedValues = cleaned.filter(value => !owner.values.includes(value)), existingValues = cleaned.filter(value => owner.values.includes(value))
     if (!cleaned.length) return fail('请至少输入一行有效属性值。')
-    const next = cloneCompatibility(data)
+    const next = cloneRecord(data)
     next.params.find(param => param.id === attributeId)!.values.push(...addedValues)
     return commitCandidate(next, { ok: true, message: addedValues.length ? `已保存 ${addedValues.length} 个新取值${existingValues.length ? `，跳过 ${existingValues.length} 个已有取值` : ''}。` : '所选取值均已存在，没有重复写入。', addedValues, existingValues }, ['params'])
   }
@@ -826,8 +694,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     const canvas = next.specCanvases.find(item => item.templateId === modelId)
     if (!canvas || canvas.status === 'offline') return
     const latest = next.specModelVersions.filter(item => item.templateId === modelId && item.status === 'published').sort((a, b) => a.version - b.version).at(-1)
-    const sameCompatibility = templateCompatibilityContentSignature(next.templateCompatibilityConfigs?.find(item => item.modelId === modelId)) === templateCompatibilityContentSignature(latest?.templateCompatibilitySnapshot)
-    if (latest && sameSpecSnapshot(latest.nodesSnapshot, next.productSpecNodes.filter(item => item.templateId === modelId)) && sameCompatibility) {
+    if (latest && sameSpecSnapshot(latest.nodesSnapshot, next.productSpecNodes.filter(item => item.templateId === modelId))) {
       canvas.status = 'published'; canvas.version = latest.version; canvas.versionName = latest.versionName
     } else {
       canvas.status = 'draft'; canvas.version = (latest?.version || 0) + 1; canvas.versionName = `V${canvas.version}`
@@ -840,14 +707,14 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (typeof isCurrent !== 'function' || !isCurrent()) return { ok: false, message: '模型编辑上下文已变化，本次没有保存；原输入保留。' }
     const codes = commandPermissions('commitModelDictionaryBatch', [input], data)
     if (!codes.every(can)) return { ok: false, message: `当前授权不足：${codes.filter(code => !can(code)).join('、')}。原输入保留。` }
-    const before = captureEditor(data, input.modelId), next = cloneCompatibility(data)
+    const before = captureEditor(data, input.modelId), next = cloneRecord(data)
     const planned = { ...applyModelDictionaryBatch(next, input, uid), requiredPermissions: codes }
     if (!planned.ok) return planned
     const historyEntry = editorEntry(input.modelId, input.session, before, captureEditor(next, input.modelId))
     if (historyEntry) { historyEntry.commandId = uid('editor-command'); markDictionaryDraft(next, input.modelId) }
     if (!isCurrent()) return { ok: false, message: '模型编辑上下文已变化，本次没有保存；原输入保留。' }
     const committed = commitCandidate(next, { ...planned, historyEntry }, ['params', 'templates', 'templateParams', 'productSpecNodes', 'specCanvases'])
-    if (committed.ok && historyEntry?.commandId) dictionaryCommandReceipts.set(historyEntry.commandId, { actor: effectiveUserId.value, generation: editorGeneration.value, entry: cloneCompatibility(historyEntry), codes })
+    if (committed.ok && historyEntry?.commandId) dictionaryCommandReceipts.set(historyEntry.commandId, { actor: effectiveUserId.value, generation: editorGeneration.value, entry: cloneRecord(historyEntry), codes })
     return committed
   }
   function undoModelDictionaryBatch(entry: EditorHistoryEntry, modelId: string, session: number, isCurrent: () => boolean) {
@@ -856,11 +723,11 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (![...receipt.codes, ...commandPermissions('undoModelDictionaryBatch', [receipt.entry], data)].every(can)) return { ok: false, message: '当前授权已变化，不能撤销这次词典和模型操作。' }
     const prepared = prepareEditorUndo(data, receipt.entry, modelId, session)
     if (!prepared.ok) return prepared
-    const next = cloneCompatibility(data)
-    next.params = prepared.params; next.productSpecNodes = prepared.nodes; next.templateParams = prepared.bindings; next.nodeCompatibilityRules = prepared.nodeRules
+    const next = cloneRecord(data)
+    next.params = prepared.params; next.productSpecNodes = prepared.nodes; next.templateParams = prepared.bindings
     next.templates.find(item => item.id === modelId)!.structureOrder = prepared.order
     markDictionaryDraft(next, modelId)
-    const committed = commitCandidate(next, { ok: true, message: '已撤销这一次批量操作，其他模型和历史版本保持。' }, ['params', 'templates', 'templateParams', 'productSpecNodes', 'nodeCompatibilityRules', 'specCanvases'])
+    const committed = commitCandidate(next, { ok: true, message: '已撤销这一次批量操作，其他模型和历史版本保持。' }, ['params', 'templates', 'templateParams', 'productSpecNodes', 'specCanvases'])
     if (committed.ok) dictionaryCommandReceipts.delete(entry.commandId!)
     return committed
   }
@@ -909,7 +776,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function saveProductType(input: { id: string; name: string; categoryId: string; description: string; sort: number; status: ProductType['status']; catalogRole?: ProductType['catalogRole'] }) {
-    const next=cloneCompatibility(data),message=saveProductTypeInto(next,input)
+    const next=cloneRecord(data),message=saveProductTypeInto(next,input)
     if(message)return message
     const result=commitCandidate(next,{ok:true},['productTypes'])
     return result.ok?'':result.message||'保存失败，原产品类型未改变。'
@@ -932,8 +799,6 @@ export const useCatalogStore = defineStore('catalog', () => {
       if (!row) return '产品类型不存在。'
       // Older callers omit the field; only an explicitly supplied undefined clears it.
       const catalogRole = Object.hasOwn(input, 'catalogRole') ? input.catalogRole : row.catalogRole
-      const purposeBlock = productTypePurposeChangeMessage(target, row.id, catalogRole)
-      if (purposeBlock) return purposeBlock
       const blocked = productTypeCategoryMoveMessage(target, input.id, input.categoryId, categoryPath(target, input.categoryId))
       if (blocked) return blocked
       Object.assign(row, { name, categoryId: input.categoryId, description, sort, status: input.status, catalogRole })
@@ -947,7 +812,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (!isCurrent()) return { ok:false, message:'产品类型编辑上下文已变化，本次修改未保存。', id:'' }
     const current=data.productTypes.find(item=>item.id===input.id)
     if (input.id && (!current || JSON.stringify(current)!==expectedRecord)) return {ok:false,message:'产品类型已变化或被删除，请重新核对；当前输入已保留。',id:''}
-    const next=cloneCompatibility(data),before=new Set(next.productTypes.map(item=>item.id)),message=saveProductTypeInto(next,input)
+    const next=cloneRecord(data),before=new Set(next.productTypes.map(item=>item.id)),message=saveProductTypeInto(next,input)
     if(message)return {ok:false,message,id:''}
     const id=input.id||next.productTypes.find(item=>!before.has(item.id))!.id
     return commitCandidate(next,{ok:true,message:'产品类型已保存',id},['productTypes'])
@@ -959,7 +824,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     if(!current||JSON.stringify(current)!==expectedRecord)return {ok:false,message:'产品类型已变化或被删除，请重新核对后操作。'}
     if(action==='delete'){const message=productTypeRemovalBlock(id);if(message)return {ok:false,message}}
     else if(action!=='enabled'&&action!=='disabled')return {ok:false,message:'不支持的产品类型操作。'}
-    const next=cloneCompatibility(data)
+    const next=cloneRecord(data)
     if(action==='delete')next.productTypes=next.productTypes.filter(item=>item.id!==id)
     else next.productTypes.find(item=>item.id===id)!.status=action
     return commitCandidate(next,{ok:true,message:action==='delete'?'产品类型已删除':'产品类型状态已保存'},['productTypes'])
@@ -979,9 +844,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     const usedByVersion = data.specModelVersions.some((item) => item.status === 'published' && modelIds.has(item.templateId))
     const usedByPlanning = (data.planningRecords || []).some((item) => modelIds.has(item.productModelId)) || (data.productPlans || []).some((item) => item.productTypeId === id)
     const usedByMaterial = data.families.some((item) => item.productTypeId === id) || data.skus.some((sku) => data.families.some((item) => item.id === sku.familyId && item.productTypeId === id))
-    const usedByLink = (data.compatibilities || []).some((item) => item.host.productTypeId === id)
-    const usedByDevice = data.deviceModels?.some(model => model.productTypeId === id) || data.deviceBindings?.some(binding => binding.host.productTypeId === id)
-    if (usedByModel || usedByVersion || usedByPlanning || usedByMaterial || usedByLink || usedByDevice) return '该产品类型已被商品模型 / 已发布数据引用，不能删除。'
+    if (usedByModel || usedByVersion || usedByPlanning || usedByMaterial) return '该产品类型已被商品模型 / 已发布数据引用，不能删除。'
     return ''
   }
 
@@ -997,7 +860,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     if ((current.updatedAt || '') !== expectedUpdatedAt) return { ok: false, message: '模型已被其他操作更新，请重新核对后再下线。' }
     if (status !== 'offline') return { ok: false, message: '不支持的模型状态操作。' }
     if (current.status === status) return { ok: true, message: '模型已经下线。' }
-    const next = cloneCompatibility(data), canvas = next.specCanvases.find(item => item.templateId === id)!
+    const next = cloneRecord(data), canvas = next.specCanvases.find(item => item.templateId === id)!
     canvas.status = status
     canvas.updatedAt = new Date().toISOString()
     return commitCandidate(next, { ok: true, message: '模型已下线，历史商品及发布快照保持原样。' }, ['specCanvases'])
@@ -1008,7 +871,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     const name = input.name.trim()
     if (!productType) return { ok: false, message: '请选择产品类型。', templateId: '' }
     if (!name) return { ok: false, message: '请填写模型名称。', templateId: '' }
-    const next = cloneCompatibility(data)
+    const next = cloneRecord(data)
     const templateId = uid('tpl')
     next.templates.push({ id: templateId, name, parentId: null, enabled: true, structureOrder: [] })
     next.specCanvases.push({
@@ -1028,7 +891,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function copyProductModel(id: string, options: { name?: string; productTypeId?: string; direction?: 'ltr' | 'logic' } = {}) {
-    const next = cloneCompatibility(data), source = next.templates.find(item => item.id === id), canvas = next.specCanvases.find(item => item.templateId === id)
+    const next = cloneRecord(data), source = next.templates.find(item => item.id === id), canvas = next.specCanvases.find(item => item.templateId === id)
     if (!source || !canvas?.productTypeId) return { ok: false, message: '模型或产品类型已不存在。' }
     const businessProblem = businessIssues(next, next.productSpecNodes.filter(n => n.templateId === id))[0]
     if (businessProblem) return { ok: false, message: `请先修正源模型业务配置：${businessProblem.message}` }
@@ -1039,33 +902,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     const nodeMap = new Map(next.productSpecNodes.filter(item => item.templateId === id).map(item => [item.id, uid('sn')]))
     next.templates.push({ ...source, id: templateId, name, parentId: null, structureOrder: [...source.structureOrder] })
     next.templateParams.push(...next.templateParams.filter(item => item.templateId === id).map(item => ({ ...item, templateId })))
-    next.productSpecNodes.push(...next.productSpecNodes.filter(item => item.templateId === id).map(item => ({ ...cloneCompatibility(item), id: nodeMap.get(item.id)!, templateId, parentId: item.parentId ? nodeMap.get(item.parentId) || null : null, ...(item.businessConfigs ? { businessConfigs: copyBusinessConfigs(item, templateId, nodeMap.get(item.id)!, uid) } : {}) })))
+    next.productSpecNodes.push(...next.productSpecNodes.filter(item => item.templateId === id).map(item => ({ ...cloneRecord(item), id: nodeMap.get(item.id)!, templateId, parentId: item.parentId ? nodeMap.get(item.parentId) || null : null, ...(item.businessConfigs ? { businessConfigs: copyBusinessConfigs(item, templateId, nodeMap.get(item.id)!, uid) } : {}) })))
     next.specCanvases.push({ templateId, productTypeId, name, zoom: 1, panX: 0, panY: 0, status: 'draft', version: 1, versionName: 'V1', direction: options.direction || 'ltr', updatedAt: now })
-    const legacyIds = new Map<string, string>()
-    next.nodeCompatibilityRules.push(...next.nodeCompatibilityRules.filter(item => item.templateId === id && !item.modelVersionId).map(item => {
-      const legacyId = uid('ncompat'); legacyIds.set(item.id, legacyId)
-      return { ...cloneCompatibility(item), id: legacyId, templateId, nodeId: nodeMap.get(item.nodeId) || item.nodeId, updatedAt: now }
-    }))
-    const config = next.templateCompatibilityConfigs?.find(item => item.modelId === id)
-    if (config) {
-      const copied = cloneCompatibility(config), rules = new Map<string, string>()
-      copied.modelId = templateId; copied.revision = 1; copied.updatedAt = now
-      rules.set(copied.defaultRule.id, uid('tcompat-rule')); copied.defaultRule.id = rules.get(copied.defaultRule.id)!
-      copied.defaultRule.claims.forEach(claim => { claim.id = uid('tcompat-claim') })
-      copied.exceptions.forEach(rule => {
-        const previousId = rule.id; rule.id = uid('tcompat-rule'); rules.set(previousId, rule.id)
-        rule.claims.forEach(claim => { claim.id = uid('tcompat-claim') })
-        rule.selector.anyOf.forEach(group => group.forEach(term => { term.attributeNodeId = nodeMap.get(term.attributeNodeId) || term.attributeNodeId; term.valueNodeId = nodeMap.get(term.valueNodeId) || term.valueNodeId; if (term.parentValueNodeId) term.parentValueNodeId = nodeMap.get(term.parentValueNodeId) || term.parentValueNodeId }))
-      })
-      // Rebase conversion receipts together with the copied nodes/rules so opening
-      // the conversion tab cannot import an already converted rule a second time.
-      copied.conversions = copied.conversions.flatMap(receipt => {
-        const legacyRuleId = legacyIds.get(receipt.legacyRuleId)
-        return legacyRuleId ? [{ ...receipt, legacyRuleId, nodeId: nodeMap.get(receipt.nodeId) || receipt.nodeId, exceptionId: rules.get(receipt.exceptionId) || receipt.exceptionId }] : []
-      })
-      ;(next.templateCompatibilityConfigs ||= []).push(copied)
-    }
-    return commitCandidate(next, { ok: true, templateId }, ['templates', 'templateParams', 'productSpecNodes', 'specCanvases', 'nodeCompatibilityRules', 'templateCompatibilityConfigs'])
+    return commitCandidate(next, { ok: true, templateId }, ['templates', 'templateParams', 'productSpecNodes', 'specCanvases'])
   }
 
   function typedCategoryIds() {
@@ -1139,7 +978,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     })
     if (used) return '这个节点或下级取值已经被商品使用，不能删除。'
     data.productSpecNodes = data.productSpecNodes.filter((item) => !ids.includes(item.id))
-    forgetDraftNodeRules(data, ids)
     return ''
   }
 
@@ -1181,8 +1019,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     const planIds = new Set(plans.map((item) => item.planningId))
     const materials = data.skus.filter((item) => (item.modelVersionId && versionIds.has(item.modelVersionId)) || (item.planningId && planIds.has(item.planningId)))
     const families = data.families.filter((item) => ids.includes(item.templateId) || ids.includes(item.productModelId || '') || Boolean(item.modelVersionId && versionIds.has(item.modelVersionId)))
-    const linked = compatibilityModelBlock(data, ids)
-    if (linked) return linked
     if (families.length || materials.length) return `不能删除。已有 ${families.length} 款商品、${materials.length} 条物料还指向这个模型，删掉后就打不开当时的规格。`
     if (plans.length) return `不能删除。还有 ${plans.length} 条规格编号需要这些发布版本才能查看。`
     if (versions.length) return `不能删除。这个模型已有 ${versions.length} 个发布版本，直接删除会丢掉历史快照。`
@@ -1232,20 +1068,12 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function publishSpecModel(templateId: string): { ok: boolean; message: string } {
-    const next = cloneCompatibility(data)
+    const next = cloneRecord(data)
     const nodes = next.productSpecNodes.filter((item) => item.templateId === templateId)
     let first: {branch:string;nodeId?:string;nodePath?:string;attributeId?:string}|undefined
     const problems = specPublishProblems(next, nodes, issue=>{if(issue.index===0)first=issue})
     if (problems.length) return first ? rejectGuide(`model.publish.${first.branch}`,problems[0]!,{savedState:'unchanged',context:{modelId:templateId,nodeId:first.nodeId||'',nodePath:first.nodePath||'',attributeId:first.attributeId||''},recovery:['edit-input','view-related']}) : withFailure({ok:false,message:problems[0]!},unknownFailure(problems[0]!,'action-model-publish','unchanged'))
-    const config = next.templateCompatibilityConfigs?.find(item => item.modelId === templateId)
-    const context = createTemplateCompatibilityContext(next, { modelId: templateId })
-    const configProblems = config ? validateTemplateCompatibilityConfig(next, config, context) : []
-    if (configProblems.length) return { ok: false, message: configProblems[0]!.message }
-    for (const combination of context.combinations) {
-      const effective = resolveTemplateCompatibility(context, combination)
-      if (effective.state === 'conflict' || effective.state === 'invalid') return { ok: false, message: effective.message }
-    }
-    const snapshot = freezeTemplateCompatibility(next, templateId)
+    const context = modelSpecificationContext(next,templateId)
     const versions = next.specModelVersions.filter((item) => item.templateId === templateId).slice().sort((a, b) => a.version - b.version)
     const latest = versions[versions.length - 1]
     const now = new Date().toISOString()
@@ -1254,8 +1082,8 @@ export const useCatalogStore = defineStore('catalog', () => {
       canvas = { templateId, zoom: 1, panX: 0, panY: 0, status: 'draft', version: 1, versionName: 'V1', direction: 'ltr', updatedAt: now }
       next.specCanvases.push(canvas)
     }
-    const publishKeys: (keyof AppData)[] = ['specModelVersions', 'specCanvases', 'planningRecords', 'nodeCompatibilityRules']
-    if (latest && latest.status === 'published' && sameSpecSnapshot(latest.nodesSnapshot, nodes) && !draftHostRulesDiffer(next, templateId, latest.id) && templateCompatibilityContentSignature(latest.templateCompatibilitySnapshot) === templateCompatibilityContentSignature(snapshot)) {
+    const publishKeys: (keyof AppData)[] = ['specModelVersions', 'specCanvases', 'planningRecords']
+    if (latest && latest.status === 'published' && sameSpecSnapshot(latest.nodesSnapshot, nodes)) {
       canvas.status = 'published'
       canvas.version = latest.version
       canvas.versionName = latest.versionName
@@ -1276,9 +1104,9 @@ export const useCatalogStore = defineStore('catalog', () => {
       nodesSnapshot: freezeBusinessNodes(next, nodes),
       createdTime: now,
       publishTime: now,
-      templateCompatibilitySnapshot: snapshot,
+      attributeRoles: nodes.filter(n=>n.nodeType==='ATTRIBUTE').map(n=>({attributeNodeId:n.id,roleSource:n.role?'node':'scheme',role:n.role|| (next.templateParams.find(p=>p.templateId===templateId&&p.paramId===n.attributeId)?.role==='common'?'COMMON':'VARIANT')})),
+      attributeNames: next.params.map(p=>({attributeId:p.id,name:p.name})),
     })
-    freezeDraftNodeHosts(next, templateId, versionId, now, uid)
     canvas.status = 'published'
     canvas.version = version
     canvas.versionName = versionName
@@ -1288,7 +1116,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     return commitCandidate(next, { ok: true, message: `已发布 ${versionName}。合法组合 ${outcome.created + outcome.reused} 条，新增编号 ${outcome.created} 个，沿用 ${outcome.reused} 个${retired}。已有版本不会被覆盖。` }, publishKeys)
   }
 
-  function alignPlanning(target: AppData, templateId: string, versionId: string, now: string, combinations: ReturnType<typeof createTemplateCompatibilityContext>['combinations']) {
+  function alignPlanning(target: AppData, templateId: string, versionId: string, now: string, combinations: ReturnType<typeof modelSpecificationContext>['combinations']) {
     if (!Array.isArray(target.planningRecords)) target.planningRecords = []
     const version = target.specModelVersions.find((item) => item.id === versionId)
     if (!version) return { created: 0, reused: 0, retired: 0 }
@@ -1306,13 +1134,13 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   function createMaterial(input: { productModelId: string; modelVersionId: string; planningId: string; requestId: string; categoryId: string; productTypeId: string; familyId?: string; skuName?: string; supplierCode?: string; guanjiapoCode?: string; oaSkuId?: string; materialDescription?: string }) {
-    const next = cloneCompatibility(data), now = new Date().toISOString()
+    const next = cloneRecord(data), now = new Date().toISOString()
     const result = createV3Material(next, { ...input, nextId: uid })
     return commitCreated(next, result, result.ok && result.created ? [result.skuId] : [], now)
   }
 
   function createTemporary(input: { requestId: string; categoryId: string; productTypeId: string; productModelId?: string; modelVersionId?: string; attrs: { attributeId: string; value: string; source: 'dictionary' | 'manual' }[]; materialCode: string; skuName?: string; supplierCode?: string; guanjiapoCode?: string; oaSkuId?: string; materialDescription?: string }) {
-    const next = cloneCompatibility(data), now = new Date().toISOString()
+    const next = cloneRecord(data), now = new Date().toISOString()
     const result = createTemporaryMaterial(next, { ...input, nextId: uid })
     return commitCreated(next, result, result.ok && result.created ? [result.skuId] : [], now)
   }
@@ -1358,13 +1186,13 @@ export const useCatalogStore = defineStore('catalog', () => {
     try{saveMenu(nodes);return {ok:true,message:'菜单结构已保存，角色授权保持。'}}catch(error){return {ok:false,message:String(error)}}
   }
   function resetMenuStructure(){return saveMenuStructure(defaultMenuNodes())}
-  function importFeedbackPack(incoming:FeedbackItem[]){const next=cloneCompatibility(data);if(!Array.isArray(incoming)||incoming.some(item=>!item||typeof item.id!=='string'||typeof item.title!=='string'||typeof item.content!=='string'))return {ok:false,message:'反馈包记录结构不合法。'};const known=new Set(next.feedbacks.map(item=>item.id));next.feedbacks.unshift(...cloneCompatibility(incoming.filter(item=>!known.has(item.id))));return commitCandidate(next,{ok:true},['feedbacks'])}
-  function markFeedbacksExported(ids:string[]){const next=cloneCompatibility(data),now=new Date().toISOString();next.feedbacks.forEach(item=>{if(ids.includes(item.id))item.exportedAt=now});return commitCandidate(next,{ok:true},['feedbacks'])}
+  function importFeedbackPack(incoming:FeedbackItem[]){const next=cloneRecord(data);if(!Array.isArray(incoming)||incoming.some(item=>!item||typeof item.id!=='string'||typeof item.title!=='string'||typeof item.content!=='string'))return {ok:false,message:'反馈包记录结构不合法。'};const known=new Set(next.feedbacks.map(item=>item.id));next.feedbacks.unshift(...cloneRecord(incoming.filter(item=>!known.has(item.id))));return commitCandidate(next,{ok:true},['feedbacks'])}
+  function markFeedbacksExported(ids:string[]){const next=cloneRecord(data),now=new Date().toISOString();next.feedbacks.forEach(item=>{if(ids.includes(item.id))item.exportedAt=now});return commitCandidate(next,{ok:true},['feedbacks'])}
   function saveBrand(input:Brand){
-    const next=cloneCompatibility(data),old=next.brands.find(b=>b.id===input.id),name=input.name?.trim()
+    const next=cloneRecord(data),old=next.brands.find(b=>b.id===input.id),name=input.name?.trim()
     if(!name||!['enabled','disabled'].includes(input.status))return {ok:false,message:'请填写品牌名称和有效状态。'}
     if(input.id&&!old)return {ok:false,message:'品牌已不存在，请重新打开；当前草稿保留。'}
-    const record:Brand={...cloneCompatibility(input),id:old?.id||uid('brand'),name}
+    const record:Brand={...cloneRecord(input),id:old?.id||uid('brand'),name}
     if(old)Object.assign(old,record);else next.brands.push(record)
     const dictionary=next.params.find(p=>p.name==='品牌')
     if(dictionary&&!dictionary.values.includes(name)){
@@ -1374,10 +1202,10 @@ export const useCatalogStore = defineStore('catalog', () => {
     return commitCandidate(next,{ok:true,id:record.id,message:'品牌及关联词典已保存。'},['brands','params'])
   }
   function saveRule(input:SpecRule){
-    const next=cloneCompatibility(data),old=next.rules.find(r=>r.id===input.id)
+    const next=cloneRecord(data),old=next.rules.find(r=>r.id===input.id)
     if(typeof input.templateId!=='string'||typeof input.targetParamId!=='string'||!Array.isArray(input.sourceParamIds)||!input.sourceParamIds.every(id=>typeof id==='string')||!Array.isArray(input.options)||!input.options.every(value=>typeof value==='string')||!input.conditions||typeof input.conditions!=='object'||Array.isArray(input.conditions)||Object.values(input.conditions).some(value=>typeof value!=='string')||typeof input.enabled!=='boolean')return {ok:false,message:'规则结构无效，当前草稿保留。'}
     if(input.id&&!old)return {ok:false,message:'规则已不存在，当前草稿保留。'}
-    const record={...cloneCompatibility(input),id:old?.id||uid('rule')}
+    const record={...cloneRecord(input),id:old?.id||uid('rule')}
     if(old)Object.assign(old,record);else next.rules.push(record)
     return commitCandidate(next,{ok:true,id:record.id,message:'规则已保存。'},['rules'])
   }
@@ -1393,7 +1221,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     const paramIds=new Set(data.params.map(item=>item.id))
     if(input.binds.some(bind=>!paramIds.has(bind.paramId))||input.structureOrder.some(id=>!paramIds.has(id)))return {ok:false,message:'方案使用的属性已不存在，请检查参数绑定；当前草稿保留。'}
     if(new Set(input.binds.map(bind=>bind.paramId)).size!==input.binds.length||new Set(input.structureOrder).size!==input.structureOrder.length)return {ok:false,message:'方案不能重复绑定同一属性，当前草稿保留。'}
-    const next=cloneCompatibility(data),templateId=old?.id||uid('tpl')
+    const next=cloneRecord(data),templateId=old?.id||uid('tpl')
     const record={...(old||source||{parentId:null,enabled:true}),id:templateId,name:input.name.trim(),structureOrder:[...input.structureOrder],enabled:input.enabled??old?.enabled??source?.enabled??true}
     if(old)Object.assign(next.templates.find(item=>item.id===templateId)!,record)
     else next.templates.push(record)
@@ -1402,7 +1230,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     return commitCandidate(next,{ok:true,templateId,message:'方案及全部参数绑定已保存。'},['templates','templateParams'])
   }
   function commitCategoryMove(sourceId:string,parentId:string|null){
-    const next=cloneCompatibility(data)
+    const next=cloneRecord(data)
     let branch:string|undefined
     const problem=moveCategoryNode(next.categories,sourceId,parentId,new Set(next.productTypes.map(t=>t.categoryId)), value=>{branch=value})
     if(problem)return rejectGuide(`category.move.${branch}`,problem,{savedState:'unchanged',context:{categoryId:sourceId,categoryName:data.categories.find(c=>c.id===sourceId)?.name||'',targetId:parentId||'',targetName:data.categories.find(c=>c.id===parentId)?.name||''},recovery:['choose-target']})
@@ -1411,7 +1239,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   function commitCategoryMoves(sourceIds: readonly string[], targetId: string | null) {
     const planned = categoryMovesCandidate(data.categories, { sourceIds, targetId }, typedCategoryIds())
     if (!planned.preview.ok || !planned.preview.changed) return planned.preview
-    const next = cloneCompatibility(data)
+    const next = cloneRecord(data)
     next.categories = planned.categories
     return commitCandidate(next, planned.preview, ['categories'])
   }
@@ -1424,22 +1252,38 @@ export const useCatalogStore = defineStore('catalog', () => {
       return withFailure({ ok: false, message }, createFailure({ kind: 'input', actionId: 'action-category-rename', ruleId: 'rule-category-input', message, savedState: 'unchanged', context: { categoryId: id, categoryName: current.name }, fields: ['name'], recovery: ['edit-input'] }))
     }
     if (current.name === name) return { ok: true, id, name, changed: false, message: '名称没有变化，未写入数据。' }
-    const next = cloneCompatibility(data), index = next.categories.findIndex(item => item.id === id)
+    const next = cloneRecord(data), index = next.categories.findIndex(item => item.id === id)
     next.categories[index] = { ...next.categories[index]!, name }
     return commitCandidate(next, { ok: true, id, name, changed: true, message: '分类名称已保存。' }, ['categories'])
   }
   function restoreSuperAdminAccess(){
     if(!isSuperAdmin(data,effectiveUserId.value))return {ok:false,message:'只有有效的内置超级管理员可恢复其权限。'}
-    const next=cloneCompatibility(data),role=next.rbac?.roles.find(r=>r.id==='role:super-admin'&&r.superAdmin&&r.builtIn)
+    const next=cloneRecord(data),role=next.rbac?.roles.find(r=>r.id==='role:super-admin'&&r.superAdmin&&r.builtIn)
     if(!role)return {ok:false,message:'内置超级管理员配置已损坏，不能伪造替换。'}
     role.permissionCodes=[...new Set([...role.permissionCodes,...permissionRegistry().map(p=>p.code)])]
     const issues=rbacProblems(next);if(issues.length)return {ok:false,message:issues.join(' ')}
     return commitCandidate(next,{ok:true,message:'已恢复内置超级管理员的登记权限；其他角色及业务保持。'},['rbac'])
   }
   const api = {
-    commitGeneralCompatibility:(changes:GeneralChange[],basis:string,isCurrent:()=>boolean=()=>true)=>{const values=cloneCompatibility(changes);return command(()=>{if(!isCurrent()||basis!==JSON.stringify(data.generalCompatibilityClaims||[]))return {ok:false,message:'通用适用资料或编辑上下文已变化，请重新预览；输入保留'};const next=cloneCompatibility(data);return commitCandidate(next,applyGeneralChanges(next,values,()=>uid('general-compatibility'),new Date().toISOString()),['generalCompatibilityClaims'])})},
-    saveTypeBundle:(input:GroupInput,revision:number,isCurrent:()=>boolean=()=>true)=>{const value=cloneCompatibility(input);return command(()=>{if(!isCurrent())return {ok:false,message:'编辑上下文已改变，输入保留'};const next=cloneCompatibility(data);return commitCandidate(next,writeGroup(next,value,revision,()=>uid('bundle'),new Date().toISOString()),['benefitTypeGroups'])})},
-    saveBundleSale:(input:SaleInput,revision:number,isCurrent:()=>boolean=()=>true)=>{const value=cloneCompatibility(input);return command(()=>{if(!isCurrent())return {ok:false,message:'选购上下文已改变，输入保留'};const next=cloneCompatibility(data);return commitCandidate(next,writeSale(next,value,revision,()=>uid('sale'),new Date().toISOString()),['benefitSalesLists'])})},
+    saveCompatibilityWorkspace:(changes:CompatibilityChange[],general:GeneralChange[],basis:string,isCurrent:()=>boolean=()=>true)=>{
+      const commands=cloneRecord(changes),conditions=cloneRecord(general),owner=effectiveUserId.value,preview=previewUserId.value
+      return command(()=>{
+        if(!isCurrent()||owner!==effectiveUserId.value||preview!==previewUserId.value||basis!==compatibilityWorkspaceBasis(data))return {ok:false,message:'商品、设备或适用资料已变化，请重新打开核对；输入保留。'}
+        if(!commands.length&&!conditions.length)return {ok:false,message:'没有需要保存的适用资料变更。'}
+        const next=cloneRecord(data);next.compatibilities ||= []
+        const explicit=applyCompatibilityChanges(next,commands,()=>uid('compat'),new Date().toISOString());if(!explicit.ok)return {ok:false,message:explicit.message||'明确型号资料无效，未保存'}
+        if(conditions.length){const result=applyGeneralChanges(next,conditions,()=>uid('general'),new Date().toISOString());if(!result.ok)return {ok:false,message:result.message||'通用条件无效，未保存'}}
+        return commitCandidate(next,{ok:true,message:'适用资料已保存'},['compatibilities','generalCompatibilityClaims'])
+      })
+    },
+    saveBundleSale:(input:SaleInput,revision:number,isCurrent:()=>boolean=()=>true)=>{const value=cloneRecord(input);return command(()=>{if(!isCurrent())return {ok:false,message:'选购身份或上下文已变化，输入保留'};const next=cloneRecord(data);return commitCandidate(next,writeSale(next,value,revision,()=>uid('sale'),new Date().toISOString()),['benefitSalesLists'])})},
+
+    saveTypeBundle:(input:GroupInput,revision:number,isCurrent:()=>boolean=()=>true)=>{const value=cloneRecord(input);return command(()=>{if(!isCurrent())return {ok:false,message:'编辑上下文已改变，输入保留'};const next=cloneRecord(data);return commitCandidate(next,writeGroup(next,value,revision,()=>uid('bundle'),new Date().toISOString()),['benefitTypeGroups'])})},
+    removeTypeBundle:(id:string,revision:number,isCurrent:()=>boolean=()=>true)=>command(()=>{
+      if(!isCurrent())return {ok:false,message:'操作身份或页面已变化，本次未删除。'}
+      const next=cloneRecord(data)
+      return commitCandidate(next,deleteGroup(next,id,revision),['benefitTypeGroups'])
+    }),
     data:publicData,
     can,canRoute,currentUser,activeUserId:computed(()=>activeUserId.value),previewUserId:computed(()=>previewUserId.value),simulationReturnId,authorizationReady:computed(()=>authorizationReady.value),
     rbacEnforced: RBAC_ENFORCEMENT_ENABLED,
@@ -1464,9 +1308,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     editorGeneration,
     waitForPersistence: persistence.idle,
     flushPersistence: persistLive,
-    saveTemplateCompatibility: (...args: Parameters<typeof saveTemplateCompatibility>) => command(() => saveTemplateCompatibility(...args)),
-    previewTemplateCompatibilitySync: (input: { modelId: string; targetVersionId: string; targetIds?: string[] }) => previewTemplateCompatibilitySync(data, input),
-    applyTemplateCompatibilitySync: (...args: Parameters<typeof applyTemplateSync>) => command(() => applyTemplateSync(...args)),
     saveModelDraft: (...args: Parameters<typeof saveModelDraft>) => command(() => saveModelDraft(...args)),
     saveNodeBusiness: (...args: Parameters<typeof saveNodeBusiness>) => command(() => saveNodeBusiness(...args)),
     saveBusinessDefinition: (...args: Parameters<typeof saveBusinessDefinition>) => command(() => saveBusinessDefinition(...args)),
@@ -1474,23 +1315,20 @@ export const useCatalogStore = defineStore('catalog', () => {
     commitMaterialImport: (...args: Parameters<typeof commitMaterialImport>) => command(() => commitMaterialImport(...args)),
     copyProductModel: (...args: Parameters<typeof copyProductModel>) => command(() => copyProductModel(...args)),
     commitSpuPage: (next: ProductListPageState, expectedPage = JSON.stringify(data.productListPages?.spu), isCurrent: () => boolean = () => true, manualGuard?: ListManualGuard) => {
-      const copied = cloneCompatibility(next), copiedGuard = manualGuard && cloneCompatibility(manualGuard)
+      const copied = cloneRecord(next), copiedGuard = manualGuard && cloneRecord(manualGuard)
       return command(() => commitListPage('spu', copied, expectedPage, isCurrent, copiedGuard))
     },
     commitSkuPage: (next: ProductListPageState, isCurrent: () => boolean = () => true, manualGuard?: ListManualGuard) => {
       const expectedPage = JSON.stringify(data.productListPages?.sku)
-      const copied = cloneCompatibility(next), copiedGuard = manualGuard && cloneCompatibility(manualGuard)
+      const copied = cloneRecord(next), copiedGuard = manualGuard && cloneRecord(manualGuard)
       return command(() => commitListPage('sku', copied, expectedPage, isCurrent, copiedGuard))
     },
-    commitCompatibilityChanges: (...args: Parameters<typeof commitCompatibilityChanges>) => {
-      const owner=activeUserId.value,preview=previewUserId.value,changes=cloneCompatibility(args[0]),options=args[1]
-      return command<CompatibilityCommandResult>(() => commitCompatibilityChanges(changes,{...options,isCurrent:()=>owner===activeUserId.value&&preview===previewUserId.value&&(!options?.isCurrent||options.isCurrent())}))
-    },
-    commitDeviceBinding: (...args: Parameters<typeof commitDeviceBinding>) => command<CompatibilityCommandResult>(() => commitDeviceBinding(...args)),
-    clearDeviceBinding: (...args: Parameters<typeof clearDeviceBinding>) => command<CompatibilityCommandResult>(() => clearDeviceBinding(...args)),
-    saveDeviceModel: (...args: Parameters<typeof saveDeviceModel>) => command<CompatibilityCommandResult>(() => saveDeviceModel(...args)),
-    removeDeviceModel: (...args: Parameters<typeof removeDeviceModel>) => command<CompatibilityCommandResult>(() => removeDeviceModel(...args)),
     isAdmin,
+    rebuildPhoneCatalogDemo:()=>command(()=>{const result=replacePhoneCatalogDemo(data,defaultColumns(),emptyQuery());return result.ok?commitCandidate(result.next,{ok:true,message:result.message},[...phoneCatalogKeys]):result}),
+    supplementPhone18Demo:()=>command(()=>{
+      const result=installPhone18Demo(data)
+      return result.ok?result.added?commitCandidate(result.next,{ok:true,message:result.message},[...phone18DemoKeys]):{ok:true,message:result.message}:result
+    }),
     supplementPhoneDemo:()=>command(()=>{
       const before=normalizeStored({version:DATA_VERSION,data:createSeed(false)},{persist:false})!,after=normalizeStored({version:DATA_VERSION,data:createSeed()},{persist:false})!
       const result=supplementPhoneDemo(data,before,after)
@@ -1510,7 +1348,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     saveBundle: (...args: Parameters<typeof saveBundle>) => command(() => saveBundle(...args)),
     saveSpu: (family: ProductFamily) => command(() => {
       if (family.id && !data.families.some(item => item.id === family.id)) return { ok: false as const, message: 'SPU 已不存在，请重新打开列表；未重新创建已删除的记录。' }
-      const next = cloneCompatibility(data), result = saveSpu(next, { ...family, id: family.id || unusedCatalogId('fam') }, new Date().toISOString())
+      const next = cloneRecord(data), result = saveSpu(next, { ...family, id: family.id || unusedCatalogId('fam') }, new Date().toISOString())
       return commitCandidate(next, result, ['families'])
     }),
     appendSkus: (...args: Parameters<typeof appendSkus>) => command(() => appendSkus(...args)),
@@ -1525,11 +1363,11 @@ export const useCatalogStore = defineStore('catalog', () => {
       return command(() => appendDictionaryValues(attributeId, copied, isCurrent))
     },
     commitModelDictionaryBatch: (input: ModelDictionaryBatchInput, isCurrent: () => boolean = () => true) => {
-      const copied = input === undefined ? input : cloneCompatibility(input)
+      const copied = input === undefined ? input : cloneRecord(input)
       return command(() => commitModelDictionaryBatch(copied, isCurrent)).then((result): ModelDictionaryBatchResult => ({ changed: false, nodeIds: [], skipped: [], items: [], requiredPermissions: [], ...result }))
     },
     undoModelDictionaryBatch: (entry: EditorHistoryEntry, modelId: string, session: number, isCurrent: () => boolean = () => true) => {
-      const copied = cloneCompatibility(entry)
+      const copied = cloneRecord(entry)
       return command(() => undoModelDictionaryBatch(copied, modelId, session, isCurrent))
     },
     removeParam,
@@ -1539,7 +1377,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     productTypesOf,
     saveProductType,
     commitProductType: (input: Parameters<typeof saveProductType>[0], expectedRecord = '', isCurrent: () => boolean = () => true) => {
-      const value={...cloneCompatibility(input),...(Object.hasOwn(input,'catalogRole')?{catalogRole:input.catalogRole}:{})},owner=activeUserId.value,preview=previewUserId.value
+      const value={...cloneRecord(input),...(Object.hasOwn(input,'catalogRole')?{catalogRole:input.catalogRole}:{})},owner=activeUserId.value,preview=previewUserId.value
       return command(()=>commitProductType(value,expectedRecord,()=>owner===activeUserId.value&&preview===previewUserId.value&&isCurrent()))
     },
     commitProductTypeAction: (id: string, action: 'delete'|'enabled'|'disabled', expectedRecord: string, isCurrent: () => boolean = () => true) => {
@@ -1580,12 +1418,12 @@ export const useCatalogStore = defineStore('catalog', () => {
     defaultColumns,
     emptyQuery,
   }
-  const unguarded=new Set(['can','canRoute','waitForPersistence','flushPersistence','simulateUser','startPermissionPreview','stopPermissionPreview','setRole','categoryRemovalBlock','skusOf','productTypesOf','blankSku','defaultColumns','emptyQuery','materialImportBasis','previewTemplateCompatibilitySync'])
+  const unguarded=new Set(['can','canRoute','waitForPersistence','flushPersistence','simulateUser','startPermissionPreview','stopPermissionPreview','setRole','categoryRemovalBlock','skusOf','productTypesOf','blankSku','defaultColumns','emptyQuery','materialImportBasis'])
   for(const [name,original]of Object.entries(api))if(typeof original==='function'&&!unguarded.has(name)){
     (api as any)[name]=(...args:unknown[])=>{
       const codes=commandPermissions(name,args,data)
       if(!codes.every(can)){const message=`未授权操作：${codes.join('、')}。`;throw failureError(message,branchFailure('command.permission',message,{actionId:commandAction(name),savedState:'unchanged',context:{requiredPermissions:codes.join('、'),mode:RBAC_ENFORCEMENT_ENABLED?'enforced':'unrestricted'},recovery:['view-related','feedback']}))}
-      if((name==='resetAll'||name==='resetModule'||name==='supplementPhoneDemo')&&!isAdmin.value)throw new Error('只有受保护的超级管理员可重置演示数据。')
+      if((name==='resetAll'||name==='resetModule'||name==='supplementPhoneDemo'||name==='supplementPhone18Demo'||name==='rebuildPhoneCatalogDemo')&&!isAdmin.value)throw new Error('只有受保护的超级管理员可维护演示数据。')
       const previous=invocation;invocation={codes,actor:effectiveUserId.value,name}
       try{return (original as (...a:unknown[])=>unknown)(...args)}finally{invocation=previous}
     }

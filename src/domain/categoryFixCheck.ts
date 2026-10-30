@@ -72,11 +72,6 @@ export function runCategoryFixChecks(): CheckResult[] {
   const blocked = applyAccessoryCategoryFix(clash, { productTypeId: 'pt-mvc6vur1-2', categoryNames: ['手机配件', '保护壳'] })
   check('clash', !blocked.ok && clash.productTypes[0].categoryId === 'c-phone' && clash.families[0].categoryId === 'c-phone', blocked.message)
 
-  const hosted = world()
-  hosted.compatibilities = [{ id: 'link-1', accessorySkuId: 'sku-x', host: { scope: 'model', productTypeId: 'pt-mvc6vur1-2', productModelId: 'tpl-case', identityKey: 'k', steps: [] }, note: '', createdAt: 't', updatedAt: 't' }]
-  const hostBlock = applyAccessoryCategoryFix(hosted, { productTypeId: 'pt-mvc6vur1-2', categoryNames: ['手机配件', '保护壳'] })
-  check('host-link', !hostBlock.ok && hosted.compatibilities.length === 1 && hosted.productTypes[0].catalogRole !== 'accessory', hostBlock.message)
-
   const ambiguous = world()
   ambiguous.categories.push({ id: 'acc-2', name: '手机配件', parentId: null, sort: 3, enabled: true })
   const many = applyAccessoryCategoryFix(ambiguous, { productTypeId: 'pt-mvc6vur1-2', categoryNames: ['手机配件', '保护壳'] })

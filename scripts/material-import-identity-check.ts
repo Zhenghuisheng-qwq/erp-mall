@@ -15,7 +15,7 @@ const restoreLocks=installCatalogTestLocks(),clone=<T>(value:T):T=>JSON.parse(JS
 let store:ReturnType<typeof useCatalogStore>|undefined
 Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(key:string)=>disk.get(key)??null,setItem:(key:string,value:string)=>disk.set(key,value),removeItem:(key:string)=>disk.delete(key)}})
 Object.defineProperty(globalThis,'sessionStorage',{configurable:true,value:{getItem:(key:string)=>session.get(key)??null,setItem:(key:string,value:string)=>session.set(key,value),removeItem:(key:string)=>session.delete(key)}})
-const keys=['families','skus','planningRecords','materialReceipts','compatibilities','templateCompatibilityOrigins','materialRelations','materialContributions'] as const
+const keys=['families','skus','planningRecords','materialReceipts','materialRelations'] as const
 async function mount(data:AppData){if(store){await nextTick();await store.waitForPersistence();store.$dispose()};disk.clear();session.clear();disk.set(STORAGE_KEY,JSON.stringify({version:DATA_VERSION,data:clone(data)}));session.set('iyge-rbac-simulated-user','review-import-user');setActivePinia(createPinia());store=useCatalogStore();await store.waitForPersistence();return store}
 function fixture(){const data=normalizeStored({version:DATA_VERSION,data:createSeed()})!;ensureRbac(data);data.rbac!.roles.push({id:'review-import-role',code:'review-import-role',name:'仅物料导入',description:'identity review',enabled:true,permissionCodes:['product:material:read','product:material:import']});data.users.push({id:'review-import-user',username:'review-import-user',displayName:'仅物料导入',role:'operator',enabled:true,roleIds:['review-import-role']});return data}
 const mark=(name:string)=>{checks.push(name);console.log(`PASS material identity ${name}`)}
@@ -23,7 +23,7 @@ try{
  let s=await mount(fixture())
  for(const key of keys){
   const candidate=clone(s.data),rows=(candidate[key]||[]) as Record<string,unknown>[];Object.assign(candidate,{[key]:rows})
-  const id=`duplicate-${key}`,record=key==='planningRecords'?{planningId:id}:key==='materialReceipts'?{requestId:id}:key==='templateCompatibilityOrigins'?{key:id}:{id}
+  const id=`duplicate-${key}`,record=key==='planningRecords'?{planningId:id}:key==='materialReceipts'?{requestId:id}:{id}
   rows.push(record,clone(record))
   const before=JSON.stringify(s.data),raw=disk.get(STORAGE_KEY),result=await s.commitMaterialImport(candidate,s.materialImportBasis())
   assert.equal(result.ok,false,key);assert.match(result.message||'',/新增或加剧重复身份/,key)

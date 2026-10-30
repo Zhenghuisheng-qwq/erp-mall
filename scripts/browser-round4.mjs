@@ -37,8 +37,6 @@ try {
   await page.getByRole('heading', { name: '商品规划' }).waitFor()
   await page.goto(`${base}/products`, { waitUntil: 'networkidle' })
   await page.getByRole('button', { name: '新增商品' }).waitFor()
-  await page.goto(`${base}/compatibility`, { waitUntil: 'networkidle' })
-  await page.getByRole('heading', { name: '适用关系' }).waitFor()
   if (errors.length) throw new Error(errors.join('\n'))
   console.log(JSON.stringify({ ok: true, nodes: boxes.length, appleTop: apple.top, huaweiTop: huawei.top }))
 } catch (error) {

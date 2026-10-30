@@ -78,7 +78,7 @@ import PageHead from '../components/PageHead.vue'
 import { installAcceptanceCatalog } from '../domain/acceptanceCatalog'
 import { applyExcelImport, observedMaterials, previewGroups, previewSheet, readSheet, suggestMapping, suggestValueAliases, type ColumnMapping, type ColumnTarget, type ImportBlock, type ImportPreviewRow, type SheetProfile, type ValueAlias } from '../domain/excelImport'
 import { uid, useCatalogStore } from '../stores/catalog'
-import { cloneCompatibility } from '../domain/accessoryCompatibilityCommands'
+import { cloneRecord } from '../domain/recordCopy'
 
 const store = useCatalogStore()
 const fileName = ref('')
@@ -210,7 +210,7 @@ async function confirm() {
   let result: ReturnType<typeof applyExcelImport> = []
   try {
     const basis = store.materialImportBasis()
-    const candidate = cloneCompatibility(store.data)
+    const candidate = cloneRecord(store.data)
     result = applyExcelImport(candidate, preview.value, uid)
     if (result.every(item => item.ok)) {
       const committed = (await store.commitMaterialImport(candidate, basis))

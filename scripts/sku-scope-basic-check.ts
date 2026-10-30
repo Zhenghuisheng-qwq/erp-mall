@@ -2,8 +2,7 @@ import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
 import { effectScope, nextTick, ref } from 'vue'
 import { installCatalogTestLocks } from './catalog-storage-test-env'
-import { createAccessoryCompatibilityFixture, ACCESSORY_TEST_TIME as now } from './accessory-compatibility-fixtures'
-import { accessoryUseEvaluation, queryDeviceAccessories, queryAccessoryDevices } from '../src/domain/accessoryCompatibilityQuery'
+import { createCatalogProductFixture, CATALOG_TEST_TIME as now } from './catalog-product-fixture'
 import { ensureProductListPages } from '../src/domain/productListPages'
 import { addScopeCondition, cloneSku, defaultSkuConfig, ensureSkuWorkbench } from '../src/domain/skuWorkbenchState'
 import { conditionEntries } from '../src/domain/skuQuickFilters'
@@ -14,7 +13,6 @@ import { ensureRbac } from '../src/domain/rbac'
 import { DATA_VERSION, STORAGE_KEY } from '../src/domain/types'
 import { RBAC_ENFORCEMENT_ENABLED } from '../src/domain/accessMode'
 import type { SkuCondition, SkuConditionGroup, SkuViewConfig } from '../src/domain/skuWorkbenchTypes'
-import type { CompatibilityLink } from '../src/domain/types'
 
 const restoreLocks = installCatalogTestLocks(), disk = new Map<string, string>()
 let fail = false, groups = 0
@@ -24,7 +22,7 @@ Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
   removeItem: (key: string) => disk.delete(key),
 } })
 const mark = (name: string) => { groups++; console.log(`PASS ${name}`) }
-const { data, hosts } = createAccessoryCompatibilityFixture()
+const { data } = createCatalogProductFixture()
 ensureRbac(data); ensureProductListPages(data); ensureSkuWorkbench(data)
 const familyId = 'family-device'
 const inactive = (id: string): SkuCondition => ({ kind: 'rule', id, field: 'name', operator: 'contains', value: null, active: false })
@@ -96,28 +94,4 @@ try {
   mark('real Store quota failure is atomic, caller config preserved, explicit retry writes one view, business/history unchanged')
 } finally { owner.stop(); restoreLocks() }
 
-const declaration = (id: string, extra: Partial<CompatibilityLink> = {}): CompatibilityLink => ({ id, accessorySkuId: 'charger-sku', targetId: 'charger-sku', targetKind: 'sku', host: hosts.a, conclusion: 'compatible', verification: 'confirmed', capability: 'basic', conditions: [], source: '隔离边界依据', note: '', createdAt: now, updatedAt: now, ...extra })
-const match = () => { const q = queryDeviceAccessories(data, 'phone-a'); return [...q.sales, ...q.pending, ...q.excluded, ...q.unavailable].find(item => item.target.id === 'charger-sku') }
-data.compatibilities = [declaration('only-fast', { capability: 'fast-charge' })]
-assert.equal(queryDeviceAccessories(data, 'phone-a').sales.length, 0)
-assert.equal(match()?.status, 'conditional'); assert.equal(match()?.basic.status, 'pending'); assert.equal(match()?.recommendable, false)
-assert.equal(accessoryUseEvaluation(match()).status, 'pending')
-assert.equal(queryAccessoryDevices(data, { kind: 'sku', id: 'charger-sku' }).hosts[0]?.capabilities[0]?.capability, 'fast-charge')
-mark('fast-charge-only stays visible as management ability evidence but never becomes basic recommendation')
-data.compatibilities = [declaration('basic-only')]
-assert.equal(queryDeviceAccessories(data, 'phone-a').sales[0]?.target.id, 'charger-sku')
-assert.equal(accessoryUseEvaluation(match()).status, 'compatible'); assert.equal(accessoryUseEvaluation(match(), { requireFastCharge: true }).status, 'pending')
-data.compatibilities.push(declaration('fast-now', { capability: 'fast-charge' }))
-assert.equal(accessoryUseEvaluation(match(), { requireFastCharge: true }).status, 'compatible')
-data.compatibilities[1]!.conditions = [{ kind: 'attribute', attributeId: 'attr-port', operator: 'eq', value: 'Lightning' }]
-assert.equal(accessoryUseEvaluation(match()).status, 'compatible'); assert.equal(accessoryUseEvaluation(match(), { requireFastCharge: true }).status, 'incompatible')
-mark('basic-only remains ordinary recommendation; explicit fast-charge adds actual specialty requirements')
-data.compatibilities = [declaration('unmet-basic', { conclusion: 'conditional', conditions: [{ kind: 'attribute', attributeId: 'attr-port', operator: 'eq', value: 'Lightning' }] })]
-assert.equal(accessoryUseEvaluation(match()).status, 'incompatible'); assert.equal(queryDeviceAccessories(data, 'phone-a').sales.length, 0)
-data.compatibilities[0]!.conditions = [{ kind: 'equipment', text: '必须配合测试转换器' }]
-assert.equal(accessoryUseEvaluation(match()).status, 'conditional')
-data.compatibilities.push(declaration('explicit-deny', { conclusion: 'incompatible' }))
-assert.equal(accessoryUseEvaluation(match()).status, 'incompatible'); assert.equal(accessoryUseEvaluation(match()).conflict, true)
-mark('unmet device attributes and explicit exclusion cannot become confirmable conditional; genuine prerequisites remain conditional')
-const beforeQuery = JSON.stringify(data); queryDeviceAccessories(data, 'phone-a'); queryAccessoryDevices(data, { kind: 'sku', id: 'charger-sku' }); assert.equal(JSON.stringify(data), beforeQuery)
 console.log(`PASS scope/basic boundary ${RBAC_ENFORCEMENT_ENABLED ? 'strict' : 'default'} ${groups} groups`)

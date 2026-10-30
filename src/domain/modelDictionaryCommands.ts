@@ -46,7 +46,7 @@ export function modelDictionaryBasis(data: AppData, modelId: string): string {
   return JSON.stringify({
     exists: data.templates.some(item => item.id === modelId),
     nodes: snapshot.nodes.map(({ positionX, positionY, expanded, ...node }) => node),
-    bindings: snapshot.bindings, order: snapshot.order, nodeRules: snapshot.nodeRules,
+    bindings: snapshot.bindings, order: snapshot.order,
   })
 }
 

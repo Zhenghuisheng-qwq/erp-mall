@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync,writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 const root=resolve(process.env.R01_REGRESSION_OUTPUT || 'work/r01-20261025/regression');mkdirSync(root,{recursive:true})
-const checks=['r01-plan','r01-business','spu-sku','material','material-archive','naming','template-compatibility-domain','template-compatibility-state','sku-workbench-query','editor-safety','functional-gaps-round3','functional-gaps-round5','draft-combo','planning']
+const checks=['r01-plan','r01-business','spu-sku','material','material-archive','naming','sku-workbench-query','editor-safety','functional-gaps-round3','functional-gaps-round5','draft-combo','planning']
 const results=[]
 for(const check of checks){
   const dir=resolve(root,check);mkdirSync(dir,{recursive:true})

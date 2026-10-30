@@ -12,9 +12,6 @@ const mark=name=>{checks.push(name);console.log('PASS',name)}
 try{
  const {functionalGapsFixture}=await server.ssrLoadModule('/scripts/functional-gaps-fixture.ts')
  const {defaultSkuConfig,SYSTEM_SKU_VIEW_ID}=await server.ssrLoadModule('/src/domain/skuWorkbenchState.ts')
- const {createRefinementSyncFixture}=await server.ssrLoadModule('/scripts/compatibility-refinement-sync-fixtures.ts')
- const {markTemplateManualChanges}=await server.ssrLoadModule('/src/domain/templateCompatibilitySync.ts')
- const {freezeTemplateCompatibility}=await server.ssrLoadModule('/src/domain/templateCompatibility.ts')
  await server.listen();const base=`http://127.0.0.1:${server.httpServer.address().port}`
  browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'chrome',headless:true})
  async function open(data,path){const context=await browser.newContext({viewport:{width:1440,height:1000},locale:'zh-CN',reducedMotion:'reduce'});await context.addInitScript(data=>{if(!localStorage.getItem('iyge-v2-mock-db'))localStorage.setItem('iyge-v2-mock-db',JSON.stringify({version:15,data}))},data);page=await context.newPage();page.setDefaultTimeout(12000);page.on('pageerror',error=>diagnostics.push(String(error)));page.on('console',message=>{if(['warning','error'].includes(message.type())&&!message.text().includes('[Vue Flow]: The options parameter is deprecated'))diagnostics.push(message.text())});await page.goto(base+path,{waitUntil:'networkidle'});return context}
@@ -62,27 +59,6 @@ try{
  mark('A descendants quick filter expose/edit/save/reload/hide preserves category rule identity and result')
  const after=await read();for(const key of ['families','skus','specModelVersions','planningRecords'])assert.deepEqual(after[key],data[key],key)
  mark('A popup shares state, multi-root/save/reload, no business writes');await categoryCtx.close()
- const f=createRefinementSyncFixture(['甲','乙','丙']),third=f.links().find(x=>x.note==='丙');third.host=structuredClone(f.hosts.b);third.conclusion='incompatible';markTemplateManualChanges(f.data,[{kind:'update',id:third.id}],'2026-10-24T12:00:00Z')
- const version=f.publish(['合并','合并','丙']);f.config.defaultRule.claims[0].host=structuredClone(f.hosts.b);f.config.defaultRule.claims[1].host=structuredClone(f.hosts.b);f.data.specModelVersions.find(x=>x.id===version).templateCompatibilitySnapshot=freezeTemplateCompatibility(f.data,f.modelId)
- const syncCtx=await open(f.data,'/compatibility')
- async function option(locator,text){await locator.locator('.el-select__wrapper').click();await page.locator('.el-select-dropdown:visible [role="option"]').filter({hasText:text}).first().click();await locator.locator('input').first().press('Escape')}
- const sync=()=>page.locator('[data-template-sync-dialog]:visible')
- async function preview(){await page.locator('[data-check-template-updates]').click();await option(sync().locator('[data-template-sync-model]'),'兼容配置模型');if(!await sync().locator('[data-template-sync-targets] .el-tag').count())await option(sync().locator('[data-template-sync-targets]'),'同步销售 SKU');await sync().locator('[data-template-sync-preview]').click()}
- await preview()
- let group=sync().locator('[data-template-sync-item]').filter({hasText:'合并模板来源'})
- assert((await group.innerText()).includes(third.id));assert.equal(await group.getByRole('radio',{name:'采用这组模板结果',exact:true}).count(),0)
- assert((await group.innerText()).includes('不兼容'))
- await page.screenshot({path:resolve(output,'sync-protected.png')})
- await group.getByRole('button',{name:'维护此商品声明',exact:true}).click()
- await page.locator(`[data-declaration-id="${third.id}"]`).getByRole('button',{name:'取消声明',exact:true}).click()
- await page.locator('[data-confirm-compatibility]').click();await page.locator('[data-declaration-editor]').waitFor({state:'hidden'})
- await preview();group=sync().locator('[data-template-sync-item]').filter({hasText:'合并模板来源'})
- await group.getByText('采用这组模板结果',{exact:true}).click()
- await sync().locator('[data-template-sync-apply]').click();await settle()
- const updated=await read();assert.equal(updated.compatibilities.filter(x=>x.targetId===f.sku.id).length,1);assert.equal(updated.compatibilities.find(x=>x.targetId===f.sku.id).note,'合并');assert.deepEqual(updated.specModelVersions,f.data.specModelVersions)
- await page.screenshot({path:resolve(output,'sync-after-maintenance.png')})
- mark('B outside-group modified template denial identified; no adoption option; real maintenance cancellation then preview/adopt succeeds')
- await syncCtx.close()
  assert.deepEqual(diagnostics,[])
  writeFileSync(resolve(output,'result.json'),JSON.stringify({browser:browser.version(),headless:true,checks},null,2))
 }catch(error){await page?.screenshot({path:resolve(output,'failure.png')}).catch(()=>{});throw error}finally{await browser?.close();await server.close()}

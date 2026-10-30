@@ -1,4 +1,3 @@
-import { addCompatibility, previewHostText } from './compatibility'
 import { latestPublishedVersion } from './logic'
 import { createTemporaryMaterial, createV3Material, nextMaterialCode, type MaterialCreateResult } from './material'
 import type { AppData } from './types'
@@ -49,8 +48,6 @@ export interface ImportPreviewRow {
   message: string
   requestId: string
   sourceDigest?: string
-  compatibilityStatus?: 'none' | 'exact' | 'ambiguous' | 'unresolved' | 'pending'
-  compatibilityReason?: string
 }
 
 export interface ValueAlias {
@@ -273,10 +270,7 @@ export function previewSheet(data: AppData, sheet: SheetProfile, mapping: Column
       const built = temporary
         ? { ...base, ...extra, block: 'temporary' as const, status: 'ready' as const, action: 'temporary' as const, groupKey, message: withDup('已确认按临时物料导入，不占用正式规划编号。') }
         : { ...base, ...extra, block, status, action, groupKey, message: withDup(message) }
-      const applicable = attrs.find((item) => item.name === '适用型号')?.value || ''
-      if (!applicable) return { ...built, compatibilityStatus: 'none', compatibilityReason: '' }
-      const preview = previewHostText(data, applicable)
-      return { ...built, compatibilityStatus: preview.status, compatibilityReason: preview.reason || (preview.status === 'exact' ? `可关联 ${preview.hosts.map((item) => item.modelName).join('、')}` : '') }
+      return built
     }
     if (!skuName && !supplierCode && !guanjiapoCode) return finish('empty', 'blocked', 'skip', '空行', { groupKey: 'empty' })
     const receipt = (data.materialReceipts || []).find((item) => item.requestId === requestId || (item.sourceDigest && item.sourceDigest === sourceDigest))
@@ -406,42 +400,6 @@ function writeImportRow(data: AppData, row: ImportPreviewRow, nextId: (prefix: s
   })
   if (result.ok) rememberDigest(data, row)
   return result
-}
-
-/** 物料建档和适用关系分开。关系对不上时不回滚已成功的物料，也不把失败说成整单完成。 */
-export function attachExactCompatibility(data: AppData, rows: ImportPreviewRow[], nextId: (prefix: string) => string) {
-  let linked = 0
-  let pending = 0
-  const notes: string[] = []
-  rows.forEach((row) => {
-    if (!row.compatibilityStatus || row.compatibilityStatus === 'none') return
-    if (row.compatibilityStatus !== 'exact') {
-      pending += 1
-      notes.push(`第 ${row.rowNumber} 行：${row.compatibilityReason || '适用关系待确认'}`)
-      return
-    }
-    const receipt = (data.materialReceipts || []).find((item) => item.requestId === row.requestId || item.sourceDigest === row.sourceDigest)
-    const sku = data.skus.find((item) => item.id === receipt?.skuId)
-    if (!sku) {
-      pending += 1
-      notes.push(`第 ${row.rowNumber} 行物料尚未建档，适用关系未写入。`)
-      return
-    }
-    const text = row.attrs.find((item) => item.name === '适用型号')?.value || ''
-    const preview = previewHostText(data, text)
-    if (preview.status !== 'exact') {
-      pending += 1
-      notes.push(`第 ${row.rowNumber} 行：${preview.reason}`)
-      return
-    }
-    const result = addCompatibility(data, { accessorySkuIds: [sku.id], hosts: preview.hosts.map((item) => item.host), nextId })
-    linked += result.created.length
-    if (result.failed.length) {
-      pending += result.failed.length
-      notes.push(...result.failed.map((item) => `第 ${row.rowNumber} 行：${item.message}`))
-    }
-  })
-  return { linked, pending, notes }
 }
 
 /** 先整批写入。任一失败或中断时退回本批开始前的数据，避免只落下一半。相同来源再次确认仍走回执，不会再建一条。 */

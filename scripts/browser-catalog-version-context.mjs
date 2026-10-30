@@ -10,15 +10,15 @@ try{
  browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'chrome',headless:true})
  for(const strict of [false,true]){
   server=await createServer({cacheDir:resolve(runtime,String(strict)),logLevel:'error',define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify(String(strict))},server:{host:'127.0.0.1',port:0,watch:null,hmr:false,ws:false}})
-  const {r01Fixture}=await server.ssrLoadModule('/scripts/r01-fixture.ts'),{freezeTemplateCompatibility}=await server.ssrLoadModule('/src/domain/templateCompatibility.ts'),{freezeBusinessNodes}=await server.ssrLoadModule('/src/domain/nodeBusiness.ts'),{ensureRbac}=await server.ssrLoadModule('/src/domain/rbac.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
+  const {r01Fixture}=await server.ssrLoadModule('/scripts/r01-fixture.ts'),{freezeBusinessNodes}=await server.ssrLoadModule('/src/domain/nodeBusiness.ts'),{ensureRbac}=await server.ssrLoadModule('/src/domain/rbac.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
   const {data,modelId}=r01Fixture(),nodeId=`${modelId}-apple`,namingId=`${modelId}-brand`,now='2026-10-27T00:00:00.000Z'
   const currentName=data.productSpecNodes.find(node=>node.id===namingId),currentValue=data.productSpecNodes.find(node=>node.id===nodeId)
   currentName.namingRule=[{kind:'text',text:'旧版规则-V1'},{kind:'field',key:'r01-brand'}]
   currentValue.businessConfigs=[{id:'history-business',definitionId:'business:sales',modelId,nodeId,enabled:true,scope:'subtree',parameters:{value:'hot'}}]
   data.params.find(item=>item.id==='r01-brand').name='发布时品牌名称'
-  const first={id:'catalog-history-v1',templateId:modelId,version:1,versionName:'历史 V1',status:'published',nodesSnapshot:freezeBusinessNodes(data,data.productSpecNodes.filter(node=>node.templateId===modelId)),createdTime:now,publishTime:now,templateCompatibilitySnapshot:freezeTemplateCompatibility(data,modelId)}
+  const first={id:'catalog-history-v1',templateId:modelId,version:1,versionName:'历史 V1',status:'published',nodesSnapshot:freezeBusinessNodes(data,data.productSpecNodes.filter(node=>node.templateId===modelId)),createdTime:now,publishTime:now}
   currentName.namingRule=[{kind:'text',text:'新版规则-V2'},{kind:'field',key:'r01-brand'}];currentValue.businessConfigs[0].parameters.value='not-hot'
-  const second={...structuredClone(first),id:'catalog-history-v2',version:2,versionName:'历史 V2',nodesSnapshot:freezeBusinessNodes(data,data.productSpecNodes.filter(node=>node.templateId===modelId)),templateCompatibilitySnapshot:freezeTemplateCompatibility(data,modelId)}
+  const second={...structuredClone(first),id:'catalog-history-v2',version:2,versionName:'历史 V2',nodesSnapshot:freezeBusinessNodes(data,data.productSpecNodes.filter(node=>node.templateId===modelId))}
   data.specModelVersions.push(first,second)
   currentName.namingRule=[{kind:'text',text:'当前草稿规则-DRAFT'},{kind:'field',key:'r01-brand'}]
   currentValue.businessConfigs=[];data.params.find(item=>item.id==='r01-brand').name='现在的品牌名称'

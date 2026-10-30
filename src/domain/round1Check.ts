@@ -261,11 +261,6 @@ export async function runRound1Checks() {
   const oldRetry = plan ? createV3Material(materials.data, { productModelId: 't-phone', modelVersionId: 'phone-model-v1', planningId: plan.planningId, requestId: 'req-old', categoryId: 'c-phone', productTypeId: 'pt-phone', now: '2026-10-16T03:04:00.000Z', nextId }) : { ok: false as const, message: '没有规划' }
   const oldReceipt = materials.data.materialReceipts.find((item) => item.requestId === 'req-old')
   check('G4', 'legacy-receipt', Boolean(!oldRetry.ok && oldRetry.reason === 'material-deleted' && oldReceipt && oldReceipt.lifecycle === undefined && oldReceipt.materialCode === 'MAT-OLD' && materials.data.materialReceipts.length === oldReceiptCount + 1), oldRetry.ok ? '错误地重建了' : oldRetry.message)
-  const blockedSku = recreated.ok ? recreated.skuId : ''
-  materials.data.compatibilities.push({ id: 'compat-round1', accessorySkuId: blockedSku, host: { scope: 'model', productTypeId: 'pt-phone', productModelId: 't-phone', identityKey: 'round1', steps: [] }, note: '', createdAt: '2026-10-16T03:05:00.000Z', updatedAt: '2026-10-16T03:05:00.000Z' })
-  const blockedDelete = materials.removeSku(blockedSku)
-  const blockedReceipt = materials.data.materialReceipts.find((item) => item.skuId === blockedSku)
-  check('G4', 'compat-still-blocks', blockedDelete.includes('不能删除') && materials.data.skus.some((item) => item.id === blockedSku) && blockedReceipt?.lifecycle !== 'deleted', blockedDelete)
   const temporary = createTemporaryMaterial(materials.data, { requestId: 'tmp-1', categoryId: 'c-phone', productTypeId: 'pt-phone', productModelId: 't-phone', modelVersionId: 'phone-model-v1', attrs: [{ attributeId: 'p-color', value: '临时紫色', source: 'manual' }], materialCode: 'TMP-ROUND1', now: '2026-10-16T04:00:00.000Z', nextId })
   const temporaryRetry = createTemporaryMaterial(materials.data, { requestId: 'tmp-1', categoryId: 'c-phone', productTypeId: 'pt-phone', productModelId: 't-phone', modelVersionId: 'phone-model-v1', attrs: [{ attributeId: 'p-color', value: '临时紫色', source: 'manual' }], materialCode: 'TMP-ROUND1-B', now: '2026-10-16T04:01:00.000Z', nextId })
   const temporaryRemoved = temporary.ok ? materials.removeSku(temporary.skuId) : '没有临时物料'

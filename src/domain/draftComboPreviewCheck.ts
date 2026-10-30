@@ -53,7 +53,6 @@ function fingerprint(data: AppData) {
     families: data.families,
     skus: data.skus,
     nodes: data.productSpecNodes,
-    hosts: data.nodeCompatibilityRules || [],
   })
 }
 

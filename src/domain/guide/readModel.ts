@@ -19,6 +19,7 @@ export interface GuideDirectoryCenter extends GuideDirectoryGroup { groups: Guid
 // Only registered, object-independent destinations. Detail pages fall back to their real
 // list/workspace entrance; an explanation never invents an object ID or selects a record.
 const targets: Record<string, GuideLocation> = {
+ 'page-compatibility':{path:'/compatibility'},'page-type-bundles':{path:'/benefits/manage'},'page-bundle-sale':{path:'/benefits/shopping'},
   'page-catalog':{path:'/catalog'},
   'page-home':{path:'/'}, 'page-categories':{path:'/categories',query:{mode:'organize'}}, 'page-product-types':{path:'/catalog',query:{view:'types'}},
   'page-params':{path:'/params'}, 'page-templates':{path:'/templates'}, 'page-models':{path:'/catalog',query:{view:'models'}},
@@ -26,7 +27,7 @@ const targets: Record<string, GuideLocation> = {
   'page-spus':{path:'/spus'}, 'page-spu-create':{path:'/spus/new'}, 'page-spu-edit':{path:'/spus'},
   'page-skus':{path:'/skus'}, 'page-sku-create':{path:'/skus'}, 'page-sku-edit':{path:'/skus'},
   'page-material-create':{path:'/materials/new'}, 'page-material-edit':{path:'/spus'},
-  'page-compatibility':{path:'/compatibility'}, 'page-brands':{path:'/brands'}, 'page-groups':{path:'/groups'},
+  'page-brands':{path:'/brands'}, 'page-groups':{path:'/groups'},
   'page-rules':{path:'/rules'}, 'page-mappings':{path:'/mappings'}, 'page-overview':{path:'/overview'},
   'page-check':{path:'/check'}, 'page-import':{path:'/import'},
   'page-columns-spu':{path:'/spus',query:{panel:'columns'}}, 'page-columns-sku':{path:'/skus',query:{panel:'columns'}},
@@ -76,8 +77,6 @@ const links: PageLink[] = [
   ['page-material-create','page-product-types','upstream','正式和临时物料都需核对分类与产品类型，不能按名称跨类型复用。','物料建档选择真实产品类型及对应来源。'],
   ['page-material-create','page-material-edit','downstream','建档后可查看物料编号、来源、范围和新增关联；没有具体对象时先回 SPU 列表的物料入口。','物料档案保留原建档来源；新建与新增关联分别处理。'],
   ['page-material-edit','page-spu-edit','related','物料档案与商品主体按真实 ID 关联；查看主体及物料时不能把 MAT 当销售 SKU。'],
-  ['page-compatibility','page-skus','related','销售 SKU 的适用声明独立维护；MAT 声明不会自动成为 SKU 适用证据。'],
-  ['page-compatibility','page-material-edit','related','可维护 MAT 的适用关系和来源，但物料身份与销售 SKU 保持分离。'],
   ['page-spus','page-columns-spu','related','SPU 列、筛选、分组和保存视图属于 SPU 页面配置。'],
   ['page-skus','page-columns-sku','related','SKU 列和保存视图单独维护，与 SPU 临时范围隔离。'],
   ['page-brands','page-params','related','品牌维护可能同步品牌词典；主数据品牌与规划属性品牌保持各自真实字段。'],

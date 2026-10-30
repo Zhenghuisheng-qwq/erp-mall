@@ -5,48 +5,19 @@ import { nextMaterialCode, materialCodeConflict } from './material'
 import { businessPath, resolveNodeBusiness } from './nodeBusiness'
 import { legalPlanningCombinations } from './planning'
 import { suggestMaterialName, filedNameSource } from './naming'
-import { createTemplateCompatibilityContext, resolveTemplateCompatibility, templateConditionsSignature, templateClaimContentSignature } from './templateCompatibility'
-import { declarationDraft } from './accessoryCompatibilityCommands'
-import { sameDeviceHost } from './deviceResolution'
-import { roleOfType } from './compatibility'
 import { activeMaterialRelations } from './materialRelations'
 import { configStructureProblem } from './nodeBusinessStructure'
-import { conditionProblem } from './compatibilityValidation'
-import type { MaterialScope, MaterialRelation, MaterialContribution } from './materialRelations'
-import type { AppData, CompatibilityLink, PlanningStep } from './types'
-import type { TemplateCompatibilityClaim } from './templateCompatibilityTypes'
+import type { MaterialScope, MaterialRelation } from './materialRelations'
+import type { AppData, PlanningStep } from './types'
 
 const clone = <T>(v:T):T => JSON.parse(JSON.stringify(v))
 const sourceKey = (s:MaterialScope) => JSON.stringify([s.kind,s.modelId,s.versionId,s.planningId||'',s.anchorNodeId||'',s.scope])
-export const materialRelationBasis = (d:AppData) => JSON.stringify([d.materialRelations,d.materialContributions,d.skus,d.families,d.materialReceipts,d.specModelVersions,d.planningRecords,d.specCanvases,d.productTypes,d.params,d.compatibilities,d.templateCompatibilityOrigins])
+export const materialRelationBasis = (d:AppData) => JSON.stringify([d.materialRelations,d.skus,d.families,d.materialReceipts,d.specModelVersions,d.planningRecords,d.specCanvases,d.productTypes,d.params])
 export function materialRelationImportSignature(d:AppData) {
   const ids=new Set((Array.isArray(d.materialRelations)?d.materialRelations:[]).map(r=>r?.materialId))
-  return JSON.stringify([d.materialRelations,d.materialContributions,d.skus.filter(s=>ids.has(s.id)),d.materialReceipts?.filter(r=>ids.has(r.skuId))])
-}
-const claimOf = (link:CompatibilityLink):TemplateCompatibilityClaim => ({id:'',...declarationDraft(link)})
-const signature = templateClaimContentSignature
-function incompatible(a:TemplateCompatibilityClaim,b:TemplateCompatibilityClaim) {
-  return a.capability===b.capability && sameDeviceHost(a.host,b.host,false) && (a.host.scope==='model'||b.host.scope==='model'||a.host.planningId===b.host.planningId) && (a.conclusion!==b.conclusion || templateConditionsSignature(a.conditions)!==templateConditionsSignature(b.conditions))
+  return JSON.stringify([d.materialRelations,d.skus.filter(s=>ids.has(s.id)),d.materialReceipts?.filter(r=>ids.has(r.skuId))])
 }
 const requestIntent = (input:{source:MaterialScope;materialId?:string;name?:string}) => JSON.stringify([sourceKey(input.source),input.materialId||'',input.materialId?'':input.name?.trim()||''])
-const pairMatches = (a:{ruleId:string;claimId:string},b:{ruleId:string;claimId:string}) => a.ruleId===b.ruleId&&a.claimId===b.claimId
-/** Read legacy evidence from frozen resolutions; never infer a Cartesian product of ID lists. */
-function contributionLineage(data:AppData,c:MaterialContribution) {
-  if(c.lineage)return c.lineage
-  const result:{modelId:string;ruleId:string;claimId:string}[]=[]
-  for(const relation of data.materialRelations||[]) {
-    if(relation.materialId!==c.materialId||relation.kind!=='scope-v1')continue
-    const owners=c.owners.filter(o=>o.relationId===relation.id)
-    if(c.owners.length&&!owners.length)continue
-    const context=createTemplateCompatibilityContext(data,{modelId:relation.source.modelId,versionId:relation.source.versionId})
-    const plans=owners.length?owners.map(o=>data.planningRecords.find(p=>p.planningId===o.planningId)).filter(p=>!!p):data.planningRecords.filter(p=>p.productModelId===relation.source.modelId&&p.modelVersionIds.includes(relation.source.versionId)&&(relation.source.kind==='planning'?p.planningId===relation.source.planningId:relation.prefix.every(step=>p.steps.some(s=>s.valueNodeId===step.valueNodeId))))
-    for(const plan of plans)for(const effective of resolveTemplateCompatibility(context,plan.identityKey).claims){
-      if(signature(effective.claim)!==signature(c.baseline))continue
-      for(const pair of effective.origins)if(!owners.length||owners.some(o=>o.origins?o.origins.some(p=>pairMatches(p,pair)):o.ruleIds.includes(pair.ruleId)&&o.claimIds.includes(pair.claimId)))result.push({modelId:relation.source.modelId,...pair})
-    }
-  }
-  return result
-}
 export function previewMaterialScope(data:AppData,source:MaterialScope,materialId='') {
   const problems:string[]=[], version=data.specModelVersions.find(v=>v.id===source.versionId&&v.templateId===source.modelId&&v.status==='published')
   const failures:GuideFailure[]=[]
@@ -104,34 +75,11 @@ export function previewMaterialScope(data:AppData,source:MaterialScope,materialI
   const target=data.skus.find(s=>s.id===materialId),family=data.families.find(f=>f.id===target?.familyId)
   if(materialId&&(!target||!isMaterialArchive(data,target)))problems.push('关联目标不是有效的真实 MAT 档案。')
   if(materialId&&(family?.productTypeId!==type?.id||family?.categoryId!==type?.categoryId))problems.push('仅允许同产品类型、同分类内明确复用，不按名称跨类型关联。')
-  const claims:{claim:TemplateCompatibilityClaim;planningId:string;ruleIds:string[];claimIds:string[];origins:{ruleId:string;claimId:string}[]}[]=[]
-  const compatibilityNotes:string[]=[]
-  if(version&&type&&roleOfType(data,type.id)==='accessory') {
-    const context=createTemplateCompatibilityContext(data,{modelId:source.modelId,versionId:source.versionId})
-    for(const c of proof){const result=resolveTemplateCompatibility(context,c.identityKey)
-      if(result.state==='invalid'||result.state==='conflict')problems.push(`${c.planningId} ${c.label}：${result.message}`)
-      if(result.state==='unconfigured'||result.state==='empty')compatibilityNotes.push(`${c.planningId}：${result.state==='unconfigured'?'发布快照尚未配置适用关系，不推导兼容结论。':'此范围明确为空，不代表不兼容。'} 原 MAT 已有声明保持原样。`)
-      result.claims.forEach(x=>claims.push({claim:x.claim,planningId:c.planningId,ruleIds:x.ruleIds,claimIds:x.claimIds,origins:x.origins}))
-    }
-  }
-  for(let i=0;i<claims.length;i++)for(let j=0;j<i;j++)if(incompatible(claims[i]!.claim,claims[j]!.claim))problems.push(`兼容结论或条件冲突：${claims[i]!.planningId} 与 ${claims[j]!.planningId}。`)
-  if(materialId)for(const c of claims){
-    for(const link of data.compatibilities.filter(l=>(l.targetId||l.accessorySkuId)===materialId))if(incompatible(claimOf(link),c.claim))problems.push(`${c.planningId} 与已有声明 ${link.id} 冲突，保留旧结果。`)
-    for(const origin of data.templateCompatibilityOrigins||[])if(origin.target.id===materialId&&['deleted','modified','kept','stale'].includes(origin.state)&&((origin.modelId===source.modelId&&origin.lineage?.some(pair=>c.origins.some(p=>pairMatches(pair,p))))||signature(origin.baseline)===signature(c.claim)||incompatible(origin.baseline,c.claim)))reject('material.scope.manual-origin',`${c.planningId} 命中人工保护来源 ${origin.key}，不能自动覆盖。`)
-    for(const contribution of data.materialContributions||[]){
-      if(contribution.materialId!==materialId)continue
-      const lineage=contributionLineage(data,contribution)
-      if(!(lineage.length?lineage.some(pair=>pair.modelId===source.modelId&&c.origins.some(p=>pairMatches(pair,p))):signature(contribution.baseline)===signature(c.claim)))continue
-      if(contribution.state==='retired')continue
-      const link=data.compatibilities.find(l=>l.id===contribution.declarationId)
-      if(contribution.state!=='managed'||!link||signature(claimOf(link))!==signature(contribution.baseline))reject('material.scope.manual-contribution',`${c.planningId} 的兼容贡献曾被人工修改或取消，不能自动恢复；确认版本范围不代表恢复声明，请保留人工决定。`)
-    }
-  }
   const suggestion=suggestMaterialName(data,{productModelId:source.modelId,modelVersionId:source.versionId,productTypeName:type?.name||'',steps:prefix})
   const coverage=source.kind==='node'&&source.scope==='current'?[]:proof.map(({label,...p})=>p)
   const earlier=activeMaterialRelations(data).filter(r=>r.materialId===materialId&&r.source.modelId===source.modelId&&r.source.versionId!==source.versionId&&r.source.kind===source.kind&&(source.kind==='node'?r.source.anchorNodeId===source.anchorNodeId:r.source.planningId===source.planningId))
   const previousIds=new Set(earlier.flatMap(r=>r.coverage.map(c=>c.planningId)))
-  return {failure:firstFailure,failures,source:clone(source),materialId,basis:materialRelationBasis(data),problems:[...new Set(problems)],prefix,coverage,proof,policy:policy.hits.map(h=>clone(h.config)),policyValue,policySources:policy.sources,claims,compatibilityNotes,suggestion,type,
+  return {failure:firstFailure,failures,source:clone(source),materialId,basis:materialRelationBasis(data),problems:[...new Set(problems)],prefix,coverage,proof,policy:policy.hits.map(h=>clone(h.config)),policyValue,policySources:policy.sources,suggestion,type,
     versionName:version?.versionName||'',previous:earlier.map(r=>r.id),added:coverage.filter(c=>!previousIds.has(c.planningId)).map(c=>c.planningId),removed:[...previousIds].filter(id=>!coverage.some(c=>c.planningId===id))}
 }
 export type MaterialScopePreview=ReturnType<typeof previewMaterialScope>
@@ -170,19 +118,6 @@ export function executeMaterialRelation(data:AppData,input:{source:MaterialScope
   }
   const relation:MaterialRelation={id,kind:'scope-v1',materialId:sku.id,source:clone(input.source),prefix:clone(p.prefix),coverage:clone(p.coverage),policy:clone(p.policy),createdAt:now,lifecycle:'active',original:!input.materialId,requestId:input.requestId,requestIntent:requestIntent(input)}
   ;(data.materialRelations||=[]).push(relation)
-  for(const c of p.claims){
-    let contribution=(data.materialContributions||[]).find(x=>x.materialId===sku!.id&&x.state==='managed'&&data.compatibilities.some(l=>l.id===x.declarationId&&signature(claimOf(l))===signature(x.baseline))&&signature(x.baseline)===signature(c.claim))
-    if(!contribution){
-      const contributionId=nextId('matcon')
-      let link=data.compatibilities.find(l=>(l.targetId||l.accessorySkuId)===sku!.id&&signature(claimOf(l))===signature(c.claim));const generated=!link
-      if(!link){link={...clone(c.claim),id:nextId('compat'),accessorySkuId:sku.id,targetKind:'material',targetId:sku.id,provenance:{kind:'material-relation',contributionId,detail:`节点／规划关联 ${id}；逐条完整规划核验，贡献来源独立保留。`},createdAt:now,updatedAt:now};data.compatibilities.push(link)}
-      contribution={id:contributionId,materialId:sku.id,declarationId:link.id,baseline:clone(c.claim),generated,owners:[],lineage:[],state:'managed'};(data.materialContributions||=[]).push(contribution)
-    }
-    // Preserve pre-existing historical owners; append only real effective origin pairs.
-    contribution.lineage ||= contributionLineage(data,contribution)
-    for(const pair of c.origins)if(!contribution.lineage.some(p=>p.modelId===input.source.modelId&&pairMatches(p,pair)))contribution.lineage.push({modelId:input.source.modelId,...pair})
-    contribution.owners.push({relationId:id,planningId:c.planningId,ruleIds:[...c.ruleIds],claimIds:[...c.claimIds],origins:clone(c.origins)})
-  }
   return {ok:true as const,message:input.materialId?'已建立关联，原始建档来源不变。':'已按节点范围建档，未创建或裁剪 PLN。',materialId:sku.id,relationId:id}
 }
 export function revokeMaterialRelation(data:AppData,id:string,basis:string){
@@ -191,22 +126,13 @@ export function revokeMaterialRelation(data:AppData,id:string,basis:string){
   if(!relation||relation.kind!=='scope-v1'||relation.original)return {ok:false,message:'原始建档或不支持的关系不能作为普通关联解除。'}
   if(relation.lifecycle==='revoked')return {ok:true,message:'本条关联已解除。'}
   relation.lifecycle='revoked';relation.revokedAt=new Date().toISOString()
-  for(const c of data.materialContributions||[]){
-    if(!c.owners.some(o=>o.relationId===id))continue
-    c.lineage ||= contributionLineage(data,c)
-    c.owners=c.owners.filter(o=>o.relationId!==id)
-    const link=data.compatibilities.find(l=>l.id===c.declarationId)
-    if(!link)c.state='deleted'
-    else if(signature(claimOf(link))!==signature(c.baseline))c.state='modified'
-    if(!c.owners.length&&c.generated&&c.state==='managed'){data.compatibilities=data.compatibilities.filter(l=>l.id!==c.declarationId);c.state='retired'}
-  }
   return {ok:true,message:'已解除本条新增关联，物料和其他来源保留。'}
 }
 
 /** Optional records are never migrated or repaired by silently dropping content. */
 export function materialRelationImportProblems(data:AppData):string[]{
   const problems:string[]=[],obj=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v),str=(v:unknown)=>typeof v==='string'&&!!v.trim()
-  for(const key of ['materialRelations','materialContributions'] as const)if(data[key]!==undefined&&!Array.isArray(data[key]))problems.push(`${key} 必须是数组。`)
+  for(const key of ['materialRelations'] as const)if(data[key]!==undefined&&!Array.isArray(data[key]))problems.push(`${key} 必须是数组。`)
   if(problems.length)return problems
   const ids=new Set<string>()
   const requests=new Set<string>()
@@ -241,18 +167,5 @@ export function materialRelationImportProblems(data:AppData):string[]{
       if(sku&&family?.productTypeId!==type)problems.push(`关联 ${r.id} 跨产品类型引用无效。`)
     }
   }
-  for(const c of data.materialContributions||[]){
-    if(!obj(c)||!['id','materialId','declarationId','state'].every(k=>str(c[k]))||!obj(c.baseline)||!obj(c.baseline.host)||!Array.isArray(c.baseline.conditions)||typeof c.generated!=='boolean'||!Array.isArray(c.owners)||!c.owners.every(o=>obj(o)&&str(o.relationId)&&str(o.planningId)&&Array.isArray(o.ruleIds)&&Array.isArray(o.claimIds))){problems.push('物料兼容贡献结构损坏。');continue}
-    const validPairs=(v:unknown,model=false)=>Array.isArray(v)&&v.every(p=>obj(p)&&str(p.ruleId)&&str(p.claimId)&&(!model||str(p.modelId)))
-    if(c.lineage!==undefined&&!validPairs(c.lineage,true)||c.owners.some(o=>o.origins!==undefined&&!validPairs(o.origins)))problems.push(`兼容贡献 ${c.id} 稳定来源谱系损坏。`)
-    if(!['managed','modified','deleted','retired'].includes(c.state)||!['conclusion','verification','capability','source'].every(k=>str((c.baseline as unknown as Record<string,unknown>)[k]))||typeof c.baseline.note!=='string'||c.baseline.conditions.some(v=>conditionProblem(v)))problems.push(`兼容贡献 ${c.id} 声明结构损坏。`)
-    const host=c.baseline.host
-    if(!['model','planning'].includes(host.scope)||![host.productTypeId,host.productModelId,host.identityKey].every(str)||!Array.isArray(host.steps)||!host.steps.length||host.steps.some(s=>!obj(s)||![s.attributeId,s.attributeName,s.valueId].every(str))||host.scope==='planning'&&!str(host.planningId)||!['compatible','conditional','incompatible'].includes(c.baseline.conclusion)||!['confirmed','pending'].includes(c.baseline.verification)||!['basic','fast-charge','other'].includes(c.baseline.capability))problems.push(`兼容贡献 ${c.id} 主机或声明必要字段损坏。`)
-    if(c.owners.some(o=>!(data.materialRelations||[]).some(r=>r.id===o.relationId&&r.materialId===c.materialId)||!data.planningRecords?.some(p=>p.planningId===o.planningId)))problems.push(`兼容贡献 ${c.id} 来源引用无效。`)
-  }
-  for(const link of data.compatibilities||[])if(link.provenance?.kind==='material-relation'&&!(data.materialContributions||[]).some(c=>c.id===link.provenance?.contributionId&&c.declarationId===link.id&&c.materialId===(link.targetId||link.accessorySkuId)))problems.push(`声明 ${link.id} 缺少物料关联贡献依据。`)
   return problems
-}
-export function markMaterialContributionChanges(data:AppData,changes:{kind:string;id?:string}[]) {
-  for(const change of changes)for(const c of data.materialContributions||[])if(c.declarationId===change.id&&(change.kind==='remove'||change.kind==='edit'))c.state=change.kind==='remove'?'deleted':'modified'
 }

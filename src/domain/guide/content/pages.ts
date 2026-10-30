@@ -456,7 +456,7 @@ export const guidePageArticles: GuideArticle[] = [
         "title": "按动作操作步骤",
         "steps": [
           "点击新建模型，选择分类、产品类型并填写模型名称。",
-          "用查看模型或编辑模型进入设计器；适用设备配置维护模板声明。",
+          "用查看模型或编辑模型进入设计器。",
           "保存结构后单独发布模型；下线只改变后续可用性，复制生成独立草稿。"
         ]
       },
@@ -774,7 +774,7 @@ export const guidePageArticles: GuideArticle[] = [
         "steps": [
           "通过当前视图入口切换已保存视图，搜索并按分类及品牌来源筛选。",
           "在列表设置调整列、顺序、分组和排序；已生效条件在标签区清除。",
-          "点击名称或行内“编辑”进入主体详情；“新增 SKU”进入追加页；更多中按条件查看适用关系、管理物料、复制或删除。"
+          "点击名称或行内“编辑”进入主体详情；“新增 SKU”进入追加页；更多中按条件管理物料、复制或删除。"
         ]
       },
       {
@@ -1014,7 +1014,7 @@ export const guidePageArticles: GuideArticle[] = [
         "steps": [
           "从当前视图入口选择视图，输入临时搜索；更多筛选保留 AND/OR 条件组。",
           "配置列、手动宽度、冻结、多级排序和分组，保存视图或另存，恢复可撤销工作配置。",
-          "点击两行规格摘要查看/复制完整内容；行内编辑，更多查看适用关系。"
+          "点击两行规格摘要查看/复制完整内容；支持行内编辑。"
         ]
       },
       {
@@ -1360,87 +1360,6 @@ export const guidePageArticles: GuideArticle[] = [
         "title": "正反例与检查",
         "paragraphs": [
           "示例：/materials/主体ID?sku=物料ID 定位正确档案；把物料ID放路径中不会等价。"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "manual-compatibility",
-    "title": "兼容性查询与维护操作手册",
-    "kind": "page",
-    "summary": "按设备型号与真实对象维护双向适用声明，并保留原物料维护入口。",
-    "aliases": [
-      "适用关系",
-      "/compatibility"
-    ],
-    "pageIds": [
-      "page-compatibility"
-    ],
-    "actionIds": [
-      "action-compatibility-bind",
-      "action-compatibility-declare",
-      "action-compatibility-sync",
-      "action-compatibility-cancel"
-    ],
-    "ruleIds": [
-      "rule-compatibility-binding",
-      "rule-compatibility-basis",
-      "rule-compatibility-manual-protection",
-      "rule-identity-separation"
-    ],
-    "related": [
-      "concept-objects"
-    ],
-    "sections": [
-      {
-        "id": "objects",
-        "title": "主要对象与上下游",
-        "paragraphs": [
-          "主机型号、销售配件 SKU、MAT、基本适用/快充能力、人工及模板贡献来源。"
-        ]
-      },
-      {
-        "id": "prerequisites",
-        "title": "操作前提与权限",
-        "paragraphs": [
-          "识别当前维护对象与方向；设备绑定和声明维护均按相应权限检查。"
-        ]
-      },
-      {
-        "id": "steps",
-        "title": "按动作操作步骤",
-        "steps": [
-          "选择兼容关系工作台或原物料适用关系，核对 route 传入的 SKU/设备上下文。",
-          "绑定明确设备型号，按主机找配件或按配件找主机查看正式结论。",
-          "新增/修改/取消声明；模板更新先预览差异再确认同步。"
-        ]
-      },
-      {
-        "id": "results",
-        "title": "成功结果与保存位置",
-        "paragraphs": [
-          "双向查询使用同一声明依据；售卖状态与兼容事实分开。"
-        ]
-      },
-      {
-        "id": "rules",
-        "title": "限制与关联规则",
-        "paragraphs": [
-          "基本适用不等于快充；MAT 声明不能自动冒充 SKU 声明；人工取消/修改跨版本受保护。"
-        ]
-      },
-      {
-        "id": "failures",
-        "title": "常见失败与当前处理",
-        "paragraphs": [
-          "缺型号先合法绑定；依据变更重新预览；待确认与不适用不能写成正常推荐。"
-        ]
-      },
-      {
-        "id": "examples",
-        "title": "正反例与检查",
-        "paragraphs": [
-          "示例：配件适用两种主机可以两份声明；仅有快充能力不代表已具基本适用证据。"
         ]
       }
     ]

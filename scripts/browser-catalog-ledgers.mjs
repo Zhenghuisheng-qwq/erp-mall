@@ -10,7 +10,7 @@ try{
  browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'chrome',headless:true})
  for(const strict of [false,true]){
   server=await createServer({cacheDir:resolve(runtime,String(strict)),logLevel:'error',define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify(String(strict))},server:{host:'127.0.0.1',port:0,watch:null,hmr:false,ws:false}})
-  const {createHostModelFixture}=await server.ssrLoadModule('/scripts/compatibility-ability-fixtures.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
+  const {createHostModelFixture}=await server.ssrLoadModule('/scripts/catalog-published-fixture.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
   const f=createHostModelFixture(),data=f.data
   data.categories.push({id:'ledger-parent',name:'台账维护父类',parentId:null,sort:999,enabled:true},{id:'ledger-leaf',name:'台账维护末级',parentId:'ledger-parent',sort:1,enabled:true})
   await server.listen();const base=`http://127.0.0.1:${server.httpServer.address().port}`
@@ -44,8 +44,7 @@ try{
   mark(`ledger/${strict}: model create quota retry, real identity, invalid publish protection, independent copy and atomic offline preserve historical records`)
 
   await page.locator('[data-catalog-view="types"]').click();await moreType(saved.id,'删除');await confirm('删除产品类型');await page.locator('[data-catalog-types] .el-alert').waitFor();assert((await read()).productTypes.some(row=>row.id===saved.id));assert.match(await page.locator('[data-catalog-types] .el-alert').innerText(),/引用|不能删除/)
-  await page.goto(`${base}/catalog?view=models&modelId=${f.modelId}&version=${f.versionId}`,{waitUntil:'networkidle'});const snapshot=await raw();await page.locator('[data-catalog-model-compatibility]').click();const dialog=page.getByRole('dialog',{name:'模型适用关系',exact:true});await dialog.waitFor();await dialog.getByRole('button',{name:'关闭',exact:true}).click();assert.equal(await raw(),snapshot)
-  mark(`ledger/${strict}: referenced type deletion stays blocked; model compatibility is readonly with zero business writes`)
+  mark(`ledger/${strict}: referenced type deletion stays blocked; model details preserve publication history`)
   await context.close();await server.close();server=undefined
  }
  assert.deepEqual(errors,[]);console.log(`PASS catalog ledger browser ${groups} groups`)

@@ -60,7 +60,7 @@ assert.deepEqual(filterSummaries(emptyModeQuery('sku'), [category], value => val
 console.log('PASS filter AND/OR/exclusion/range/empty date/hidden fields/immutability')
 
 // List polishing uses the same query contracts; presentation changes never migrate history.
-const {createAccessoryCompatibilityFixture}=await import('./accessory-compatibility-fixtures')
+const {createCatalogProductFixture}=await import('./catalog-product-fixture')
 const {defaultSkuConfig}=await import('../src/domain/skuWorkbenchState')
 const {pinSkuField,clearSkuFilterValues,conditionEntries,setSkuQuickFilterValue,clearSkuQuickFilterValue}=await import('../src/domain/skuQuickFilters')
 const {skuFields}=await import('../src/domain/skuWorkbenchFields')
@@ -68,7 +68,7 @@ const {querySkuWorkbench}=await import('../src/domain/skuWorkbenchQuery')
 const {updateSkuCategorySelection,skuCategorySelection}=await import('../src/domain/skuCategoryFilter')
 const {updateProductCategorySelection,productCategorySelection}=await import('../src/domain/productListQuery')
 const {categoryFilterCaption,categoryChain}=await import('../src/domain/categoryTree')
-const fixture=createAccessoryCompatibilityFixture(),data=fixture.data
+const fixture=createCatalogProductFixture(),data=fixture.data
  data.categories.push({id:'parent',name:'主机',parentId:null,enabled:true,sort:0});data.categories[0]!.parentId='parent';data.categories[0]!.name='手机'
 let config=defaultSkuConfig(),businessBefore=JSON.stringify(data),beforeIds=querySkuWorkbench(data,config).allIds
 config=pinSkuField(config,skuFields(data).find(f=>f.id==='attr:attr-color')!)

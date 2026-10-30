@@ -1,7 +1,7 @@
 import {completePhoneBenefitDemo} from './benefitSales/demo'
+import {replacePhoneCatalogDemo} from './benefitSales/phoneCatalogDemo'
 import { arrangeSpecPositions } from './logic'
 import { buildDefaultView } from './productListViews'
-import { resolveDeviceSku } from './deviceResolution'
 import type { AppData, ColumnPref, ListQuery, ProductSpecNode, Sku } from './types'
 
 const now = '2026-05-10T03:53:00.000Z'
@@ -338,6 +338,8 @@ export function createSeed(includePhoneBenefits=true): AppData {
   const columns = defaultColumns()
   const listQuery = emptyQuery()
   const data: AppData = {
+    phoneDemoCatalogVersion: 1,
+    compatibilities: [],
     mode: 'daily',
     activeRole: 'admin',
     categories: [
@@ -474,8 +476,6 @@ export function createSeed(includePhoneBenefits=true): AppData {
     productPlans: [],
     planningRecords: [],
     materialReceipts: [],
-    compatibilities: [],
-    nodeCompatibilityRules: [],
     rules: [
       rule('r1', 't-phone', 'p-series', ['p-brand'], { 'p-brand': 'Apple' }, ['iPhone 17', 'iPhone 16'], 'Apple 只能选这两个系列'),
       rule('r2', 't-phone', 'p-model', ['p-brand', 'p-series'], { 'p-brand': 'Apple', 'p-series': 'iPhone 17' }, ['iPhone 17', 'iPhone 17 Pro'], 'iPhone 17 系列的型号'),
@@ -539,17 +539,6 @@ export function createSeed(includePhoneBenefits=true): AppData {
   ensureLeafProductTypes(data)
   ensureSalesShelfDemo(data)
   ensureDemoPhonePublished(data)
-  // createSeed is used only for first demonstration initialization or an explicit reset.
-  // Never add evidence while loading existing user records.
-  const demoDevice = resolveDeviceSku(data, 's-iphone-blue')
-  if (demoDevice.status === 'resolved' && demoDevice.host && data.skus.some(s => s.id === 's-case-clear')) {
-    data.compatibilities.push({
-      id: 'demo-benefit-case', accessorySkuId: 's-case-clear', targetKind: 'sku', targetId: 's-case-clear',
-      host: demoDevice.host, capability: 'basic', conclusion: 'compatible', verification: 'confirmed', conditions: [],
-      source: '仅供初始化演示：透明保护壳与演示 iPhone 的适用链，不代表真实商品核验',
-      note: '演示依据', createdAt: now, updatedAt: now,
-    })
-  }
   if(includePhoneBenefits)completePhoneBenefitDemo(data)
   data.skus = data.skus.map((item) => {
     const owner = data.families.find((family) => family.id === item.familyId)
@@ -563,6 +552,7 @@ export function createSeed(includePhoneBenefits=true): AppData {
     })
     return { ...item, projectedAttrs: projected }
   })
+  if(includePhoneBenefits){const result=replacePhoneCatalogDemo(data,defaultColumns(),emptyQuery());if(!result.ok)throw new Error(result.message);return result.next}
   return data
 }
 

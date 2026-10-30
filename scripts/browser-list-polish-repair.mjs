@@ -10,10 +10,10 @@ try{
  browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'chrome',headless:true})
  for(const strict of [false,true]){
   server=await createServer({cacheDir:resolve(runtime,strict?'strict':'default'),logLevel:'error',define:{'import.meta.env.VITE_RBAC_ENFORCEMENT':JSON.stringify(String(strict))},server:{host:'127.0.0.1',port:0,watch:null,hmr:false,ws:false}})
-  const {createAccessoryCompatibilityFixture}=await server.ssrLoadModule('/scripts/accessory-compatibility-fixtures.ts'),{ensureProductListPages}=await server.ssrLoadModule('/src/domain/productListPages.ts'),{emptyModeQuery}=await server.ssrLoadModule('/src/domain/productListQuery.ts'),{defaultSkuConfig,SYSTEM_SKU_VIEW_ID}=await server.ssrLoadModule('/src/domain/skuWorkbenchState.ts'),{ensureRbac}=await server.ssrLoadModule('/src/domain/rbac.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
+  const {createCatalogProductFixture}=await server.ssrLoadModule('/scripts/catalog-product-fixture.ts'),{ensureProductListPages}=await server.ssrLoadModule('/src/domain/productListPages.ts'),{emptyModeQuery}=await server.ssrLoadModule('/src/domain/productListQuery.ts'),{defaultSkuConfig,SYSTEM_SKU_VIEW_ID}=await server.ssrLoadModule('/src/domain/skuWorkbenchState.ts'),{ensureRbac}=await server.ssrLoadModule('/src/domain/rbac.ts'),{DATA_VERSION}=await server.ssrLoadModule('/src/domain/types.ts')
   await server.listen();const base=`http://127.0.0.1:${server.httpServer.address().port}`
   for(const mode of ['spu','sku']){
-   const {data}=createAccessoryCompatibilityFixture();ensureRbac(data);ensureProductListPages(data)
+   const {data}=createCatalogProductFixture();ensureRbac(data);ensureProductListPages(data)
    data.categories=[{id:'root-host',name:'主机',parentId:null,enabled:true,sort:0},{id:'phone',name:'手机',parentId:'root-host',enabled:true,sort:1},{id:'tablet',name:'平板',parentId:'root-host',enabled:true,sort:2},{id:'phone-child',name:'手机下级长分类名称用于横向滚动验证'.repeat(4),parentId:'phone',enabled:true,sort:1},...data.categories]
    data.families.find(f=>f.id==='family-device').categoryId='phone-child';data.families.find(f=>f.id==='family-unbound').categoryId='tablet';data.skus.find(s=>s.id==='phone-a').variantAttrs['颜色']='历史紫色'
    for(const view of data.productListPages.spu.views){view.spuQuery=emptyModeQuery();view.categoryFilterLayout='popover'}

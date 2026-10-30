@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
 import { effectScope, ref } from 'vue'
 import { installCatalogTestLocks } from './catalog-storage-test-env'
-import { createAccessoryCompatibilityFixture } from './accessory-compatibility-fixtures'
+import { createCatalogProductFixture } from './catalog-product-fixture'
 import { useCatalogStore } from '../src/stores/catalog'
 import { useProductListPageDraft } from '../src/components/product-list/useProductListPageDraft'
 import { productListPageData } from '../src/domain/productListPages'
@@ -34,7 +34,7 @@ Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value:
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 async function fixture() {
   disk.clear(); fail = false
-  const { data } = createAccessoryCompatibilityFixture()
+  const { data } = createCatalogProductFixture()
   disk.set(STORAGE_KEY, JSON.stringify({ version: DATA_VERSION, data }))
   setActivePinia(createPinia()); const store = useCatalogStore(); await store.waitForPersistence()
   const scope = effectScope(), temporary = ref<ProductListPageState>()

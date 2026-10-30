@@ -6,7 +6,7 @@
       <p>原存储没有被清空或替换，也没有加载预设商品。请先下载原数据备份，再选择有效备份或已修复的 JSON 文件。</p>
       <el-button :disabled="!original" @click="downloadOriginal">下载原始数据备份</el-button>
       <label class="file-choice">选择备份或已修复的 JSON<input type="file" accept=".json,application/json" data-recovery-file @change="prepare" /></label>
-      <p v-if="candidate" role="status">已校验：{{ candidate.families.length }} 款 SPU、{{ candidate.skus.length }} 条 SKU / MAT、{{ candidate.compatibilities.length }} 条适用声明。确认后替换本机数据并重新打开。</p>
+      <p v-if="candidate" role="status">已校验：{{ candidate.families.length }} 款 SPU、{{ candidate.skus.length }} 条 SKU / MAT。确认后替换本机数据并重新打开。</p>
       <el-alert v-if="error" :title="error" type="error" :closable="false" data-recovery-error />
       <el-button type="primary" :disabled="!candidate" :loading="saving" @click="restore">确认导入并重新打开</el-button>
     </section>
@@ -17,9 +17,6 @@ import { ref, shallowRef } from 'vue'
 import { STORAGE_KEY } from '../domain/types'
 import { restoreCatalogData } from '../stores/catalogPersistence'
 import type { AppData } from '../domain/types'
-import { compatibilityImportProblems } from '../domain/accessoryCompatibilityCommands'
-import { templateCompatibilityImportProblems } from '../domain/templateCompatibility'
-import { templateCompatibilityOriginProblems } from '../domain/templateCompatibilitySync'
 import { normalizeStored } from '../stores/catalog'
 
 defineProps<{ message: string }>()
@@ -45,8 +42,6 @@ async function prepare(event: Event) {
     const parsed = JSON.parse(text) as { version?: number; data?: AppData }
     const data = parsed.data
     if (!data || ![data.families, data.skus, data.categories, data.templates, data.mappings, data.templateParams, data.params].every(Array.isArray)) throw new Error('文件缺少有效商品数据，请检查备份。')
-    const problems = [...compatibilityImportProblems(data), ...templateCompatibilityImportProblems(data), ...templateCompatibilityOriginProblems(data)]
-    if (problems.length) throw new Error(problems.join(' '))
     const normalized = normalizeStored(parsed, { persist: false })
     if (!normalized) throw new Error('数据版本或结构无法读取，原存储保持。')
     candidate.value = normalized

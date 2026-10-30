@@ -139,8 +139,8 @@
             <el-button link type="primary" @click="router.push(`/spus/${row.id}`)">编辑</el-button>
             <el-button link @click="router.push({ path: '/skus/new', query: { spu: row.id } })" :disabled="!(store.can('product:sku:create'))">新增 SKU</el-button>
             <el-dropdown trigger="click"><el-button link :data-spu-more="row.id" :aria-label="`更多 SPU 操作 ${row.name}`">更多</el-button><template #dropdown><el-dropdown-menu>
-            <el-dropdown-item v-if="compatibilityFamilyRole(store.data, row.id) === 'host' && realCount(row.id)" :data-spu-compatibility="row.id" @click.stop="openCompatibilityFamily(row.id)">适用配件</el-dropdown-item>
-            <el-dropdown-item v-else-if="row.line === 'v3'" @click="router.push(compatTarget(row))" :disabled="!(store.can('product:compatibility:read'))">{{ compatTitle(row) }}</el-dropdown-item>
+
+
             <el-dropdown-item v-if="row.line === 'v3'" @click="router.push(`/materials/${row.id}`)" :disabled="!(store.can('product:material:read'))">管理物料</el-dropdown-item>
             <el-dropdown-item @click="copyFamily(row.id)" :disabled="!(store.can('product:spu:create'))">复制 SPU</el-dropdown-item>
             <el-dropdown-item @click="removeFamily(row.id, row.name)" :disabled="!(store.can('product:spu:delete'))">删除</el-dropdown-item>
@@ -227,7 +227,7 @@
       @value="setConditionValue" @remove="removeCondition"
       @expose="(field, exposed) => setViewExposed(listData, field, exposed)"
     />
-    <AccessoryCompatibilityDrawer v-model="compatibilityOpen" :family-id="compatibilityFamilyId" />
+
   </div>
 </template>
 
@@ -239,8 +239,6 @@ import { useProductListPageDraft } from '../components/product-list/useProductLi
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import CategoryFilterTree from '../components/CategoryFilterTree.vue'
 import ProductListFilterDialog from '../components/product-list/ProductListFilterDialog.vue'
-import AccessoryCompatibilityDrawer from '../components/compatibility/AccessoryCompatibilityDrawer.vue'
-import { compatibilityFamilyRole } from '../domain/deviceResolution'
 import { conditionRange, filterOperators, filterSummaries, quickFilterState, type FilterEditorRow, type FilterField } from '../components/product-list/filterPresentation'
 import PageHead from '../components/PageHead.vue'
 import ProductListViewTools from '../components/product-list/ProductListViewTools.vue'
@@ -252,7 +250,6 @@ import { useProductListManualOrder } from '../components/product-list/useProduct
 import { useProductListCategoryLayout } from '../components/product-list/useProductListCategoryLayout'
 import { presentTableGroups } from '../components/product-list/tablePresentation'
 import { familyBrandText, familyBrandValues, isRealSku, linkedModelName, materialArchivesOf, productTypeName, realSkusOf, savedSkuCode, savedSkuName, savedSkuSpec, skuCountText } from '../domain/productList'
-import { catalogRole, compatibilitySkuBlock, roleOfType } from '../domain/compatibility'
 import { categoryPath, shelfOf, shelfText, templateById } from '../domain/logic'
 import { materialPlanningIds } from '../domain/materialRelations'
 import { fixedListWidth, contentListWidth } from '../components/product-list/columnPresentation'
@@ -265,8 +262,6 @@ import { uid, useCatalogStore } from '../stores/catalog'
 
 const { mode } = defineProps<{ mode: ProductListMode }>()
 const store = useCatalogStore()
-const compatibilityOpen = ref(false), compatibilityFamilyId = ref('')
-function openCompatibilityFamily(id: string) { compatibilityFamilyId.value = id; compatibilityOpen.value = true }
 const router = useRouter()
 const route = useRoute()
 const scopeId = computed(() => mode === 'sku' && typeof route.query.spu === 'string' ? route.query.spu : '')
@@ -316,8 +311,6 @@ const skuSelections = reactive<Record<string, string[]>>({})
 const skuIds = computed(() => [...new Set(Object.values(skuSelections).flat())].filter(id => store.data.skus.some(item => item.id === id && isRealSku(store.data, item))))
 function onSkuSelect(group: string, rows: { id: string }[]) { skuSelections[group] = rows.map(row => row.id) }
 async function removeSkuMany() {
-  const blocked = skuIds.value.map(id => compatibilitySkuBlock(store.data, id)).find(Boolean)
-  if (blocked) { ElMessage.warning(blocked); return }
   try { await ElMessageBox.confirm(`删除选中的 ${skuIds.value.length} 条 SKU？SPU 会保留。`, '批量删除 SKU') } catch { return }
   skuIds.value.forEach(id => store.removeSku(id))
   if (!await flushListChanges()) return
@@ -669,18 +662,6 @@ async function saveFilter() {
   const view: ListView = { id: uid('view'), name: `筛选${page.listViews.length}`, query: { ...JSON.parse(JSON.stringify(query.value)), page: 1 }, columns: [], keyword: activeQuery.value.keyword, viewFilters: JSON.parse(JSON.stringify(activeQuery.value.filters)) }
   page.listViews.push(view); page.activeViewId = view.id
   if(await persistPage())ElMessage.success('筛选预设已保存，不会创建新视图')
-}
-function familyRole(row: ProductFamily) {
-  if (row.productTypeId) return roleOfType(store.data, row.productTypeId)
-  return catalogRole(store.data, row.categoryId)
-}
-function compatTitle(row: ProductFamily) {
-  return familyRole(row) === 'accessory' ? '适用主机' : '适用配件'
-}
-function compatTarget(row: ProductFamily) {
-  if (familyRole(row) !== 'accessory') return `/compatibility?family=${row.id}`
-  const material = materialArchivesOf(store.data, row.id)[0]
-  return material ? `/compatibility?sku=${material.id}` : '/compatibility'
 }
 function copyFamily(id: string) {
   const family = store.data.families.find((item) => item.id === id)

@@ -6,13 +6,13 @@
       <section><h3>发布版本与当前草稿</h3><div class="version-controls"><el-select :model-value="selectedVersion||'$draft'" aria-label="模型详情版本" @change="chooseVersion"><el-option value="$draft" label="当前工作草稿"/><el-option v-for="item in versions" :key="item.id" :value="item.id" :label="`${item.versionName||`V${item.version}`} · ${item.status==='published'?'已发布':'已下线'}`"/></el-select><el-button v-if="canOpenDesigner" :disabled="!!versionProblem" @click="openDesigner(true)" data-catalog-view-design>{{selectedVersion?'查看此版本设计':'查看当前设计'}}</el-button><el-button v-if="canEditDesigner" @click="openDesigner(false)" data-catalog-edit-design>编辑当前草稿</el-button></div><p v-if="versionProblem" class="error">{{versionProblem}}</p><p v-else class="muted">{{selectedVersion?`正在查看 ${selectedVersionLabel} 的发布快照，历史版本只读。`:'当前工作草稿与已发布版本分别保留；此处不会自动发布。'}}</p><p v-if="!versions.length" class="muted">尚无发布版本。</p><ul v-else class="version-list"><li v-for="item in versions" :key="item.id"><button class="record-link" @click="chooseVersion(item.id)">{{item.versionName||`V${item.version}`}}</button><span>{{item.status==='published'?'已发布':'已下线'}}</span><time>{{item.publishTime?.replace('T',' ').slice(0,19)||'发布时间未记录'}}</time></li></ul></section>
       <section><h3>关联商品</h3><div class="detail-metrics"><template v-for="kind in ['spus','skus','materials'] as const" :key="kind"><button v-if="model.metrics[kind].readable" class="metric" :data-catalog-model-metric="kind" @click="showMetric(kind)">{{metricLabels[kind]}} {{model.metrics[kind].count}}</button><span v-else class="muted">{{metricLabels[kind]}} 不可查看</span></template></div><p class="muted" :title="CATALOG_SPU_DEFINITION">按明确模型关联及已记录规格来源，统计此模型全部版本的商品；缺少创建来源的记录会单独标明。{{CATALOG_SPU_DEFINITION}}</p></section>
       <section><h3>规格与规划</h3><div v-if="store.can('product:planning:read')" class="detail-metrics"><span>{{selectedVersion?'当前版本':'模型全部版本'}}已记录规划 {{planningCount}} 条</span></div><p v-else class="muted">规划资料不可查看</p><div v-if="selectedVersion&&!versionProblem"><el-button :loading="calculating" @click="loadCombinationSummary">{{combinationSummary?'重新核对合法组合':'按此发布版本核对合法组合'}}</el-button><p v-if="combinationSummary" role="status" class="muted">{{combinationSummary}}</p></div><p v-else class="muted">选择明确发布版本后，可按需核对合法组合；列表浏览不会展开全部规格。</p></section>
-      <section v-if="store.canRoute({path:'/benefits/manage'})"><h3>权益包</h3><el-button data-model-bundles @click="router.push({path:'/benefits/manage',query:{model:model.id,version:selectedVersion||undefined,returnTo}})">查看与编辑权益包</el-button><p class="muted">同一份产品类型组合，可跨分类引用；设备只用于本次选购。</p></section>
-      <section><h3>适用关系</h3><p>{{directionLabel}}</p><p v-if="store.can('product:compatibility:read')" class="muted">{{compatibilitySummary}}</p><p v-else class="muted">适用关系配置不可查看</p><el-button v-if="canOpenWorkspace" :disabled="!!versionProblem" data-catalog-model-compatibility @click="openWorkspace(true)">查看适用关系</el-button><p v-if="!canOpenWorkspace&&store.can('product:compatibility:read')" class="muted">适用关系工作区需可读取商品、类型与适用关系；当前可读摘要已保留。</p></section>
+      <section v-if="store.canRoute({path:'/benefits/manage'})"><h3>权益包</h3><el-button data-model-bundles @click="router.push({path:'/benefits/manage',query:{model:model.id,version:selectedVersion||undefined,returnTo}})">查看与编辑权益包</el-button><p class="muted">产品类型集合可跨分类引用。</p></section>
+
       <section><h3>待处理</h3><template v-if="model.metrics.pending.readable"><p v-if="!issues.length" class="muted">暂无已记录待处理事项。</p><ul v-else class="issue-list"><li v-for="issue in issues" :key="issue.id"><el-tag :type="issue.level==='error'?'danger':'info'">{{issue.level==='error'?'引用错误':'待完善'}}</el-tag><span>{{issue.message}}</span></li></ul><button v-if="model.metrics.pending.count" class="metric" @click="showMetric('pending')">查看关联范围 {{model.metrics.pending.count}} 条受影响记录</button></template><p v-else class="muted">不可查看</p></section>
     </template><el-empty v-else description="模型不存在或当前身份不可读取"/>
     <template #footer><el-button @click="close()">返回资料管理</el-button></template>
   </el-dialog>
-  <ModelCompatibilityDialog v-if="model&&workspaceOpen&&workspaceReadonly&&canOpenWorkspace" ref="workspace" v-model="workspaceOpen" :model-id="model.id" :version-id="selectedVersion||null" :readonly="workspaceReadonly"/>
+
 </template>
 <script setup lang="ts">
 import {computed,ref,watch} from 'vue'
@@ -20,37 +20,25 @@ import {useRouter} from 'vue-router'
 import {useCatalogStore} from '../../stores/catalog'
 import {CATALOG_SPU_DEFINITION,type CatalogWorkspaceIndex,type CatalogMetricKind} from '../../domain/catalogWorkspaceQuery'
 import {modelSpecificationContext} from '../../domain/modelSourceContext'
-import {templateBusinessRole} from '../../domain/templateHostCompatibility'
-import ModelCompatibilityDialog from '../template-compatibility/ModelCompatibilityDialog.vue'
 const props=defineProps<{modelId:string;version?:string;returnTo:string;index:CatalogWorkspaceIndex}>()
 const emit=defineEmits<{close:[];version:[string];details:[{kind:CatalogMetricKind;ids:string[];title:string}]}>()
-const store=useCatalogStore(),router=useRouter(),selectedVersion=ref(''),workspaceOpen=ref(false),workspaceReadonly=ref(true),calculating=ref(false),combinationSummary=ref('')
-const workspace=ref<InstanceType<typeof ModelCompatibilityDialog>>()
+const store=useCatalogStore(),router=useRouter(),selectedVersion=ref(''),calculating=ref(false),combinationSummary=ref('')
 const model=computed(()=>store.can('product:model:read')?props.index.modelRows.find(row=>row.id===props.modelId):undefined)
 const versions=computed(()=>store.can('product:model:read')?store.data.specModelVersions.filter(row=>row.templateId===props.modelId).slice().sort((a,b)=>b.version-a.version||b.id.localeCompare(a.id)):[])
 const chosenVersion=computed(()=>versions.value.find(row=>row.id===selectedVersion.value)),selectedVersionLabel=computed(()=>chosenVersion.value?.versionName||selectedVersion.value)
 const versionProblem=computed(()=>selectedVersion.value&&!chosenVersion.value?'指定版本已不存在或不属于此模型；未切换到其他版本。':'')
 const canOpenDesigner=computed(()=>store.canRoute({path:'/specs'})&&store.can('product:model:read')),canEditDesigner=computed(()=>canOpenDesigner.value&&store.can('product:model:update'))
 const planningCount=computed(()=>store.can('product:planning:read')?new Set(store.data.planningRecords.filter(row=>row.productModelId===props.modelId&&(!selectedVersion.value||row.modelVersionId===selectedVersion.value||row.originModelVersionId===selectedVersion.value||row.modelVersionIds?.includes(selectedVersion.value))).map(row=>row.planningId)).size:0)
-const role=computed(()=>store.can('product:type:read')?templateBusinessRole(store.data,props.modelId):'unknown')
-const directionLabel=computed(()=>!store.can('product:type:read')?'模板业务方向不可查看':role.value==='host'?'手机／主机模板：反查适配配件':role.value==='accessory'?'配件模板：配置适用机型':role.value==='other'?'业务用途为其他；不提供主机／配件适用配置':'业务用途未指定；请维护产品类型，不根据名称猜测适用方向')
-const compatibilitySummary=computed(()=>{if(!store.can('product:compatibility:read'))return '不可查看';if(role.value==='host')return '适配配件按当前明确版本与真实设备上下文查询。';const config=selectedVersion.value?chosenVersion.value?.templateCompatibilitySnapshot?.config:store.data.templateCompatibilityConfigs?.find(row=>row.modelId===props.modelId);return config?`${selectedVersion.value?'此版本快照':'当前工作配置'}：${config.defaultRule.configured?`默认 ${config.defaultRule.claims.length} 条声明`:'默认未配置'} · ${config.exceptions.length} 项范围设置`:'适用关系未配置或未记录'})
-// The existing workspace presents actual SKU, type, compatibility and planning identities together.
-// Keep its full context behind the corresponding read permissions instead of leaking those records via model read.
-const canOpenWorkspace=computed(()=>!!model.value&&store.can('product:type:read')&&store.can('product:sku:read')&&store.can('product:compatibility:read')&&store.can('product:planning:read'))
 const issues=computed(()=>props.index.issues.filter(row=>row.kind==='models'&&row.recordId===props.modelId))
 const metricLabels={spus:'SPU',skus:'销售 SKU',materials:'MAT',pending:'待处理'}
 function showMetric(kind:'spus'|'skus'|'materials'|'pending'){const metric=model.value?.metrics[kind];if(metric?.readable)emit('details',{kind,ids:[...metric.ids],title:`${model.value!.name} · ${metricLabels[kind]}`})}
-function chooseVersion(id:string){if(workspaceOpen.value)return;selectedVersion.value=id==='$draft'?'':id;combinationSummary.value='';emit('version',selectedVersion.value)}
-function openWorkspace(readonly:boolean){if(versionProblem.value||!canOpenWorkspace.value)return;workspaceReadonly.value=readonly;workspaceOpen.value=true}
+function chooseVersion(id:string){selectedVersion.value=id==='$draft'?'':id;combinationSummary.value='';emit('version',selectedVersion.value)}
 function openDesigner(view:boolean){if(!model.value||!canOpenDesigner.value||!view&&!canEditDesigner.value||view&&versionProblem.value)return;router.push({path:'/specs',query:{template:model.value.id,...(view?{mode:'view'}:{}),...(view&&selectedVersion.value?{version:selectedVersion.value}:{}),returnTo:props.returnTo}})}
 async function loadCombinationSummary(){if(!selectedVersion.value||versionProblem.value||!model.value)return;calculating.value=true;try{const context=modelSpecificationContext(store.data,model.value.id,selectedVersion.value);combinationSummary.value=context.issues.length?context.issues.map(item=>item.message).join('；'):`${selectedVersionLabel.value}：${context.combinations.length} 条合法组合。该数量不等于已建 SKU 数。`}finally{calculating.value=false}}
-async function canLeave(){return !workspaceOpen.value||!workspace.value||await workspace.value.canLeave()}
-function acceptContextChange(){workspace.value?.acceptContextChange();workspaceOpen.value=false}
-async function close(done?:()=>void){if(!await canLeave())return;acceptContextChange();emit('close');done?.()}
+async function close(done?:()=>void){emit('close');done?.()}
 watch(()=>[props.modelId,props.version],()=>{selectedVersion.value=props.version||'';combinationSummary.value=''},{immediate:true})
-watch(()=>[store.activeUserId,store.previewUserId,store.can('product:model:read')],()=>{workspaceOpen.value=false;combinationSummary.value='';emit('close')})
-defineExpose({canLeave,acceptContextChange})
+watch(()=>[store.activeUserId,store.previewUserId,store.can('product:model:read')],()=>{combinationSummary.value='';emit('close')})
+
 </script>
 <style scoped>
 .model-heading,.detail-metrics,.version-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.model-heading{justify-content:space-between}.model-heading h2{margin:0}.muted{color:var(--el-text-color-secondary);font-size:12px;line-height:1.7;overflow-wrap:anywhere}.model-facts{margin:20px 0}.model-facts>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;margin:10px 0}.model-facts dt{color:var(--el-text-color-secondary)}.model-facts dd{margin:0;overflow-wrap:anywhere}section{padding:14px 0;border-top:1px solid var(--el-border-color-lighter)}h3{font-size:14px;margin:0 0 14px}.version-controls .el-select{width:230px}.version-list,.issue-list{list-style:none;padding:0}.version-list li,.issue-list li{display:flex;align-items:center;gap:12px;padding:8px 0;flex-wrap:wrap}.version-list time{color:var(--el-text-color-secondary);font-size:12px}.metric,.record-link{border:0;background:none;color:var(--el-color-primary);cursor:pointer;padding:3px 0;text-align:left;font:inherit}.metric:focus-visible,.record-link:focus-visible{outline:2px solid var(--el-color-primary);outline-offset:3px}.error{color:var(--el-color-danger);font-size:13px}@media(max-width:600px){.model-facts>div{grid-template-columns:85px minmax(0,1fr)}.version-controls .el-select{width:100%}}

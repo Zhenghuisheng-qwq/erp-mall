@@ -27,7 +27,6 @@ export interface AccessoryCategoryFixReport {
   planningCount: number
   familyIds: string[]
   materialCodes: string[]
-  linkCount: number
 }
 
 function emptyReport(productTypeId: string, message: string, ok = false): AccessoryCategoryFixReport {
@@ -45,7 +44,6 @@ function emptyReport(productTypeId: string, message: string, ok = false): Access
     planningCount: 0,
     familyIds: [],
     materialCodes: [],
-    linkCount: 0,
   }
 }
 
@@ -74,14 +72,12 @@ function collect(data: AppData, productTypeId: string) {
   const families = data.families.filter((item) => item.productTypeId === productTypeId)
   const familyIds = new Set(families.map((item) => item.id))
   const materials = data.skus.filter((item) => familyIds.has(item.familyId))
-  const links = (data.compatibilities || []).filter((item) => item.host.productTypeId === productTypeId || familyIds.has(data.skus.find((sku) => sku.id === item.accessorySkuId)?.familyId || ''))
   return {
     modelIds,
     published: data.specModelVersions.filter((item) => item.status === 'published' && modelIds.has(item.templateId)),
     planning: (data.planningRecords || []).filter((item) => modelIds.has(item.productModelId)),
     families,
     materials,
-    links,
   }
 }
 
@@ -109,7 +105,6 @@ export function applyAccessoryCategoryFix(data: AppData, input: AccessoryCategor
     planningCount: scope.planning.length,
     familyIds: scope.families.map((item) => item.id),
     materialCodes: scope.materials.map((item) => item.materialCode || '').filter(Boolean),
-    linkCount: scope.links.length,
   }
   const done = type.categoryId === target.id && type.catalogRole === 'accessory' && scope.families.every((item) => item.categoryId === target.id)
   if (done) return { ok: true, changed: false, message: '分类和配件身份已经改过，没有再次修改。', ...base }
@@ -120,8 +115,6 @@ export function applyAccessoryCategoryFix(data: AppData, input: AccessoryCategor
   if (sameName) return { ok: false, changed: false, message: '目标分类下已有同名产品类型，没有修改。', ...base }
   const elsewhere = scope.families.filter((item) => item.categoryId !== type.categoryId && item.categoryId !== target.id)
   if (elsewhere.length) return { ok: false, changed: false, message: `有 ${elsewhere.length} 款商品不在原分类，也不在目标分类，没有修改。`, ...base }
-  const hostLinks = scope.links.filter((item) => item.host.productTypeId === type.id)
-  if (hostLinks.length) return { ok: false, changed: false, message: `已有 ${hostLinks.length} 条适用关系把这个产品类型当主机，没有修改。`, ...base }
   const seen = new Set<string>()
   for (const family of scope.families) {
     const key = familySignature(family)

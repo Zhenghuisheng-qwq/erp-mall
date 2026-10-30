@@ -1,5 +1,4 @@
 import { specPublishProblems, sameSpecSnapshot } from './logic'
-import { nodeHostSignature } from './nodeCompatibility'
 import { legalPlanningCombinations, summarizePlanningCombinations } from './planning'
 import type { AppData, ProductSpecNode } from './types'
 
@@ -21,13 +20,6 @@ export interface DraftComboPreview {
   reliableDelta: boolean
   sameAsPublished: boolean
 }
-
-function hostRulesDiffer(data: AppData, templateId: string, modelVersionId: string) {
-  const rules = data.nodeCompatibilityRules || []
-  const draft = rules.filter((item) => item.templateId === templateId && item.modelVersionId === '')
-  const frozen = rules.filter((item) => item.modelVersionId === modelVersionId)
-  return nodeHostSignature(draft) !== nodeHostSignature(frozen)
-}
 export function previewDraftCombinations(data: AppData, templateId: string, nodes: ProductSpecNode[]): DraftComboPreview {
   const published = (data.specModelVersions || [])
     .filter((item) => item.templateId === templateId && item.status === 'published')
@@ -42,7 +34,7 @@ export function previewDraftCombinations(data: AppData, templateId: string, node
     nextVersionName,
     previousVersionName,
     previousCount: previousCombos.length,
-    sameAsPublished: Boolean(latest && sameSpecSnapshot(latest.nodesSnapshot, nodes) && !hostRulesDiffer(data, templateId, latest.id)),
+    sameAsPublished: Boolean(latest && sameSpecSnapshot(latest.nodesSnapshot, nodes)),
   }
   if (problems.length) {
     return { ...base, problems, rows: [], added: 0, reused: 0, reliableDelta: false }

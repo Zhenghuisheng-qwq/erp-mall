@@ -1,7 +1,6 @@
 import { isMaterialArchive } from './catalogIdentity'
 import type { AppData, PlanningStep, Sku } from './types'
 import type { NodeBusinessConfig } from './nodeBusiness'
-import type { TemplateCompatibilityClaim } from './templateCompatibilityTypes'
 
 export interface MaterialScope {
   kind: 'planning' | 'node'
@@ -26,17 +25,6 @@ export interface MaterialRelation {
   requestId: string
   requestIntent?: string
   requestAliases?: { requestId: string; intent: string }[]
-}
-export interface MaterialContribution {
-  id: string
-  materialId: string
-  declarationId: string
-  baseline: TemplateCompatibilityClaim
-  /** Stable source pairs survive unlink and content changes; absent on legacy records. */
-  lineage?: { modelId: string; ruleId: string; claimId: string }[]
-  generated: boolean
-  owners: { relationId: string; planningId: string; ruleIds: string[]; claimIds: string[]; origins?: { ruleId: string; claimId: string }[] }[]
-  state: 'managed' | 'modified' | 'deleted' | 'retired'
 }
 export const activeMaterialRelations = (data: AppData) => (data.materialRelations || []).filter(r => r.kind === 'scope-v1' && r.lifecycle === 'active')
 export function relatedMaterials(data: AppData, planningId: string, versionId?: string): Sku[] {

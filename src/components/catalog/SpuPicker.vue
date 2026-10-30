@@ -15,7 +15,7 @@
 import { computed, ref } from 'vue'
 import { categoryPath } from '../../domain/logic'
 import { productTypeName, realSkusOf } from '../../domain/productList'
-import { planSpuCompatibility } from '../../domain/spuSku'
+import { planSpuSourceProblem } from '../../domain/spuSku'
 import { useCatalogStore } from '../../stores/catalog'
 const props = defineProps<{ modelValue: string; templateId?: string; planId?: string }>()
 const emit = defineEmits<{ change: [id: string] }>()
@@ -23,7 +23,7 @@ const store = useCatalogStore()
 const keyword = ref('')
 const rows = computed(() => store.data.families.map(family => {
   const description = [categoryPath(store.data, family.categoryId), productTypeName(store.data, family), Object.entries(family.commonAttrs).map(([name, value]) => `${name}：${value}`).join(' / ')].filter(Boolean).join(' · ')
-  const reason = props.planId ? planSpuCompatibility(store.data, family, props.planId) : props.templateId && family.templateId !== props.templateId ? '所属模型或属性方案不同' : ''
+  const reason = props.planId ? planSpuSourceProblem(store.data, family, props.planId) : props.templateId && family.templateId !== props.templateId ? '所属模型或属性方案不同' : ''
   return { family, description, reason, count: realSkusOf(store.data, family.id).length }
 }).filter(row => `${row.family.name} ${row.family.oaProductId} ${row.description}`.toLocaleLowerCase().includes(keyword.value.trim().toLocaleLowerCase())).sort((a, b) => Number(Boolean(a.reason)) - Number(Boolean(b.reason))))
 </script>

@@ -36,9 +36,9 @@ export const SUPER_ROLE_ID = 'role:super-admin'
 export const OPERATOR_ROLE_ID = 'role:operator'
 export const RECOVERY_PERMISSIONS = ['system:menu:read', 'system:menu:update', 'system:role:read', 'system:role:grant', 'system:user:read', 'system:user:bind', 'system:permission:read', 'system:permission:update']
 
-export const bundleShoppingReads=['product:category:read','product:type:read','product:sku:read','product:spu:read','product:compatibility:read']
 const resources: { module: string; resource: string; label: string; route: string; actions: string[] }[] = [
-  {module:'商品中心',resource:'type-bundle',label:'权益包',route:'/benefits/manage',actions:['create','update']},
+  {module:'商品中心',resource:'compatibility',label:'兼容性',route:'/compatibility',actions:['create','update','delete']},
+  {module:'商品中心',resource:'type-bundle',label:'权益包',route:'/benefits/manage',actions:['create','update','delete']},
   {module:'商品中心',resource:'bundle-sale',label:'选购清单',route:'/benefits/shopping',actions:['create','update','confirm']},
   { module: '系统管理', resource: 'guide', label: '系统功能说明', route: '/guide', actions: ['update'] },
   { module: '商品中心', resource: 'workbench', label: '商品工作台', route: '/', actions: [] },
@@ -54,7 +54,6 @@ const resources: { module: string; resource: string; label: string; route: strin
   { module: '商品中心', resource: 'rule', label: '规格约束', route: '/rules', actions: ['create','update','delete'] },
   { module: '商品中心', resource: 'brand', label: '品牌', route: '/brands', actions: ['create','update','delete'] },
   { module: '商品中心', resource: 'group', label: '运营分组', route: '/groups', actions: ['create','update','delete'] },
-  { module: '商品中心', resource: 'compatibility', label: '适用关系与设备型号', route: '/compatibility', actions: ['create','update','delete'] },
   { module: '商品中心', resource: 'view', label: '列表视图与列配置', route: '/products?panel=columns', actions: ['update'] },
   { module: '开发工具', resource: 'import', label: '商品导入', route: '/import', actions: ['execute'] },
   { module: '开发工具', resource: 'export', label: '商品导出', route: '/import', actions: ['execute'] },
@@ -89,7 +88,7 @@ export function permissionRegistry(): RbacPermission[] {
 export function routePermissions(path: string, query: Record<string,unknown> = {}): string[] | null {
   const clean = path.split('?')[0] || '/'
   if(clean==='/benefits/manage')return ['product:type-bundle:read','product:category:read','product:type:read']
-  if(clean==='/benefits/shopping')return ['product:bundle-sale:read',...bundleShoppingReads]
+  if(clean==='/benefits/shopping')return ['product:bundle-sale:read','product:sku:read','product:spu:read','product:type:read','product:compatibility:read']
   // Retired maintenance routes redirect to the read-only module; keep stored permission codes compatible.
   if(clean==='/guide/manage'||clean==='/guide/learn')return ['system:guide:read']
   if(clean==='/guide'||/^\/guide\/(articles|learn)\/[^/]+$/.test(clean))return ['system:guide:read']
@@ -103,7 +102,8 @@ export function routePermissions(path: string, query: Record<string,unknown> = {
     if (query.add || query.copySku) return ['product:sku:read','product:sku:create']
     return ['product:spu:read']
   }
-  const exact: Record<string,string> = { '/':'product:workbench:read','/products':'product:spu:read','/spus':'product:spu:read','/skus':'product:sku:read','/materials':'product:material:read','/models':'product:model:read','/specs':'product:model-designer:read','/templates':'product:template:read','/params':'product:dictionary:read','/product-types':'product:type:read','/categories':'product:category:read','/rules':'product:rule:read','/mappings':'product:template:read','/brands':'product:brand:read','/groups':'product:group:read','/compatibility':'product:compatibility:read','/import':'product:import:read','/plans':'product:planning:read','/tree':'product:tree:read','/overview':'product:overview:read','/check':'product:check:read','/menus':'system:menu:read','/roles':'system:role:read','/permissions':'system:permission:read','/users':'system:user:read','/feedback':'system:feedback:read','/account':'system:account:read' }
+  const exact: Record<string,string> = { '/compatibility':'product:compatibility:read', '/':'product:workbench:read','/products':'product:spu:read','/spus':'product:spu:read','/skus':'product:sku:read','/materials':'product:material:read','/models':'product:model:read','/specs':'product:model-designer:read','/templates':'product:template:read','/params':'product:dictionary:read','/product-types':'product:type:read','/categories':'product:category:read','/rules':'product:rule:read','/mappings':'product:template:read','/brands':'product:brand:read','/groups':'product:group:read','/import':'product:import:read','/plans':'product:planning:read','/tree':'product:tree:read','/overview':'product:overview:read','/check':'product:check:read','/menus':'system:menu:read','/roles':'system:role:read','/permissions':'system:permission:read','/users':'system:user:read','/feedback':'system:feedback:read','/account':'system:account:read' }
+  if(clean==='/compatibility')return ['product:compatibility:read','product:sku:read','product:type:read','product:category:read']
   if (exact[clean]) return [exact[clean]]
   for (const [base, resource] of [['spus','spu'],['skus','sku'],['materials','material'],] as const) {
     if (clean === `/${base}/new`) return [`product:${resource}:read`,`product:${resource}:create`]
@@ -162,7 +162,7 @@ export function ensureRbac(data: AppData, legacyMenus: MenuNode[] = defaultMenuN
     }
     if(saved&&saved.guideAccessVersion===undefined)saved.guideAccessVersion=1
     if(saved&&Array.isArray(saved.permissions)&&Array.isArray(saved.roles)){
-      const additions=permissionRegistry().filter(p=>['type-bundle','bundle-sale'].includes(p.resource)&&!saved.permissions.some(old=>old.code===p.code))
+      const additions=permissionRegistry().filter(p=>['type-bundle','bundle-sale','compatibility'].includes(p.resource)&&!saved.permissions.some(old=>old.code===p.code))
       saved.permissions.push(...additions)
       for(const role of saved.roles)if(role.id===SUPER_ROLE_ID&&role.builtIn&&role.superAdmin)role.permissionCodes=[...new Set([...role.permissionCodes,...additions.map(p=>p.code)])]
     }
@@ -284,9 +284,10 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
     if (dictionary && name && !dictionary.values.includes(name)) codes.push('product:dictionary:update')
     return codes
   }
-  if(name==='commitGeneralCompatibility')return ['product:compatibility:read',...new Set((Array.isArray(args[0])?args[0]:[]).map((c:{kind?:string})=>`product:compatibility:${c.kind==='add'?'create':c.kind==='edit'?'update':'delete'}`))]
+  if(name==='saveCompatibilityWorkspace')return ['product:compatibility:read','product:sku:read','product:type:read',...new Set([...(args[0] as {kind:string}[]||[]),...(args[1] as {kind:string}[]||[])].map(c=>'product:compatibility:'+(c.kind==='add'?'create':c.kind==='edit'?'update':'delete')))]
+  if(name==='saveBundleSale')return [...save('bundle-sale',Boolean(first?.id)),'product:sku:read','product:spu:read','product:type:read','product:compatibility:read',...(first?.status==='confirmed'?['product:bundle-sale:confirm']:[])]
   if(name==='saveTypeBundle')return [...save('type-bundle',Boolean(first?.id)),'product:category:read','product:type:read']
-  if(name==='saveBundleSale')return [...save('bundle-sale',Boolean(first?.id)),...bundleShoppingReads,...((first?.scope as {mode?:string}|undefined)?.mode==='group'?['product:type-bundle:read']:[]),...(first?.status==='confirmed'?['product:bundle-sale:confirm']:[])]
+  if(name==='removeTypeBundle')return ['product:type-bundle:read','product:type-bundle:delete']
   if (name === 'saveRule') return save('rule',Boolean(data?.rules.some(rule => rule.id === first?.id)))
   if (name === 'saveTemplateScheme') {
     const id=typeof first?.id==='string'?first.id:''
@@ -305,23 +306,21 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
   }
   if (name === 'saveProductType' || name === 'commitProductType') return save('type',Boolean(data?.productTypes.some(item => item.id === first?.id)))
   if (name === 'commitProductTypeAction') return [`product:type:${args[1]==='delete'?'delete':'update'}`]
-  if (name === 'saveDeviceModel') return save('compatibility',Boolean(data?.deviceModels?.some(item => item.id === first?.id)))
-  if (name === 'commitCompatibilityChanges') return [...new Set((args[0] as {kind:string}[] || []).map(change => `product:compatibility:${change.kind === 'remove' ? 'delete' : change.kind === 'add' ? 'create' : 'update'}`))]
   if (name === 'removeTemplate') return [`product:${data ? templateAccessResource(data,String(args[0])) : 'template'}:delete`]
   const bindings: Record<string,string[]> = {
-    saveTemplateCompatibility:['product:model:update'],applyTemplateCompatibilitySync:['product:compatibility:update'],saveModelDraft:['product:model:update'],saveNodeBusiness:['product:model:update'],saveBusinessDefinition:['product:model:update'],copyProductModel:['product:model:create'],createProductModel:['product:model:create'],publishSpecModel:['product:model:publish'],removeSpecNode:['product:model:update'],shiftSpecNode:['product:model:update'],
+    saveModelDraft:['product:model:update'],saveNodeBusiness:['product:model:update'],saveBusinessDefinition:['product:model:update'],copyProductModel:['product:model:create'],createProductModel:['product:model:create'],publishSpecModel:['product:model:publish'],removeSpecNode:['product:model:update'],shiftSpecNode:['product:model:update'],
     commitMaterialImport:['product:material:import'],createMaterial:['product:material:create'],createTemporary:['product:material:create'],saveMaterialRelation:['product:material:create'],unlinkMaterialRelation:['product:material:delete'],updateMaterial:['product:material:update'],renameProduct:['product:material:update'],markPlanningGrades:['product:planning:update'],
     appendSkus:['product:sku:create'],editSku:['product:sku:update'],patchSku:['product:sku:update'],setSkuStatus:['product:sku:update'],removeSku:['product:sku:delete'],removeFamily:['product:spu:delete'],
-    commitDeviceBinding:['product:compatibility:update'],clearDeviceBinding:['product:compatibility:update'],removeDeviceModel:['product:compatibility:delete'],
+
     addParamValue:['product:dictionary:update'],appendDictionaryValues:['product:dictionary:update'],removeParam:['product:dictionary:delete'],removeParamValue:['product:dictionary:update'],removeProductType:['product:type:delete'],setProductTypeStatus:['product:type:update'],setProductModelStatus:['product:model:update'],
     commitCategoryMove:['product:category:update'],commitCategoryMoves:['product:category:update'],renameCategoryName:['product:category:update'],
     addCategory:['product:category:create'],copyCategory:['product:category:create'],moveCategory:['product:category:update'],shiftCategory:['product:category:update'],relocateCategory:['product:category:update'],updateCategory:['product:category:update'],removeCategory:['product:category:delete'],setCategoryMapping:['product:template:update'],removeGroup:['product:group:delete'],
     commitSpuPage:['product:view:update'],commitSkuPage:['product:sku:read'],saveView:['product:view:update'],applyView:['product:spu:read'],removeView:['product:view:update'],
-    exportJson:['product:export:execute'],importJson:['product:import:execute'],supplementPhoneDemo:['system:data:reset'],resetAll:['system:data:reset'],resetModule:['system:data:reset'],
+    exportJson:['product:export:execute'],importJson:['product:import:execute'],supplementPhoneDemo:['system:data:reset'],rebuildPhoneCatalogDemo:['system:data:reset'],supplementPhone18Demo:['system:data:reset'],resetAll:['system:data:reset'],resetModule:['system:data:reset'],
     importFeedbackPack:['system:feedback:import'],markFeedbacksExported:['system:feedback:export'],
     removeRbacRole:['system:role:delete'],grantRbacRole:['system:role:grant'],saveRbacPermission:['system:permission:update'],removeRbacUser:['system:user:delete'],saveMenuStructure:['system:menu:update'],resetMenuStructure:['system:menu:update'],
     saveMenuConfiguration:['system:menu:update'],resetMenuConfiguration:['system:menu:update'],saveRole:['system:role:update'],deleteRole:['system:role:delete'],grantRolePermissions:['system:role:grant'],savePermission:['system:permission:update'],saveUser:['system:user:update'],deleteUser:['system:user:delete'],bindUserRoles:['system:user:bind'],
-    previewTemplateCompatibilitySync:['product:model:read'],materialImportBasis:['product:material:read'],skusOf:['product:sku:read'],categoryRemovalBlock:['product:category:read'],productTypesOf:['product:type:read'],blankSku:['product:sku:read'],defaultColumns:[],emptyQuery:[],
+    materialImportBasis:['product:material:read'],skusOf:['product:sku:read'],categoryRemovalBlock:['product:category:read'],productTypesOf:['product:type:read'],blankSku:['product:sku:read'],defaultColumns:[],emptyQuery:[],
   }
   return bindings[name] || ['!unregistered-command']
 }

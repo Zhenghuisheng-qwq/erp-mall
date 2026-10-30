@@ -15,13 +15,13 @@
         <el-table-column prop="version" label="版本" width="80" />
         <el-table-column prop="products" label="商品数量" width="100" />
         <el-table-column prop="skus" label="SKU数量" width="100" />
-        <el-table-column prop="compatibilitySummary" label="适用设备配置" min-width="200" />
+
         <el-table-column prop="updatedAt" label="更新时间" width="160" />
         <el-table-column label="操作" width="390" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="open(row.id, true)">查看模型</el-button>
             <el-button link type="primary" @click="open(row.id, false)" :disabled="!(store.can('product:model:update'))">编辑模型</el-button>
-            <el-button link data-open-model-compatibility @click="compatibilityModelId = row.id; compatibilityOpen = true">适用设备配置</el-button>
+
             <el-button link @click="router.push({ path: '/skus/new', query: { template: row.id } })" :disabled="!(store.can('product:sku:create'))">创建 SKU</el-button>
             <el-button link :disabled="(saving) || !(store.can('product:model:create'))" @click="copy(row.id)">复制模型</el-button>
             <el-button link :disabled="(saving) || !(store.can('product:model:publish'))" @click="setStatus(row.id, 'published')">发布模型</el-button>
@@ -47,7 +47,7 @@
         <el-button type="primary" :loading="saving" @click="create" :disabled="!(store.can('product:model:create'))">创建</el-button>
       </template>
     </el-dialog>
-    <TemplateCompatibilityDialog v-model="compatibilityOpen" :model-id="compatibilityModelId" :readonly="!store.can('product:model:update')" />
+
   </div>
 </template>
 
@@ -60,7 +60,6 @@ import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CategoryTreeSelect from '../components/CategoryTreeSelect.vue'
 import PageHead from '../components/PageHead.vue'
-import TemplateCompatibilityDialog from '../components/template-compatibility/TemplateCompatibilityDialog.vue'
 import { categoryPath } from '../domain/logic'
 import { isRealSku } from '../domain/catalogIdentity'
 import type { SpecModelStatus } from '../domain/types'
@@ -71,7 +70,6 @@ const router = useRouter()
 const createOpen = ref(false)
 const saving = ref(false)
 const publishFailure=ref<GuideFailure>()
-const compatibilityOpen = ref(false), compatibilityModelId = ref('')
 const draft = reactive({ categoryId: '', productTypeId: '', name: '' })
 const typeOptions = computed(() => store.productTypesOf(draft.categoryId))
 const rows = computed(() => {
@@ -87,8 +85,6 @@ const rows = computed(() => {
     const latest = published[published.length - 1]
     const families = store.data.families.filter((item) => item.templateId === id)
     const familyIds = new Set(families.map((item) => item.id))
-    const compatibility = store.data.templateCompatibilityConfigs?.find(item => item.modelId === id)
-    const legacyCount = store.data.nodeCompatibilityRules.filter(item => item.templateId === id && !item.modelVersionId).length
     return {
       id,
       name: canvas?.name || `${scheme?.name || '未命名'}模型`,
@@ -98,7 +94,6 @@ const rows = computed(() => {
       version: canvas?.status === 'draft' ? canvas.versionName || `V${(latest?.version || 0) + 1}` : latest?.versionName || canvas?.versionName || 'V1',
       products: families.length,
       skus: store.data.skus.filter((item) => familyIds.has(item.familyId) && isRealSku(store.data, item)).length,
-      compatibilitySummary: `${compatibility?.defaultRule.configured ? `默认 ${compatibility.defaultRule.claims.length} 条` : '默认未配置'} · 例外 ${compatibility?.exceptions.length || 0}${legacyCount ? ` · 旧配置 ${legacyCount} 项` : ''}`,
       updatedAt: canvas?.updatedAt ? canvas.updatedAt.slice(0, 16).replace('T', ' ') : '尚未单独保存',
     }
   })
