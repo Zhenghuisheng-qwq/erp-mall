@@ -1,3 +1,4 @@
+import {roleOfType} from '../compatibility'
 import {commonIds,validCommonIds,publicReferenceProblem,enabledPublicSpuIds} from './publicSpuPool'
 import {familyProductTypeId} from '../productIdentity'
 import type {AppData} from '../types'
@@ -13,11 +14,14 @@ export function typesProblem(data:AppData,ids:string[]){return !Array.isArray(id
 export function groupTypesProblem(data:AppData,categoryId:string,ids:string[]){
  const problem=categoryProblem(data,categoryId)||typesProblem(data,ids)
  if(problem)return problem
- const outside=ids.filter(id=>data.productTypes.find(t=>t.id===id)?.categoryId!==categoryId)
- return outside.length?`权益包只能选择归属分类下的产品类型，请移除：${outside.map(id=>data.productTypes.find(t=>t.id===id)?.name||id).join('、')}`:''
+ const owner=data.categories.find(c=>c.id===categoryId)
+ if(owner?.catalogRole==='accessory')return '权益包入口请选择主机分类'
+ const outside=ids.filter(id=>{const t=data.productTypes.find(t=>t.id===id)!;return t.categoryId!==categoryId&&roleOfType(data,id)!=='accessory'})
+ return outside.length?'跨分类仅可选择配件产品类型（含增值业务），请先配置分类用途':''
+
 }
 export function saleLabel(data:AppData,id:string){const s=data.skus.find(x=>x.id===id),f=data.families.find(x=>x.id===s?.familyId);return {name:s?.skuName||f?.name||'商品已失效',code:s?.code||'',spec:s&&f?Object.entries(projectAttrs(f,s)).map(([k,v])=>`${data.params.find(p=>p.id===k)?.name||k} ${v}`).join(' · '):''}}
-export function saleProblem(data:AppData,id:string,requireRole=true){const rows=data.skus.filter(s=>s.id===id),s=rows[0],f=data.families.find(f=>f.id===s?.familyId);if(rows.length!==1||!s||!f||!isRealSku(data,s))return '不是有效的真实销售商品';const role=data.productTypes.find(t=>t.id===familyProductTypeId(data,f.id))?.catalogRole||'';return typeProblem(data,familyProductTypeId(data,f.id))||(requireRole&&!['host','accessory','other'].includes(role)?'商品用途尚未明确':'')||(s.status!=='on_sale'||shelfOf(f)!=='online'?'商品当前不可售':'')}
+export function saleProblem(data:AppData,id:string,requireRole=true){const rows=data.skus.filter(s=>s.id===id),s=rows[0],f=data.families.find(f=>f.id===s?.familyId);if(rows.length!==1||!s||!f||!isRealSku(data,s))return '不是有效的真实销售商品';const type=data.productTypes.find(t=>t.id===familyProductTypeId(data,f.id));const role=data.categories.find(c=>c.id===type?.categoryId)?.catalogRole||type?.catalogRole||'';return typeProblem(data,familyProductTypeId(data,f.id))||(requireRole&&!['host','accessory','other'].includes(role)?'商品用途尚未明确':'')||(s.status!=='on_sale'||shelfOf(f)!=='online'?'商品当前不可售':'')}
 export const deviceOptions=catalogDeviceOptions
 export function deviceKey(device:SaleDevice){return device?device.kind==='sku'?`sku:${device.skuId}`:`model:${device.key}`:''}
 export function deviceFromKey(key:string):SaleDevice{return key.startsWith('sku:')?{kind:'sku',skuId:key.slice(4)}:key.startsWith('model:')?{kind:'model',key:key.slice(6)}:null}
@@ -50,8 +54,8 @@ function evaluate(data:AppData,scope:SaleScope,error:string,query:ReturnType<typ
  const seen=new Set<string>()
  for(const g of groups){const referenceProblem=g.kind==='public'?publicProblem(g.spuId):'',families=data.families.filter(f=>g.kind==='public'?f.id===g.spuId:familyProductTypeId(data,f.id)===g.id),ids=new Set(families.map(f=>f.id)),skus=data.skus.filter(s=>ids.has(s.familyId));let sellable=0,covered=0,unknown=false
   for(const s of skus){if(!isRealSku(data,s))continue;const type=data.productTypes.find(t=>t.id===familyProductTypeId(data,s.familyId)),match=matches.get(s.id),use=accessoryUseEvaluation(match);let reason=(g.kind==='public'?'':error)||referenceProblem||saleProblem(data,s.id,g.kind!=='public');if(!reason)sellable++
-   if(!reason&&type?.catalogRole==='host'){if(scope.device?.kind!=='sku'||scope.device.skuId!==s.id)reason='这条设备不是本次选择的实际规格';else if(query?.device.status!=='resolved')reason='设备身份无法唯一识别，请先核对'}
-   if(!reason&&type?.catalogRole==='accessory'){
+   if(!reason&&roleOfType(data,type?.id||'')==='host'){if(scope.device?.kind!=='sku'||scope.device.skuId!==s.id)reason='这条设备不是本次选择的实际规格';else if(query?.device.status!=='resolved')reason='设备身份无法唯一识别，请先核对'}
+   if(!reason&&roleOfType(data,type?.id||'')==='accessory'){
     if(query?.device.host&&typeProblem(data,query.device.host.productTypeId))reason='设备产品类型已失效或停用'
     else if(!query||query.device.status!=='resolved')reason=query?.device.message||'请先选择明确的本次使用设备'
     else if(invalid.has(s.id))reason='适用资料存在失效引用，需核对'
@@ -59,10 +63,10 @@ function evaluate(data:AppData,scope:SaleScope,error:string,query:ReturnType<typ
    }
    if(reason)g.diagnostics.push({id:s.id,name:saleLabel(data,s.id).name,reason})
    else if(seen.has(s.id))covered++
-   else{seen.add(s.id);const publicSpuIds=publicIds.filter(id=>id===s.familyId&&!publicProblem(id)),sources=[...(scope.productTypeIds.includes(type?.id||'')?[{kind:'type' as const,id:type!.id,name:type!.name}]:[]),...publicSpuIds.map(id=>({kind:'public' as const,id,name:data.families.find(f=>f.id===id)!.name}))];g.candidates.push({id:s.id,...saleLabel(data,s.id),match,publicSpuIds,sources,note:type?.catalogRole==='host'?'明确加入设备，不要求自适用声明':type?.catalogRole==='accessory'?`基本使用已确认${use.fastCharge.declarations?.length?'；快充'+(use.fastCharge.status==='compatible'?'已确认':'未确认'):''}`:'独立销售商品'})}
+   else{seen.add(s.id);const publicSpuIds=publicIds.filter(id=>id===s.familyId&&!publicProblem(id)),sources=[...(scope.productTypeIds.includes(type?.id||'')?[{kind:'type' as const,id:type!.id,name:type!.name}]:[]),...publicSpuIds.map(id=>({kind:'public' as const,id,name:data.families.find(f=>f.id===id)!.name}))];g.candidates.push({id:s.id,...saleLabel(data,s.id),match,publicSpuIds,sources,note:roleOfType(data,type?.id||'')==='host'?'明确加入设备，不要求自适用声明':roleOfType(data,type?.id||'')==='accessory'?`基本使用已确认${use.fastCharge.declarations?.length?'；快充'+(use.fastCharge.status==='compatible'?'已确认':'未确认'):''}`:'独立销售商品'})}
   }
   if(referenceProblem)g.diagnostics.push({id:'',name:g.name,reason:referenceProblem})
-  g.empty=referenceProblem||(g.kind==='public'&&covered&&!g.candidates.length?'可选规格已在上方产品类型中展示':g.kind==='public'&&!skus.some(s=>isRealSku(data,s))?'暂无可选规格':!families.length?'当前类型尚无商品建档':!sellable?'已建档但没有可售 SKU':unknown?'条件待核验':data.productTypes.find(t=>t.id===g.id)?.catalogRole==='host'?'选择实际设备规格后可明确加入':'当前暂无已确认可选商品')
+  g.empty=referenceProblem||(g.kind==='public'&&covered&&!g.candidates.length?'可选规格已在上方产品类型中展示':g.kind==='public'&&!skus.some(s=>isRealSku(data,s))?'暂无可选规格':!families.length?'当前类型尚无商品建档':!sellable?'已建档但没有可售 SKU':unknown?'条件待核验':roleOfType(data,g.id)==='host'?'选择实际设备规格后可明确加入':'当前暂无已确认可选商品')
  }
  return {error,compatibility:query,device:query?.device||null,publicSpuIds:publicIds,groups,candidates:groups.flatMap(g=>g.candidates)}
 }

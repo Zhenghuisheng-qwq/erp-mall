@@ -41,6 +41,7 @@ export function defaultMenuNodes(): MenuNode[] {
     group('analysis', '商品分析', 'product', 5, BOTH),
     group('compatibility-group','兼容性','product',7,BOTH),
     page('/compatibility','兼容性管理','compatibility-group',1,BOTH),
+    page('/category-roles', '分类用途配置', 'model', 0, BOTH),
     group('benefits', '权益包', 'product', 6, BOTH),
     page('/benefits/manage', '权益包管理', 'benefits', 1, BOTH),
     page('/benefits/shopping', '权益包选购', 'benefits', 2, BOTH),

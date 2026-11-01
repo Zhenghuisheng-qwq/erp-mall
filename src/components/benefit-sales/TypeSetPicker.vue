@@ -13,16 +13,17 @@ import {computed,ref,watch} from 'vue'
 import {Folder,CollectionTag} from '@element-plus/icons-vue'
 import {buildCatalogWorkspaceIndex} from '../../domain/catalogWorkspaceQuery'
 import {catalogScopeNodes,filterCatalogScopeNodes,type CatalogScopeNode} from '../../domain/catalogScopeTree'
+import {roleOfType} from '../../domain/compatibility'
 import {typeProblem} from '../../domain/benefitSales/query'
 import {familyProductTypeId} from '../../domain/productIdentity'
 import {isRealSku} from '../../domain/catalogIdentity'
 import type {AppData} from '../../domain/types'
-const props=defineProps<{data:AppData;categoryId:string;modelValue:string[];disabled?:boolean;categoryOnly?:boolean}>(),emit=defineEmits<{'update:modelValue':[ids:string[]]}>()
+const props=defineProps<{data:AppData;categoryId:string;modelValue:string[];disabled?:boolean;categoryOnly?:boolean;bundleScope?:boolean}>(),emit=defineEmits<{'update:modelValue':[ids:string[]]}>()
 const keyword=ref(''),scope=ref('all'),collapsed=ref<string[]>([])
 const nodes=computed(()=>catalogScopeNodes(props.data.categories,buildCatalogWorkspaceIndex(props.data).typeRows))
 const byKey=computed(()=>new Map(nodes.value.map(n=>[n.key,n])))
 function beneath(key:string,parent:string){let n=byKey.value.get(key);const seen=new Set<string>();while(n&&!seen.has(n.key)){if(n.key===parent)return true;seen.add(n.key);n=n.parentKey?byKey.value.get(n.parentKey):undefined}return false}
-function ids(key:string){return nodes.value.filter(n=>n.kind==='product-type'&&beneath(n.key,key)&&(!props.categoryOnly||props.data.productTypes.find(t=>t.id===n.id)?.categoryId===props.categoryId)&&!typeProblem(props.data,n.id)).map(n=>n.id)}
+function ids(key:string){return nodes.value.filter(n=>n.kind==='product-type'&&beneath(n.key,key)&&(!props.categoryOnly||props.data.productTypes.find(t=>t.id===n.id)?.categoryId===props.categoryId)&&(!props.bundleScope||props.data.productTypes.find(t=>t.id===n.id)?.categoryId===props.categoryId||roleOfType(props.data,n.id)==='accessory')&&!typeProblem(props.data,n.id)).map(n=>n.id)}
 function checked(key:string){const choices=ids(key);return choices.length>0&&choices.every(id=>props.modelValue.includes(id))}
 function partial(key:string){const choices=ids(key);return choices.some(id=>props.modelValue.includes(id))&&!checked(key)}
 function set(key:string,on:boolean){const choices=ids(key);emit('update:modelValue',on?[...new Set([...props.modelValue,...choices])]:props.modelValue.filter(id=>!choices.includes(id)))}

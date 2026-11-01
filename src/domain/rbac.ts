@@ -89,6 +89,7 @@ export function permissionRegistry(): RbacPermission[] {
 export function routePermissions(path: string, query: Record<string,unknown> = {}): string[] | null {
   const clean = path.split('?')[0] || '/'
   if(['/spus','/skus'].includes(clean)&&(query.goods==='used'||new URLSearchParams(path.split('?')[1]||'').get('goods')==='used'))return ['product:used-goods:read']
+  if(clean==='/category-roles')return ['product:category:read']
   if(clean==='/benefits/public-pool')return ['product:type-bundle:read','product:spu:read','product:sku:read','product:category:read','product:type:read']
   if(clean==='/benefits/manage')return ['product:type-bundle:read','product:category:read','product:type:read']
   if(clean==='/benefits/shopping')return ['product:bundle-sale:read','product:sku:read','product:spu:read','product:type:read']

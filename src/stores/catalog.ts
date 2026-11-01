@@ -845,7 +845,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     return new Set(data.productTypes.map((item) => item.categoryId))
   }
 
-  function addCategory(name: string, parentId: string | null) {
+  function addCategory(name: string, parentId: string | null, catalogRole?: 'host' | 'accessory') {
     const trimmed = name.trim()
     if (!trimmed) return { id: '', message: '请填写分类名称' }
     const blocked = blockChildOfTypedCategory(parentId, typedCategoryIds())
@@ -855,6 +855,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     data.categories.push({
       id,
       name: trimmed,
+      catalogRole,
       parentId,
       sort: siblings.reduce((max, item) => Math.max(max, item.sort), 0) + 1,
       enabled: true,
@@ -874,7 +875,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     return relocateCategoryNodes(data.categories, id, targetId, position, typedCategoryIds())
   }
 
-  function updateCategory(id: string, patch: { name: string; enabled: boolean; sort: number; parentId: string | null; icon?: string }) {
+  function updateCategory(id: string, patch: { name: string; enabled: boolean; sort: number; parentId: string | null; icon?: string; catalogRole?: 'host' | 'accessory' }) {
     return updateCategoryNode(data.categories, id, patch, typedCategoryIds())
   }
 

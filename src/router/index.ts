@@ -15,6 +15,7 @@ const router = createRouter({
       component: AdminLayout,
       children: [
         {path:'compatibility',name:'compatibility',component:()=>import('../views/CompatibilityView.vue'),meta:{title:'兼容性管理',group:'商品中心'}},
+        {path:'category-roles',name:'category-roles',component:()=>import('../views/CategoryRolesView.vue'),meta:{title:'分类用途配置'}},
         {path:'benefits/public-pool',name:'public-spu-pool',component:()=>import('../views/PublicSpuPoolView.vue'),meta:{title:'公共商品池'}},
         {path:'benefits/manage',name:'type-bundle-management',component:()=>import('../views/TypeBundleView.vue'),meta:{title:'权益包管理'}},
         {path:'benefits/shopping',name:'bundle-sale',component:()=>import('../views/BundleSaleView.vue'),meta:{title:'权益包选购'}},

@@ -1,3 +1,4 @@
+import {roleOfType} from './compatibility'
 import type {AppData,CompatibilityLink} from './types'
 import type {CompatibilityCapability,CompatibilityCondition,CompatibilityConclusion,CompatibilityVerification,ConditionEvaluation,DeviceResolution} from './accessoryCompatibilityTypes'
 import {isRealSku} from './catalogIdentity'
@@ -26,7 +27,7 @@ export function generalReferenceProblem(data:AppData,claim:GeneralDraft){
  const matches=data.skus.filter(s=>s.id===claim.skuId),sku=matches[0]
  if(matches.length!==1||!sku||!isRealSku(data,sku)||compatibilityRecordRole(data,sku.id)!=='accessory')return '目标销售 SKU 已失效或不属于配件'
  if(!Array.isArray(claim.deviceTypeIds)||!claim.deviceTypeIds.length||new Set(claim.deviceTypeIds).size!==claim.deviceTypeIds.length)return '请选择明确的设备产品类型'
- for(const id of claim.deviceTypeIds){const rows=data.productTypes.filter(t=>t.id===id);if(rows.length!==1||rows[0]!.status!=='enabled'||rows[0]!.catalogRole!=='host')return '设备产品类型已失效、停用或不属于设备'}
+ for(const id of claim.deviceTypeIds){const rows=data.productTypes.filter(t=>t.id===id);if(rows.length!==1||rows[0]!.status!=='enabled'||roleOfType(data,id)!=='host')return '设备产品类型已失效、停用或不属于设备'}
  if(!['basic','fast-charge','other'].includes(claim.capability))return '能力身份已失效'
  if(typeof claim.source!=='string'||!claim.source.trim())return '正式资料依据未记录，不能提供适用证明'
  return claim.conditions.map(c=>generalConditionProblem(data,c)).find(Boolean)||''

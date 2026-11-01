@@ -6,7 +6,7 @@
       <el-button :disabled="busy" @click="router.push('/benefits/shopping')" v-if="store.canRoute({path:'/benefits/shopping'})">权益包选购</el-button>
       <el-button v-if="store.can('product:type-bundle:create')" type="primary" :icon="Plus" :disabled="busy" data-new-bundle @click="edit()">新建权益包</el-button>
     </PageHead>
-    <el-alert v-if="route.query.model" :closable="false" type="info" title="仅选择当前归属分类下的产品类型；试选设备用于预览，不绑定到权益包。" />
+    <el-alert v-if="route.query.model" :closable="false" type="info" title="选择主机分类，并跨分类勾选配件及增值业务产品类型；试选设备不绑定到权益包。" />
     <el-alert v-if="listError" class="list-error" :title="listError" type="error" :closable="false" show-icon />
     <div class="workspace">
       <aside class="panel scope-panel" :class="{'is-open':scopeOpen}">
@@ -22,7 +22,7 @@
         <template v-else>
           <el-table class="bundle-table" :data="groups" row-key="id" data-bundle-table>
             <el-table-column label="名称" min-width="180"><template #default="{row}"><button type="button" class="bundle-name" :disabled="busy" :data-bundle-record="row.id" @click="edit(row)">{{row.name}}</button></template></el-table-column>
-            <el-table-column label="归属分类" min-width="100"><template #default="{row}"><span class="category-text">{{categoryName(row.categoryId)}}</span></template></el-table-column>
+            <el-table-column label="主机分类" min-width="100"><template #default="{row}"><span class="category-text">{{categoryName(row.categoryId)}}</span></template></el-table-column>
             <el-table-column label="参与产品类型" min-width="200"><template #default="{row}"><div class="type-tags"><el-tag v-for="id in row.productTypeIds" :key="id" size="small" effect="plain" type="info">{{typeName(id)}}</el-tag></div></template></el-table-column>
             <el-table-column label="状态" width="78"><template #default="{row}"><span class="status" :class="{'is-enabled':row.enabled}"><i />{{row.enabled?'启用':'停用'}}</span></template></el-table-column>
             <el-table-column label="创建时间" width="120"><template #default="{row}"><time class="record-time" :datetime="row.createdAt" :title="row.createdAt">{{timeParts(row.createdAt).date}}<span>{{timeParts(row.createdAt).time}}</span></time></template></el-table-column>
@@ -48,8 +48,8 @@
     <el-dialog v-model="opened" title="权益包配置" width="min(900px,95vw)" :close-on-click-modal="false" :before-close="close">
       <el-form v-if="draft" label-position="top" :disabled="!editable||busy">
         <el-form-item label="权益包名称"><el-input v-model="draft.name" maxlength="80" aria-label="权益包名称" /></el-form-item>
-        <el-form-item label="归属分类"><el-select v-model="draft.categoryId" filterable aria-label="权益包归属分类"><el-option v-for="c in store.data.categories" :key="c.id" :value="c.id" :label="categoryName(c.id)" /></el-select></el-form-item>
-        <el-form-item label="参与组合的产品类型"><TypeSetPicker v-model="draft.productTypeIds" :data="store.data" :category-id="draft.categoryId" category-only :disabled="!editable||busy" /></el-form-item>
+        <el-form-item label="主机分类"><el-select v-model="draft.categoryId" filterable aria-label="权益包归属分类"><el-option v-for="c in store.data.categories.filter(c=>c.catalogRole!=='accessory')" :key="c.id" :value="c.id" :label="categoryName(c.id)" /></el-select></el-form-item>
+        <el-form-item label="参与组合的产品类型"><TypeSetPicker bundle-scope v-model="draft.productTypeIds" :data="store.data" :category-id="draft.categoryId" :disabled="!editable||busy" /></el-form-item>
         <p class="muted">公共池中的启用商品会自动展示在所有权益包和自由组合中，无需在本包逐项添加。</p>
         <el-alert v-if="scopeProblem" :title="scopeProblem" type="warning" :closable="false" />
         <el-form-item label="启用"><el-switch v-model="draft.enabled" /></el-form-item>

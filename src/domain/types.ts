@@ -30,6 +30,8 @@ export type AttrValueSource = 'dictionary' | 'manual'
 export type PlanningRoleSource = 'node' | 'scheme'
 
 export interface Category {
+  /** 分类业务用途；历史未配置时沿用产品类型用途。 */
+  catalogRole?: 'host' | 'accessory'
   id: string
   name: string
   parentId: string | null

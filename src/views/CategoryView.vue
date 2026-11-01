@@ -82,6 +82,7 @@
     </el-dialog>
     <el-dialog v-model="createOpen" :title="parentForCreate ? '新增子分类' : '新增根分类'" width="420px">
       <p class="muted" style="margin-bottom: 8px">{{ parentForCreate ? `上级：${createParentLabel}` : '将创建为根分类' }}</p>
+      <el-radio-group v-model="createRole"><el-radio value="host">主机分类</el-radio><el-radio value="accessory">配件分类（含增值业务）</el-radio></el-radio-group>
       <el-input v-model="createName" placeholder="分类名称" @keyup.enter="create" />
       <template #footer>
         <el-button @click="createOpen = false">取消</el-button>
@@ -90,6 +91,7 @@
     </el-dialog>
     <el-dialog v-model="editOpen" title="编辑分类" width="460px">
       <el-form label-width="88px">
+        <el-form-item label="分类用途"><el-select v-model="draft.catalogRole"><el-option label="主机" value="host"/><el-option label="配件（含增值业务）" value="accessory"/></el-select></el-form-item>
         <el-form-item label="名称">
           <el-input v-model="draft.name" @keyup.enter="saveEdit" />
         </el-form-item>
@@ -195,7 +197,8 @@ const typedIds = computed(() => new Set(store.data.productTypes.map(item => item
 const createOpen = ref(false), editOpen = ref(false), refsOpen = ref(false), createName = ref('')
 const parentForCreate = ref<string | null>(null), editId = ref('')
 let pendingCreateId = ''
-const draft = reactive({name:'',enabled:true,templateId:''})
+const createRole = ref<'host'|'accessory'>('host')
+const draft = reactive({catalogRole: '' as ''|'host'|'accessory',name:'',enabled:true,templateId:''})
 const current = computed(() => store.data.categories.find((item) => item.id === selected.value))
 const productBadges = computed(() => subtreeCounts(store.data.categories, store.data.families))
 const parentName = computed(() => {
@@ -351,6 +354,7 @@ function openCreate(parentId: string | null) {
   if (!canMutate()) return
   parentForCreate.value = parentId
   pendingCreateId = ''
+  createRole.value = store.data.categories.find(c=>c.id===parentId)?.catalogRole || (route.query.role==='accessory'?'accessory':'host')
   createName.value = ''
   createOpen.value = true
 }
@@ -363,7 +367,7 @@ async function create() {
   }
   const parentId = parentForCreate.value
   const pending = store.data.categories.find(row => row.id === pendingCreateId)
-  const created = pending ? { id: pending.id, message: store.updateCategory(pending.id, { ...pending, name, parentId }) } : store.addCategory(name, parentId)
+  const created = pending ? { id: pending.id, message: store.updateCategory(pending.id, { ...pending, name, parentId, catalogRole: createRole.value }) } : store.addCategory(name, parentId, createRole.value)
   if (created.message) {
     ElMessage.warning(created.message)
     return
@@ -382,6 +386,7 @@ function openEdit(id: string) {
   if (!item) return
   pick(id)
   editId.value = id
+  draft.catalogRole = item.catalogRole || ''
   draft.name = item.name
   draft.enabled = item.enabled !== false
   draft.templateId = store.data.mappings.find((row) => row.categoryId === id)?.templateId || ''
@@ -392,6 +397,7 @@ async function saveEdit() {
   const item = store.data.categories.find((row) => row.id === editId.value)
   if (!item) return
   const message = store.updateCategory(item.id, {
+    catalogRole: draft.catalogRole || undefined,
     name: draft.name,
     enabled: draft.enabled,
     sort: item.sort,
