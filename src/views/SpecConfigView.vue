@@ -169,15 +169,15 @@
         <section v-if="templateId" class="insight">
           <div class="insight-summary">
             <div class="summary-stats">
-              <strong v-if="requestedVersionId">{{ requestedVersion?.versionName || '指定版本' }} · 组合 {{ comboRows.length }} 条</strong>
+              <template v-if="!keyOnlyUsed"><strong v-if="requestedVersionId">{{ requestedVersion?.versionName || '指定版本' }} · 组合 {{ comboRows.length }} 条</strong>
               <strong v-else-if="publishedComboVersions.length">已发布组合 {{ comboRows.length }} 条</strong>
               <strong v-else>尚未发布</strong>
               <span>已选 {{ checkedIds.length }} 条</span>
               <span>{{ comboNumbered }} 条已有规划编号<span v-if="comboRows.length > comboNumbered"> · 其余发布后自动编号</span></span>
               <span>{{ comboSummaryText }}</span>
-              <span v-if="draftPreviewLine">{{ draftPreviewLine }}</span>
+              <span v-if="draftPreviewLine">{{ draftPreviewLine }}</span></template><template v-else><strong>二手机资料模型 · {{nodes.length}} 个字段</strong><span>{{draftPreviewLine}}</span></template>
             </div>
-            <el-button v-if="!viewing" type="primary" @click="comboManageOpen = true">管理合法组合</el-button>
+            <el-button v-if="!viewing" type="primary" @click="comboManageOpen = true">{{keyOnlyUsed?'查看资料字段':'管理合法组合'}}</el-button>
             <span v-else>查看模式只浏览结构和版本，不会改模型、发布快照或物料。</span>
           </div>
           <TemporaryMaterialDialog :open="temporaryOpen" :category-id="canvasContext.categoryId" :product-type-id="canvasContext.productTypeId" :product-model-id="templateId" :model-version-id="latestPublishedVersion(store.data, templateId)?.id" @close="temporaryOpen = false" @open="openTemporary" />
@@ -197,7 +197,8 @@
         </section>
         <div v-if="templateId" class="structure-material-toggle"><el-checkbox v-model="showStructureMaterials">显示关联物料</el-checkbox><el-button v-if="current?.nodeType === 'VALUE'" size="small" :disabled="!(store.can('product:material:create') || store.can('product:material:update')) || !comboVersionId" @click="relationOpen = true">节点范围建档／关联</el-button><span v-if="comboVersionId"> · 节点物料依据 {{ publishedComboVersions.find(v=>v.id===comboVersionId)?.versionName }}</span></div>
         <StructureMaterials v-if="templateId && showStructureMaterials && editorMode === 'canvas'" :key="templateId" :data="store.data" :model-id="templateId" :nodes="nodes" :status="comboStatus" :versions="publishedComboVersions" :version-id="comboVersionId" @version="id => comboVersionId = id" @locate="ids => materialHighlight = new Set(ids)" @close="showStructureMaterials = false; materialHighlight = new Set()" />
-        <LegalComboDialog
+        <el-dialog v-if="keyOnlyUsed" v-model="comboManageOpen" title="二手机资料字段" width="600px"><el-alert title="此模型只定义资料字段，允许不预设属性值；回收时按顺序填写，不生成规格组合或物料。" type="info" :closable="false"/><ol><li v-for="n in nodes" :key="n.id">{{store.data.params.find(p=>p.id===n.attributeId)?.name}}</li></ol><template #footer><el-button @click="comboManageOpen=false">关闭</el-button></template></el-dialog>
+        <LegalComboDialog v-if="!keyOnlyUsed"
           v-model="comboManageOpen"
           v-model:keyword="comboKeyword"
           v-model:unfiled-only="comboUnfiledOnly"
@@ -479,6 +480,7 @@
 </template>
 
 <script setup lang="ts">
+import {isKeyOnlyUsedModel} from '../domain/usedGoods/modelKind'
 import {specificationMetadata} from "../domain/modelSourceContext"
 import RuleExplanation from '../components/guide/RuleExplanation.vue'
 import { getFailure } from '../domain/guide/failure'
@@ -851,11 +853,13 @@ const comboSummaryText = computed(() => {
   if (comboHistorical.value) return `本版本尚无已建物料 · 另有 ${comboHistorical.value} 条组合在历史版本已建档`
   return '尚无已建物料'
 })
+const keyOnlyUsed=computed(()=>isKeyOnlyUsedModel(store.data,templateId.value,nodes.value))
 const draftPreview = computed(() => previewDraftCombinations(store.data, templateId.value, nodes.value))
-const publishImpact = computed(() => publishImpactText(draftPreview.value))
+const publishImpact = computed(() => keyOnlyUsed.value?'发布二手机资料字段，不要求预设取值，也不会生成规格组合或物料。':publishImpactText(draftPreview.value))
 
 const showDraftList = computed(() => !requestedVersionId.value && (draftPreview.value.problems.length > 0 || canvas.value.status !== 'published' || draftPreview.value.rows.length !== comboRows.value.length))
 const draftPreviewLine = computed(() => {
+  if(keyOnlyUsed.value)return '二手机资料模型：仅定义属性，回收时填写具体值。'
   if(requestedVersionId.value)return ''
   const preview = draftPreview.value
   if (preview.problems.length) return `草稿预览暂时无法生成：${preview.problems[0]}`

@@ -5,7 +5,7 @@ import {bundleFixture} from './type-bundle-fixture'
 import {useCatalogStore} from '../src/stores/catalog'
 import {STORAGE_KEY,DATA_VERSION} from '../src/domain/types'
 import {categoryPurposes,categoryPurposeLabel,categoryPurposeId} from '../src/domain/categoryPurposes'
-import {roleOfType} from '../src/domain/compatibility'
+import {roleOfType} from '../src/domain/productTypePurpose'
 installCatalogTestLocks()
 const {data}=bundleFixture(),disk=new Map<string,string>();let fail=false
 Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(k:string)=>disk.get(k)??null,setItem:(k:string,v:string)=>{if(fail){fail=false;throw Error('quota')};disk.set(k,v)},removeItem:(k:string)=>disk.delete(k)}})

@@ -1,5 +1,7 @@
-import {addCompatibilityExamples} from './benefitSales/compatibilityExamples'
 import {completePhoneBenefitDemo} from './benefitSales/demo'
+import {ensureUsedIntakeModel} from './usedGoods/intakeModel'
+import {upgradePhoneBranches} from './benefitSales/phoneBranches'
+import {upgradeBenefitRanges} from './benefitSales/categoryRanges'
 import {replacePhoneCatalogDemo} from './benefitSales/phoneCatalogDemo'
 import { arrangeSpecPositions } from './logic'
 import { buildDefaultView } from './productListViews'
@@ -553,7 +555,7 @@ export function createSeed(includePhoneBenefits=true): AppData {
     })
     return { ...item, projectedAttrs: projected }
   })
-  if(includePhoneBenefits){const result=replacePhoneCatalogDemo(data,defaultColumns(),emptyQuery());if(!result.ok)throw new Error(result.message);addCompatibilityExamples(result.next);return result.next}
+  if(includePhoneBenefits){const result=replacePhoneCatalogDemo(data,defaultColumns(),emptyQuery());if(!result.ok)throw new Error(result.message);upgradeBenefitRanges(result.next);upgradePhoneBranches(result.next);ensureUsedIntakeModel(result.next);return result.next}
   return data
 }
 

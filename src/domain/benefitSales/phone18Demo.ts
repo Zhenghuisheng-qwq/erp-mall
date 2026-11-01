@@ -5,7 +5,6 @@ import {freezeBusinessNodes} from '../nodeBusiness'
 import {legalPlanningCombinations,reconcilePlanningRecords} from '../planning'
 import {saveSpu,previewSkuAppend,appendSkuBatch,editSku} from '../spuSku'
 import {resolveSkuModelSource} from '../modelSourceContext'
-import {writeGroup} from './commands'
 import {groupTypesProblem} from './query'
 
 const prefix='demo18-',time='2026-10-30T08:00:00.000Z'
@@ -87,7 +86,7 @@ export function installPhone18Demo(current:AppData){
     const published=editSku(next,skuId,{...sku,code,skuName:`${name} · ${Object.values(sku.variantAttrs).join(' / ')}`,status:'on_sale'},time);if(!published.ok)throw Error(published.message)
    }
   }
-  for(const [id,name,types,sort] of [['demo18-bundle-full','手机充电保护权益包',[typeIds.phone!,typeIds.case!,typeIds.film!,typeIds.charger!],-40],['demo18-bundle-protect','手机基础保护权益包',[typeIds.phone!,typeIds.case!,typeIds.film!],-30]] as const){const result=writeGroup(next,{id:'',name,categoryId,productTypeIds:[...types],enabled:true,sort},0,()=>id,time);if(!result.ok)throw Error(result.message)}
+  for(const [id,name,types,sort] of [['demo18-bundle-full','手机充电保护权益包',[typeIds.phone!,typeIds.case!,typeIds.film!,typeIds.charger!],-40],['demo18-bundle-protect','手机基础保护权益包',[typeIds.phone!,typeIds.case!,typeIds.film!],-30]] as const){next.benefitTypeGroups=[...(next.benefitTypeGroups||[]),{id,name,categoryId,productTypeIds:[...types],enabled:true,sort,revision:1,createdAt:time,updatedAt:time}]}
   const problem=checkInstalled(next);if(problem)throw Error(problem)
   return {ok:true as const,next,added:10,message:'已创建 18 Pro Max 完整链路：4 个已发布模型、10 个在售 SKU和 2 个权益包。'}
  }catch(error){return fail(error instanceof Error?error.message:String(error))}

@@ -14,7 +14,10 @@ const router = createRouter({
       path: '/',
       component: AdminLayout,
       children: [
-        {path:'compatibility',name:'compatibility',component:()=>import('../views/CompatibilityView.vue'),meta:{title:'兼容性管理',group:'商品中心'}},
+        {path:'used-intake',component:()=>import('../views/UsedIntakeView.vue'),meta:{title:'二手机回收'}},
+        {path:'used-intake/config',redirect:()=>({path:'/catalog',query:{view:'models',categoryId:'phone-used'}})},
+        {path:'compatibility/list',component:()=>import('../views/SpuHostLinksView.vue'),meta:{title:'兼容性列表'}},
+        {path:'compatibility/config',component:()=>import('../views/SpuHostLinkConfigView.vue'),meta:{title:'兼容性配置'}},
         {path:'category-roles',name:'category-roles',component:()=>import('../views/CategoryRolesView.vue'),meta:{title:'分类用途配置'}},
         {path:'benefits/public-pool',name:'public-spu-pool',component:()=>import('../views/PublicSpuPoolView.vue'),meta:{title:'公共商品池'}},
         {path:'benefits/manage',name:'type-bundle-management',component:()=>import('../views/TypeBundleView.vue'),meta:{title:'权益包管理'}},

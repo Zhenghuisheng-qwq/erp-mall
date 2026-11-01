@@ -1,3 +1,4 @@
+import {isKeyOnlyUsedModel} from './usedGoods/modelKind'
 import type { AppData, ParamRole, PlanningRecord, PlanningRoleSource, PlanningStep, ProductSpecNode } from './types'
 import { businessIssues, businessPath } from './nodeBusiness'
 
@@ -101,6 +102,7 @@ function treeOf(productModelId: string, nodes: ProductSpecNode[]) {
 
 /** 按真实父子和每个属性节点自己的角色展开。同级相乘，条件分支不相乘到别的父级。 */
 export function legalPlanningCombinations(data: AppData, productModelId: string, nodes: ProductSpecNode[]): LegalCombination[] {
+  if(isKeyOnlyUsedModel(data,productModelId,nodes))return []
   const tree = treeOf(productModelId, nodes)
   const byId = new Map(tree.map((item) => [item.id, item]))
   const names = new Map<string, string>()

@@ -1,10 +1,10 @@
 <template>
   <div class="bundle-page" :aria-busy="busy">
-    <PageHead title="权益包管理" desc="组合分类内产品类型，共享公共 SPU，按设备选购并报价。">
+    <PageHead title="权益包管理" desc="先配置主机分类与配件分类的选购范围，再在范围内自由组合商品。">
       <el-button v-if="store.canRoute({path:'/benefits/public-pool'})" :disabled="busy" data-open-public-pool @click="router.push({path:'/benefits/public-pool',query:{returnTo:route.fullPath}})">公共商品池</el-button>
       <el-button v-if="returnTo" :disabled="busy" @click="router.push(returnTo)">返回来源</el-button>
       <el-button :disabled="busy" @click="router.push('/benefits/shopping')" v-if="store.canRoute({path:'/benefits/shopping'})">权益包选购</el-button>
-      <el-button v-if="store.can('product:type-bundle:create')" type="primary" :icon="Plus" :disabled="busy" data-new-bundle @click="edit()">新建权益包</el-button>
+      <el-button v-if="store.can('product:type-bundle:create')" type="primary" :icon="Plus" :disabled="busy" data-new-bundle @click="edit()">新增选购范围</el-button>
     </PageHead>
     <el-alert v-if="route.query.model" :closable="false" type="info" title="选择主机分类，并跨分类勾选配件及增值业务产品类型；试选设备不绑定到权益包。" />
     <el-alert v-if="listError" class="list-error" :title="listError" type="error" :closable="false" show-icon />
@@ -18,12 +18,13 @@
           <div class="list-title"><h2>{{listTitle}}</h2><span class="count">{{groups.length}} 个</span></div>
           <el-button class="scope-toggle" :icon="Filter" :aria-expanded="scopeOpen" @click="scopeOpen=!scopeOpen">{{scopeOpen?'收起筛选':'筛选分类'}}</el-button>
         </div>
-        <el-empty v-if="!groups.length" description="暂无权益包，可以新建产品类型集合" />
+        <el-empty v-if="!groups.length" description="暂无选购范围，请关联主机与配件分类" />
         <template v-else>
           <el-table class="bundle-table" :data="groups" row-key="id" data-bundle-table>
             <el-table-column label="名称" min-width="180"><template #default="{row}"><button type="button" class="bundle-name" :disabled="busy" :data-bundle-record="row.id" @click="edit(row)">{{row.name}}</button></template></el-table-column>
             <el-table-column label="主机分类" min-width="100"><template #default="{row}"><span class="category-text">{{categoryName(row.categoryId)}}</span></template></el-table-column>
-            <el-table-column label="参与产品类型" min-width="200"><template #default="{row}"><div class="type-tags"><el-tag v-for="id in row.productTypeIds" :key="id" size="small" effect="plain" type="info">{{typeName(id)}}</el-tag></div></template></el-table-column>
+            <el-table-column label="二级配件分类" min-width="160"><template #default="{row}"><el-tag v-for="id in row.accessoryCategoryIds||[]" :key="id">{{categoryName(id)}}</el-tag></template></el-table-column>
+            <el-table-column label="范围内产品类型" min-width="200"><template #default="{row}"><div class="type-tags"><el-tag v-for="id in groupRangeTypes(store.data,row)" :key="id" size="small" effect="plain" type="info">{{typeName(id)}}</el-tag></div></template></el-table-column>
             <el-table-column label="状态" width="78"><template #default="{row}"><span class="status" :class="{'is-enabled':row.enabled}"><i />{{row.enabled?'启用':'停用'}}</span></template></el-table-column>
             <el-table-column label="创建时间" width="120"><template #default="{row}"><time class="record-time" :datetime="row.createdAt" :title="row.createdAt">{{timeParts(row.createdAt).date}}<span>{{timeParts(row.createdAt).time}}</span></time></template></el-table-column>
             <el-table-column label="更新时间" width="120"><template #default="{row}"><time class="record-time" :datetime="row.updatedAt" :title="row.updatedAt">{{timeParts(row.updatedAt).date}}<span>{{timeParts(row.updatedAt).time}}</span></time></template></el-table-column>
@@ -37,7 +38,7 @@
             <article v-for="row in groups" :key="row.id" class="bundle-card" :data-bundle-card="row.id">
               <div class="card-heading"><button type="button" class="bundle-name" :disabled="busy" @click="edit(row)">{{row.name}}</button><span class="status" :class="{'is-enabled':row.enabled}"><i />{{row.enabled?'启用':'停用'}}</span></div>
               <p class="card-category"><el-icon><Folder /></el-icon>{{categoryName(row.categoryId)}}</p>
-              <div class="type-tags"><el-tag v-for="id in row.productTypeIds" :key="id" size="small" effect="plain" type="info">{{typeName(id)}}</el-tag></div>
+              <div class="type-tags"><el-tag v-for="id in groupRangeTypes(store.data,row)" :key="id" size="small" effect="plain" type="info">{{typeName(id)}}</el-tag></div>
               <dl class="card-times"><div><dt>创建时间</dt><dd><time :datetime="row.createdAt">{{formatTime(row.createdAt)}}</time></dd></div><div><dt>更新时间</dt><dd><time :datetime="row.updatedAt">{{formatTime(row.updatedAt)}}</time></dd></div></dl>
               <div class="card-footer"><el-button v-if="row.enabled&&canShop" type="primary" size="small" plain :icon="ShoppingCart" :disabled="busy" @click="useGroup(row)">使用权益包</el-button><div class="row-actions"><el-button size="small" text :icon="EditPen" :disabled="busy" @click="edit(row)">{{canUpdate(row)?'编辑':'查看'}}</el-button><el-button v-if="canDelete" size="small" text type="danger" :icon="Delete" :loading="deletingId===row.id" :disabled="busy" :data-delete-bundle="row.id" @click="remove(row)">删除</el-button></div></div>
             </article>
@@ -45,18 +46,19 @@
         </template>
       </section>
     </div>
-    <el-dialog v-model="opened" title="权益包配置" width="min(900px,95vw)" :close-on-click-modal="false" :before-close="close">
+    <el-dialog v-model="opened" title="选购范围配置" width="min(900px,95vw)" :close-on-click-modal="false" :before-close="close">
       <el-form v-if="draft" label-position="top" :disabled="!editable||busy">
-        <el-form-item label="权益包名称"><el-input v-model="draft.name" maxlength="80" aria-label="权益包名称" /></el-form-item>
-        <el-form-item label="主机分类"><el-select v-model="draft.categoryId" filterable aria-label="权益包归属分类"><el-option v-for="c in store.data.categories.filter(c=>!categoryBehavior(store.data,c.id)||categoryBehavior(store.data,c.id)==='host')" :key="c.id" :value="c.id" :label="categoryName(c.id)" /></el-select></el-form-item>
-        <el-form-item label="参与组合的产品类型"><TypeSetPicker bundle-scope v-model="draft.productTypeIds" :data="store.data" :category-id="draft.categoryId" :disabled="!editable||busy" /></el-form-item>
-        <p class="muted">公共池中的启用商品会自动展示在所有权益包和自由组合中，无需在本包逐项添加。</p>
+        <el-form-item label="范围名称"><el-input v-model="draft.name" maxlength="80" aria-label="范围名称" /></el-form-item>
+        <el-form-item label="主机分类"><el-select v-model="draft.categoryId" filterable aria-label="权益包归属分类"><el-option v-for="c in store.data.categories.filter(c=>c.enabled&&categoryBehavior(store.data,c.id)==='host')" :key="c.id" :value="c.id" :disabled="!!rangeHostConflict(store.data,c.id,draft.id)" :label="categoryName(c.id)+(rangeHostConflict(store.data,c.id,draft.id)?'（已配置）':'')" /></el-select></el-form-item>
+        <el-form-item label="二级：配件分类"><el-select v-model="draft.accessoryCategoryIds" multiple filterable aria-label="配件分类" placeholder="只允许配件用途分类"><el-option v-for="c in store.data.categories.filter(c=>c.enabled&&categoryBehavior(store.data,c.id)==='accessory')" :key="c.id" :value="c.id" :label="categoryName(c.id)"/></el-select></el-form-item>
+        <p class="muted">一级为主机，二级为关联配件；不改变原分类树。下列产品类型自动构成选购边界，选购时在此范围内自由添加商品。</p>
+        <div class="type-tags"><el-tag v-for="id in rangeTypes(store.data,draft.categoryId,draft.accessoryCategoryIds||[])" :key="id">{{typeName(id)}}</el-tag></div>
         <el-alert v-if="scopeProblem" :title="scopeProblem" type="warning" :closable="false" />
         <el-form-item label="启用"><el-switch v-model="draft.enabled" /></el-form-item>
         <el-form-item label="排序"><el-input-number v-model="draft.sort" :min="-100000" :max="100000" /></el-form-item>
       </el-form>
       <el-alert v-if="error" :title="error" type="error" :closable="false" />
-      <template #footer><el-button :disabled="busy" @click="close(()=>opened=false)">取消 / 关闭</el-button><el-button v-if="editable" type="primary" :loading="busy" data-save-bundle @click="save">保存权益包</el-button></template>
+      <template #footer><el-button :disabled="busy" @click="close(()=>opened=false)">取消 / 关闭</el-button><el-button v-if="editable" type="primary" :loading="busy" :disabled="!!scopeProblem" data-save-bundle @click="save">保存选购范围</el-button></template>
     </el-dialog>
   </div>
 </template>
@@ -66,10 +68,9 @@ import {useRoute,useRouter,onBeforeRouteLeave} from 'vue-router'
 import {ElMessage,ElMessageBox} from 'element-plus'
 import {Plus,Filter,Folder,EditPen,Delete,ShoppingCart} from '@element-plus/icons-vue'
 import {categoryBehavior} from '../domain/categoryPurposes'
-import {groupTypesProblem} from '../domain/benefitSales/query'
 import PageHead from '../components/PageHead.vue'
 import CatalogScopeTree from '../components/catalog-workspace/CatalogScopeTree.vue'
-import TypeSetPicker from '../components/benefit-sales/TypeSetPicker.vue'
+import {rangeProblem,rangeTypes,groupRangeTypes,rangeHostConflict} from '../domain/benefitSales/categoryRanges'
 import {useCatalogStore} from '../stores/catalog'
 import {buildCatalogWorkspaceIndex} from '../domain/catalogWorkspaceQuery'
 import {categoryPathLabel} from '../domain/categoryTree'
@@ -87,13 +88,13 @@ const canShop=computed(()=>store.canRoute({path:'/benefits/shopping'})),canDelet
 const canUpdate=(group:BenefitGroup)=>store.can(group.id?'product:type-bundle:update':'product:type-bundle:create')
 const opened=ref(false),draft=ref<GroupInput>(),revision=ref(0),initial=ref(''),error=ref(''),busy=ref(false),deletingId=ref(''),listError=ref('')
 let alive=true
-const scopeProblem=computed(()=>draft.value?groupTypesProblem(store.data,draft.value.categoryId,draft.value.productTypeIds):'')
+const scopeProblem=computed(()=>draft.value?(rangeHostConflict(store.data,draft.value.categoryId,draft.value.id)||rangeProblem(store.data,draft.value.categoryId,draft.value.accessoryCategoryIds)):'')
 const editable=computed(()=>store.can(`product:type-bundle:${draft.value?.id?'update':'create'}`))
 const dateFormatter=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Singapore',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'})
 function timeParts(value:string){const date=new Date(value);if(!Number.isFinite(date.getTime()))return {date:'未记录',time:''};const parts=dateFormatter.formatToParts(date),part=(name:string)=>parts.find(p=>p.type===name)?.value||'';return {date:`${part('year')}-${part('month')}-${part('day')}`,time:`${part('hour')}:${part('minute')}`}}
 function formatTime(value:string){const parts=timeParts(value);return [parts.date,parts.time].filter(Boolean).join(' ')}
 watch(()=>[store.activeUserId,store.previewUserId],()=>{opened.value=false;draft.value=undefined;error.value='';listError.value=''})
-function edit(g?:BenefitGroup){if(busy.value)return;draft.value=g?copy(g):{id:'',name:'',categoryId:category.value,productTypeIds:typeId.value?[typeId.value]:[],enabled:true,sort:0};revision.value=g?.revision||0;initial.value=JSON.stringify(draft.value);error.value='';opened.value=true}
+function edit(g?:BenefitGroup){if(busy.value)return;draft.value=g?copy(g):{id:'',name:'',categoryId:category.value,accessoryCategoryIds:[],productTypeIds:typeId.value?[typeId.value]:[],enabled:true,sort:0};revision.value=g?.revision||0;initial.value=JSON.stringify(draft.value);error.value='';opened.value=true}
 function useGroup(group:BenefitGroup){if(busy.value)return;router.push({path:'/benefits/shopping',query:{group:group.id,device:route.query.device,model:route.query.model,version:route.query.version,node:route.query.node,returnTo:route.fullPath}})}
 function beforeUnload(e:BeforeUnloadEvent){if(busy.value||opened.value&&JSON.stringify(draft.value)!==initial.value){e.preventDefault();e.returnValue=''}}
 window.addEventListener('beforeunload',beforeUnload)

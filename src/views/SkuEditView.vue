@@ -4,7 +4,7 @@
     <el-empty v-if="!sku || !family || !draft" description="SKU 不存在或此记录属于物料，请从物料管理查看。" />
     <section v-else class="panel">
       <p>所属 SPU：<el-button link type="primary" @click="router.push(`/spus/${family.id}`)">{{ family.name }}</el-button></p>
-      <div class="row-actions"><el-button v-if="store.canRoute({path:'/compatibility'})&&productRole==='accessory'" data-sku-compatibility @click="router.push({path:'/compatibility',query:{targetId:sku.id,returnTo:route.fullPath}})">适用设备</el-button><el-button v-if="productRole==='host'&&store.canRoute({path:'/benefits/shopping'})" data-device-shopping @click="router.push({path:'/benefits/shopping',query:{device:'sku:'+sku.id,returnTo:route.fullPath}})">去商城选购</el-button></div><p>来源：{{ sourceText }} · 绑定版本：{{ versionName }}</p>
+      <div class="row-actions"><el-button v-if="productRole==='accessory'&&store.canRoute({path:'/compatibility/config'})" @click="router.push({path:'/compatibility/config',query:{spu:sku.familyId}})">关联主机</el-button><el-button v-if="productRole==='host'&&store.canRoute({path:'/benefits/shopping'})" data-device-shopping @click="router.push({path:'/benefits/shopping',query:{device:'sku:'+sku.id,returnTo:route.fullPath}})">去商城选购</el-button></div><p>来源：{{ sourceText }} · 绑定版本：{{ versionName }}</p>
 
 
 

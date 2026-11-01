@@ -1,3 +1,4 @@
+import {isKeyOnlyUsedModel} from './usedGoods/modelKind'
 import { expandFilteredPaths } from './planning'
 import { businessIssues } from './nodeBusiness'
 import type {
@@ -341,6 +342,7 @@ export const SPEC_VALUE_TO_VALUE = '属性值不能直接关联属性值，请�
 /** 发布前检查编辑树。属性可以接属性或属性值，属性值只能再接属性。 */
 export interface SpecPublishDiagnostic { branch: string; index: number; nodeId?: string; nodePath?: string; attributeId?: string }
 export function specPublishProblems(data: AppData, nodes: ProductSpecNode[], rejected?: (issue: SpecPublishDiagnostic) => void) {
+  const keyOnlyUsed=isKeyOnlyUsedModel(data,nodes[0]?.templateId||'',nodes)
   const problems: string[] = businessIssues(data, nodes).map(issue => issue.message)
   const report = (branch: string, node?: ProductSpecNode, nodePath?: string) => rejected?.({ branch, index: problems.length - 1, nodeId: node?.id, attributeId: node?.attributeId, nodePath })
   if (!nodes.some((item) => item.nodeType === 'ATTRIBUTE')) { problems.push('还没有属性节点，不能发布。'); report('no-attribute') }
@@ -348,6 +350,7 @@ export function specPublishProblems(data: AppData, nodes: ProductSpecNode[], rej
   const reachable = new Set<string>()
   const walk = (parentId: string | null) => {
     childrenByParent(nodes, parentId).forEach((node) => {
+      if(reachable.has(node.id))return
       reachable.add(node.id)
       walk(node.id)
     })
@@ -390,11 +393,12 @@ export function specPublishProblems(data: AppData, nodes: ProductSpecNode[], rej
       if (values.length > 0 && nested.length > 0) {
         problems.push(`属性「${locate(attribute)}」同时挂了属性值和子属性。请把子属性放到属性值下面，或只保留其中一种，否则规格路径不明确，不能发布。`); report('mixed-children', attribute, locate(attribute))
       }
-      if (values.length === 0 && nested.length === 0) { problems.push(`属性「${locate(attribute)}」下面没有取值。`); report('empty-attribute', attribute, locate(attribute)) }
+      if (!keyOnlyUsed && values.length === 0 && nested.length === 0) { problems.push(`属性「${locate(attribute)}」下面没有取值。`); report('empty-attribute', attribute, locate(attribute)) }
     })
-  if (problems.length === 0 && specCombinationsFrom(data, nodes[0]?.templateId || '', nodes).length === 0) {
+  if (!keyOnlyUsed && problems.length === 0 && specCombinationsFrom(data, nodes[0]?.templateId || '', nodes).length === 0) {
     problems.push('当前结构生成不出完整规格路径，不能发布。'); report('no-combination')
   }
+  if(keyOnlyUsed&&[null,...nodes.map(n=>n.id)].some(parent=>nodes.filter(n=>n.parentId===parent).length>1))problems.push('二手机资料属性请按填写顺序串成一条链路。')
   return problems
 }
 

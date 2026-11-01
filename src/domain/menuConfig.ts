@@ -39,13 +39,15 @@ export function defaultMenuNodes(): MenuNode[] {
     group('model', '商品模型配置', 'product', 3, ADMIN),
     group('operate', '商品运营', 'product', 4, BOTH),
     group('analysis', '商品分析', 'product', 5, BOTH),
-    group('compatibility-group','兼容性','product',7,BOTH),
-    page('/compatibility','兼容性管理','compatibility-group',1,BOTH),
     page('/category-roles', '分类用途配置', 'model', 0, BOTH),
+    group('sku-host-relations','兼容性','product',7,BOTH),
+    page('/compatibility/list','兼容性列表','sku-host-relations',1,BOTH),
+    page('/compatibility/config','兼容性配置','sku-host-relations',2,BOTH),
     group('benefits', '权益包', 'product', 6, BOTH),
     page('/benefits/manage', '权益包管理', 'benefits', 1, BOTH),
     page('/benefits/shopping', '权益包选购', 'benefits', 2, BOTH),
     page('/benefits/public-pool', '公共商品池', 'benefits', 3, BOTH),
+    page('/used-intake','二手机回收','manage',2,BOTH),
     page('/spus', 'SPU 管理', 'manage', 1, BOTH),
     page('/skus', 'SKU 管理', 'manage', 1.5, BOTH),
     page('/catalog', '商品资料管理', 'manage', 3, BOTH),
@@ -102,6 +104,7 @@ function rolesOf(value: unknown, fallback: UserRole[]): UserRole[] {
 }
 
 export function sanitizeMenu(nodes: MenuNode[]): MenuNode[] {
+  nodes=nodes.filter(n=>n.route!=='/compatibility'&&n.id!=='compatibility-group'&&n.id!=='page:/compatibility'&&n.route!=='/used-intake/config'&&n.id!=='page:/used-intake/config')
   // Carry the existing entrance's placement into the new daily entrance once. Keep the
   // original nodes (including hidden/sort/custom-container preferences) for compatibility.
   if (!nodes.some(item => item?.id === 'page:/catalog')) {
@@ -147,7 +150,6 @@ export function sanitizeMenu(nodes: MenuNode[]): MenuNode[] {
     const nextSort = Math.min(...[...byId.values()].filter(node => node.kind === 'center' && node.id !== 'guide' && node.sort > systemSort).map(node => node.sort))
     byId.get('guide')!.sort = Number.isFinite(nextSort) ? (systemSort + nextSort) / 2 : systemSort + 1
   }
-  const compatibilityPage=byId.get('page:/compatibility');if(compatibilityPage){compatibilityPage.parentId='compatibility-group';compatibilityPage.title='兼容性管理'}
   const list = [...byId.values()]
   const known = new Set(list.map((item) => item.id))
   for (const item of list) {

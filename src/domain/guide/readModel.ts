@@ -19,7 +19,7 @@ export interface GuideDirectoryCenter extends GuideDirectoryGroup { groups: Guid
 // Only registered, object-independent destinations. Detail pages fall back to their real
 // list/workspace entrance; an explanation never invents an object ID or selects a record.
 const targets: Record<string, GuideLocation> = {
- 'page-compatibility':{path:'/compatibility'},'page-type-bundles':{path:'/benefits/manage'},'page-bundle-sale':{path:'/benefits/shopping'},
+ 'page-type-bundles':{path:'/benefits/manage'},'page-bundle-sale':{path:'/benefits/shopping'},
   'page-catalog':{path:'/catalog'},
   'page-home':{path:'/'}, 'page-categories':{path:'/categories',query:{mode:'organize'}}, 'page-product-types':{path:'/catalog',query:{view:'types'}},
   'page-params':{path:'/params'}, 'page-templates':{path:'/templates'}, 'page-models':{path:'/catalog',query:{view:'models'}},

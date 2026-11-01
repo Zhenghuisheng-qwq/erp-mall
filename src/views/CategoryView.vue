@@ -41,7 +41,7 @@
       <section v-if="current && (panels.length === 1 || detailsOpen)" class="panel cat-detail">
         <h2>{{ current.name }}</h2>
         <div class="info-card">
-          <h3>基础信息</h3>
+          <h3>基础信息</h3><el-button v-if="current.goodsCondition==='used'&&store.canRoute({path:'/catalog',query:{view:'models'}})" link @click="router.push({path:'/catalog',query:{view:'models',categoryId:current.id}})">查看二手机模型</el-button>
           <p><span>用途</span>{{categoryPurposeLabel(store.data,current)}}</p>
           <p><span>名称</span>{{ current.name }}</p>
           <p><span>父级</span>{{ parentName }}</p>

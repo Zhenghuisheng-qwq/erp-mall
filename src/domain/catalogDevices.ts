@@ -1,23 +1,43 @@
 import {projectAttrs} from './logic'
 import {familyProductTypeId} from './productIdentity'
 import {modelSpecificationContext} from './modelSourceContext'
-import { hostFrom, hostIdentityKey, roleOfType } from './compatibility'
+import {roleOfType} from './productTypePurpose'
 import { isMaterialArchive, isRealSku } from './catalogIdentity'
 import { legalPlanningCombinations } from './planning'
-import type { AppData, CompatibilityHost, PlanningStep, ProductFamily, ProductSpecNode, Sku } from './types'
-import type { DeviceModelOption, DeviceResolution } from './accessoryCompatibilityTypes'
+import type { AppData, PlanningStep, ProductFamily, ProductSpecNode, Sku } from './types'
+export interface CatalogHost {scope:'model'|'planning';productTypeId:string;productModelId:string;identityKey:string;steps:{attributeId:string;attributeName:string;valueId:string}[];planningId?:string}
+export interface DeviceModelOption {key:string;host:CatalogHost;label:string;productTypeName:string;source:'model'|'template'|'manual'|'legacy';planningIds:string[];versionIds:string[]}
+export interface DeviceResolution {status:'resolved'|'unconfigured'|'ambiguous'|'invalid';skuId:string;host?:CatalogHost;planningId?:string;candidates:DeviceModelOption[];message:string;source:string;attributes:Record<string,string>;sourceStamp:string}
+export function hostLabel(host: CatalogHost) {
+  return host.steps.map((step) => step.valueId).filter(Boolean).join(' ')
+}
 
-export function deviceHostKey(host: CompatibilityHost) { return JSON.stringify([host.productTypeId, host.productModelId, host.identityKey]) }
-export function sameDeviceHost(left: CompatibilityHost, right: CompatibilityHost, includeScope = true) {
+export function hostFrom(productTypeId: string, productModelId: string, steps: { attributeId: string; attributeName: string; valueId: string }[], planningId = ''): CatalogHost {
+  return {
+    scope: planningId ? 'planning' : 'model',
+    productTypeId,
+    productModelId,
+    identityKey: hostIdentityKey(steps),
+    steps: steps.map((step) => ({ attributeId: step.attributeId, attributeName: step.attributeName, valueId: step.valueId })),
+    planningId: planningId || undefined,
+  }
+}
+
+export function hostIdentityKey(steps: { attributeId: string; valueId: string }[]) {
+  return steps.map((step) => `${step.attributeId}=${step.valueId}`).join('\u001e')
+}
+
+export function deviceHostKey(host: CatalogHost) { return JSON.stringify([host.productTypeId, host.productModelId, host.identityKey]) }
+export function sameDeviceHost(left: CatalogHost, right: CatalogHost, includeScope = true) {
   return deviceHostKey(left) === deviceHostKey(right) && (!includeScope || (left.scope === right.scope && (left.planningId || '') === (right.planningId || '')))
 }
-export function compatibilityFamilyRole(data: AppData, familyId: string): 'host' | 'accessory' | 'other' {
+export function familyCatalogRole(data: AppData, familyId: string): 'host' | 'accessory' | 'other' {
   const typeId = familyProductTypeId(data, familyId)
   return typeId ? roleOfType(data, typeId) : 'other'
 }
-export function compatibilityRecordRole(data: AppData, skuId: string) {
+export function skuCatalogRole(data: AppData, skuId: string) {
   const sku = data.skus.find(item => item.id === skuId)
-  return sku ? compatibilityFamilyRole(data, sku.familyId) : 'other'
+  return sku ? familyCatalogRole(data, sku.familyId) : 'other'
 }
 function familyType(data: AppData, family: ProductFamily) {
   return family.productTypeId || data.specCanvases.find(item => item.templateId === (family.productModelId || family.templateId))?.productTypeId || ''
@@ -82,7 +102,7 @@ function templateHost(data: AppData, family: ProductFamily, sku: Sku) {
 /** Candidate catalogue includes frozen versions and explicit models even without MAT, active PLN or sale SKU. */
 export function listDeviceModels(data: AppData): DeviceModelOption[] {
   const options = new Map<string, DeviceModelOption>()
-  function add(host: CompatibilityHost, source: DeviceModelOption['source'], versionId = '', planningId = '', label = '') {
+  function add(host: CatalogHost, source: DeviceModelOption['source'], versionId = '', planningId = '', label = '') {
     if (roleOfType(data, host.productTypeId) !== 'host') return
     const modelHost = { ...host, scope: 'model' as const, planningId: undefined, steps: host.steps.map(step => ({ ...step })) }
     const key = deviceHostKey(modelHost), previous = options.get(key)
@@ -105,21 +125,11 @@ export function listDeviceModels(data: AppData): DeviceModelOption[] {
   }
   for (const sku of data.skus) {
     const family = data.families.find(item => item.id === sku.familyId)
-    if (!family || !isRealSku(data, sku) || family.modelVersionId || sku.modelVersionId || sku.creationSource?.modelVersionId || compatibilityFamilyRole(data, family.id) !== 'host') continue
+    if (!family || !isRealSku(data, sku) || family.modelVersionId || sku.modelVersionId || sku.creationSource?.modelVersionId || familyCatalogRole(data, family.id) !== 'host') continue
     const host = templateHost(data, family, sku)
     if (host) add(host, 'template')
   }
   return [...options.values()].sort((a, b) => a.label.localeCompare(b.label, 'zh') || a.key.localeCompare(b.key))
-}
-
-export function validateCompatibilityHost(data: AppData, host: CompatibilityHost, options = listDeviceModels(data)): string {
-  if (!host || !['model', 'planning'].includes(host.scope) || typeof host.productTypeId !== 'string' || typeof host.productModelId !== 'string' || typeof host.identityKey !== 'string' || !Array.isArray(host.steps) || !host.steps.length || host.steps.some(step => !step || typeof step.attributeId !== 'string' || typeof step.valueId !== 'string')) return '主机型号配置无效。'
-  const option = options.find(item => sameDeviceHost(item.host, host, false))
-  if (!option) return '主机型号引用已失效，请重新选择有效型号。'
-  if (host.identityKey !== hostIdentityKey(host.steps)) return '主机型号身份与属性引用不一致。'
-  if (host.scope === 'planning' && (!host.planningId || !option.planningIds.includes(host.planningId))) return '指定 PLN 不属于当前主机型号。'
-  if (host.scope === 'model' && host.planningId) return '型号级声明不能携带规格 PLN。'
-  return ''
 }
 
 export function deviceSourceStamp(data: AppData, skuId: string): string {
@@ -147,7 +157,7 @@ export function resolveDeviceSku(data: AppData, skuId: string, context?: DeviceR
   const sku = context ? context.skus.get(skuId) : data.skus.find(item => item.id === skuId), family = sku && (context ? context.families.get(sku.familyId) : data.families.find(item => item.id === sku.familyId))
   function invalid(message: string) { return { ...result, status: 'invalid' as const, message } }
   if (!sku || !family || !(context ? context.realSkuIds.has(sku.id) : isRealSku(data, sku))) return invalid('设备 SKU 引用已失效或不是销售 SKU。')
-  if (compatibilityFamilyRole(data, family.id) !== 'host') return invalid('当前记录未配置为主机产品类型。')
+  if (familyCatalogRole(data, family.id) !== 'host') return invalid('当前记录未配置为主机产品类型。')
   const actual = actualAttributes(data, family, sku)
   result.attributes = actual.attributes
   if (actual.conflicts.length) return invalid(`公共属性与 SKU 规格矛盾：${actual.conflicts.join('、')}。请先处理来源。`)
@@ -196,4 +206,4 @@ export function resolveDeviceSku(data: AppData, skuId: string, context?: DeviceR
 }
 
 /** Read-only projection of the existing catalogue; no separately authored device directory. */
-export function catalogDeviceOptions(data:AppData){return {models:listDeviceModels(data),skus:data.skus.filter(s=>isRealSku(data,s)&&compatibilityRecordRole(data,s.id)==='host').map(s=>{const f=data.families.find(f=>f.id===s.familyId)!;return {id:s.id,name:s.skuName||f.name,code:s.code,spec:Object.entries(projectAttrs(f,s)).map(([k,v])=>(data.params.find(p=>p.id===k)?.name||k)+' '+v).join(' · ')}})}}
+export function catalogDeviceOptions(data:AppData){return {models:listDeviceModels(data),skus:data.skus.filter(s=>isRealSku(data,s)&&skuCatalogRole(data,s.id)==='host').map(s=>{const f=data.families.find(f=>f.id===s.familyId)!;return {id:s.id,name:s.skuName||f.name,code:s.code,spec:Object.entries(projectAttrs(f,s)).map(([k,v])=>(data.params.find(p=>p.id===k)?.name||k)+' '+v).join(' · ')}})}}

@@ -1,5 +1,3 @@
-import type {AccessoryTargetKind,CompatibilityConclusion,CompatibilityVerification,CompatibilityCapability,CompatibilityCondition,CompatibilityProvenance} from './accessoryCompatibilityTypes'
-import type {GeneralCompatibilityClaim} from './generalCompatibility'
 
 import type { SkuViewConfig, SkuWorkbenchState } from './skuWorkbenchTypes'
 
@@ -32,6 +30,7 @@ export type PlanningRoleSource = 'node' | 'scheme'
 export interface CategoryPurpose { id: string; name: string; behavior: 'host' | 'accessory' | 'other' }
 
 export interface Category {
+  goodsCondition?: 'new' | 'used'
   purposeId?: string
   /** 分类业务用途；历史未配置时沿用产品类型用途。 */
   catalogRole?: 'host' | 'accessory'
@@ -71,6 +70,7 @@ export interface CatalogTemplate {
 }
 
 export interface ParamDef {
+  intakeKey?: string
   id: string
   name: string
   values: string[]
@@ -484,6 +484,14 @@ export interface Profile {
 }
 
 export interface AppData {
+  spuHostLinks?: import('./spuHostLinks').SpuHostLink[]
+  spuHostLinkMigrationVersion?:1
+  spuHostLinkMigrationIssues?:string[]
+  skuHostLinks?: import('./skuHostLinks').SkuHostLink[]
+  usedIntakeModelVersion?: 1
+  usedIntakeChain?: import('./usedGoods/intake').IntakeChain
+  phoneCategoryBranchesVersion?: 1
+  benefitCategoryScopeVersion?: 1
   categoryPurposes?: CategoryPurpose[]
   /** Independent single-unit used goods; absent for untouched existing data. */
   usedGoods?: import('./usedGoods').UsedGoods
@@ -492,7 +500,7 @@ export interface AppData {
   phoneDemoCatalogVersion?: 1
   /** One-time additive Apple/Huawei catalogue supplement. */
   phoneDemoBrandsVersion?: 1
-  generalCompatibilityClaims?: GeneralCompatibilityClaim[]
+  generalCompatibilityClaims?: unknown[]
   /** Type-combination format, isolated from retired raw benefit fields. */
   benefitTypeGroups?: import('./benefitSales/types').BenefitGroup[]
   benefitSalesLists?: import('./benefitSales/types').BenefitSale[]
@@ -522,7 +530,7 @@ export interface AppData {
   /** 建档请求回执。旧数据没有时保持空数组。 */
   materialReceipts: MaterialCreateReceipt[]
   /** Retired storage extensions are opaque and preserved on ordinary saves; never evaluated. */
-  compatibilities: CompatibilityLink[]
+  compatibilities: unknown[]
   /** Historical raw extensions only. */
   deviceModels?: unknown
   deviceBindings?: unknown
@@ -608,34 +616,4 @@ export interface TreeNode {
   skuId?: string
   familyId?: string
   children: TreeNode[]
-}
-
-
-export interface CompatibilityHost {
-  scope: 'model' | 'planning'
-  productTypeId: string
-  productModelId: string
-  /** 品牌到型号的属性 id 和取值。不含节点 id，也不含容量、颜色。 */
-  identityKey: string
-  steps: { attributeId: string; attributeName: string; valueId: string }[]
-  /** 只在指定某一条规格时才有。缺省表示整款型号。 */
-  planningId?: string
-}
-
-export interface CompatibilityLink {
-  id: string
-  /** Legacy links omit the target fields and continue to identify a MAT. */
-  accessorySkuId: string
-  targetKind?: AccessoryTargetKind
-  targetId?: string
-  conclusion?: CompatibilityConclusion
-  verification?: CompatibilityVerification
-  capability?: CompatibilityCapability
-  conditions?: CompatibilityCondition[]
-  source?: string
-  provenance?: CompatibilityProvenance
-  host: CompatibilityHost
-  note: string
-  createdAt: string
-  updatedAt: string
 }

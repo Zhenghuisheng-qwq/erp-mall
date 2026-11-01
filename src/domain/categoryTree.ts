@@ -408,6 +408,7 @@ export function planCategoryCopy(categories: Category[], mappings: CategoryMappi
       sort: isRoot ? maxSort + 1 : node.sort,
       enabled: node.enabled !== false,
     }
+    if(node.goodsCondition)clone.goodsCondition=node.goodsCondition
     if(node.purposeId!==undefined)clone.purposeId=node.purposeId
     if(node.catalogRole)clone.catalogRole=node.catalogRole
     if (node.icon) clone.icon = node.icon

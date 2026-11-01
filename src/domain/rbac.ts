@@ -28,7 +28,7 @@ export interface RbacRole {
   superAdmin?: boolean
   permissionCodes: string[]
 }
-export const isRetiredPermission = (code:string) => /^product:(benefit|benefit-group|benefit-selection|delivery|framework|sales|sales-config):/.test(code)
+export const isRetiredPermission = (code:string) => /^product:(compatibility|benefit|benefit-group|benefit-selection|delivery|framework|sales|sales-config):/.test(code)
 
 export interface RbacState { version: 1; guideAccessVersion?: 1; roles: RbacRole[]; permissions: RbacPermission[] }
 type AuthorizationData = AppData & { rbac?: RbacState }
@@ -37,8 +37,8 @@ export const OPERATOR_ROLE_ID = 'role:operator'
 export const RECOVERY_PERMISSIONS = ['system:menu:read', 'system:menu:update', 'system:role:read', 'system:role:grant', 'system:user:read', 'system:user:bind', 'system:permission:read', 'system:permission:update']
 
 const resources: { module: string; resource: string; label: string; route: string; actions: string[] }[] = [
+  {module:'商品中心',resource:'sku-host-link',label:'兼容性关联',route:'/compatibility/list',actions:['create','update','delete']},
   {module:'商品中心',resource:'used-goods',label:'二手商品',route:'/skus?goods=used',actions:['create','update','delete','publish']},
-  {module:'商品中心',resource:'compatibility',label:'兼容性',route:'/compatibility',actions:['create','update','delete']},
   {module:'商品中心',resource:'type-bundle',label:'权益包',route:'/benefits/manage',actions:['create','update','delete']},
   {module:'商品中心',resource:'bundle-sale',label:'选购清单',route:'/benefits/shopping',actions:['create','update','confirm']},
   { module: '系统管理', resource: 'guide', label: '系统功能说明', route: '/guide', actions: ['update'] },
@@ -89,6 +89,9 @@ export function permissionRegistry(): RbacPermission[] {
 export function routePermissions(path: string, query: Record<string,unknown> = {}): string[] | null {
   const clean = path.split('?')[0] || '/'
   if(['/spus','/skus'].includes(clean)&&(query.goods==='used'||new URLSearchParams(path.split('?')[1]||'').get('goods')==='used'))return ['product:used-goods:read']
+  if(['/compatibility/config','/compatibility/list'].includes(clean))return ['product:sku-host-link:read','product:sku:read','product:spu:read','product:type:read']
+  if(clean==='/used-intake')return ['product:used-goods:read','product:used-goods:create']
+  if(clean==='/used-intake/config')return ['product:category:read']
   if(clean==='/category-roles')return ['product:category:read']
   if(clean==='/benefits/public-pool')return ['product:type-bundle:read','product:spu:read','product:sku:read','product:category:read','product:type:read']
   if(clean==='/benefits/manage')return ['product:type-bundle:read','product:category:read','product:type:read']
@@ -106,8 +109,7 @@ export function routePermissions(path: string, query: Record<string,unknown> = {
     if (query.add || query.copySku) return ['product:sku:read','product:sku:create']
     return ['product:spu:read']
   }
-  if(clean==='/compatibility')return ['product:compatibility:read','product:sku:read','product:spu:read','product:type:read','product:category:read']
-  const exact: Record<string,string> = { '/compatibility':'product:compatibility:read', '/':'product:workbench:read','/products':'product:spu:read','/spus':'product:spu:read','/skus':'product:sku:read','/materials':'product:material:read','/models':'product:model:read','/specs':'product:model-designer:read','/templates':'product:template:read','/params':'product:dictionary:read','/product-types':'product:type:read','/categories':'product:category:read','/rules':'product:rule:read','/mappings':'product:template:read','/brands':'product:brand:read','/groups':'product:group:read','/import':'product:import:read','/plans':'product:planning:read','/tree':'product:tree:read','/overview':'product:overview:read','/check':'product:check:read','/menus':'system:menu:read','/roles':'system:role:read','/permissions':'system:permission:read','/users':'system:user:read','/feedback':'system:feedback:read','/account':'system:account:read' }
+  const exact: Record<string,string> = { '/':'product:workbench:read','/products':'product:spu:read','/spus':'product:spu:read','/skus':'product:sku:read','/materials':'product:material:read','/models':'product:model:read','/specs':'product:model-designer:read','/templates':'product:template:read','/params':'product:dictionary:read','/product-types':'product:type:read','/categories':'product:category:read','/rules':'product:rule:read','/mappings':'product:template:read','/brands':'product:brand:read','/groups':'product:group:read','/import':'product:import:read','/plans':'product:planning:read','/tree':'product:tree:read','/overview':'product:overview:read','/check':'product:check:read','/menus':'system:menu:read','/roles':'system:role:read','/permissions':'system:permission:read','/users':'system:user:read','/feedback':'system:feedback:read','/account':'system:account:read' }
   if (exact[clean]) return [exact[clean]]
   for (const [base, resource] of [['spus','spu'],['skus','sku'],['materials','material'],] as const) {
     if (clean === `/${base}/new`) return [`product:${resource}:read`,`product:${resource}:create`]
@@ -166,7 +168,7 @@ export function ensureRbac(data: AppData, legacyMenus: MenuNode[] = defaultMenuN
     }
     if(saved&&saved.guideAccessVersion===undefined)saved.guideAccessVersion=1
     if(saved&&Array.isArray(saved.permissions)&&Array.isArray(saved.roles)){
-      const additions=permissionRegistry().filter(p=>['type-bundle','bundle-sale','compatibility','used-goods'].includes(p.resource)&&!saved.permissions.some(old=>old.code===p.code))
+      const additions=permissionRegistry().filter(p=>['sku-host-link','type-bundle','bundle-sale','used-goods'].includes(p.resource)&&!saved.permissions.some(old=>old.code===p.code))
       saved.permissions.push(...additions)
       for(const role of saved.roles)if(role.id===SUPER_ROLE_ID&&role.builtIn&&role.superAdmin)role.permissionCodes=[...new Set([...role.permissionCodes,...additions.map(p=>p.code)])]
     }
@@ -288,13 +290,14 @@ export function commandPermissions(name: string, args: unknown[] = [], data?: Ap
     if (dictionary && name && !dictionary.values.includes(name)) codes.push('product:dictionary:update')
     return codes
   }
+  if(name==='saveSpuHostLink')return ['product:sku-host-link:read',Number(args[2])?'product:sku-host-link:update':'product:sku-host-link:create','product:sku:read','product:type:read']
+  if(name==='removeSpuHostLink')return ['product:sku-host-link:read','product:sku-host-link:delete']
+  if(name==='receiveUsedPhone')return ['product:used-goods:read','product:used-goods:create']
   if(name==='saveUsedSku')return save('used-goods',Boolean(first?.id))
   if(name==='saveUsedGroup')return save('used-goods',Boolean(args[0]))
   if(name==='saveUsedSpu')return ['product:used-goods:read','product:used-goods:update']
   if(['removeUsedSku','removeUsedSpu','removeUsedGroup'].includes(name))return ['product:used-goods:read','product:used-goods:delete']
   if(name==='setUsedSkuStatus')return ['product:used-goods:read','product:used-goods:publish']
-  if(name==='installCompatibilityExamples')return ['product:compatibility:create','product:compatibility:read','product:sku:read']
-  if(name==='saveCompatibilityWorkspace')return ['product:compatibility:read','product:sku:read','product:type:read',...new Set([...(args[1] as {kind:string}[]||[]),...(args[2] as {kind:string}[]||[])].map(c=>'product:compatibility:'+(c.kind==='add'?'create':c.kind==='edit'?'update':'delete')))]
   if(name==='saveBundleSale')return [...save('bundle-sale',Boolean(first?.id)),'product:sku:read','product:spu:read','product:type:read',...(first?.status==='confirmed'?['product:bundle-sale:confirm']:[])]
   // Public pool maintenance reuses bundle configuration permissions; sales usage stays read-only.
   if(name==='addPublicSpus')return ['product:type-bundle:read','product:type-bundle:create','product:spu:read']

@@ -1,10 +1,9 @@
-import {compatibilityPages} from './manuals-compatibility'
 import {bundlePages} from './manuals-type-bundles'
 import type { GuidePage } from '../types'
 import { catalogPages } from './manuals-catalog'
 
 export const guidePages: GuidePage[] = [
-  ...compatibilityPages,...bundlePages,...catalogPages,
+  ...bundlePages,...catalogPages,
   {
     "id": "page-home",
     "title": "商品工作台",

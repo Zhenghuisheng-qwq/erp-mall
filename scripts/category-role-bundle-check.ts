@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import {bundleFixture} from './type-bundle-fixture'
-import {roleOfType} from '../src/domain/compatibility'
+import {roleOfType} from '../src/domain/productTypePurpose'
 import {groupTypesProblem,saleQuery,availableBenefitGroups} from '../src/domain/benefitSales/query'
 import {writeGroup} from '../src/domain/benefitSales/commands'
 const {data}=bundleFixture(),host=data.productTypes.find(t=>t.catalogRole==='host')!,accessory=data.productTypes.find(t=>t.catalogRole==='accessory')!

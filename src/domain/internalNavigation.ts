@@ -4,7 +4,7 @@ export function internalReturnLocation(value:unknown): string | undefined {
   try{
     const url=new URL(value,'https://erp.invalid')
     if(url.origin!=='https://erp.invalid'||/[\\\u0000-\u001f\u007f]/.test(decodeURIComponent(value)))return undefined
-    if(!['/compatibility','/benefits/manage','/benefits/shopping','/specs','/catalog','/skus','/spus'].includes(url.pathname)&&!/^\/(materials|skus|spus)\//.test(url.pathname))return undefined
+    if(!['/benefits/manage','/benefits/shopping','/specs','/catalog','/skus','/spus'].includes(url.pathname)&&!/^\/(materials|skus|spus)\//.test(url.pathname))return undefined
     return url.pathname+url.search+url.hash
   }catch{return undefined}
 }

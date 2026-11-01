@@ -6,7 +6,7 @@ const icons: Record<string, Component> = {
   '/benefits/public-pool': Collection, '/benefits/manage': Collection, '/benefits/shopping': Goods,
   '/guide': Notebook,
   '/': House, '/spus': Goods, '/skus': Grid,
-  '/compatibility': Connection, '/categories': FolderOpened, '/product-types': Collection,
+  '/categories': FolderOpened, '/product-types': Collection,
   '/templates': Files, '/models': Collection, '/specs': SetUp, '/params': Notebook,
   '/rules': Filter, '/brands': PriceTag, '/groups': User, '/overview': DataAnalysis,
   '/check': CircleCheck, '/tree': Share, '/plans': DocumentCopy, '/import': Upload,
