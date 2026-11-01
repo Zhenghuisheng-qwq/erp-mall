@@ -8,6 +8,8 @@ import {addPublicSpus,updatePublicSpu,removePublicSpu,publicPoolStorageProblems,
 import {groupTypesProblem} from '../domain/benefitSales/query'
 import {cloneRecord} from '../domain/recordCopy'
 import {modelSpecificationContext} from '../domain/modelSourceContext'
+import {saveCategoryPurpose,removeCategoryPurpose,saveBoundCategory,purposeBindingProblem,categoryPurposeProblems,type BoundCategoryInput} from '../domain/categoryPurposes'
+import type {CategoryPurpose} from '../domain/types'
 import {writeGroup,deleteGroup,writeSale,benefitStorageProblems} from '../domain/benefitSales/commands'
 import type {GroupInput,SaleInput} from '../domain/benefitSales/types'
 import { branchFailure, rejectGuide, getFailure, failureError, failureForResult, unknownFailure, withFailure, createFailure } from '../domain/guide/failure'
@@ -94,7 +96,7 @@ export function normalizeStored(parsed: StoredPayload, options: { persist?: bool
   if (!data?.families || !data.skus || !data.categories || !data.templates || !data.mappings || !data.templateParams) return null
   const version = parsed.version ?? 1
   if (version < 1 || version > DATA_VERSION) return null
-  const benefitProblems=[...usedStorageProblems(data.usedGoods),...benefitStorageProblems(data),...publicPoolStorageProblems(data),...compatibilityImportProblems(data),...generalStorageProblems(data)]
+  const benefitProblems=[...categoryPurposeProblems(data),...usedStorageProblems(data.usedGoods),...benefitStorageProblems(data),...publicPoolStorageProblems(data),...compatibilityImportProblems(data),...generalStorageProblems(data)]
   if(benefitProblems.length)throw new Error(benefitProblems.join('；'))
   const businessProblems = businessImportProblems(data)
   if (businessProblems.length) throw new Error(`节点业务配置结构校验失败：${businessProblems.join(' ')} 原始记录已保留。`)
@@ -476,7 +478,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     if (businessProblems.length) throwImportValidation(`节点业务配置结构校验失败：${businessProblems.join(' ')} 当前数据没有被替换。`)
     const relationProblems = materialRelationImportProblems(parsed.data)
     if (relationProblems.length) throwImportValidation(`物料关联校验失败：${relationProblems.join(' ')} 当前数据没有被替换。`)
-    const prefixes:Partial<Record<keyof AppData,string>>={compatibilities:'product:compatibility',generalCompatibilityClaims:'product:compatibility',publicSpuPool:'product:type-bundle',benefitTypeGroups:'product:type-bundle',benefitSalesLists:'product:bundle-sale',families:'product:spu',skus:'product:sku',productSpecNodes:'product:model',specCanvases:'product:model',specModelVersions:'product:model',businessDefinitions:'product:model',materialRelations:'product:material',materialReceipts:'product:material',categories:'product:category',params:'product:dictionary',templates:'product:model',templateParams:'product:template',mappings:'product:template',productTypes:'product:type',rules:'product:rule',brands:'product:brand',productGroups:'product:group',planningRecords:'product:planning',productPlans:'product:planning',feedbacks:'system:feedback',profile:'system:account'}
+    const prefixes:Partial<Record<keyof AppData,string>>={compatibilities:'product:compatibility',generalCompatibilityClaims:'product:compatibility',publicSpuPool:'product:type-bundle',benefitTypeGroups:'product:type-bundle',benefitSalesLists:'product:bundle-sale',families:'product:spu',skus:'product:sku',productSpecNodes:'product:model',specCanvases:'product:model',specModelVersions:'product:model',businessDefinitions:'product:model',materialRelations:'product:material',materialReceipts:'product:material',categoryPurposes:'product:category',categories:'product:category',params:'product:dictionary',templates:'product:model',templateParams:'product:template',mappings:'product:template',productTypes:'product:type',rules:'product:rule',brands:'product:brand',productGroups:'product:group',planningRecords:'product:planning',productPlans:'product:planning',feedbacks:'system:feedback',profile:'system:account'}
     for(const key of Object.keys(prefixes))if(key!=='profile'&&(parsed.data as any)[key]!==undefined&&!Array.isArray((parsed.data as any)[key]))throwImportValidation(`导入记录集合 ${key} 必须为数组，不能按空集合处理损坏内容。`)
     const next = normalizeStored(parsed, { persist: false })
     if (!next?.params) throwImportValidation('演示数据版本不匹配，当前数据没有被替换')
@@ -488,6 +490,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       for(const row of data.publicSpuPool||[])if(!next.publicSpuPool?.some(e=>e.spuId===row.spuId)&&publicSpuReferences(next,row.spuId).length)throwImportValidation('不能通过导入移除仍被权益包引用的公共 SPU，请先处理引用。')
       for(const row of next.publicSpuPool||[])if(row.enabled&&(!data.publicSpuPool?.some(e=>e.spuId===row.spuId&&e.enabled))){const issue=publicSpuProblem(next,row.spuId);if(issue)throwImportValidation(issue)}
     }
+    const purposeErrors=categoryPurposeProblems(next);if(purposeErrors.length)throwImportValidation(purposeErrors.join('；'))
     const authChanged=JSON.stringify([next.rbac,next.users])!==JSON.stringify([data.rbac,data.users])
     if(authChanged){
       if(!can('system:role:grant')||!can('system:user:bind')||!can('system:permission:update'))throwImportPermission('导入不能修改当前操作者无权维护的授权或用户角色绑定。')
@@ -845,7 +848,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     return new Set(data.productTypes.map((item) => item.categoryId))
   }
 
-  function addCategory(name: string, parentId: string | null, catalogRole?: 'host' | 'accessory') {
+  function addCategory(name: string, parentId: string | null, purposeId?: string) {
+    const purposeProblem=purposeBindingProblem(data,purposeId||'')
+    if(purposeProblem)return {id:'',message:purposeProblem}
     const trimmed = name.trim()
     if (!trimmed) return { id: '', message: '请填写分类名称' }
     const blocked = blockChildOfTypedCategory(parentId, typedCategoryIds())
@@ -855,7 +860,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     data.categories.push({
       id,
       name: trimmed,
-      catalogRole,
+      purposeId,
       parentId,
       sort: siblings.reduce((max, item) => Math.max(max, item.sort), 0) + 1,
       enabled: true,
@@ -875,7 +880,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     return relocateCategoryNodes(data.categories, id, targetId, position, typedCategoryIds())
   }
 
-  function updateCategory(id: string, patch: { name: string; enabled: boolean; sort: number; parentId: string | null; icon?: string; catalogRole?: 'host' | 'accessory' }) {
+  function updateCategory(id: string, patch: { name: string; enabled: boolean; sort: number; parentId: string | null; icon?: string; catalogRole?: 'host' | 'accessory'; purposeId?: string }) {
+    const problem=purposeBindingProblem(data,patch.purposeId||'')
+    if(problem)return problem
     return updateCategoryNode(data.categories, id, patch, typedCategoryIds())
   }
 
@@ -1202,6 +1209,9 @@ export const useCatalogStore = defineStore('catalog', () => {
   type UsedResponse<T>=T extends unknown?Omit<T,'data'>:never
   function commitUsed<T extends {ok:boolean;data?:UsedGoods;message?:string}>(result:T){const {data:used,...raw}=result;const value=raw as UsedResponse<T>;if(!result.ok||!used)return value;const next=cloneRecord(data);next.usedGoods=used;return commitCandidate(next,cloneRecord(value),['usedGoods'])}
   const api = {
+    saveCategoryPurpose:(input:CategoryPurpose,expected:string|null)=>{const value=cloneRecord(input);return command(()=>{const next=cloneRecord(data);return commitCandidate(next,saveCategoryPurpose(next,value,expected),['categoryPurposes'])})},
+    removeCategoryPurpose:(id:string,expected:string)=>command(()=>{const next=cloneRecord(data);return commitCandidate(next,removeCategoryPurpose(next,id,expected),['categoryPurposes'])}),
+    saveBoundCategory:(input:BoundCategoryInput,expected:string|null)=>{const value=cloneRecord(input);return command(()=>{const next=cloneRecord(data);return commitCandidate(next,saveBoundCategory(next,value,expected),['categories'])})},
     saveUsedSku:(input:UsedInput,revision:number,requestId:string,isCurrent:()=>boolean=()=>true)=>{const value=cloneRecord(input);return command(()=>isCurrent()?commitUsed(writeUsedSku(data.usedGoods,value,revision,requestId,new Date().toISOString())):{ok:false,message:'编辑身份或页面已变化，未写入二手资料'})},
     setUsedSkuStatus:(id:string,revision:number,status:UsedStatus)=>command(()=>commitUsed(updateUsedStatus(data.usedGoods,id,revision,status,new Date().toISOString()))),
     removeUsedSku:(id:string,revision:number)=>command(()=>commitUsed(deleteUsedSku(data.usedGoods,id,revision))),

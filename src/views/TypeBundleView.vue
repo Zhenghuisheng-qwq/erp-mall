@@ -48,7 +48,7 @@
     <el-dialog v-model="opened" title="权益包配置" width="min(900px,95vw)" :close-on-click-modal="false" :before-close="close">
       <el-form v-if="draft" label-position="top" :disabled="!editable||busy">
         <el-form-item label="权益包名称"><el-input v-model="draft.name" maxlength="80" aria-label="权益包名称" /></el-form-item>
-        <el-form-item label="主机分类"><el-select v-model="draft.categoryId" filterable aria-label="权益包归属分类"><el-option v-for="c in store.data.categories.filter(c=>c.catalogRole!=='accessory')" :key="c.id" :value="c.id" :label="categoryName(c.id)" /></el-select></el-form-item>
+        <el-form-item label="主机分类"><el-select v-model="draft.categoryId" filterable aria-label="权益包归属分类"><el-option v-for="c in store.data.categories.filter(c=>!categoryBehavior(store.data,c.id)||categoryBehavior(store.data,c.id)==='host')" :key="c.id" :value="c.id" :label="categoryName(c.id)" /></el-select></el-form-item>
         <el-form-item label="参与组合的产品类型"><TypeSetPicker bundle-scope v-model="draft.productTypeIds" :data="store.data" :category-id="draft.categoryId" :disabled="!editable||busy" /></el-form-item>
         <p class="muted">公共池中的启用商品会自动展示在所有权益包和自由组合中，无需在本包逐项添加。</p>
         <el-alert v-if="scopeProblem" :title="scopeProblem" type="warning" :closable="false" />
@@ -65,6 +65,7 @@ import {computed,ref,watch,onBeforeUnmount} from 'vue'
 import {useRoute,useRouter,onBeforeRouteLeave} from 'vue-router'
 import {ElMessage,ElMessageBox} from 'element-plus'
 import {Plus,Filter,Folder,EditPen,Delete,ShoppingCart} from '@element-plus/icons-vue'
+import {categoryBehavior} from '../domain/categoryPurposes'
 import {groupTypesProblem} from '../domain/benefitSales/query'
 import PageHead from '../components/PageHead.vue'
 import CatalogScopeTree from '../components/catalog-workspace/CatalogScopeTree.vue'

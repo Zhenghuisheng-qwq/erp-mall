@@ -12,6 +12,7 @@
           <p v-if="renameError" class="cat-rename-error" role="alert" data-category-rename-error>{{renameError}}</p>
         </div>
         <span v-else class="cat-name" :title="pathOf(row.id)" @click.stop="nameClick(row.id,$event)" @dblclick.stop.prevent="renameFromDoubleClick(row.id)" @dragstart.prevent><span class="cat-name-text"><template v-for="(part,index) in highlightParts(row.name,keyword)" :key="index"><mark v-if="part.hit">{{part.text}}</mark><template v-else>{{part.text}}</template></template></span><small v-if="nameCounts.get(row.name)!==1" class="cat-name-path">{{pathOf(row.id)}}</small></span>
+        <CategoryPurposeBadge :category-id="row.id"/>
         <span v-if="pendingMembership.has(row.id)&&!pending" class="cat-pending-label">待移动</span><span v-if="!row.enabled" class="muted">停用</span><span v-if="badges.get(row.id)" class="muted count">{{badges.get(row.id)}}</span>
         <div class="cat-ops" @pointerdown.stop="settleNameSelection" @click.stop="settleNameSelection" @dblclick.stop @keydown.stop="settleNameSelection" @dragstart.stop.prevent>
           <el-button v-if="allowStage" link :disabled="busy" @click="$emit('stage',row.id)">加入待移动</el-button><el-button v-if="pending&&roots.has(row.id)" link :disabled="busy" :aria-label="`移除待移动${row.name}`" @click="$emit('remove',row.id)">移除</el-button>
@@ -24,6 +25,7 @@
   </section>
 </template>
 <script setup lang="ts">
+import CategoryPurposeBadge from '../CategoryPurposeBadge.vue'
 import {computed,nextTick,onBeforeUnmount,onMounted,ref,watch} from 'vue'
 import {categoryDisplayParents,highlightParts,type CategoryRow,type DropPosition} from '../../domain/categoryTree'
 import type {Category} from '../../domain/types'

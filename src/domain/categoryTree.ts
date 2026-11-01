@@ -351,7 +351,7 @@ export function shiftCategoryNode(categories: Category[], id: string, direction:
 export function updateCategoryNode(
   categories: Category[],
   id: string,
-  patch: { name: string; enabled: boolean; sort: number; parentId: string | null; icon?: string; catalogRole?: 'host' | 'accessory' },
+  patch: { name: string; enabled: boolean; sort: number; parentId: string | null; icon?: string; catalogRole?: 'host' | 'accessory'; purposeId?: string },
   typedCategoryIds: ReadonlySet<string> = new Set(),
 ) {
   const category = categories.find((item) => item.id === id)
@@ -364,6 +364,7 @@ export function updateCategoryNode(
   }
   if (patch.catalogRole !== undefined && !['host','accessory'].includes(patch.catalogRole)) return '请选择主机或配件分类'
   if (patch.catalogRole) category.catalogRole = patch.catalogRole
+  if(patch.purposeId!==undefined){category.purposeId=patch.purposeId;delete category.catalogRole}
   category.name = name
   category.enabled = patch.enabled
   const icon = patch.icon?.trim() || ''
@@ -407,6 +408,8 @@ export function planCategoryCopy(categories: Category[], mappings: CategoryMappi
       sort: isRoot ? maxSort + 1 : node.sort,
       enabled: node.enabled !== false,
     }
+    if(node.purposeId!==undefined)clone.purposeId=node.purposeId
+    if(node.catalogRole)clone.catalogRole=node.catalogRole
     if (node.icon) clone.icon = node.icon
     return clone
   })

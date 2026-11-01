@@ -29,7 +29,10 @@ export type PlanningOrigin = 'model' | 'temporary'
 export type AttrValueSource = 'dictionary' | 'manual'
 export type PlanningRoleSource = 'node' | 'scheme'
 
+export interface CategoryPurpose { id: string; name: string; behavior: 'host' | 'accessory' | 'other' }
+
 export interface Category {
+  purposeId?: string
   /** 分类业务用途；历史未配置时沿用产品类型用途。 */
   catalogRole?: 'host' | 'accessory'
   id: string
@@ -481,6 +484,7 @@ export interface Profile {
 }
 
 export interface AppData {
+  categoryPurposes?: CategoryPurpose[]
   /** Independent single-unit used goods; absent for untouched existing data. */
   usedGoods?: import('./usedGoods').UsedGoods
   publicSpuPool?: import('./benefitSales/publicSpuPool').PublicSpuEntry[]

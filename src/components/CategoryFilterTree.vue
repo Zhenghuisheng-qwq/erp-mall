@@ -12,6 +12,7 @@
             <template v-else>{{ part.text }}</template>
           </template>
         </button>
+        <CategoryPurposeBadge :category-id="row.id"/>
         <span v-if="selectedIds.includes(row.id)" class="mark">✓</span>
       </li>
     </ul>
@@ -29,6 +30,7 @@
 const treeStates = new Map<string,{expanded:string[];closed:string[];top:number;left:number;multiple:boolean;selection:string}>()
 </script>
 <script setup lang="ts">
+import CategoryPurposeBadge from './CategoryPurposeBadge.vue'
 import { computed, ref, watch, nextTick, onBeforeUnmount, onMounted } from 'vue'
 import { highlightParts, visibleCategoryRows, categoryChain, categoryPathLabel } from '../domain/categoryTree'
 import type { Category } from '../domain/types'

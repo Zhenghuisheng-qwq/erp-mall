@@ -1,8 +1,9 @@
+import {categoryBehavior} from './categoryPurposes'
 import type {AppData,CompatibilityHost} from './types'
 export function roleOfType(data: AppData, productTypeId: string): 'host' | 'accessory' | 'other' {
   const type = data.productTypes.find((item) => item.id === productTypeId)
   if (!type) return 'other'
-  const categoryRole = data.categories.find(c => c.id === type.categoryId)?.catalogRole
+  const categoryRole = categoryBehavior(data,type.categoryId)
   if (categoryRole) return categoryRole
   if (type.catalogRole) return type.catalogRole
   return 'other'

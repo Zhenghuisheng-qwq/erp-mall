@@ -58,6 +58,7 @@
                   <template v-else>{{ part.text }}</template>
                 </template>
               </button>
+              <CategoryPurposeBadge :category-id="row.id"/>
               <span v-if="selectedSet.has(row.id)" class="mark" aria-hidden="true">✓</span>
             </div>
             <p v-if="rejectId === row.id" class="reason" :style="{ paddingLeft: `${28 + row.depth * 16}px` }">{{ rejectText }}</p>
@@ -70,6 +71,7 @@
 </template>
 
 <script setup lang="ts">
+import CategoryPurposeBadge from './CategoryPurposeBadge.vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { categoryChain, categoryPathLabel, highlightParts, visibleCategoryRows, type CategoryRow } from '../domain/categoryTree'
 import type { Category } from '../domain/types'
